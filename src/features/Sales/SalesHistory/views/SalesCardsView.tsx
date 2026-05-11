@@ -1,4 +1,4 @@
-import { Eye, RotateCcw, User as UserIcon, ArrowLeftRight } from 'lucide-react';
+import { RotateCcw, User as UserIcon, ArrowLeftRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Sale, User } from '../../../../types';
 import { isConfirmedReturn, getSaleDate } from '../../../../utils/saleHelpers';
@@ -58,14 +58,14 @@ export function SaleCard({
     const netAmount = sale.total - refundedAmount;
     const hasReturns = saleReturns.length > 0;
 
-    // Badge de statut compact
+    // Badge de statut — couleurs sémantiques universelles
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'validated': return 'bg-green-100 text-green-700';
-            case 'pending': return 'bg-brand-subtle text-brand-primary';
-            case 'rejected': return 'bg-red-100 text-red-700';
-            case 'cancelled': return 'bg-purple-100 text-purple-700';
-            default: return 'bg-gray-100 text-gray-700';
+            case 'validated': return 'bg-green-50 text-green-700 border border-green-100';
+            case 'pending': return 'bg-brand-subtle text-brand-primary border border-brand-primary/20';
+            case 'rejected': return 'bg-red-50 text-red-700 border border-red-100';
+            case 'cancelled': return 'bg-gray-100 text-gray-600 border border-gray-200';
+            default: return 'bg-gray-100 text-gray-700 border border-gray-200';
         }
     };
 
@@ -75,112 +75,98 @@ export function SaleCard({
 
     return (
         <motion.div
-            whileHover={{ y: -4, rotate: 1 }}
-            className="group relative bg-white rounded-sm shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+            whileHover={{ y: -2 }}
+            className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-brand-primary/30 transition-all cursor-pointer overflow-hidden"
             onClick={onViewDetails}
         >
-            {/* Top Border "Receipt" accent */}
-            <div className="h-1.5 w-full bg-brand-primary opacity-80" />
+            {/* Accent supérieur — esprit "ticket" */}
+            <div className="h-1 w-full bg-brand-primary" />
 
-            <div className="p-4 cursor-pointer">
-                {/* Header: ID + Time + User */}
-                <div className="flex justify-between items-start mb-3">
-                    <div className="flex flex-col">
-                        <span className="font-mono text-xs text-gray-400 font-bold tracking-widest">#{sale.id.slice(-6)}</span>
-                        <span className="text-xs font-medium text-gray-500 flex items-center gap-1 mt-0.5">
+            <div className="p-4">
+                {/* Header : ID + heure + serveur */}
+                <div className="flex justify-between items-start mb-3 gap-2">
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-caption font-medium text-gray-400 tabular-nums">#{sale.id.slice(-6)}</span>
+                        <span className="text-caption text-gray-500 flex items-center gap-1 mt-0.5 truncate">
                             {(() => {
                                 const saleDate = getSaleDate(sale);
                                 const dateStr = isToday(saleDate)
                                     ? ''
                                     : `${saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} • `;
                                 const timeStr = new Date(sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-                                return <span>{dateStr}{timeStr}</span>;
+                                return <span className="tabular-nums">{dateStr}{timeStr}</span>;
                             })()}
-                            {seller && <><span className="text-gray-300 mx-1">•</span> <UserIcon size={10} /> {seller.name}</>}
+                            {seller && <><span className="text-gray-300 mx-1">•</span> <UserIcon size={10} className="flex-shrink-0" /> <span className="truncate">{seller.name}</span></>}
                         </span>
                     </div>
-                    <div className="flex gap-1.5">
-                        {/* Badge Échange si la vente est liée à un retour */}
+                    <div className="flex gap-1.5 flex-shrink-0">
                         {(sale as any).sourceReturnId && (
-                            <div className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-orange-100 text-orange-700 flex items-center gap-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-100">
                                 <ArrowLeftRight size={10} />
                                 Échange
-                            </div>
+                            </span>
                         )}
-                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${getStatusColor(sale.status)}`}>
-                            {sale.status === 'validated' ? 'Payé' : sale.status === 'cancelled' ? 'Annulée' : sale.status}
-                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${getStatusColor(sale.status)}`}>
+                            {sale.status === 'validated' ? 'Payé' : sale.status === 'cancelled' ? 'Annulée' : sale.status === 'rejected' ? 'Rejetée' : sale.status}
+                        </span>
                     </div>
                 </div>
 
-                {/* Divider dashed */}
+                {/* Divider dashed — esprit ticket */}
                 <div className="border-b border-dashed border-gray-200 my-3" />
 
                 {/* Lien vers retour source si échange */}
                 {(sale as any).sourceReturnId && (
-                    <div className="bg-orange-50 border border-orange-100 rounded-md px-2 py-1.5 mb-2">
-                        <p className="text-[10px] text-orange-700 font-medium flex items-center gap-1">
+                    <div className="bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 mb-3">
+                        <p className="text-caption text-amber-700 font-medium flex items-center gap-1.5">
                             <ArrowLeftRight size={10} />
-                            Vente de remplacement pour retour #{((sale as any).sourceReturnId as string).slice(-6).toUpperCase()}
+                            Remplacement du retour #{((sale as any).sourceReturnId as string).slice(-6).toUpperCase()}
                         </p>
                     </div>
                 )}
 
-                {/* Product Summary */}
+                {/* Articles (preview) */}
                 <div className="space-y-1.5 min-h-[50px]">
                     {sale.items.slice(0, 2).map((item: any, index) => (
-                        <div key={index} className="flex justify-between items-center text-xs text-gray-600">
-                            <span className="truncate pr-2">
-                                <span className="font-bold text-gray-800 mr-1">{item.quantity}x</span>
+                        <div key={index} className="flex justify-between items-center text-body-sm text-gray-600 gap-2">
+                            <span className="truncate min-w-0">
+                                <span className="font-semibold text-gray-800 mr-1 tabular-nums">{item.quantity}×</span>
                                 {item.product?.name || item.product_name}
                             </span>
-                            <span className="font-mono">{formatPrice((item.product?.price || item.unit_price) * item.quantity)}</span>
+                            <span className="tabular-nums flex-shrink-0">{formatPrice((item.product?.price || item.unit_price) * item.quantity)}</span>
                         </div>
                     ))}
                     {sale.items.length > 2 && (
-                        <p className="text-[10px] text-gray-400 italic text-center mt-1">
-                            + {sale.items.length - 2} autres articles...
+                        <p className="text-caption text-gray-400 italic text-center mt-1">
+                            + {sale.items.length - 2} autres articles
                         </p>
                     )}
                 </div>
 
-                {/* Divider dashed */}
-                <div className="border-b-2 border-dashed border-gray-100 my-3" />
+                <div className="border-b border-dashed border-gray-200 my-3" />
 
-                {/* Total Section */}
-                <div className="flex justify-between items-end">
-                    <div className="flex flex-col">
+                {/* Total */}
+                <div className="flex justify-between items-end gap-2">
+                    <div className="flex flex-col min-w-0">
                         {hasReturns ? (
                             <>
-                                <span className="text-[10px] text-gray-400 line-through decoration-red-400 decoration-2">
+                                <span className="text-caption text-gray-400 line-through decoration-red-400 tabular-nums">
                                     {formatPrice(sale.total)}
                                 </span>
-                                <span className="text-sm font-bold text-red-500 flex items-center gap-1">
+                                <span className="text-body-sm font-semibold text-red-500 flex items-center gap-1 tabular-nums">
                                     <RotateCcw size={12} />
                                     -{formatPrice(refundedAmount)}
                                 </span>
                             </>
                         ) : (
-                            <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Total Net</span>
+                            <span className="text-micro text-gray-500">Total net</span>
                         )}
                     </div>
-                    <div className="flex flex-col items-end">
-                        <span className="text-xl font-bold text-gray-800 font-mono tracking-tighter">
-                            {formatPrice(netAmount)}
-                        </span>
-                    </div>
+                    <span className="text-h3 font-semibold text-gray-900 tabular-nums flex-shrink-0">
+                        {formatPrice(netAmount)}
+                    </span>
                 </div>
             </div>
-
-            {/* Hover Action Overlay */}
-            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center justify-center">
-                <div className="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm text-xs font-bold text-gray-700 flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                    <Eye size={14} /> Voir le ticket
-                </div>
-            </div>
-
-            {/* Bottom serrated edge (Visual only via border masking usually, but simplistic here) */}
-            <div className="h-1 w-full bg-gradient-to-r from-transparent via-gray-200/50 to-transparent" />
         </motion.div>
     );
 }

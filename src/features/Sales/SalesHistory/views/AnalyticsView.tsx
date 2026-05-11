@@ -340,8 +340,8 @@ export function AnalyticsView({
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <BarChart3 size={64} className="text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-gray-600 mb-2">Aucune donnée disponible</h3>
-        <p className="text-sm text-gray-500">Effectuez des ventes pour voir les analytics</p>
+        <h3 className="text-h3 text-gray-700 mb-2">Aucune donnée disponible</h3>
+        <p className="text-body-sm text-gray-500">Effectuez des ventes pour voir les analytics</p>
       </div>
     );
   }
@@ -351,42 +351,42 @@ export function AnalyticsView({
       {/* KPIs principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
-          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">Chiffre d'affaires</h4>
-          <p className="text-xl font-black text-brand-dark">{formatPrice(kpis.revenue.value)}</p>
+          <h4 className="text-micro text-brand-primary mb-1">Chiffre d'affaires</h4>
+          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{formatPrice(kpis.revenue.value)}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.revenue.change} />
-            <span className={`text-xs font-bold ${kpis.revenue.change > 0 ? 'text-green-600' : kpis.revenue.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-caption font-medium tabular-nums ${kpis.revenue.change > 0 ? 'text-green-600' : kpis.revenue.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {kpis.revenue.change > 0 ? '+' : ''}{kpis.revenue.change.toFixed(1)}%
             </span>
           </div>
         </div>
 
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
-          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">Ventes totales</h4>
-          <p className="text-xl font-black text-brand-dark">{kpis.salesCount.value}</p>
+          <h4 className="text-micro text-brand-primary mb-1">Ventes totales</h4>
+          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{kpis.salesCount.value}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.salesCount.change} />
-            <span className={`text-xs font-bold ${kpis.salesCount.change > 0 ? 'text-green-600' : kpis.salesCount.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-caption font-medium tabular-nums ${kpis.salesCount.change > 0 ? 'text-green-600' : kpis.salesCount.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {kpis.salesCount.change > 0 ? '+' : ''}{kpis.salesCount.change.toFixed(1)}%
             </span>
           </div>
         </div>
 
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
-          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">{kpis.kpi.label}</h4>
-          <p className="text-xl font-black text-brand-dark">{formatPrice(kpis.kpi.value)}</p>
+          <h4 className="text-micro text-brand-primary mb-1">{kpis.kpi.label}</h4>
+          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{formatPrice(kpis.kpi.value)}</p>
           <div className="flex items-center gap-1 mt-1">
             <Clock className="w-4 h-4 text-brand-primary" />
-            <span className="text-xs font-bold text-brand-primary">Période actuelle</span>
+            <span className="text-caption font-medium text-brand-primary">Période actuelle</span>
           </div>
         </div>
 
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
-          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">Articles vendus</h4>
-          <p className="text-xl font-black text-brand-dark">{kpis.items.value}</p>
+          <h4 className="text-micro text-brand-primary mb-1">Articles vendus</h4>
+          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{kpis.items.value}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.items.change} />
-            <span className={`text-xs font-bold ${kpis.items.change > 0 ? 'text-green-600' : kpis.items.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-caption font-medium tabular-nums ${kpis.items.change > 0 ? 'text-green-600' : kpis.items.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {kpis.items.change > 0 ? '+' : ''}{kpis.items.change.toFixed(1)}%
             </span>
           </div>
