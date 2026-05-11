@@ -129,30 +129,29 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                                             </button>
                                         )}
 
-                                        {item.isSupply && !item.isOptimistic && canManageSupplies && (
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                {!item.supplyReversed && (
-                                                    <button
-                                                        onClick={() => onEditSupplyMetadata?.(item)}
-                                                        title="Modifier les infos"
-                                                        className="p-2.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                                    >
-                                                        <Pencil size={16} />
-                                                    </button>
-                                                )}
-                                                {!item.supplyReversed && (
-                                                    <button
-                                                        onClick={() => onReverseSupply?.(item)}
-                                                        title="Annuler l'approvisionnement"
-                                                        className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
-                                                    >
-                                                        <Undo2 size={16} />
-                                                    </button>
-                                                )}
-                                                {item.supplyReversed && (
+                                        {item.isSupply && !item.isOptimistic && (
+                                            <div className="flex items-center gap-1">
+                                                {item.supplyReversed ? (
                                                     <span className="text-[9px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-black uppercase tracking-wider">
                                                         Annulé
                                                     </span>
+                                                ) : canManageSupplies && (
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                        <button
+                                                            onClick={() => onEditSupplyMetadata?.(item)}
+                                                            title="Modifier les infos"
+                                                            className="p-2.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                        >
+                                                            <Pencil size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => onReverseSupply?.(item)}
+                                                            title="Annuler l'approvisionnement"
+                                                            className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                        >
+                                                            <Undo2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         )}
