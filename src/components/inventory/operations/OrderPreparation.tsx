@@ -186,209 +186,200 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
 
     return (
         <div className="space-y-4 pb-40">
-            {/* Unified Header & Navigation */}
-            <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
-                <div className="flex flex-col gap-4">
-                    {/* Top Row: Back & Title */}
-                    <div className="flex items-center gap-3">
-                        <BackButton onClick={onBack} />
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900">Nouvelle Commande</h2>
-                            <p className="text-xs text-gray-500">Optimisez votre stock</p>
-                        </div>
-                    </div>
-
-                    {/* Segmented Control */}
-                    <div className="flex p-1 bg-gray-100/80 rounded-xl overflow-x-auto">
-                        <button
-                            onClick={() => setViewMode('suggestions')}
-                            className={cn(
-                                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                                viewMode === 'suggestions'
-                                    ? "bg-white text-brand-primary shadow-sm ring-1 ring-black/5"
-                                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                            )}
-                        >
-                            <Sparkles className={cn("w-4 h-4", viewMode === 'suggestions' && "fill-brand-primary/20")} />
-                            Suggestions
-                        </button>
-                        <button
-                            onClick={() => setViewMode('alerts')}
-                            className={cn(
-                                "hidden sm:flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                                viewMode === 'alerts'
-                                    ? "bg-white text-red-600 shadow-sm ring-1 ring-black/5"
-                                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                            )}
-                        >
-                            <AlertTriangle className={cn("w-4 h-4", viewMode === 'alerts' && "fill-current")} />
-                            Alertes
-                            {alerts.length > 0 && (
-                                <span className={cn(
-                                    "ml-1 px-1.5 py-0.5 rounded-md text-[10px] uppercase font-black",
-                                    viewMode === 'alerts' ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-600"
-                                )}>
-                                    {alerts.length}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setViewMode('catalog')}
-                            className={cn(
-                                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-                                viewMode === 'catalog'
-                                    ? "bg-white text-brand-primary shadow-sm ring-1 ring-black/5"
-                                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-                            )}
-                        >
-                            <LayoutGrid className={cn("w-4 h-4", viewMode === 'catalog' && "fill-brand-primary/20")} />
-                            Catalogue
-                        </button>
-                    </div>
+            {/* Header — Back + titre, pas de Card englobante (cohérence avec onglet parent) */}
+            <div className="flex items-center gap-3">
+                <BackButton onClick={onBack} />
+                <div className="min-w-0">
+                    <h2 className="text-h3 text-gray-900">Nouvelle commande</h2>
+                    <p className="text-body-sm text-gray-500">Optimisez votre stock</p>
                 </div>
             </div>
 
-            {/* Content Area */}
-            <div className="bg-white rounded-3xl border border-gray-100 min-h-[500px] flex flex-col">
-                {/* Search Bar (Catalog Mode) */}
-                {viewMode === 'catalog' && (
-                    <div className="p-4 border-b border-gray-50">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                            <input
-                                type="text"
-                                placeholder="Rechercher un produit..."
-                                value={searchTerm}
-                                onChange={e => setSearchTerm(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
-                            />
-                        </div>
-                    </div>
-                )}
+            {/* Segmented Control */}
+            <div
+                role="radiogroup"
+                aria-label="Mode d'affichage"
+                className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200"
+            >
+                <button
+                    role="radio"
+                    aria-checked={viewMode === 'suggestions'}
+                    onClick={() => setViewMode('suggestions')}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption transition-all whitespace-nowrap",
+                        viewMode === 'suggestions'
+                            ? "bg-white text-brand-primary shadow-sm font-semibold"
+                            : "text-gray-600 hover:text-gray-900 font-medium"
+                    )}
+                >
+                    <Sparkles size={14} />
+                    Suggestions
+                </button>
+                <button
+                    role="radio"
+                    aria-checked={viewMode === 'alerts'}
+                    onClick={() => setViewMode('alerts')}
+                    className={cn(
+                        "hidden sm:flex flex-1 items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption transition-all whitespace-nowrap",
+                        viewMode === 'alerts'
+                            ? "bg-white text-red-600 shadow-sm font-semibold"
+                            : "text-gray-600 hover:text-gray-900 font-medium"
+                    )}
+                >
+                    <AlertTriangle size={14} />
+                    Alertes
+                    {alerts.length > 0 && (
+                        <span className={cn(
+                            "px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums",
+                            viewMode === 'alerts' ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-600"
+                        )}>
+                            {alerts.length}
+                        </span>
+                    )}
+                </button>
+                <button
+                    role="radio"
+                    aria-checked={viewMode === 'catalog'}
+                    onClick={() => setViewMode('catalog')}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption transition-all whitespace-nowrap",
+                        viewMode === 'catalog'
+                            ? "bg-white text-brand-primary shadow-sm font-semibold"
+                            : "text-gray-600 hover:text-gray-900 font-medium"
+                    )}
+                >
+                    <LayoutGrid size={14} />
+                    Catalogue
+                </button>
+            </div>
 
-                {/* Grid */}
-                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 content-start">
-                    {displayItems.map((item) => {
-                        // Mapping explicite des IDs pour éviter confusion entre stats et produits bruts
-                        const pid = item.product_id;
-                        const pname = item.product_name;
-                        const pvol = item.product_volume;
-                        const pstock = item.current_stock;
+            {/* Search Bar (Catalog Mode) */}
+            {viewMode === 'catalog' && (
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                        type="text"
+                        placeholder="Rechercher un produit..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all"
+                    />
+                </div>
+            )}
 
-                        const qty = getDraftQuantity(pid);
-                        const isSelected = qty > 0;
+            {/* Grid produits */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 content-start">
+                {displayItems.map((item) => {
+                    const pid = item.product_id;
+                    const pname = item.product_name;
+                    const pvol = item.product_volume;
+                    const pstock = item.current_stock;
 
-                        const stockInfo = getProductStockInfo(pid);
-                        const availableStock = stockInfo?.availableStock ?? pstock;
-                        const suggestion = ForecastingService.calculateOrderSuggestion(item, coverageDays, availableStock);
-                        const hasSuggestion = suggestion.suggestedQuantity > 0;
+                    const qty = getDraftQuantity(pid);
+                    const isSelected = qty > 0;
 
-                        return (
-                            <motion.div
-                                layout
-                                key={pid}
-                                className={cn(
-                                    "p-4 rounded-2xl border-2 transition-all relative overflow-hidden group backdrop-blur-md",
-                                    isSelected
-                                        ? "border-brand-primary bg-gradient-to-br from-brand-subtle/20 via-brand-subtle/10 to-white/50 shadow-lg shadow-brand-primary/20 ring-1 ring-brand-primary/20 hover:shadow-xl"
-                                        : "border-gray-200 bg-gradient-to-br from-white via-gray-50/50 to-gray-100/30 shadow-md shadow-gray-300/20 ring-1 ring-white/60 hover:shadow-lg hover:shadow-gray-400/30 hover:border-gray-300"
-                                )}
-                            >
-                                {isSelected && (
-                                    <div className="absolute top-0 right-0 p-1.5 bg-brand-primary rounded-bl-xl z-10">
-                                        <Check size={12} className="text-white" />
-                                    </div>
-                                )}
+                    const stockInfo = getProductStockInfo(pid);
+                    const availableStock = stockInfo?.availableStock ?? pstock;
+                    const suggestion = ForecastingService.calculateOrderSuggestion(item, coverageDays, availableStock);
+                    const hasSuggestion = suggestion.suggestedQuantity > 0;
 
+                    return (
+                        <motion.div
+                            layout
+                            key={pid}
+                            className={cn(
+                                "p-4 rounded-2xl border transition-all relative bg-white",
+                                isSelected
+                                    ? "border-brand-primary shadow-md"
+                                    : "border-gray-100 shadow-sm hover:border-brand-primary/40 hover:shadow-md"
+                            )}
+                        >
+                            {isSelected && (
+                                <div className="absolute top-0 right-0 p-1.5 bg-brand-primary rounded-bl-xl rounded-tr-2xl">
+                                    <Check size={12} className="text-white" />
+                                </div>
+                            )}
+
+                            <div className="mb-3 pr-6">
+                                <h4 className="text-body font-semibold text-gray-900 line-clamp-1">{pname}</h4>
+                                <p className="text-caption text-gray-500">{pvol}</p>
+                            </div>
+
+                            {/* Suggestion Badge */}
+                            {hasSuggestion && (
                                 <div className="mb-3">
-                                    <h4 className="font-bold text-gray-900 line-clamp-1">{pname}</h4>
-                                    <p className="text-xs text-gray-500">{pvol}</p>
+                                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-brand-subtle border border-brand-primary/20 text-caption font-medium text-brand-primary">
+                                        <Sparkles size={11} />
+                                        Suggéré <span className="font-semibold tabular-nums">{suggestion.suggestedQuantity}</span>
+                                    </span>
                                 </div>
+                            )}
 
-                                {/* Suggestion Badge */}
-                                {hasSuggestion && (
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <div className="px-2 py-1 rounded-lg bg-orange-50 border border-orange-100 flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                                            <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wide">
-                                                Suggéré : {suggestion.suggestedQuantity}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between items-end">
-                                    <div>
-                                        <p className="text-[10px] uppercase font-bold text-gray-400">Stock</p>
-                                        <p className={cn(
-                                            "text-sm font-black",
-                                            availableStock <= 0 ? "text-red-500" : "text-gray-700"
-                                        )}>
-                                            {availableStock}
-                                        </p>
-                                    </div>
-
-                                    {/* Action Stepper */}
-                                    <div className={cn(
-                                        "flex items-center gap-1 bg-gray-50 rounded-lg p-1 transition-colors",
-                                        isSelected && "bg-white shadow-sm ring-1 ring-brand-primary/20"
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <p className="text-micro text-gray-500">Stock</p>
+                                    <p className={cn(
+                                        "text-body font-semibold tabular-nums",
+                                        availableStock <= 0 ? "text-red-500" : "text-gray-900"
                                     )}>
-                                        {isSelected ? (
-                                            <>
-                                                <button
-                                                    onClick={() => handleDecrement(pid)}
-                                                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-600 active:scale-95 transition-transform"
-                                                >
-                                                    <Minus size={14} />
-                                                </button>
-                                                <span className="w-6 text-center font-bold text-brand-primary text-sm">{qty}</span>
-                                                <button
-                                                    onClick={() => handleIncrement(item)}
-                                                    className="w-7 h-7 flex items-center justify-center rounded-md bg-brand-primary text-white hover:bg-brand-primary/90 active:scale-95 transition-transform"
-                                                >
-                                                    <Plus size={14} />
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => handleIncrement(item, suggestion.suggestedQuantity)}
-                                                className="h-7 w-full text-xs font-bold text-brand-primary hover:bg-brand-subtle"
-                                            >
-                                                Ajouter {hasSuggestion && suggestion.suggestedQuantity > 1 ? `(${suggestion.suggestedQuantity})` : ''}
-                                            </Button>
-                                        )}
-                                    </div>
+                                        {availableStock}
+                                    </p>
                                 </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
+
+                                {/* Action Stepper */}
+                                {isSelected ? (
+                                    <div className="flex items-center gap-1 bg-white rounded-full border border-brand-primary/30 p-0.5">
+                                        <button
+                                            onClick={() => handleDecrement(pid)}
+                                            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 active:scale-95 transition-transform"
+                                            aria-label="Diminuer"
+                                        >
+                                            <Minus size={14} />
+                                        </button>
+                                        <span className="min-w-[1.5rem] text-center font-semibold text-brand-primary text-body-sm tabular-nums">{qty}</span>
+                                        <button
+                                            onClick={() => handleIncrement(item)}
+                                            className="w-7 h-7 flex items-center justify-center rounded-full bg-brand-primary text-white hover:opacity-90 active:scale-95 transition-transform"
+                                            aria-label="Augmenter"
+                                        >
+                                            <Plus size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleIncrement(item, suggestion.suggestedQuantity)}
+                                        className="h-8 text-caption font-semibold text-brand-primary hover:bg-brand-subtle"
+                                    >
+                                        Ajouter {hasSuggestion && suggestion.suggestedQuantity > 1 ? `(${suggestion.suggestedQuantity})` : ''}
+                                    </Button>
+                                )}
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
 
-            {/* Floating Footer (Aller à la commande) */}
-            {/* Floating Footer (Aller à la commande) */}
+            {/* Footer flottant — Récap + CTA finalisation */}
             {totals.itemsCount > 0 && (
                 <div className="fixed bottom-[80px] md:bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-xl z-40 pb-safe">
                     <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
 
-                        {/* Ligne 1 : Infos (Mobile) / Gauche (Desktop) */}
-                        <div className="flex flex-row w-full md:w-auto justify-between md:justify-start items-center gap-4">
-                            <div className="flex flex-col">
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Votre commande</span>
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-2xl font-black text-brand-primary">{formatPrice(totals.totalCost)}</span>
-                                    <span className="text-sm font-bold text-gray-400">({totals.itemsCount} articles)</span>
-                                </div>
+                        <div className="flex flex-col w-full md:w-auto">
+                            <span className="text-micro text-gray-500">Votre commande</span>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-h2 font-semibold text-brand-primary tabular-nums">{formatPrice(totals.totalCost)}</span>
+                                <span className="text-body-sm text-gray-400 tabular-nums">
+                                    ({totals.itemsCount} {totals.itemsCount > 1 ? 'articles' : 'article'})
+                                </span>
                             </div>
                         </div>
 
-                        {/* Ligne 2 : Bouton (Mobile) / Droite (Desktop) */}
                         <Button
                             size="lg"
                             onClick={onGoToFinalization}
-                            className="w-full md:w-auto rounded-xl shadow-lg shadow-brand-primary/20 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold px-8 h-12"
+                            className="w-full md:w-auto"
                         >
                             Finaliser la commande
                             <ShoppingCart className="ml-2 w-5 h-5" />
