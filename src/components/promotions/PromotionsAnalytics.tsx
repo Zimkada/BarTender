@@ -91,66 +91,46 @@ export function PromotionsAnalytics() {
 
     const kpis = [
         {
-            label: 'Chiffre d\'Affaires',
+            label: 'Chiffre d\'affaires',
             value: formatPrice(stats?.totalRevenue || 0),
             growth: stats?.revenueGrowth,
-            icon: <DollarSign size={24} />,
-            color: 'text-emerald-600',
-            bg: 'bg-emerald-50',
-            gradient: 'from-emerald-500 to-teal-600'
+            icon: <DollarSign size={20} />,
         },
         {
             label: 'Utilisations',
             value: stats?.totalUses || 0,
             growth: stats?.usesGrowth,
-            icon: <ShoppingBag size={24} />,
-            color: 'text-blue-600',
-            bg: 'bg-blue-50',
-            gradient: 'from-blue-500 to-indigo-600'
+            icon: <ShoppingBag size={20} />,
         },
         {
-            label: 'Profit Réalisé',
+            label: 'Profit réalisé',
             value: formatPrice(stats?.netProfit || 0),
-            subValue: `Marge: ${stats?.marginPercentage || 0}%`,
-            icon: <TrendingUp size={24} />,
-            color: 'text-brand-primary',
-            bg: 'bg-brand-subtle',
-            gradient: 'var(--brand-gradient)'
+            subValue: `Marge : ${stats?.marginPercentage || 0}%`,
+            icon: <TrendingUp size={20} />,
         },
         {
-            label: 'Retour sur Invest.',
+            label: 'Retour sur invest.',
             value: `${stats?.roi || 0}%`,
-            subValue: `Coût: ${formatPrice(stats?.totalCostOfGoods || 0)}`,
-            icon: <Target size={24} />,
-            color: 'text-purple-600',
-            bg: 'bg-purple-50',
-            gradient: 'from-purple-500 to-fuchsia-600'
+            subValue: `Coût : ${formatPrice(stats?.totalCostOfGoods || 0)}`,
+            icon: <Target size={20} />,
         }
     ];
 
     return (
-        <div className="space-y-8 p-6 sm:p-10 bg-slate-50/30">
-            {/* Header & Filter Section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-brand-subtle rounded-2xl text-brand-primary border border-brand-subtle shadow-sm">
-                            <BarChart3 size={28} />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">Intelligence</h3>
-                            <h4 className="text-2xl font-black text-brand-primary uppercase tracking-tighter leading-tight">Promotions</h4>
-                        </div>
+        <div className="space-y-6 p-5 sm:p-8">
+            {/* Header & Filter */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-brand-subtle rounded-xl text-brand-primary flex items-center justify-center">
+                        <BarChart3 size={18} />
                     </div>
-                    <p className="text-gray-500 font-medium flex items-center flex-wrap gap-2">
-                        Analyse des performances pour la période :
-                        <span className="px-3 py-1 bg-brand-subtle text-brand-primary rounded-full font-bold text-xs border border-brand-subtle shadow-sm">
-                            {periodLabel}
-                        </span>
-                    </p>
+                    <div>
+                        <h3 className="text-h3 text-gray-900">Analyse des promotions</h3>
+                        <p className="text-caption text-gray-500">{periodLabel}</p>
+                    </div>
                 </div>
 
-                <div className="w-full lg:w-auto bg-white/40 backdrop-blur-md p-1.5 rounded-2xl shadow-sm border border-brand-subtle" data-guide="promotions-filters">
+                <div className="w-full lg:w-auto" data-guide="promotions-filters">
                     <PeriodFilter
                         timeRange={timeRange}
                         setTimeRange={setTimeRange}
@@ -163,128 +143,113 @@ export function PromotionsAnalytics() {
             </div>
 
             {/* KPI Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {kpis.map((kpi, index) => (
                     <motion.div
                         key={index}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex items-center gap-3"
                     >
-                        {/* Background Decoration */}
-                        <div className={`absolute -right-4 -bottom-4 w-24 h-24 ${kpi.bg} opacity-20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500`}></div>
-
-                        <div className="flex justify-between items-start mb-6 relative z-10">
-                            <div className={`p-3 ${kpi.bg} ${kpi.color} rounded-2xl group-hover:scale-110 transition-transform transform rotate-3`}>
-                                {kpi.icon}
-                            </div>
-                            {kpi.growth !== undefined && (
-                                <GrowthBadge value={kpi.growth} />
-                            )}
+                        <div className="w-9 h-9 bg-brand-subtle text-brand-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                            {kpi.icon}
                         </div>
-
-                        <div className="relative z-10">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{kpi.label}</p>
-                            <h4 className="text-2xl font-black text-gray-900 leading-none mb-2">{kpi.value}</h4>
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="text-micro text-gray-500">{kpi.label}</p>
+                                {kpi.growth !== undefined && <GrowthBadge value={kpi.growth} />}
+                            </div>
+                            <p className="text-body font-semibold text-gray-900 tabular-nums">{kpi.value}</p>
                             {kpi.subValue && (
-                                <p className="text-xs font-bold text-brand-primary/60 uppercase">{kpi.subValue}</p>
+                                <p className="text-caption text-brand-primary">{kpi.subValue}</p>
                             )}
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            {/* Performance Details Card */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl overflow-hidden relative">
-                {/* Header Decoration */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--brand-gradient)]"></div>
-
-                <div className="p-8 sm:p-10 border-b border-gray-50 flex justify-between items-center">
+            {/* Performance Table */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-100 flex justify-between items-center">
                     <div>
-                        <h4 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
-                            <Zap className="text-brand-primary" size={20} />
-                            Classement des Offres
+                        <h4 className="text-h3 text-gray-900 flex items-center gap-2">
+                            <Zap className="text-brand-primary" size={16} />
+                            Classement des offres
                         </h4>
-                        <p className="text-sm text-gray-400 font-medium mt-1">Comparaison détaillée par rentabilité directe</p>
-                    </div>
-                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Analyse en temps réel</span>
+                        <p className="text-caption text-gray-500 mt-0.5">Comparaison par rentabilité directe</p>
                     </div>
                 </div>
 
-                <div className="p-2 sm:p-6">
+                <div className="overflow-x-auto">
                     {stats?.topPromotions?.length > 0 ? (
-                        <div className="overflow-x-auto ring-1 ring-gray-50 rounded-3xl">
-                            <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-slate-50/50 text-gray-400">
-                                    <tr>
-                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">Promotion</th>
-                                        <th className="p-5 font-black uppercase tracking-widest text-[10px] text-center">Score</th>
-                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">CA Généré</th>
-                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">Profit Net</th>
-                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">Efficacité</th>
+                        <table className="w-full text-left whitespace-nowrap">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    <th className="px-5 py-3 text-micro text-gray-400">Promotion</th>
+                                    <th className="px-5 py-3 text-micro text-gray-400 text-center">Score</th>
+                                    <th className="px-5 py-3 text-micro text-gray-400">CA généré</th>
+                                    <th className="px-5 py-3 text-micro text-gray-400">Profit net</th>
+                                    <th className="px-5 py-3 text-micro text-gray-400">Efficacité</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {stats.topPromotions.map((promo: any, index: number) => (
+                                    <tr key={index} className={`transition-colors ${promo.netProfit < 0 ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-gray-50/50'}`}>
+                                        <td className="px-5 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-body-sm font-semibold tabular-nums ${promo.netProfit < 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                                    {index + 1}
+                                                </div>
+                                                <div>
+                                                    <div className={`text-body-sm font-semibold ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-900'}`}>{promo.name}</div>
+                                                    <div className="text-caption text-gray-400">
+                                                        {promo.uses} utilisations{promo.netProfit < 0 && ' · Déficitaire'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4 text-center">
+                                            <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full border-2 text-body-sm font-semibold tabular-nums ${promo.netProfit < 0 ? 'border-red-200 bg-red-50 text-red-600' : 'border-gray-100 text-gray-900'}`}>
+                                                {promo.roi}%
+                                            </span>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="text-body-sm font-semibold text-green-600 tabular-nums">{formatPrice(promo.revenue)}</div>
+                                            <div className="text-caption text-gray-400 tabular-nums">Coût : {formatPrice(promo.costOfGoods || 0)}</div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className={`text-body-sm font-semibold tabular-nums ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                                {formatPrice(promo.netProfit || 0)}
+                                            </div>
+                                            <div className={`text-caption ${promo.netProfit < 0 ? 'text-red-400' : 'text-brand-primary'}`}>
+                                                {promo.netProfit < 0 ? 'Perte' : 'Profit'}
+                                            </div>
+                                        </td>
+                                        <td className="px-5 py-4">
+                                            <div className="w-28 h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1">
+                                                <motion.div
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${Math.min(100, Math.max(0, promo.marginPercentage))}%` }}
+                                                    className={`h-full rounded-full ${promo.netProfit < 0 ? 'bg-red-400' : 'bg-brand-primary'}`}
+                                                />
+                                            </div>
+                                            <div className={`text-caption ${promo.netProfit < 0 ? 'text-red-500' : 'text-gray-400'} tabular-nums`}>
+                                                {Math.round(promo.marginPercentage)}% marge
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {stats.topPromotions.map((promo: any, index: number) => (
-                                        <tr key={index} className={`transition-colors group ${promo.netProfit < 0 ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-brand-subtle'}`}>
-                                            <td className="p-5">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold group-hover:text-white transition-all ${promo.netProfit < 0 ? 'bg-red-100 text-red-600 group-hover:bg-red-600' : 'bg-slate-50 text-gray-400 group-hover:bg-brand-primary group-hover:text-white'}`}>
-                                                        {index + 1}
-                                                    </div>
-                                                    <div>
-                                                        <div className={`font-black uppercase tracking-tight ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-900'}`}>{promo.name}</div>
-                                                        <div className={`text-[10px] font-bold uppercase ${promo.netProfit < 0 ? 'text-red-400' : 'text-gray-400'}`}>
-                                                            {promo.uses} utilisations {promo.netProfit < 0 && '⚠️ Déficitaire'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="p-5 text-center">
-                                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full border-4 font-black transition-all ${promo.netProfit < 0 ? 'border-red-200 bg-red-50 text-red-600' : 'border-slate-50 text-gray-900 group-hover:border-brand-subtle group-hover:text-brand-primary'}`}>
-                                                    {promo.roi}%
-                                                </div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="font-black text-emerald-600 tracking-tight">{formatPrice(promo.revenue)}</div>
-                                                <div className="text-[10px] text-gray-400 font-bold uppercase">Coût: {formatPrice(promo.costOfGoods || 0)}</div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className={`font-black tracking-tight ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                                                    {formatPrice(promo.netProfit || 0)}
-                                                </div>
-                                                <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${promo.netProfit < 0 ? 'text-red-500' : 'text-brand-primary/60'}`}>
-                                                    {promo.netProfit < 0 ? '❌ Perte' : '✓ Profit'}
-                                                </div>
-                                            </td>
-                                            <td className="p-5">
-                                                <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${Math.min(100, Math.max(0, promo.marginPercentage))}%` }}
-                                                        className={`h-full bg-gradient-to-r ${promo.netProfit < 0 ? 'from-red-500 to-rose-600' : promo.marginPercentage >= 30 ? 'from-green-500 to-emerald-600' : 'from-brand-primary to-brand-primary-dark'} rounded-full`}
-                                                    ></motion.div>
-                                                </div>
-                                                <div className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                                                    {Math.round(promo.marginPercentage)}% Marge {promo.netProfit < 0 ? '(Perte)' : ''}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                            </tbody>
+                        </table>
                     ) : (
-                        <div className="p-20 text-center flex flex-col items-center gap-6">
-                            <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center border-4 border-dashed border-slate-100 text-slate-200">
-                                <BarChart3 size={64} />
+                        <div className="py-16 text-center flex flex-col items-center gap-4">
+                            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center border border-dashed border-gray-200">
+                                <BarChart3 size={24} className="text-gray-300" />
                             </div>
                             <div>
-                                <h5 className="text-xl font-black text-gray-300 uppercase tracking-widest">Le silence règne ici</h5>
-                                <p className="text-gray-400 font-medium max-w-xs mx-auto mt-2">Aucune donnée trouvée pour les filtres sélectionnés. Il est temps de lancer une promotion !</p>
+                                <p className="text-body-sm font-medium text-gray-400">Aucune donnée pour cette période</p>
+                                <p className="text-caption text-gray-400 mt-1">Lancez une promotion pour voir les performances ici.</p>
                             </div>
                         </div>
                     )}
@@ -297,11 +262,11 @@ export function PromotionsAnalytics() {
 function GrowthBadge({ value }: { value: number }) {
     const isPositive = value > 0;
     const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
-    const colorClass = isPositive ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-rose-600 bg-rose-50 border-rose-100';
+    const colorClass = isPositive ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-600 bg-red-50 border-red-200';
 
     return (
-        <span className={`flex items-center text-[10px] font-black px-3 py-1.5 rounded-xl border ${colorClass} shadow-sm uppercase tracking-tighter`}>
-            <Icon size={14} className="mr-1" />
+        <span className={`flex items-center gap-0.5 text-caption font-semibold px-2 py-0.5 rounded-full border ${colorClass} tabular-nums`}>
+            <Icon size={12} />
             {isPositive ? '+' : ''}{value}%
         </span>
     );
