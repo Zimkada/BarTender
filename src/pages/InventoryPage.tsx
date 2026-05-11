@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useInventoryFilter } from '../hooks/useInventoryFilter';
 import { useInventoryActions } from '../hooks/useInventoryActions';
+import { usePurchaseOrders } from '../hooks/queries/usePurchaseOrdersQueries';
 import { useViewport } from '../hooks/useViewport';
 import { useFeatureFlag } from '../hooks/useFeatureFlag';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
@@ -48,7 +49,6 @@ export default function InventoryPage() {
 
     // 2. Local View State
     const [viewMode, setViewMode] = useState<ViewMode>(initialTab || 'products');
-    const [operationsInitialMode, setOperationsInitialMode] = useState<'menu' | 'order-prep'>('menu');
 
     // 🛡️ Expert Fix: Active le "Lite Mode" quand on est dans l'onglet Produits
     const {
@@ -124,10 +124,21 @@ export default function InventoryPage() {
     // 4. Config
     const inventoryGuideId = currentSession?.role === 'gerant' ? 'manager-inventory' : 'manage-inventory';
 
+    // Badge "Commandes" : nombre de bons de commande actifs (brouillon, en attente, partiel)
+    const { data: purchaseOrders } = usePurchaseOrders(currentBar?.id);
+    const activeOrdersCount = purchaseOrders?.filter(o =>
+        o.status === 'draft' || o.status === 'ordered' || o.status === 'partially_received'
+    ).length ?? 0;
+
     const tabsConfig = [
         { id: 'products', label: 'Produits', icon: Package },
         { id: 'operations', label: 'Opérations', icon: Zap },
-        { id: 'orders', label: 'Commandes', icon: ClipboardList },
+        {
+            id: 'orders',
+            label: 'Commandes',
+            icon: ClipboardList,
+            badge: activeOrdersCount > 0 ? activeOrdersCount : undefined,
+        },
         { id: 'stats', label: 'Statistiques', icon: BarChart3 },
     ];
 
@@ -290,18 +301,12 @@ export default function InventoryPage() {
                             data-guide="inventory-operations"
                         >
                             <InventoryOperations
-                                lowStockProducts={lowStockProducts}
                                 getProductStockInfo={getProductStockInfo}
                                 categories={categories}
                                 products={products}
                                 onSaveProduct={handleSaveProduct}
                                 onSupply={handleSupply}
                                 isProductImportEnabled={isProductImportEnabled}
-                                initialMode={operationsInitialMode}
-                                onOrderSaved={() => {
-                                    setOperationsInitialMode('menu');
-                                    setViewMode('orders');
-                                }}
                             />
                         </motion.div>
                     )}
@@ -315,13 +320,7 @@ export default function InventoryPage() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
                         >
-                            <PurchaseOrdersTab
-                                barId={currentBar.id}
-                                onNewOrder={() => {
-                                    setOperationsInitialMode('order-prep');
-                                    setViewMode('operations');
-                                }}
-                            />
+                            <PurchaseOrdersTab barId={currentBar.id} />
                         </motion.div>
                     )}
 

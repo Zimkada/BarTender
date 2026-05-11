@@ -691,8 +691,8 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       emoji: '🤖',
       title: 'Refondation : Préparation de Commande Assistée',
       description:
-        'Ne commandez plus au hasard ! Ce module analyse le rythme de vos **30 derniers jours de vente** pour suggérer les quantités idéales couvrant votre **fréquence de réapprovisionnement** (réglable dans vos Paramètres). Il détecte ainsi les ruptures imminentes.',
-      elementSelector: '[data-guide="inventory-order-prep-btn"]',
+        'Ne commandez plus au hasard ! Depuis l\'onglet **Commandes**, le bouton **+ Nouvelle commande** ouvre un module qui analyse le rythme de vos **30 derniers jours de vente** pour suggérer les quantités idéales couvrant votre **fréquence de réapprovisionnement** (réglable dans vos Paramètres). Il détecte ainsi les ruptures imminentes.',
+      elementSelector: '[data-guide="inventory-new-order-btn"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [

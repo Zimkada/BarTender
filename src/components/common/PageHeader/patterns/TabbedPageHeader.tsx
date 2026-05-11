@@ -6,6 +6,10 @@ export interface TabItem {
     id: string;
     label: string;
     icon?: React.ElementType;
+    /** Badge count (ex: nombre d'éléments nécessitant attention). Affiché à droite du label. */
+    badge?: number;
+    /** Variante visuelle du badge — 'default' = brand-subtle, 'alert' = rouge */
+    badgeVariant?: 'default' | 'alert';
 }
 
 export interface TabbedPageHeaderProps {
@@ -81,6 +85,8 @@ export function TabbedPageHeader({
                     {tabs.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
+                        const hasBadge = typeof tab.badge === 'number' && tab.badge > 0;
+                        const badgeVariant = tab.badgeVariant ?? 'default';
                         return (
                             <Button
                                 key={tab.id}
@@ -93,6 +99,20 @@ export function TabbedPageHeader({
                             >
                                 {Icon && <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden sm:inline mr-2" />}
                                 {tab.label}
+                                {hasBadge && (
+                                    <span
+                                        className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums ${
+                                            badgeVariant === 'alert'
+                                                ? 'bg-red-500 text-white'
+                                                : isActive
+                                                    ? 'bg-white/30 text-white'
+                                                    : 'bg-brand-primary text-white'
+                                        }`}
+                                        aria-label={`${tab.badge} élément${tab.badge! > 1 ? 's' : ''}`}
+                                    >
+                                        {tab.badge! > 99 ? '99+' : tab.badge}
+                                    </span>
+                                )}
                             </Button>
                         );
                     })}

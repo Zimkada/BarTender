@@ -7,6 +7,9 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { useAuth } from '../../context/AuthContext';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 import { OrderReceptionModal } from './OrderReceptionModal';
+import { OrderPreparation } from './operations/OrderPreparation';
+import { OrderFinalization } from './operations/OrderFinalization';
+import { BackButton } from '../ui/BackButton';
 import { Spinner } from '../ui/Spinner';
 import { Button } from '../ui/Button';
 import type { PurchaseOrderSummary, PurchaseOrderStatus } from '../../types';
@@ -60,13 +63,13 @@ const STATUS_CONFIG: Record<PurchaseOrderStatus, {
 };
 
 type FilterMode = 'active' | 'history';
+type CreationMode = 'list' | 'prep' | 'finalize';
 
 interface PurchaseOrdersTabProps {
     barId: string;
-    onNewOrder: () => void;
 }
 
-export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps) {
+export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
     const { showSuccess, showError } = useFeedback();
@@ -78,8 +81,12 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
         || currentSession?.role === 'super_admin';
 
     const [filterMode, setFilterMode] = useState<FilterMode>('active');
+    const [creationMode, setCreationMode] = useState<CreationMode>('list');
     const [orderToCancel, setOrderToCancel] = useState<PurchaseOrderSummary | null>(null);
     const [orderToReceive, setOrderToReceive] = useState<PurchaseOrderSummary | null>(null);
+
+    const handleNewOrder = () => setCreationMode('prep');
+    const handleBackToList = () => setCreationMode('list');
 
     const activeOrders = orders?.filter(o =>
         o.status === 'draft' || o.status === 'ordered' || o.status === 'partially_received'
@@ -112,22 +119,80 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
         }
     };
 
+    // Mode création de commande — affiché à la place de la liste
+    if (creationMode === 'prep') {
+        return (
+            <OrderPreparation
+                onBack={handleBackToList}
+                onGoToFinalization={() => setCreationMode('finalize')}
+            />
+        );
+    }
+
+    if (creationMode === 'finalize') {
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                    <BackButton onClick={() => setCreationMode('prep')} />
+                    <h2 className="text-h3 text-gray-900">Finalisation commande</h2>
+                </div>
+                <OrderFinalization onOrderSaved={handleBackToList} />
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <div>
-                    <h2 className="text-base font-black text-gray-900">Bons de commande</h2>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                        {activeOrders.length > 0
-                            ? `${activeOrders.length} commande(s) en cours`
-                            : 'Aucune commande en cours'}
-                    </p>
+            {/* Toolbar : filter tabs (ligne 1 mobile) + actions (ligne 2 mobile) */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                {/* Filter tabs (segmented control) */}
+                <div
+                    role="radiogroup"
+                    aria-label="Filtrer les commandes"
+                    className="flex flex-1 p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                >
+                    <button
+                        role="radio"
+                        aria-checked={filterMode === 'active'}
+                        onClick={() => setFilterMode('active')}
+                        className={cn(
+                            'flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-all',
+                            filterMode === 'active'
+                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
+                                : 'text-gray-600 hover:text-gray-900 font-medium',
+                        )}
+                    >
+                        En cours
+                        {activeOrders.length > 0 && (
+                            <span className={cn(
+                                'px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums',
+                                filterMode === 'active' ? 'bg-brand-subtle text-brand-primary' : 'bg-gray-200 text-gray-600',
+                            )}>
+                                {activeOrders.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        role="radio"
+                        aria-checked={filterMode === 'history'}
+                        onClick={() => setFilterMode('history')}
+                        className={cn(
+                            'flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-all',
+                            filterMode === 'history'
+                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
+                                : 'text-gray-600 hover:text-gray-900 font-medium',
+                        )}
+                    >
+                        Historique
+                    </button>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 sm:flex-shrink-0">
                     <button
                         onClick={() => refetch()}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+                        className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                        aria-label="Actualiser"
                         title="Actualiser"
                     >
                         <RefreshCw size={16} />
@@ -135,49 +200,15 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
                     {canManage && (
                         <Button
                             size="sm"
-                            onClick={onNewOrder}
-                            className="gap-1.5 text-white font-bold"
-                            style={{ backgroundColor: '#6366F1', backgroundImage: 'none' }}
+                            onClick={handleNewOrder}
+                            data-guide="inventory-new-order-btn"
+                            className="gap-1.5 flex-1 sm:flex-initial"
                         >
                             <Plus size={16} />
                             Nouvelle commande
                         </Button>
                     )}
                 </div>
-            </div>
-
-            {/* Filter tabs */}
-            <div className="flex p-1 bg-gray-100/80 rounded-xl">
-                <button
-                    onClick={() => setFilterMode('active')}
-                    className={cn(
-                        'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                        filterMode === 'active'
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700',
-                    )}
-                >
-                    En cours
-                    {activeOrders.length > 0 && (
-                        <span className={cn(
-                            'px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase',
-                            filterMode === 'active' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-200 text-gray-600',
-                        )}>
-                            {activeOrders.length}
-                        </span>
-                    )}
-                </button>
-                <button
-                    onClick={() => setFilterMode('history')}
-                    className={cn(
-                        'flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                        filterMode === 'history'
-                            ? 'bg-white text-gray-900 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700',
-                    )}
-                >
-                    Historique
-                </button>
             </div>
 
             {/* Content */}
@@ -189,15 +220,15 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
             ) : displayed.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
                     <ClipboardList size={48} className="mb-3 opacity-20" />
-                    <p className="font-medium">
+                    <p className="text-body font-medium">
                         {filterMode === 'active'
                             ? 'Aucune commande en cours'
                             : 'Aucun historique'}
                     </p>
                     {filterMode === 'active' && canManage && (
                         <button
-                            onClick={onNewOrder}
-                            className="mt-4 text-sm text-indigo-600 hover:text-indigo-800 font-bold underline underline-offset-2"
+                            onClick={handleNewOrder}
+                            className="mt-4 text-body-sm text-brand-primary hover:text-brand-dark font-semibold underline underline-offset-2"
                         >
                             Créer une commande
                         </button>
@@ -217,39 +248,40 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
                                 <motion.div
                                     key={order.id}
                                     layout
-                                    initial={{ opacity: 0, y: 8 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.97 }}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
                                     className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
                                 >
                                     {/* Card header */}
                                     <div className="p-4 flex items-start gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center shrink-0">
-                                            <ClipboardList size={20} className="text-indigo-600" />
+                                        <div className="w-10 h-10 rounded-xl bg-brand-subtle flex items-center justify-center shrink-0">
+                                            <ClipboardList size={20} className="text-brand-primary" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className={cn(
-                                                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border',
+                                                    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-semibold border',
                                                     cfg.badge,
                                                 )}>
                                                     {cfg.icon}
                                                     {cfg.label}
                                                 </span>
-                                                <span className="text-xs text-gray-400">
+                                                <span className="text-caption text-gray-400">
                                                     {format(order.createdAt, "d MMM yyyy", { locale: fr })}
                                                 </span>
                                             </div>
                                             <div className="mt-1 flex items-baseline gap-3 flex-wrap">
-                                                <span className="text-base font-black text-gray-900">
+                                                <span className="text-body font-semibold text-gray-900 tabular-nums">
                                                     {formatPrice(order.totalCost)}
                                                 </span>
-                                                <span className="text-xs text-gray-500">
+                                                <span className="text-caption text-gray-500">
                                                     {order.itemsCount} produit{order.itemsCount > 1 ? 's' : ''}
                                                 </span>
                                             </div>
                                             {order.notes && (
-                                                <p className="text-xs text-gray-400 italic mt-1 truncate">
+                                                <p className="text-caption text-gray-400 italic mt-1 truncate">
                                                     {order.notes}
                                                 </p>
                                             )}
@@ -263,8 +295,7 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
                                                 <Button
                                                     size="sm"
                                                     onClick={() => setOrderToReceive(order)}
-                                                    className="gap-1.5 text-white font-bold"
-                                                    style={{ backgroundColor: '#6366F1', backgroundImage: 'none' }}
+                                                    className="gap-1.5"
                                                 >
                                                     <Truck size={14} />
                                                     Réceptionner
@@ -285,14 +316,14 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
                                             {canCancel && (
                                                 <button
                                                     onClick={() => setOrderToCancel(order)}
-                                                    className="ml-auto flex items-center gap-1 text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-all"
+                                                    className="ml-auto flex items-center gap-1 text-caption text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-all"
                                                 >
                                                     <Ban size={12} />
                                                     Annuler
                                                 </button>
                                             )}
                                             {order.status === 'received' && (
-                                                <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                                                <span className="flex items-center gap-1 text-caption text-green-600 font-medium">
                                                     <CheckCircle2 size={14} />
                                                     Réceptionné le {order.receivedAt
                                                         ? format(order.receivedAt, "d MMM", { locale: fr })
@@ -301,7 +332,7 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
                                                 </span>
                                             )}
                                             {order.status !== 'received' && order.status !== 'cancelled' && order.status !== 'draft' && (
-                                                <span className="ml-auto flex items-center gap-1 text-xs text-gray-400">
+                                                <span className="ml-auto flex items-center gap-1 text-caption text-gray-400">
                                                     <ChevronRight size={14} />
                                                 </span>
                                             )}
