@@ -69,10 +69,9 @@ export default function AccountingPage() {
 
     return (
         <div className="max-w-7xl mx-auto">
-            {/* Header */}
             <TabbedPageHeader
                 title="Comptabilité"
-                subtitle="Suivez vos revenus, dépenses et gérez les salaires de l'équipe."
+                subtitle="Suivez vos revenus, dépenses et salaires."
                 icon={<DollarSign size={24} />}
                 guideId="accounting-guide"
                 tabs={[
@@ -91,19 +90,18 @@ export default function AccountingPage() {
                 }
             />
 
-            {/* Content */}
             <AnimatePresence mode="wait">
                 <motion.div
                     key={activeTab}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                 >
                     <Suspense fallback={
                         <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
-                            <span className="ml-3 text-gray-600">Chargement...</span>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
+                            <span className="ml-3 text-body-sm text-gray-600">Chargement...</span>
                         </div>
                     }>
                         {activeTab === 'overview' && <AccountingOverview period={periodProps} />}

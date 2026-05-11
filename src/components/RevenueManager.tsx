@@ -109,28 +109,24 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                 </div>
             </div>
 
-            {/* KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* KPIs — couleurs brand uniforme + sémantique préservée pour Total Recettes */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {[
-                    { label: 'Total Recettes', value: totals.revenue, icon: ArrowDownToLine, color: 'text-brand-primary', bg: 'bg-brand-primary/10' },
-                    { label: 'Espèces', value: totals.cash, icon: HandCoins, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                    { label: 'Mobile Money', value: totals.mobile, icon: Smartphone, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                    { label: 'Carte & Autres', value: totals.card, icon: CreditCard, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                    { label: 'Total Recettes', value: totals.revenue, icon: ArrowDownToLine, accent: true },
+                    { label: 'Espèces', value: totals.cash, icon: HandCoins },
+                    { label: 'Mobile Money', value: totals.mobile, icon: Smartphone },
+                    { label: 'Carte & Autres', value: totals.card, icon: CreditCard },
                 ].map((kpi, idx) => (
-                    <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:-translate-y-1 transition-transform">
-                        <div className={`p-3 rounded-xl ${kpi.bg} ${kpi.color}`}>
-                            <kpi.icon size={20} />
+                    <div key={idx} className={`bg-white rounded-2xl p-4 shadow-sm border flex items-center gap-3 hover:shadow-md transition-shadow ${kpi.accent ? 'border-brand-primary/30' : 'border-gray-100'}`}>
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
+                            <kpi.icon size={18} />
                         </div>
-                        <div>
-                            <div className="flex flex-col gap-0.5">
-                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{kpi.label}</p>
-                                {periodLabel && (
-                                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider">
-                                        {periodLabel}
-                                    </p>
-                                )}
-                            </div>
-                            <p className={`text-lg font-bold ${kpi.color === 'text-brand-primary' ? 'text-gray-900' : 'text-gray-700'}`}>
+                        <div className="min-w-0">
+                            <p className="text-micro text-gray-500">{kpi.label}</p>
+                            {periodLabel && (
+                                <p className="text-[10px] text-gray-400 mb-0.5">{periodLabel}</p>
+                            )}
+                            <p className="text-body font-semibold text-gray-900 tabular-nums truncate">
                                 {formatPrice(kpi.value)}
                             </p>
                         </div>
@@ -141,36 +137,36 @@ export function RevenueManager({ period }: RevenueManagerProps) {
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 bg-brand-accent/20 text-brand-accent rounded-xl">
-                            <DollarSign size={24} />
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <DollarSign size={18} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Journal des Recettes</h2>
-                            <p className="text-sm text-gray-500">Consultez vos revenus détaillés jour par jour</p>
+                            <h2 className="text-h3 text-gray-900">Journal des recettes</h2>
+                            <p className="text-body-sm text-gray-500">Vos revenus détaillés jour par jour</p>
                         </div>
                     </div>
                 </div>
 
                 {isLoading ? (
                     <div className="flex justify-center items-center h-48">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-accent"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
                     </div>
                 ) : filteredDays.length === 0 ? (
                     <div className="text-center py-12 text-gray-500">
                         <DollarSign size={48} className="mx-auto text-gray-300 mb-4" />
-                        <p className="text-lg font-medium">Aucune recette sur cette période</p>
+                        <p className="text-body-sm">Aucune recette sur cette période</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                    <th className="pb-4 font-medium">Date</th>
-                                    <th className="pb-4 font-medium text-center">Espèces</th>
-                                    <th className="pb-4 font-medium text-center hidden sm:table-cell">Mobile Money</th>
-                                    <th className="pb-4 font-medium text-center hidden sm:table-cell">Carte & Autres</th>
-                                    <th className="pb-4 font-medium text-center sm:hidden">Autres moyens</th>
-                                    <th className="pb-4 font-medium text-center text-brand-primary">Total Jour</th>
+                                <tr className="text-micro text-gray-500 border-b border-gray-100">
+                                    <th className="pb-4">Date</th>
+                                    <th className="pb-4 text-center">Espèces</th>
+                                    <th className="pb-4 text-center hidden sm:table-cell">Mobile Money</th>
+                                    <th className="pb-4 text-center hidden sm:table-cell">Carte & Autres</th>
+                                    <th className="pb-4 text-center sm:hidden">Autres moyens</th>
+                                    <th className="pb-4 text-center text-brand-primary">Total jour</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">

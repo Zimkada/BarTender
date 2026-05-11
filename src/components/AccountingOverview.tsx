@@ -735,18 +735,26 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       </div>
 
       {/* Controls Bar */}
-      <div className="bg-white/50 backdrop-blur-sm border border-white/60 p-1.5 rounded-xl shadow-sm flex flex-col xl:flex-row gap-2 justify-between items-center">
-        {/* View Mode Switcher */}
-        <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full md:flex-1 overflow-hidden">
+      <div className="bg-white border border-gray-100 p-3 rounded-2xl shadow-sm flex flex-col xl:flex-row gap-3 justify-between items-stretch xl:items-center">
+        {/* View Mode Switcher — segmented control */}
+        <div
+          role="radiogroup"
+          aria-label="Mode d'affichage"
+          className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200 w-full xl:w-auto"
+        >
           <button
+            role="radio"
+            aria-checked={viewMode === 'tresorerie'}
             onClick={() => setViewMode('tresorerie')}
-            className={`px-4 py-2 h-10 md:px-6 md:h-11 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 ${viewMode === 'tresorerie' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
+            className={`flex-1 xl:flex-none xl:min-w-[120px] px-4 py-1.5 rounded-full text-caption transition-all ${viewMode === 'tresorerie' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
           >
             Trésorerie
           </button>
           <button
+            role="radio"
+            aria-checked={viewMode === 'analytique'}
             onClick={() => setViewMode('analytique')}
-            className={`px-4 py-2 h-10 md:px-6 md:h-11 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 ${viewMode === 'analytique' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
+            className={`flex-1 xl:flex-none xl:min-w-[120px] px-4 py-1.5 rounded-full text-caption transition-all ${viewMode === 'analytique' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
           >
             Analytique
           </button>

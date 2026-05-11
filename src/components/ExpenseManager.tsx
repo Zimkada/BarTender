@@ -401,30 +401,28 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
         </div>
 
         {/* Total Row */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group flex items-center justify-between overflow-hidden relative min-h-[56px]">
-          <div className="relative z-10 flex flex-col justify-center">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between min-h-[56px]">
+          <div className="flex flex-col justify-center">
+            <h3 className="text-micro text-gray-500 mb-1">
               Total {periodLabel}
             </h3>
-            <p className="font-mono font-bold text-gray-900 tracking-tight text-3xl">
+            <p className="text-h1 font-semibold text-gray-900 tabular-nums">
               {formatPrice(totalExpenses)}
             </p>
           </div>
-          <div className="p-2 bg-red-50 text-red-600 rounded-lg group-hover:scale-110 transition-transform relative z-10">
-            <TrendingDown size={20} />
+          <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+            <TrendingDown size={18} />
           </div>
-          {/* Decorative Background Element */}
-          <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none opacity-50 z-0"></div>
         </div>
       </div>
 
       {/* Categories List */}
-      <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-black text-gray-900 flex items-center gap-2 text-sm uppercase tracking-widest">
+          <h3 className="text-h3 text-gray-900">
             Par catégorie
           </h3>
-          <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full font-bold">
+          <span className="bg-gray-100 text-gray-600 text-caption px-2 py-0.5 rounded-full font-medium tabular-nums">
             {Object.keys(expensesByCategory).length} groupes
           </span>
         </div>
