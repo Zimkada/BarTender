@@ -374,6 +374,7 @@ export default function InventoryPage() {
                         }}
                         onSave={handleAdjustmentSubmit}
                         product={adjustingProduct}
+                        categories={categories}
                     />
                 )}
 
