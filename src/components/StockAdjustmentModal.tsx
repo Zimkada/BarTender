@@ -14,7 +14,7 @@ interface StockAdjustmentModalProps {
     notes?: string;
   }) => Promise<void>;
   product: Product;
-  categories?: Category[];
+  categories: Category[];
 }
 
 export function StockAdjustmentModal({
@@ -25,7 +25,7 @@ export function StockAdjustmentModal({
   categories,
 }: StockAdjustmentModalProps) {
   const { formatPrice } = useCurrencyFormatter();
-  const categoryName = categories?.find(c => c.id === product.categoryId)?.name || 'Inconnue';
+  const categoryName = categories.find(c => c.id === product.categoryId)?.name ?? 'Inconnue';
   const [formData, setFormData] = useState({
     delta: '',
     reason: 'inventory_count' as AdjustmentReason,
