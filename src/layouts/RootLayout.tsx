@@ -209,7 +209,7 @@ function RootLayoutContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle pb-16 md:pb-0">
+    <div className="min-h-screen bg-brand-subtle pb-16 md:pb-0">
       <OfflineBanner /> {/* Phase 1: Offline Resilience */}
       <UpdateNotification />
       <Suspense fallback={null}>

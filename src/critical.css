@@ -6,6 +6,11 @@
   --beer-highlight: hsl(var(--brand-hue, 0), var(--brand-saturation, 0%), 50%);
 }
 
+/* Dark mode override pour le fond global du <body> (chargé via critical.css) */
+html.dark {
+  --beer-bg: hsl(220, 13%, 9%);
+}
+
 html,
 body {
   margin: 0;

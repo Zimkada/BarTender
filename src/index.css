@@ -92,6 +92,14 @@
      Activé par <html class="dark"> via ColorModeContext
      Garde la palette brand dynamique (--brand-hue) intacte
      ═══════════════════════════════════════════════════════════ */
+
+  /* Override --beer-bg utilisé par <body> et l'app-loader (critical.css)
+     Doit être déclaré au niveau <html> pour battre la spécificité du
+     gradient inliné dans critical.css */
+  html.dark {
+    --beer-bg: hsl(220, 13%, 9%);
+  }
+
   .dark {
     /* Surfaces neutres : bleu très subtil (220 hue) — imite verre/métal anodisé,
        moins fatigant pour l'œil que du gris pur (cf. Linear, Vercel, GitHub) */
