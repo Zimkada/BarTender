@@ -47,60 +47,57 @@ export function SwapProductSelector({
     });
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-3xl overflow-hidden border border-purple-100 shadow-xl">
-            {/* Header Area */}
-            <div className="p-6 pb-4 border-b border-gray-50 bg-purple-50/30">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
+        <div className="flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-xl">
+            {/* Header */}
+            <div className="p-5 border-b border-gray-100 bg-brand-subtle/40">
+                <div className="flex items-center justify-between mb-4 gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                         <button
                             onClick={onCancel}
-                            className="w-10 h-10 flex items-center justify-center bg-white rounded-xl text-gray-500 hover:text-purple-600 shadow-sm border border-gray-100 transition-all hover:scale-105 active:scale-95"
+                            className="w-9 h-9 flex items-center justify-center bg-white rounded-lg text-gray-500 hover:text-brand-primary hover:border-brand-primary border border-gray-200 transition-colors flex-shrink-0"
                         >
-                            <ArrowLeft size={18} strokeWidth={2.5} />
+                            <ArrowLeft size={16} />
                         </button>
-                        <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter">
+                        <h3 className="text-h3 text-gray-900 truncate">
                             {title}
                         </h3>
                     </div>
-                    <div className="hidden sm:flex items-center gap-2 bg-purple-100/50 px-3 py-1.5 rounded-full border border-purple-200/50">
-                        <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest">
-                            Mode Échange
-                        </span>
-                    </div>
+                    <span className="hidden sm:inline-block px-3 py-1 rounded-full bg-brand-subtle text-micro font-semibold text-brand-primary border border-brand-subtle flex-shrink-0">
+                        Mode échange
+                    </span>
                 </div>
 
                 {/* Search Bar */}
                 <div className="relative">
                     <Search
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400 z-10"
-                        size={18}
-                        strokeWidth={3}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"
+                        size={16}
                     />
                     <Input
                         ref={searchInputRef}
                         type="text"
-                        placeholder="Rechercher un produit (Nom, Volume...)"
+                        placeholder="Rechercher un produit (nom, volume…)"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-12 h-14 bg-white border-purple-100 focus:border-purple-500 focus:ring-purple-500/10 rounded-2xl text-base shadow-inner"
+                        className="pl-9 h-11 bg-white border-gray-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl text-body-sm"
                     />
                     {searchTerm && (
                         <button
                             onClick={() => setSearchTerm("")}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600 transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full hover:bg-gray-200 hover:text-gray-600 transition-colors"
                         >
-                            <X size={14} strokeWidth={3} />
+                            <X size={12} />
                         </button>
                     )}
                 </div>
 
-                {/* Categories Bar */}
-                <div className="flex gap-2 overflow-x-auto py-3 no-scrollbar mt-2">
+                {/* Categories */}
+                <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar mt-1">
                     <button
                         onClick={() => setSelectedCategory("all")}
-                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 border ${selectedCategory === "all"
-                                ? "bg-purple-600 text-white border-purple-600 shadow-md"
-                                : "bg-white text-gray-500 border-gray-100 hover:border-purple-200"
+                        className={`px-3 h-8 rounded-full text-caption font-medium transition-colors shrink-0 border ${selectedCategory === "all"
+                            ? "bg-brand-primary text-white border-brand-primary"
+                            : "bg-white text-gray-600 border-gray-200 hover:border-brand-primary hover:text-brand-primary"
                             }`}
                     >
                         Tous
@@ -109,9 +106,9 @@ export function SwapProductSelector({
                         <button
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}
-                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all shrink-0 border ${selectedCategory === cat.id
-                                    ? "bg-purple-600 text-white border-purple-600 shadow-md"
-                                    : "bg-white text-gray-500 border-gray-100 hover:border-purple-200"
+                            className={`px-3 h-8 rounded-full text-caption font-medium transition-colors shrink-0 border ${selectedCategory === cat.id
+                                ? "bg-brand-primary text-white border-brand-primary"
+                                : "bg-white text-gray-600 border-gray-200 hover:border-brand-primary hover:text-brand-primary"
                                 }`}
                         >
                             {cat.name}
@@ -120,15 +117,15 @@ export function SwapProductSelector({
                 </div>
             </div>
 
-            {/* Grid Area */}
-            <div className="flex-1 overflow-y-auto p-6 pt-2 custom-scrollbar">
+            {/* Grid */}
+            <div className="flex-1 overflow-y-auto p-5 pt-3 custom-scrollbar">
                 {filteredProducts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-                        <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center border border-gray-100 mb-6 italic">
-                            <Package size={40} strokeWidth={1} />
+                    <div className="flex flex-col items-center justify-center py-16">
+                        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 mb-4">
+                            <Package size={24} className="text-gray-300" />
                         </div>
-                        <p className="text-sm font-black text-gray-400 mb-1 uppercase tracking-widest">Aucun produit trouvé</p>
-                        <p className="text-xs text-gray-400">Essayez un autre mot-clé ou catégorie</p>
+                        <p className="text-body-sm font-medium text-gray-500 mb-0.5">Aucun produit trouvé</p>
+                        <p className="text-caption text-gray-400">Essayez un autre mot-clé ou catégorie</p>
                     </div>
                 ) : (
                     <ProductGrid
@@ -140,14 +137,14 @@ export function SwapProductSelector({
                 )}
             </div>
 
-            {/* Footer Info */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    {filteredProducts.length} produits affichés
+            {/* Footer */}
+            <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-micro text-gray-400 tabular-nums">
+                    {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''} affiché{filteredProducts.length > 1 ? 's' : ''}
                 </span>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                    <span className="text-[10px] font-black text-purple-500 uppercase tracking-widest">Sélection directe</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
+                    <span className="text-micro text-brand-primary font-semibold">Sélection directe</span>
                 </div>
             </div>
         </div>

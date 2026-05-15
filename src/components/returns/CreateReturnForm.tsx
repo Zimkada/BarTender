@@ -253,14 +253,10 @@ export function CreateReturnForm({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-gray-900/40 backdrop-blur-sm p-4 sm:p-8 flex items-center justify-center"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[60] bg-gray-900/50 p-4 sm:p-8 flex items-center justify-center"
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="w-full max-w-4xl h-[80vh]"
-            >
+            <div className="w-full max-w-4xl h-[80vh]">
               <SwapProductSelector
                 onSelect={(product) => {
                   setSwapProduct(product);
@@ -268,7 +264,7 @@ export function CreateReturnForm({
                 }}
                 onCancel={() => setIsSelectingSwapProduct(false)}
               />
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -295,35 +291,31 @@ export function CreateReturnForm({
               /* Étape 1 : Choix de la Vente */
               <motion.div
                 key="step-sales"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5"
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                    1. Sélectionner une vente
-                  </h3>
-                </div>
+                <h3 className="text-h3 text-gray-900">1. Sélectionner une vente</h3>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative flex-1">
                     <Search
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 z-10"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"
                       size={16}
-                      strokeWidth={2.5}
                     />
                     <input
                       type="text"
-                      placeholder={isMobile ? "Rechercher vente ou produit" : "Rechercher une vente ou un produit..."}
+                      placeholder={isMobile ? "Rechercher vente ou produit" : "Rechercher une vente ou un produit…"}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 h-11 border border-gray-200 rounded-xl bg-white text-sm focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary transition-all outline-none"
+                      className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors outline-none"
                     />
                   </div>
 
                   {sellersWithSales.length > 1 && (
-                    <div className="w-full sm:w-64">
+                    <div className="w-full sm:w-56">
                       <Select
                         options={[
                           { value: "all", label: "Tous les vendeurs" },
@@ -334,22 +326,22 @@ export function CreateReturnForm({
                         ]}
                         value={filterSeller}
                         onChange={(e) => setFilterSeller(e.target.value)}
-                        className="bg-white border-gray-200 h-11 rounded-xl text-sm"
+                        className="bg-gray-50 border-gray-200 h-11 rounded-xl text-body-sm"
                       />
                     </div>
                   )}
                 </div>
 
                 {filteredSales.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                    <p className="text-gray-500">
+                  <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <p className="text-body-sm text-gray-500">
                       {returnableSales.length === 0
                         ? "Aucune vente dans la journée commerciale actuelle"
                         : "Aucune vente trouvée"}
                     </p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[50vh] overflow-y-auto pr-1">
                     {filteredSales.map((sale) => {
                       const returnCheck = canReturnSale(sale);
                       const serverUserId = sale.soldBy;
@@ -366,32 +358,24 @@ export function CreateReturnForm({
                           onClick={() => returnCheck.allowed && onSelectSale(sale)}
                           status={returnCheck.allowed ? 'default' : 'error'}
                           statusText={!returnCheck.allowed ? returnCheck.reason : undefined}
-
                           className="group"
                         >
-                          <div className="space-y-3">
+                          <div className="space-y-2.5">
                             {/* Top Row: Server & Time */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between gap-2">
                               {serverUser ? (
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <div className="w-6 h-6 rounded-full bg-brand-subtle flex items-center justify-center flex-shrink-0">
                                     <UserIcon size={12} className="text-brand-primary" />
                                   </div>
-                                  <span
-                                    className="font-black text-xs uppercase tracking-tight"
-                                    style={{
-                                      background: 'var(--brand-gradient)',
-                                      WebkitBackgroundClip: 'text',
-                                      WebkitTextFillColor: 'transparent'
-                                    }}
-                                  >
+                                  <span className="text-caption font-semibold text-brand-primary truncate">
                                     {serverUser.name}
                                   </span>
                                 </div>
                               ) : (
-                                <div className="text-xs font-bold text-gray-400">Vendeur inconnu</div>
+                                <div className="text-caption text-gray-400">Vendeur inconnu</div>
                               )}
-                              <span className="text-[10px] font-bold text-gray-400">
+                              <span className="text-micro text-gray-400 tabular-nums flex-shrink-0">
                                 {new Date(
                                   sale.validatedAt || sale.createdAt,
                                 ).toLocaleTimeString("fr-FR", {
@@ -401,20 +385,20 @@ export function CreateReturnForm({
                               </span>
                             </div>
 
-                            {/* Middle: Returns Hero - Product List */}
+                            {/* Middle: Product List */}
                             <div
-                              className="text-xs text-gray-900 font-black line-clamp-2 leading-relaxed bg-gray-50/30 p-2.5 rounded-lg border border-gray-100"
+                              className="text-caption text-gray-700 font-medium line-clamp-2 leading-relaxed bg-gray-50 p-2.5 rounded-lg border border-gray-100"
                               title={productPreview}
                             >
                               {productPreview}
                             </div>
 
                             {/* Bottom: ID & Price */}
-                            <div className="flex items-center justify-between pt-1">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            <div className="flex items-center justify-between pt-0.5">
+                              <span className="text-micro text-gray-400">
                                 #{sale.id.slice(-4).toUpperCase()}
                               </span>
-                              <span className="text-[11px] font-bold text-gray-900">
+                              <span className="text-caption font-semibold text-gray-900 tabular-nums">
                                 {formatPrice(sale.total)}
                               </span>
                             </div>
@@ -429,10 +413,11 @@ export function CreateReturnForm({
               /* Étape 2 : Choix du Produit dans la vente */
               <motion.div
                 key="step-products"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5"
               >
                 <div className="flex items-center gap-3">
                   <BackButton
@@ -441,14 +426,11 @@ export function CreateReturnForm({
                       setSelectedProduct(null);
                     }}
                   />
-                  <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">2. Choisir le produit</h3>
+                  <h3 className="text-h3 text-gray-900">2. Choisir le produit</h3>
                 </div>
 
-
-
-                <div className="space-y-2">
-
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                <div className="space-y-3">
+                  <label className="block text-micro text-gray-400">
                     Sélectionner un produit à retourner
                   </label>
                   <div className="space-y-2">
@@ -473,41 +455,28 @@ export function CreateReturnForm({
                           status={isFullyUnavailable ? 'disabled' : 'default'}
                           statusText={isFullyUnavailable ? 'Déjà retourné' : undefined}
                           priceDisplay={
-                            <span className="text-sm font-black text-gray-900 font-mono">
+                            <span className="text-body-sm font-semibold text-gray-900 tabular-nums">
                               {formatPrice(productPrice)}
                             </span>
                           }
                         >
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-black text-gray-900 text-sm tracking-tight uppercase">
+                          <div className="flex flex-col gap-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-body-sm font-semibold text-gray-900">
                                 {productName}
                               </span>
                               {productVolume && (
-                                <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                                <span className="text-micro text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                                   {productVolume}
                                 </span>
                               )}
                             </div>
 
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dispo:</span>
-                                <span
-                                  className="text-xs font-black"
-                                  style={{
-                                    background: 'var(--brand-gradient)',
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent'
-                                  }}
-                                >
-                                  {available}
-                                </span>
-                              </div>
-                              <span className="text-[10px] text-gray-300 font-medium">|</span>
-                              <span className="text-[10px] text-gray-400 font-bold uppercase">
-                                Vendu: {item.quantity}
-                              </span>
+                            <div className="flex items-center gap-2 text-caption">
+                              <span className="text-gray-400">Disponible</span>
+                              <span className="font-semibold text-brand-primary tabular-nums">{available}</span>
+                              <span className="text-gray-300">·</span>
+                              <span className="text-gray-400">Vendu <span className="font-medium text-gray-600 tabular-nums">{item.quantity}</span></span>
                             </div>
                           </div>
                         </SelectionCard>
@@ -520,24 +489,23 @@ export function CreateReturnForm({
               /* Étape 3 : Configuration du retour */
               <motion.div
                 key="step-details"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="space-y-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-5"
               >
                 <div className="flex items-center gap-3">
-                  <BackButton
-                    onClick={() => setSelectedProduct(null)}
-                  />
-                  <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">3. Détails du retour</h3>
+                  <BackButton onClick={() => setSelectedProduct(null)} />
+                  <h3 className="text-h3 text-gray-900">3. Détails du retour</h3>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                  {/* Left Column: Form Controls Card */}
-                  <div className="lg:col-span-2 space-y-8 p-6 sm:p-8 bg-white rounded-3xl border border-gray-100 shadow-sm">
-                    {/* Product Header in Card */}
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center border border-gray-100 shadow-sm overflow-hidden flex-shrink-0">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+                  {/* Left Column: Form Controls */}
+                  <div className="lg:col-span-2 space-y-6 p-5 sm:p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    {/* Product Header */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 overflow-hidden flex-shrink-0">
                         {products.find(p => p.id === selectedProduct.product_id)?.image ? (
                           <img
                             src={products.find(p => p.id === selectedProduct.product_id)?.image}
@@ -545,44 +513,36 @@ export function CreateReturnForm({
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-2xl">📦</span>
+                          <span className="text-xl">📦</span>
                         )}
                       </div>
-                      <div>
-                        <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Article à traiter</p>
-                        <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">
+                      <div className="min-w-0">
+                        <p className="text-micro text-gray-400">Article à traiter</p>
+                        <h4 className="text-body-sm font-semibold text-gray-900 truncate">
                           {selectedProduct.product_name}
                         </h4>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-8">
+                    <div className="grid grid-cols-1 gap-6">
                       {/* 1. Quantity Selector */}
                       <div>
-                        <Label className="text-[10px] uppercase font-black text-gray-400 mb-4 block tracking-[0.2em]">
+                        <Label className="text-micro text-gray-400 mb-3 block">
                           1. Quantité à retourner
                         </Label>
-                        <div className="flex items-center gap-6">
-                          <div className="flex items-center gap-3 bg-white p-2 rounded-[2.5rem] border-2 border-brand-primary/10 shadow-xl shadow-brand-primary/5">
+                        <div className="flex items-center gap-5">
+                          <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-full border border-gray-100">
                             <button
                               type="button"
                               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                              className="w-12 h-12 flex items-center justify-center bg-black rounded-full text-white hover:bg-brand-primary transition-all active:scale-90 shadow-lg disabled:opacity-20 border-none"
+                              className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-700 hover:text-brand-primary hover:border-brand-primary border border-gray-200 transition-colors disabled:opacity-30 disabled:hover:text-gray-700 disabled:hover:border-gray-200"
                               disabled={quantity <= 1}
                             >
-                              <Minus size={22} strokeWidth={4} />
+                              <Minus size={16} />
                             </button>
 
-                            <div className="w-20 text-center select-none">
-                              <span
-                                className="text-4xl font-black font-mono tracking-tighter block"
-                                style={{
-                                  background: 'var(--brand-gradient)',
-                                  WebkitBackgroundClip: 'text',
-                                  WebkitTextFillColor: 'transparent',
-                                  filter: 'drop-shadow(0 2px 4px rgba(var(--brand-rgb), 0.15))'
-                                }}
-                              >
+                            <div className="w-14 text-center select-none">
+                              <span className="text-h2 font-semibold text-gray-900 tabular-nums">
                                 {quantity}
                               </span>
                             </div>
@@ -590,23 +550,23 @@ export function CreateReturnForm({
                             <button
                               type="button"
                               onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
-                              className="w-12 h-12 flex items-center justify-center bg-black rounded-full text-white hover:bg-brand-primary transition-all active:scale-90 shadow-lg disabled:opacity-20 border-none"
+                              className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-700 hover:text-brand-primary hover:border-brand-primary border border-gray-200 transition-colors disabled:opacity-30 disabled:hover:text-gray-700 disabled:hover:border-gray-200"
                               disabled={quantity >= availableQty}
                             >
-                              <Plus size={22} strokeWidth={4} />
+                              <Plus size={16} />
                             </button>
                           </div>
 
                           <div className="hidden sm:flex flex-col">
-                            <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Capacité</span>
-                            <span className="text-xs font-black text-gray-500 uppercase">{availableQty} unités</span>
+                            <span className="text-micro text-gray-400">Capacité</span>
+                            <span className="text-caption font-medium text-gray-700 tabular-nums">{availableQty} unités</span>
                           </div>
                         </div>
                       </div>
 
                       {/* 2. Reason Selector */}
                       <div>
-                        <Label className="text-[10px] uppercase font-black text-gray-400 mb-4 block tracking-[0.2em]">
+                        <Label className="text-micro text-gray-400 mb-3 block">
                           2. Motif du retour
                         </Label>
                         <ReturnReasonSelector
@@ -618,68 +578,63 @@ export function CreateReturnForm({
 
                       {/* 3. Notes */}
                       <div>
-                        <Label htmlFor="returnNotes" className="text-[10px] uppercase font-black text-gray-400 mb-3 block tracking-[0.2em]">
-                          3. Précisions (Optionnel)
+                        <Label htmlFor="returnNotes" className="text-micro text-gray-400 mb-2 block">
+                          3. Précisions (optionnel)
                         </Label>
                         <Textarea
                           id="returnNotes"
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           rows={3}
-                          className="rounded-2xl border-brand-primary/10 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/5 text-sm bg-gray-50/50 focus:bg-white transition-all resize-none shadow-none outline-none"
-                          placeholder="Ex: Bouteille cassée, erreur de saisie..."
+                          className="rounded-xl border-gray-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-body-sm bg-gray-50 focus:bg-white transition-colors resize-none outline-none"
+                          placeholder="Ex : bouteille cassée, erreur de saisie…"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Right Column: Modern Summary Panel as a Floating Card */}
-                  <div className="lg:col-span-1 p-8 bg-white rounded-3xl border border-brand-primary/20 shadow-xl shadow-brand-primary/5 relative overflow-hidden flex flex-col justify-between min-h-[500px]">
-                    {/* Elite Accent Bar */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-brand-primary" />
+                  {/* Right Column: Summary Panel */}
+                  <div className="lg:col-span-1 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm relative flex flex-col justify-between min-h-[480px]">
+                    {/* Accent bar */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-l-2xl" />
 
-                    <div className="space-y-8 relative z-10">
+                    <div className="space-y-6">
                       <div>
-                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mb-6">Validation Finale</h4>
+                        <h4 className="text-micro text-gray-400 mb-4">Validation finale</h4>
 
-                        <div className="space-y-4 bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                        <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Quantité</span>
-                            <span className="font-black text-gray-900">{quantity} unités</span>
+                            <span className="text-caption text-gray-500">Quantité</span>
+                            <span className="text-body-sm font-semibold text-gray-900 tabular-nums">{quantity} unités</span>
                           </div>
 
                           {reason === 'exchange' && (
-                            <div className="pt-6 mt-2 border-t border-gray-100" data-guide="returns-exchange-summary">
-                              <div className="flex items-center justify-between mb-4">
-                                <span className="text-[10px] text-purple-600 font-black uppercase tracking-[0.2em]">Flux Échange Produit</span>
-                                <div className="px-2 py-0.5 bg-purple-50 rounded text-[9px] font-black text-purple-600 border border-purple-100 uppercase tracking-tighter">
-                                  Échange premium
+                            <div className="pt-4 mt-1 border-t border-gray-200" data-guide="returns-exchange-summary">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-micro text-brand-primary">Flux échange produit</span>
+                                <div className="px-2 py-0.5 bg-brand-subtle rounded-full text-micro font-semibold text-brand-primary">
+                                  Premium
                                 </div>
                               </div>
 
                               {swapProduct ? (
-                                <div className="bg-gradient-to-br from-purple-50/50 to-white p-5 rounded-2xl border border-purple-100 shadow-sm relative overflow-hidden group">
-                                  {/* Glassmorphism accent */}
-                                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-200/20 blur-2xl rounded-full -mr-12 -mt-12 pointer-events-none" />
-
-                                  <div className="relative z-10 flex flex-col gap-3">
-                                    <div className="flex justify-between items-start">
-                                      <div className="flex flex-col gap-0.5 max-w-[70%]">
-                                        <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Article de remplacement</span>
-                                        <span className="font-black text-gray-900 text-sm truncate uppercase tracking-tight">{swapProduct.name}</span>
+                                <div className="bg-white p-4 rounded-xl border border-brand-subtle">
+                                  <div className="flex flex-col gap-3">
+                                    <div className="flex justify-between items-start gap-2">
+                                      <div className="flex flex-col gap-0.5 min-w-0">
+                                        <span className="text-micro text-gray-400">Article de remplacement</span>
+                                        <span className="text-body-sm font-semibold text-gray-900 truncate">{swapProduct.name}</span>
                                       </div>
-                                      <span className="font-mono font-black text-purple-700 text-sm bg-white px-2 py-1 rounded-lg shadow-sm border border-purple-50">
+                                      <span className="text-body-sm font-semibold text-brand-primary tabular-nums bg-brand-subtle px-2 py-0.5 rounded-lg flex-shrink-0">
                                         {formatPrice(swapProduct.price)}
                                       </span>
                                     </div>
 
                                     <button
                                       onClick={() => setIsSelectingSwapProduct(true)}
-                                      className="flex items-center gap-2 text-[10px] font-black text-purple-600 hover:text-purple-700 transition-colors uppercase tracking-wider group/btn w-fit"
+                                      className="flex items-center gap-1.5 text-caption font-medium text-brand-primary hover:underline w-fit"
                                     >
-                                      <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center group-hover/btn:bg-purple-200 transition-all">
-                                        <RotateCcw size={10} strokeWidth={3} />
-                                      </span>
+                                      <RotateCcw size={11} />
                                       Changer l'article
                                     </button>
                                   </div>
@@ -687,48 +642,47 @@ export function CreateReturnForm({
                               ) : (
                                 <button
                                   onClick={() => setIsSelectingSwapProduct(true)}
-                                  className="w-full group relative flex flex-col items-center justify-center py-8 px-6 rounded-2xl border-2 border-dashed border-purple-200 bg-white hover:bg-purple-50/50 hover:border-purple-300 transition-all duration-300"
+                                  className="w-full flex flex-col items-center justify-center py-6 px-5 rounded-xl border border-dashed border-brand-subtle bg-white hover:bg-brand-subtle/30 hover:border-brand-primary transition-colors"
                                 >
-                                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-hover:scale-110 transition-transform shadow-sm">
-                                    <Plus size={24} strokeWidth={3} />
+                                  <div className="w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center text-brand-primary mb-2">
+                                    <Plus size={18} />
                                   </div>
-                                  <span className="text-xs font-black text-purple-700 uppercase tracking-[0.15em]">Choisir l'article</span>
-                                  <p className="text-[9px] text-purple-400 font-bold mt-1 uppercase tracking-tighter">Entrée en stock de l'ancien produit auto</p>
+                                  <span className="text-body-sm font-semibold text-gray-900">Choisir l'article</span>
+                                  <p className="text-caption text-gray-500 mt-0.5 text-center">L'ancien produit est remis en stock automatiquement</p>
                                 </button>
                               )}
                             </div>
                           )}
 
-                          <div className="flex justify-between items-center py-2">
-                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Prix unitaire d'origine</span>
-                            <span className="font-mono font-black text-gray-700 text-sm">{formatPrice(selectedProduct.unit_price)}</span>
+                          <div className="flex justify-between items-center">
+                            <span className="text-caption text-gray-500">Prix unitaire d'origine</span>
+                            <span className="text-body-sm font-medium text-gray-700 tabular-nums">{formatPrice(selectedProduct.unit_price)}</span>
                           </div>
 
-                          <div className="pt-6 border-t border-brand-primary/10 flex flex-col items-end gap-1">
+                          <div className="pt-4 border-t border-gray-200 flex flex-col items-end gap-1">
                             {reason === 'exchange' && swapProduct ? (
                               <>
                                 <div className="flex items-center gap-2 mb-1">
-                                  <div className={`w-2 h-2 rounded-full ${(swapProduct.price - selectedProduct.unit_price) >= 0 ? "bg-orange-500 animate-pulse" : "bg-emerald-500"}`} />
-                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Écart à régulariser</span>
+                                  <div className={`w-1.5 h-1.5 rounded-full ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "bg-amber-500" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "bg-emerald-500" : "bg-gray-400"}`} />
+                                  <span className="text-micro text-gray-400">Écart à régulariser</span>
                                 </div>
-                                <div className="flex flex-col items-end">
-                                  <span className={`text-3xl font-black font-mono tracking-tighter leading-none ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "text-orange-600" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "text-emerald-600" : "text-gray-900"
-                                    }`}>
+                                <div className="flex flex-col items-end gap-1.5">
+                                  <span className={`text-h2 font-semibold tabular-nums leading-none ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "text-amber-600" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "text-emerald-600" : "text-gray-900"}`}>
                                     {formatPrice(quantity * (swapProduct.price - selectedProduct.unit_price))}
                                   </span>
-                                  <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-tight italic bg-gray-50 px-2 py-1 rounded">
+                                  <p className="text-caption text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-100">
                                     {(swapProduct.price - selectedProduct.unit_price) > 0
                                       ? "Le client doit verser l'écart"
                                       : (swapProduct.price - selectedProduct.unit_price) < 0
                                         ? "Rembourser la différence au client"
-                                        : "Échange à valeur égale - Pas de flux"}
+                                        : "Échange à valeur égale, pas de flux"}
                                   </p>
                                 </div>
                               </>
                             ) : (
                               <>
-                                <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-1">Total à rembourser</span>
-                                <span className="text-4xl font-black text-gray-900 font-mono tracking-tighter">
+                                <span className="text-micro text-brand-primary mb-1">Total à rembourser</span>
+                                <span className="text-h1 font-semibold text-gray-900 tabular-nums">
                                   {formatPrice(quantity * selectedProduct.unit_price)}
                                 </span>
                               </>
@@ -738,43 +692,39 @@ export function CreateReturnForm({
                       </div>
 
                       <div>
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Impact Inventaire</p>
-                        <div className={`flex items-center gap-3 p-4 rounded-2xl border ${reason === 'defective' || reason === 'expired'
-                          ? "bg-red-50 text-red-600 border-red-100"
-                          : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                        <p className="text-micro text-gray-400 mb-2">Impact inventaire</p>
+                        <div className={`flex items-center gap-3 p-3 rounded-xl border ${reason === 'defective' || reason === 'expired'
+                          ? "bg-red-50 text-red-700 border-red-100"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-100"
                           }`}>
-                          <span className="text-xl">
+                          <span className="text-base">
                             {reason === 'defective' || reason === 'expired' ? "⚠️" : "🔄"}
                           </span>
-                          <span className="text-[10px] font-black uppercase tracking-tight leading-tight">
-                            {reason === 'defective' && "Perte: Pas de remise en stock"}
-                            {reason === 'wrong_item' && "Correction: Remis en stock"}
-                            {reason === 'customer_change' && "Client: Remis en stock"}
-                            {reason === 'expired' && "Périmé: Pas de remise en stock"}
-                            {reason === 'exchange' && "Échange + Remise en stock"}
+                          <span className="text-caption font-medium leading-tight">
+                            {reason === 'defective' && "Perte — pas de remise en stock"}
+                            {reason === 'wrong_item' && "Correction — remis en stock"}
+                            {reason === 'customer_change' && "Client — remis en stock"}
+                            {reason === 'expired' && "Périmé — pas de remise en stock"}
+                            {reason === 'exchange' && "Échange — remis en stock"}
                             {reason === 'other' && "Audit requis"}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-4 pt-8 relative z-10">
-                      <motion.button
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
+                    <div className="space-y-2 pt-6">
+                      <button
                         onClick={handleSubmit}
-                        disabled={!reason || (reason === 'exchange' && !swapProduct)}
-                        className={`w-full py-4 rounded-2xl font-black text-white shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-xs ${reason === 'exchange' ? "shadow-purple-200" : "shadow-brand-primary/30"
-                          }`}
-                        style={{ background: reason === 'exchange' ? 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)' : 'var(--brand-gradient)' }}
+                        disabled={!reason || (reason === 'exchange' && !swapProduct) || isSubmitting}
+                        className="btn-brand w-full h-11 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <RotateCcw size={18} strokeWidth={3} className={reason === 'exchange' ? "animate-spin-slow" : ""} />
+                        <RotateCcw size={16} />
                         {reason === 'exchange' ? "Finaliser l'échange" : "Confirmer le retour"}
-                      </motion.button>
+                      </button>
 
                       <button
                         onClick={onCancel}
-                        className="w-full py-2 text-gray-400 font-black text-[9px] uppercase tracking-[0.3em] hover:text-red-500 transition-colors"
+                        className="w-full py-2 text-caption text-gray-400 hover:text-gray-600 transition-colors"
                       >
                         Annuler l'opération
                       </button>
