@@ -87,6 +87,58 @@
     --brand-text: hsl(var(--brand-hue), var(--brand-saturation), 20%);
   }
 
+  /* ═══════════════════════════════════════════════════════════
+     🌙 DARK MODE — Surfaces sombres premium 2026
+     Activé par <html class="dark"> via ColorModeContext
+     Garde la palette brand dynamique (--brand-hue) intacte
+     ═══════════════════════════════════════════════════════════ */
+  .dark {
+    /* Surfaces neutres : bleu très subtil (220 hue) — imite verre/métal anodisé,
+       moins fatigant pour l'œil que du gris pur (cf. Linear, Vercel, GitHub) */
+    --background: 220 13% 9%;        /* fond global - presque noir bleuté */
+    --foreground: 0 0% 95%;          /* texte principal */
+
+    --card: 220 13% 12%;             /* surfaces élevées (cartes) */
+    --card-foreground: 0 0% 95%;
+
+    --popover: 220 13% 14%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 0% 80%;
+    --primary-foreground: 220 13% 9%;
+
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 220 10% 16%;            /* fonds secondaires (équivalent gray-50) */
+    --muted-foreground: 0 0% 65%;    /* labels, métadonnées */
+
+    --accent: 220 10% 16%;
+    --accent-foreground: 0 0% 95%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 10% 20%;           /* bordures discrètes */
+    --input: 220 10% 18%;
+    --ring: var(--brand-hue) var(--brand-saturation) 60%;
+
+    /* Ombres : invisibles en sombre, on les remplace par des reflets légers */
+    --shadow-brand-light: rgba(0, 0, 0, 0.3);
+    --shadow-brand-medium: rgba(0, 0, 0, 0.5);
+    --shadow-brand-strong: rgba(0, 0, 0, 0.7);
+
+    /* Brand : remontée du brand-light (plus de luminosité) pour rester
+       distinctif sur fond sombre sans agresser l'œil */
+    --brand-light: 65%;
+    --brand-dark: 55%;
+
+    /* Subtle bg : passe d'un blanc cassé à un teinté sombre brand */
+    --brand-bg-subtle: hsl(var(--brand-hue), var(--brand-saturation), 14%);
+    --brand-border: hsla(var(--brand-hue), var(--brand-saturation), 60%, 0.25);
+    --brand-text: hsl(var(--brand-hue), var(--brand-saturation), 85%);
+  }
+
   /* ♿ Design System accessible (Targeting specific content grays instead of global override) */
   .text-accessible-gray {
     color: #4b5563 !important;

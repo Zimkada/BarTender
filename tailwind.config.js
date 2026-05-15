@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     // Breakpoints optimisés marché Afrique de l'Ouest
     // Mobile-first: 99% utilisateurs smartphones Android Bénin

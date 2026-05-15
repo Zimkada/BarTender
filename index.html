@@ -59,6 +59,10 @@
   <!-- Critical CSS (for performance) -->
   <link rel="stylesheet" href="/src/critical.css" />
 
+  <!-- 🌙 COLOR MODE LOADER (ANTI-FOUC, BLOCKING SCRIPT) -->
+  <!-- Lit 'bartender_color_mode' (system/light/dark) et applique .dark sur <html> AVANT le paint -->
+  <script>(function () { try { var m = localStorage.getItem('bartender_color_mode') || 'system'; var d = m === 'dark' || (m === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); if (d) document.documentElement.classList.add('dark'); } catch (e) { } })();</script>
+
   <!-- 🎨 THEME LOADER CRITIQUE (BLOCKING SCRIPT) -->
   <!-- Doit être le dernier élément du <head> pour garantir l'exécution avant le rendu du <body> -->
   <!-- Lit le cache 'bartender_theme_cache' (plus light que 'bartender_bars') pour injecter les couleurs AVANT le paint -->

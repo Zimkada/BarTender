@@ -10,6 +10,7 @@ import { Toaster } from 'react-hot-toast';
 import { initMonitoring, captureError } from './lib/monitoring';
 
 // Contexts
+import { ColorModeProvider } from './context/ColorModeContext';
 import { AuthProvider } from './context/AuthContext';
 import { BarProvider } from './context/BarContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -80,32 +81,37 @@ if ('serviceWorker' in navigator) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
-      <NotificationsProvider>
-        <AuthProvider>
-          <BarProvider>
-            {/* ThemeProvider always loaded - provides theme context to all components */}
-            <ThemeProvider>
-              <OnboardingProvider>
-                <GuideProvider>
-                  <StockProvider>
-                    <AppProvider>
-                      <ModalProvider>
-                        <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
-                          <App />
-                          <RouterProvider router={router} />
-                          {/* PWA Components */}
-                          <PWAInstallPrompt />
-                        </ErrorBoundary>
-                      </ModalProvider>
-                    </AppProvider>
-                  </StockProvider>
-                </GuideProvider>
-              </OnboardingProvider>
-            </ThemeProvider>
-          </BarProvider>
-        </AuthProvider>
-      </NotificationsProvider>
+      {/* ColorModeProvider : axe light/dark/system, indépendant du theme brand per-bar.
+          Placé au plus haut pour que toute l'UI (Toaster, ErrorFallback inclus) puisse y accéder.
+          Anti-FOUC : un script inline dans index.html applique .dark AVANT que React monte. */}
+      <ColorModeProvider>
+        <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+        <NotificationsProvider>
+          <AuthProvider>
+            <BarProvider>
+              {/* ThemeProvider always loaded - provides theme context to all components */}
+              <ThemeProvider>
+                <OnboardingProvider>
+                  <GuideProvider>
+                    <StockProvider>
+                      <AppProvider>
+                        <ModalProvider>
+                          <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                            <App />
+                            <RouterProvider router={router} />
+                            {/* PWA Components */}
+                            <PWAInstallPrompt />
+                          </ErrorBoundary>
+                        </ModalProvider>
+                      </AppProvider>
+                    </StockProvider>
+                  </GuideProvider>
+                </OnboardingProvider>
+              </ThemeProvider>
+            </BarProvider>
+          </AuthProvider>
+        </NotificationsProvider>
+      </ColorModeProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}
     </QueryClientProvider>
   </StrictMode>
