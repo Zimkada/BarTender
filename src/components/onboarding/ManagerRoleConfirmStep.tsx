@@ -1,4 +1,3 @@
-// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useBar } from '../../context/BarContext';
@@ -9,8 +8,7 @@ export const ManagerRoleConfirmStep: React.FC = () => {
   const { currentBar } = useBar();
   const [loading, setLoading] = useState(false);
 
-  // Get bar name from context
-  const barName = currentBar?.name || 'Votre Bar';
+  const barName = currentBar?.name || 'Votre bar';
 
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,116 +26,97 @@ export const ManagerRoleConfirmStep: React.FC = () => {
     }
   };
 
+  const responsibilities = [
+    { title: 'Créer des ventes', desc: 'Enregistrer les transactions, appliquer les promotions.' },
+    { title: 'Opérations (stock & retours)', desc: 'Gérer le stock, les approvisionnements, les retours et consignations.' },
+    { title: 'Voir les analytiques', desc: 'Ventes quotidiennes, top produits, performance de l\'équipe.' },
+  ];
+
+  const delegableTasks = [
+    'Configurer les paramètres du bar',
+    'Ajouter des produits au catalogue',
+    'Initialiser le stock',
+    'Créer des comptes serveurs',
+  ];
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Bienvenue, Gérant !</h1>
-          <p className="mt-2 text-sm md:text-base text-gray-600">
-            Vous avez été ajouté au bar <strong>{barName}</strong>
+        <div className="mb-8">
+          <h1 className="text-h1 text-gray-900 mb-2">Bienvenue, gérant</h1>
+          <p className="text-body-sm text-gray-500">
+            Vous avez été ajouté au bar <span className="font-semibold text-gray-900">{barName}</span>.
           </p>
         </div>
 
-        {/* Role Overview */}
-        <form onSubmit={handleConfirm} className="space-y-6">
-          <div className="p-4 md:p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h2 className="text-base md:text-lg font-semibold text-blue-900 mb-3 md:mb-4">Votre Rôle : Gérant</h2>
-
+        <form onSubmit={handleConfirm} className="space-y-5">
+          {/* Role Overview */}
+          <div className="p-5 bg-brand-subtle border border-brand-subtle rounded-xl">
+            <h2 className="text-h3 text-gray-900 mb-3">Votre rôle</h2>
             <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="text-green-600 text-lg">✓</span>
-                <div>
-                  <p className="font-medium text-gray-900">Créer des Ventes</p>
-                  <p className="text-sm text-gray-700">Enregistrer les transactions, appliquer les promotions</p>
+              {responsibilities.map((item) => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-white text-brand-primary flex items-center justify-center text-caption font-bold flex-shrink-0 mt-0.5">✓</span>
+                  <div>
+                    <p className="text-body-sm font-semibold text-gray-900">{item.title}</p>
+                    <p className="text-caption text-gray-600">{item.desc}</p>
+                  </div>
                 </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="text-green-600 text-lg">✓</span>
-                <div>
-                  <p className="font-medium text-gray-900">Opérations (Stock & Retours/Consignations)</p>
-                  <p className="text-sm text-gray-700">Gérer le stock, les approvisionnements, les retours et les consignations</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="text-green-600 text-lg">✓</span>
-                <div>
-                  <p className="font-medium text-gray-900">Voir les Analytiques</p>
-                  <p className="text-sm text-gray-700">Ventes quotidiennes, top produits, performance de l'équipe</p>
-                </div>
-              </div>
-
+              ))}
             </div>
           </div>
 
           {/* Delegable Tasks */}
-          <div className="p-4 md:p-6 bg-amber-50 border border-amber-200 rounded-lg">
-            <h2 className="text-base md:text-lg font-semibold text-amber-900 mb-3 md:mb-4">💡 Vous pouvez aider le propriétaire</h2>
-            <p className="text-sm text-amber-800 mb-3">
-              Le propriétaire peut vous demander de configurer certaines tâches pour le bar :
+          <div className="p-5 bg-gray-50 border border-gray-100 rounded-xl">
+            <h2 className="text-body-sm font-semibold text-gray-900 mb-1">💡 Vous pouvez aider le propriétaire</h2>
+            <p className="text-caption text-gray-600 mb-3">
+              Le propriétaire peut vous demander de configurer certaines tâches pour le bar.
             </p>
             <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <span className="text-amber-600 text-lg">✓</span>
-                <span className="text-gray-900">Configurer les paramètres du bar</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-amber-600 text-lg">✓</span>
-                <span className="text-gray-900">Ajouter des produits au catalogue</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-amber-600 text-lg">✓</span>
-                <span className="text-gray-900">Initialiser le stock</span>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-amber-600 text-lg">✓</span>
-                <span className="text-gray-900">Créer des comptes serveurs</span>
-              </div>
+              {delegableTasks.map((task) => (
+                <div key={task} className="flex items-center gap-2.5">
+                  <span className="text-brand-primary text-caption font-bold">✓</span>
+                  <span className="text-body-sm text-gray-700">{task}</span>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Next Steps */}
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-3">Prochaines étapes :</h3>
-            <ol className="text-sm text-gray-700 space-y-2">
-              <li className="flex gap-2">
-                <span className="font-semibold text-gray-900 w-6">1.</span>
-                <span>Tour rapide du tableau de bord</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-gray-900 w-6">2.</span>
-                <span>Apprendre à créer votre première vente</span>
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-gray-900 w-6">3.</span>
-                <span>Commencer à travailler !</span>
-              </li>
+          <div className="p-5 bg-gray-50 border border-gray-100 rounded-xl">
+            <h3 className="text-body-sm font-semibold text-gray-900 mb-3">Prochaines étapes</h3>
+            <ol className="text-body-sm text-gray-700 space-y-2">
+              {['Tour rapide du tableau de bord', 'Apprendre à créer votre première vente', 'Commencer à travailler !'].map((step, idx) => (
+                <li key={idx} className="flex gap-2.5">
+                  <span className="w-5 h-5 rounded-full bg-brand-subtle text-brand-primary flex items-center justify-center text-caption font-semibold tabular-nums flex-shrink-0">{idx + 1}</span>
+                  <span className="flex-1">{step}</span>
+                </li>
+              ))}
             </ol>
           </div>
 
-          {/* Info */}
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-900">
-              💡 <strong>Conseil :</strong> Besoin d'aide ? Cliquez sur le bouton bleu <strong>Guide (?)</strong> situé en haut à droite des pages pour lancer une visite guidée.
+          {/* Tip */}
+          <div className="p-4 bg-brand-subtle/50 border border-brand-subtle rounded-xl">
+            <p className="text-caption text-gray-700 leading-relaxed">
+              <span className="font-semibold text-gray-900">💡 Conseil :</span> cliquez sur le bouton <span className="font-medium text-brand-primary">Guide (?)</span> en haut à droite pour lancer une visite guidée.
             </p>
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-6 border-t">
+          <div className="flex gap-3 pt-6 border-t border-gray-100">
             <button
               type="button"
               onClick={previousStep}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              className="h-11 px-5 text-body-sm font-medium text-gray-700 border border-gray-200 rounded-xl hover:border-brand-primary hover:text-brand-primary transition-colors"
             >
               Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Continuation..."
-              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              loadingText="Continuation…"
+              className="ml-auto btn-brand h-11 px-6 rounded-xl text-body-sm font-semibold"
             >
               J'ai compris
             </LoadingButton>

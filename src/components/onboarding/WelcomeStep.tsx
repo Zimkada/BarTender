@@ -10,180 +10,100 @@ import { useOnboarding } from '../../context/OnboardingContext';
 export const WelcomeStep: React.FC = () => {
   const { nextStep, barIsAlreadySetup, userRole } = useOnboarding();
 
-  // Training mode: Bar is already set up, user just needs to learn the system
   const isTrainingMode = barIsAlreadySetup && (userRole === 'gerant' || userRole === 'serveur' || userRole === 'manager' || userRole === 'bartender');
 
-  if (isTrainingMode) {
-    return (
-      <div className="w-full max-w-4xl mx-auto px-4">
-        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-5 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
-          {/* Decorative Top Gradient */}
-          <div className="absolute top-0 left-0 w-full h-2 bg-[image:var(--brand-gradient)]" />
+  const content = isTrainingMode
+    ? {
+        icon: '🎓',
+        title: "Bienvenue dans l'Académie",
+        subtitle: "Formation rapide pour maîtriser l'application",
+        intro: "Le bar est déjà configuré ! Nous allons vous montrer comment utiliser l'application efficacement dans votre rôle quotidien.",
+        sectionLabel: 'Ce que vous allez apprendre',
+        features: [
+          { emoji: '🎯', title: 'Votre rôle', desc: 'Comprendre vos responsabilités' },
+          { emoji: '🖥️', title: 'Interface', desc: 'Navigation et fonctionnalités clés' },
+          { emoji: '⚡', title: 'Simulation', desc: 'Exercices interactifs' },
+        ],
+        duration: 'Formation rapide : 2-3 minutes',
+        skipLabel: 'Passer la formation',
+        ctaLabel: 'Commencer la formation',
+      }
+    : {
+        icon: '🍹',
+        title: 'Bienvenue sur BarTender',
+        subtitle: 'Votre solution de gestion de bar, simplifiée',
+        intro: "Configurons votre bar en quelques minutes. Nous vous guiderons à travers les étapes essentielles pour être prêt pour votre première vente.",
+        sectionLabel: 'Ce que vous allez configurer',
+        features: [
+          { emoji: '📍', title: 'Détails', desc: 'Nom, localisation' },
+          { emoji: '👥', title: 'Équipe', desc: 'Gérants et serveurs' },
+          { emoji: '🍻', title: 'Produits', desc: 'Votre carte' },
+          { emoji: '📦', title: 'Inventaire', desc: 'Stock initial' },
+        ],
+        duration: 'Cela prend environ 3 à 5 minutes',
+        skipLabel: 'Compléter plus tard',
+        ctaLabel: 'Commencer',
+      };
 
-          {/* Logo/Header */}
-          <div className="mb-4 md:mb-8">
-            <div className="inline-block mb-3 md:mb-6 p-3 md:p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
-              <div className="text-3xl md:text-5xl">🎓</div>
-            </div>
-            <h1 className="text-2xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue dans l'Académie</h1>
-            <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium">
-              Formation rapide pour maîtriser l'application
-            </p>
-          </div>
+  const gridCols = content.features.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4';
 
-          {/* Intro Text */}
-          <div className="mb-6 md:mb-8">
-            <p className="text-gray-600 mb-4 leading-relaxed text-sm md:text-base">
-              Le bar est déjà configuré ! Nous allons vous montrer comment utiliser l'application efficacement dans votre rôle quotidien.
-            </p>
-          </div>
-
-          {/* Features Preview */}
-          <div className="mb-8 space-y-3 text-left">
-            <h2 className="text-sm uppercase tracking-wider font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-4 text-center">Ce que vous allez apprendre</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-                <span className="text-2xl filter drop-shadow-sm">🎯</span>
-                <div className="flex-1">
-                  <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Votre rôle</p>
-                  <p className="text-sm text-gray-500">Comprendre vos responsabilités</p>
-                </div>
-              </div>
-
-              <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-                <span className="text-2xl filter drop-shadow-sm">🖥️</span>
-                <div className="flex-1">
-                  <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Interface</p>
-                  <p className="text-sm text-gray-500">Navigation et fonctionnalités clés</p>
-                </div>
-              </div>
-
-              <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-                <span className="text-2xl filter drop-shadow-sm">⚡</span>
-                <div className="flex-1">
-                  <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Simulation</p>
-                  <p className="text-sm text-gray-500">Exercices interactifs</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Duration */}
-          <div className="p-3 md:p-4 bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] rounded-xl text-center mb-6 md:mb-8">
-            <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-medium">
-              <strong>⏱️ Formation rapide : 2-3 minutes</strong>
-            </p>
-          </div>
-
-          {/* CTA Button */}
-          <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-6 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] items-center justify-between">
-            <button
-              onClick={() => {
-                window.location.href = '/dashboard';
-              }}
-              className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2"
-            >
-              Passer la formation
-            </button>
-
-            <button
-              onClick={nextStep}
-              className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white w-full sm:w-auto rounded-xl hover:brightness-110 transition font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transform duration-200"
-            >
-              Commencer la formation
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Configuration mode: Original welcome for new bar setup
   return (
-    <div className="w-full max-w-4xl mx-auto px-4">
-      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-5 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
-        {/* Decorative Top Gradient */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-[image:var(--brand-gradient)]" />
-
-        {/* Logo/Header */}
-        <div className="mb-4 md:mb-8">
-          <div className="inline-block mb-3 md:mb-6 p-3 md:p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
-            <div className="text-3xl md:text-5xl">🍹</div>
-          </div>
-          <h1 className="text-2xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue sur BarTender</h1>
-          <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium">
-            Votre solution de gestion de bar, simplifiée
-          </p>
-        </div>
-
-        {/* Intro Text */}
+    <div className="w-full max-w-3xl mx-auto px-4">
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 md:p-10 text-center">
+        {/* Header */}
         <div className="mb-6 md:mb-8">
-          <p className="text-gray-600 mb-4 leading-relaxed text-sm md:text-base">
-            Configurons votre bar en quelques minutes. Nous vous guiderons à travers les étapes essentielles pour être prêt pour votre première vente.
-          </p>
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
+            {content.icon}
+          </div>
+          <h1 className="text-h1 text-gray-900 mb-2">{content.title}</h1>
+          <p className="text-body text-gray-500">{content.subtitle}</p>
         </div>
 
-        {/* Features Preview */}
-        <div className="mb-8 space-y-3 text-left">
-          <h2 className="text-sm uppercase tracking-wider font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-4 text-center">Ce que vous allez configurer</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-              <span className="text-2xl filter drop-shadow-sm">📍</span>
-              <div className="flex-1">
-                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Détails</p>
-                <p className="text-sm text-gray-500">Nom, localisation</p>
-              </div>
-            </div>
+        {/* Intro */}
+        <p className="text-body-sm text-gray-600 mb-8 leading-relaxed max-w-xl mx-auto">
+          {content.intro}
+        </p>
 
-            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-              <span className="text-2xl filter drop-shadow-sm">👥</span>
-              <div className="flex-1">
-                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Équipe</p>
-                <p className="text-sm text-gray-500">Gérants et serveurs</p>
+        {/* Features */}
+        <div className="mb-8">
+          <h2 className="text-micro text-gray-400 mb-4">{content.sectionLabel}</h2>
+          <div className={`grid grid-cols-1 ${gridCols} gap-3`}>
+            {content.features.map((feature, idx) => (
+              <div
+                key={idx}
+                className="flex md:flex-col items-center md:text-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-xl"
+              >
+                <span className="text-2xl flex-shrink-0">{feature.emoji}</span>
+                <div className="flex-1 text-left md:text-center">
+                  <p className="text-body-sm font-semibold text-gray-900">{feature.title}</p>
+                  <p className="text-caption text-gray-500">{feature.desc}</p>
+                </div>
               </div>
-            </div>
-
-            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-              <span className="text-2xl filter drop-shadow-sm">🍻</span>
-              <div className="flex-1">
-                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Produits</p>
-                <p className="text-sm text-gray-500">Votre carte</p>
-              </div>
-            </div>
-
-            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
-              <span className="text-2xl filter drop-shadow-sm">📦</span>
-              <div className="flex-1">
-                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Inventaire</p>
-                <p className="text-sm text-gray-500">Stock initial</p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
         {/* Duration */}
-        <div className="p-3 md:p-4 bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] rounded-xl text-center mb-6 md:mb-8">
-          <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-medium">
-            <strong>⏱️ Cela prend environ 3-5 minutes</strong>
+        <div className="p-3 bg-brand-subtle/50 border border-brand-subtle rounded-xl mb-8">
+          <p className="text-caption font-medium text-brand-primary">
+            ⏱️ {content.duration}
           </p>
         </div>
 
-        {/* CTA Button */}
-        <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-6 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] items-center justify-between">
+        {/* CTA */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100 items-center justify-between">
           <button
-            onClick={() => {
-              window.location.href = '/dashboard';
-            }}
-            className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2"
+            onClick={() => { window.location.href = '/dashboard'; }}
+            className="text-caption text-gray-400 hover:text-gray-600 font-medium px-3 py-2 transition-colors order-2 sm:order-1"
           >
-            Compléter plus tard
+            {content.skipLabel}
           </button>
 
           <button
             onClick={nextStep}
-            className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white w-full sm:w-auto rounded-xl hover:brightness-110 transition font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transform duration-200"
+            className="btn-brand w-full sm:w-auto h-11 px-6 rounded-xl text-body-sm font-semibold order-1 sm:order-2"
           >
-            Commencer
+            {content.ctaLabel}
           </button>
         </div>
       </div>

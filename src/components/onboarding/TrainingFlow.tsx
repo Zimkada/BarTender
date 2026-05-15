@@ -103,31 +103,25 @@ export const TrainingFlow: React.FC = () => {
             // Completion
             case OnboardingStep.COMPLETE:
                 return (
-                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center w-full max-w-3xl mx-auto">
-                        <motion.div
-                            initial={{ scale: 0, rotate: -180 }}
-                            animate={{ scale: 1, rotate: 0 }}
-                            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                            className="w-24 h-24 flex items-center justify-center rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] mb-6 shadow-inner"
-                        >
-                            <span className="text-6xl">🎓</span>
-                        </motion.div>
-                        <div className="backdrop-blur-xl bg-white/60 border border-white/40 shadow-xl rounded-2xl p-6 md:p-10 w-full ring-1 ring-black/5">
-                            <h2 className="text-3xl font-bold mb-3 text-[hsl(var(--brand-hue),var(--brand-saturation),10%)]">Formation Terminée !</h2>
-                            <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-6">Vous maîtrisez maintenant les bases.</p>
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center w-full max-w-2xl mx-auto">
+                        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
+                            🎓
+                        </div>
+                        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 md:p-10 w-full">
+                            <h2 className="text-h1 text-gray-900 mb-2">Formation terminée</h2>
+                            <p className="text-body text-gray-500 mb-8">Vous maîtrisez maintenant les bases.</p>
                             <button
                                 onClick={async () => {
                                     try {
                                         await completeTraining();
                                         await refreshSession();
-                                        // Force UI refresh via URL param
                                         navigate('/dashboard?training_completed=true', { replace: true });
                                     } catch (err) {
                                         console.error("Error finalizing training:", err);
                                         navigate('/dashboard', { replace: true });
                                     }
                                 }}
-                                className="w-full py-3 rounded-xl bg-[image:var(--brand-gradient)] text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+                                className="btn-brand w-full h-11 rounded-xl text-body-sm font-semibold"
                             >
                                 Retour au tableau de bord
                             </button>
@@ -136,14 +130,13 @@ export const TrainingFlow: React.FC = () => {
                 );
 
             default:
-                // Fallback for unknown steps in training mode
                 console.warn(`TrainingFlow: Unhandled step ${currentStep} for role ${userRole}`);
                 return (
                     <div className="text-center py-10">
-                        <p className="text-gray-500">Étape de formation non trouvée: {currentStep}</p>
+                        <p className="text-body-sm text-gray-500 mb-4">Étape de formation introuvable : {currentStep}</p>
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="mt-4 px-4 py-2 bg-amber-500 text-white rounded-lg"
+                            className="btn-brand h-10 rounded-xl px-5 text-body-sm font-semibold"
                         >
                             Retour au tableau de bord
                         </button>
@@ -153,23 +146,21 @@ export const TrainingFlow: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[hsl(var(--brand-hue),var(--brand-saturation),98%)] flex flex-col items-center py-8 relative overflow-hidden">
-            {/* Decorative Background Elements */}
-            <div className="absolute top-[-10%] left-[-10%] w-[60vh] h-[60vh] rounded-full bg-[image:var(--brand-gradient)] opacity-5 blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[60vh] h-[60vh] rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] opacity-5 blur-[120px] pointer-events-none" />
-
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 relative">
             {/* Academy Header */}
-            <div className="w-full max-w-4xl px-4 mb-6 flex justify-between items-center relative z-10">
-                <div className="flex items-center gap-3 backdrop-blur-sm bg-white/30 px-4 py-2 rounded-full border border-white/40 shadow-sm">
-                    <span className="text-2xl filter drop-shadow-sm">🎓</span>
+            <div className="w-full max-w-4xl px-4 mb-5 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-brand-subtle text-brand-primary flex items-center justify-center text-lg">
+                        🎓
+                    </div>
                     <div>
-                        <h1 className="text-lg font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),15%)] leading-tight">Académie BarTender</h1>
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">Formation Interactive</p>
+                        <h1 className="text-h3 text-gray-900 leading-tight">Académie BarTender</h1>
+                        <p className="text-micro text-gray-400">Formation interactive</p>
                     </div>
                 </div>
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="text-sm font-medium text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] hover:text-[hsl(var(--brand-hue),var(--brand-saturation),20%)] transition-colors px-3 py-1 rounded-lg hover:bg-black/5"
+                    className="text-caption font-medium text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100"
                 >
                     Quitter
                 </button>
@@ -177,13 +168,13 @@ export const TrainingFlow: React.FC = () => {
 
             <OnboardingProgressBar />
 
-            <main className="w-full flex-1 flex flex-col items-center justify-start mt-8 px-4 relative z-10">
+            <main className="w-full flex-1 flex flex-col items-center justify-start mt-6 px-4">
                 <motion.div
                     key={currentStep}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                     className="w-full max-w-4xl"
                 >
                     {renderStep()}

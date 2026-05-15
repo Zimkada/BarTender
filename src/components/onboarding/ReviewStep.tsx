@@ -157,205 +157,170 @@ export const ReviewStep: React.FC = () => {
     goToStep(step);
   };
 
+  const ChecklistItem: React.FC<{
+    label: string;
+    detail: React.ReactNode;
+    status: 'ok' | 'warning' | 'missing' | 'optional';
+    onEdit: () => void;
+    children?: React.ReactNode;
+  }> = ({ label, detail, status, onEdit, children }) => {
+    const statusIcon =
+      status === 'ok' ? (
+        <span className="w-5 h-5 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-caption font-bold">✓</span>
+      ) : status === 'warning' ? (
+        <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-caption font-bold">!</span>
+      ) : status === 'missing' ? (
+        <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-caption font-bold">✕</span>
+      ) : (
+        <span className="w-5 h-5 rounded-full border border-gray-200 text-gray-300 flex items-center justify-center text-caption">○</span>
+      );
+
+    return (
+      <div className="flex items-center justify-between gap-3 p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
+        <div className="flex-1 min-w-0">
+          <p className="text-body-sm font-medium text-gray-900">{label}</p>
+          <p className="text-caption text-gray-500">{detail}</p>
+          {children}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {statusIcon}
+          <button
+            type="button"
+            onClick={onEdit}
+            className="text-caption font-medium text-brand-primary hover:underline"
+          >
+            Modifier
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
         {/* Header */}
-        <div className="mb-8 p-6 md:p-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Prêt à Lancer ?</h1>
-          <p className="mt-2 text-sm md:text-base text-gray-600">
-            Vérifiez votre configuration et lancez votre bar
+        <div className="mb-8">
+          <h1 className="text-h1 text-gray-900 mb-2">Prêt à lancer ?</h1>
+          <p className="text-body-sm text-gray-500">
+            Vérifiez votre configuration et lancez votre bar.
           </p>
         </div>
 
-        {/* Summary Card */}
-        <form onSubmit={handleLaunch} className="space-y-6">
+        <form onSubmit={handleLaunch} className="space-y-5">
           {/* Bar Info */}
-          <div className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-            <div className="space-y-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Nom du Bar</p>
-                  <p className="text-lg font-semibold text-gray-900">{barDetails?.barName || currentBar?.name || 'N/A'}</p>
+          <div className="p-5 bg-brand-subtle border border-brand-subtle rounded-xl">
+            <div className="space-y-4">
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <p className="text-micro text-brand-primary">Nom du bar</p>
+                  <p className="text-h3 text-gray-900 truncate">{barDetails?.barName || currentBar?.name || 'N/A'}</p>
                 </div>
-                <span className="text-2xl">✓</span>
+                <span className="w-7 h-7 rounded-full bg-white text-brand-primary flex items-center justify-center font-bold flex-shrink-0">✓</span>
               </div>
 
-              <hr className="border-green-200" />
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 pt-3 border-t border-brand-subtle">
                 <div>
-                  <p className="text-xs font-medium text-gray-600">Localisation</p>
-                  <p className="text-sm text-gray-900">{formatAddress(barDetails?.location || currentBar?.address || 'N/A')}</p>
+                  <p className="text-micro text-brand-primary">Localisation</p>
+                  <p className="text-caption font-medium text-gray-900">{formatAddress(barDetails?.location || currentBar?.address || 'N/A')}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600">Mode</p>
-                  <p className="text-sm text-gray-900 capitalize">{barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'N/A'}</p>
+                  <p className="text-micro text-brand-primary">Mode</p>
+                  <p className="text-caption font-medium text-gray-900 capitalize">{barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600">Heure de Fermeture</p>
-                  <p className="text-sm text-gray-900">{(barDetails?.closingHour ?? currentBar?.closingHour) || 6}:00 du matin</p>
+                  <p className="text-micro text-brand-primary">Fermeture</p>
+                  <p className="text-caption font-medium text-gray-900 tabular-nums">{((barDetails?.closingHour ?? currentBar?.closingHour) || 6).toString().padStart(2, '0')}:00</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600">Contact</p>
-                  <p className="text-sm text-gray-900">{barDetails?.contact || currentBar?.phone || 'Non fourni'}</p>
+                  <p className="text-micro text-brand-primary">Contact</p>
+                  <p className="text-caption font-medium text-gray-900 truncate">{barDetails?.contact || currentBar?.phone || 'Non fourni'}</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Checklist */}
-          <div className="space-y-3">
-            {/* Managers */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Gérants</p>
-                <p className="text-xs text-gray-600">{realData.managerCount} compte(s)</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {realData.managerCount > 0 ? (
-                  <span className="text-green-600 font-bold">✓</span>
-                ) : (
-                  <span className="text-gray-300 transform scale-75">○</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleEditStep(OnboardingStep.OWNER_ADD_MANAGERS)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Modifier
-                </button>
-              </div>
-            </div>
-
-            {/* Staff */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Personnel</p>
-                <p className="text-xs text-gray-600">
-                  {realData.staffCount > 0 ? `${realData.staffCount} serveur(s)` : 'Dynamique (mode simplifié)'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {realData.staffCount > 0 ? (
-                  <span className="text-green-600 font-bold">✓</span>
-                ) : (
-                  <span className="text-amber-500 font-bold" title="Aucun serveur ajouté">⚠️</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleEditStep(OnboardingStep.OWNER_SETUP_STAFF)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Modifier
-                </button>
-              </div>
-            </div>
-
-            {/* Products */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Produits</p>
-                <p className="text-xs text-gray-600">{realData.productNames.length} produit(s)</p>
-                {realData.productNames.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {realData.productNames.map((name, idx) => (
-                      <span key={idx} className="inline-block px-2 py-0.5 bg-white border border-gray-200 rounded text-xs text-gray-700">
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {realData.productNames.length > 0 ? (
-                  <span className="text-green-600 font-bold">✓</span>
-                ) : (
-                  <span className="text-red-500 font-bold" title="Aucun produit">✕</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleEditStep(OnboardingStep.OWNER_ADD_PRODUCTS)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Modifier
-                </button>
-              </div>
-            </div>
-
-            {/* Stock */}
-            <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <div>
-                <p className="text-sm font-medium text-gray-900">Stock Initial</p>
-                <p className="text-xs text-gray-600">{realData.totalStock} unité(s) au total</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {realData.totalStock > 0 ? (
-                  <span className="text-green-600 font-bold">✓</span>
-                ) : (
-                  <span className="text-amber-500 font-bold" title="Stock vide">⚠️</span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleEditStep(OnboardingStep.OWNER_STOCK_INIT)}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Modifier
-                </button>
-              </div>
-            </div>
+          <div className="space-y-2.5">
+            <ChecklistItem
+              label="Gérants"
+              detail={`${realData.managerCount} compte${realData.managerCount > 1 ? 's' : ''}`}
+              status={realData.managerCount > 0 ? 'ok' : 'optional'}
+              onEdit={() => handleEditStep(OnboardingStep.OWNER_ADD_MANAGERS)}
+            />
+            <ChecklistItem
+              label="Personnel"
+              detail={realData.staffCount > 0 ? `${realData.staffCount} serveur${realData.staffCount > 1 ? 's' : ''}` : 'Dynamique (mode simplifié)'}
+              status={realData.staffCount > 0 ? 'ok' : 'warning'}
+              onEdit={() => handleEditStep(OnboardingStep.OWNER_SETUP_STAFF)}
+            />
+            <ChecklistItem
+              label="Produits"
+              detail={`${realData.productNames.length} produit${realData.productNames.length > 1 ? 's' : ''}`}
+              status={realData.productNames.length > 0 ? 'ok' : 'missing'}
+              onEdit={() => handleEditStep(OnboardingStep.OWNER_ADD_PRODUCTS)}
+            >
+              {realData.productNames.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {realData.productNames.map((name, idx) => (
+                    <span key={idx} className="inline-block px-2 py-0.5 bg-white border border-gray-200 rounded-full text-caption text-gray-600">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </ChecklistItem>
+            <ChecklistItem
+              label="Stock initial"
+              detail={`${realData.totalStock} unité${realData.totalStock > 1 ? 's' : ''} au total`}
+              status={realData.totalStock > 0 ? 'ok' : 'warning'}
+              onEdit={() => handleEditStep(OnboardingStep.OWNER_STOCK_INIT)}
+            />
           </div>
 
-          {/* Launch Button */}
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-900">
-              ✨ Une fois lancé, votre bar est prêt pour les ventes ! Les gérants peuvent commencer à créer des transactions.
+          {/* Info boxes */}
+          <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+            <p className="text-caption text-gray-600 leading-relaxed">
+              <span className="font-semibold text-gray-900">✨ Une fois lancé,</span> votre bar est prêt pour les ventes. Les gérants peuvent commencer à créer des transactions.
             </p>
-          </div>
-
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-900">
-              💡 <strong>Conseil :</strong> Besoin d'aide une fois lancé ? Cliquez sur le bouton bleu <strong>Guide (?)</strong> situé en haut à droite des pages pour des visites guidées interactives.
+            <p className="text-caption text-gray-600 leading-relaxed">
+              <span className="font-semibold text-gray-900">💡 Conseil :</span> cliquez sur le bouton <span className="font-medium text-brand-primary">Guide (?)</span> en haut à droite pour des visites guidées.
             </p>
           </div>
 
           {/* Error Message */}
           {errors && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700">{errors}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-caption text-red-700">{errors}</p>
             </div>
           )}
 
-          {/* Buttons - Responsive Layout */}
-          <div className="pt-6 border-t space-y-3">
-            {/* Mobile: Retour + Lancer sur la même ligne */}
-            {/* Footer Actions Standardisé */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-100 items-center justify-between">
-              <button
-                type="button"
-                onClick={previousStep}
-                className="text-gray-500 hover:text-gray-700 font-medium text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition"
-              >
-                Retour
-              </button>
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100 items-center justify-between">
+            <button
+              type="button"
+              onClick={previousStep}
+              className="text-body-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Retour
+            </button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2"
-              >
-                Compléter plus tard
-              </button>
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="text-caption text-gray-400 hover:text-gray-600 font-medium px-3 py-2 transition-colors"
+            >
+              Compléter plus tard
+            </button>
 
-              <LoadingButton
-                type="submit"
-                isLoading={loading}
-                loadingText="Lancement..."
-                className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold shadow-md transform hover:scale-105"
-              >
-                🚀 Lancer le Bar
-              </LoadingButton>
-            </div>
+            <LoadingButton
+              type="submit"
+              isLoading={loading}
+              loadingText="Lancement…"
+              className="btn-brand h-11 px-6 rounded-xl text-body-sm font-semibold"
+            >
+              🚀 Lancer le bar
+            </LoadingButton>
           </div>
         </form>
       </div>

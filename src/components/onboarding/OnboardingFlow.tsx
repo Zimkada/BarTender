@@ -222,28 +222,28 @@ export const OnboardingFlow: React.FC = () => {
       // Default
       case OnboardingStep.COMPLETE:
         return (
-          <div className="w-full max-w-3xl mx-auto px-4">
-            <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 text-center ring-1 ring-black/5">
-              <div className="text-6xl mb-6 animate-bounce">🎉</div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-3 bg-clip-text text-transparent bg-[image:var(--brand-gradient)]">
-                Configuration terminée !
-              </h1>
-              <p className="text-gray-600 mb-8 text-lg">Votre bar est prêt à être utilisé.</p>
+          <div className="w-full max-w-2xl mx-auto px-4">
+            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 md:p-10 text-center">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
+                🎉
+              </div>
+              <h1 className="text-h1 text-gray-900 mb-2">Configuration terminée</h1>
+              <p className="text-body text-gray-500 mb-8">Votre bar est prêt à être utilisé.</p>
               <button
                 onClick={async () => {
                   try {
                     await completeOnboarding();
                     console.log('Onboarding marked as complete');
-                    await refreshSession(); // Refresh session to update UI (hide banner)
+                    await refreshSession();
                     console.log('Session refreshed');
                   } catch (e) {
                     console.error("Erreur lors de la complétion:", e);
                   }
                   navigate('/dashboard', { replace: true });
                 }}
-                className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+                className="btn-brand h-11 rounded-xl px-6 text-body-sm font-semibold"
               >
-                Aller au Dashboard
+                Aller au tableau de bord
               </button>
             </div>
           </div>
@@ -251,8 +251,8 @@ export const OnboardingFlow: React.FC = () => {
       default:
         return (
           <div className="w-full max-w-2xl mx-auto px-4">
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <p className="text-gray-600">Loading onboarding...</p>
+            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 text-center">
+              <p className="text-body-sm text-gray-500">Chargement de l'onboarding…</p>
             </div>
           </div>
         );
@@ -260,16 +260,12 @@ export const OnboardingFlow: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(var(--brand-hue),var(--brand-saturation),98%)] relative overflow-hidden transition-colors duration-500">
-      {/* Decorative Background Elements */}
-      <div className="absolute top-[-20%] right-[-10%] w-[50vh] h-[50vh] rounded-full bg-[image:var(--brand-gradient)] opacity-5 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[50vh] h-[50vh] rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] opacity-5 blur-[100px] pointer-events-none" />
-
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
       {/* Progress indicator - sticky at top */}
       <OnboardingProgressBar />
 
       {/* Step content */}
-      <div className="py-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="py-10 relative z-10">
         {isHydrating ? (
           <LoadingFallback />
         ) : (

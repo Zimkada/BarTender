@@ -33,7 +33,7 @@ interface BarDetailsFormData {
 
 export const BarDetailsStep: React.FC = () => {
   const navigate = useNavigate();
-  const { stepData, updateStepData, completeStep, nextStep, previousStep, completeOnboarding } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const { currentBar } = useBar();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -150,23 +150,28 @@ export const BarDetailsStep: React.FC = () => {
     }
   };
 
+  const inputClass = (hasError: boolean) =>
+    `w-full h-11 px-4 border rounded-xl text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary focus:outline-none transition-colors ${
+      hasError ? 'border-red-400 focus:ring-red-200' : 'border-gray-200 bg-gray-50 focus:bg-white'
+    }`;
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-lg shadow-md p-5 md:p-8">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Configurons votre bar</h1>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-8">
+          <h1 className="text-h1 text-gray-900 mb-2">Configurons votre bar</h1>
+          <p className="text-body-sm text-gray-500">
             Vérifiez et ajustez les informations de votre bar. Les champs sont pré-remplis avec vos données existantes.
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Bar Name */}
-          <div>
-            <label htmlFor="barName" className="block text-sm font-medium text-gray-700 mb-1">
-              Nom du Bar (optionnel - modifier si nécessaire)
+          <div className="space-y-1.5">
+            <label htmlFor="barName" className="block text-caption font-medium text-gray-500">
+              Nom du bar
             </label>
             <input
               id="barName"
@@ -175,23 +180,17 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.barName}
               onChange={handleChange}
               placeholder="ex : Chez Ali"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.barName
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200'
-                }`}
+              className={inputClass(!!errors.barName)}
             />
-            {!errors.barName && formData.barName && (
-              <p className="mt-1 text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">✓ Valeur actuelle: {formData.barName}</p>
-            )}
             {errors.barName && (
-              <p className="mt-1 text-sm text-red-600">{errors.barName}</p>
+              <p className="text-caption text-red-600">{errors.barName}</p>
             )}
           </div>
 
           {/* Location */}
-          <div>
-            <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-              Localisation (optionnel - modifier si nécessaire)
+          <div className="space-y-1.5">
+            <label htmlFor="location" className="block text-caption font-medium text-gray-500">
+              Localisation <span className="text-gray-400">(optionnel)</span>
             </label>
             <input
               id="location"
@@ -200,22 +199,16 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.location}
               onChange={handleChange}
               placeholder="ex : Cotonou, Bénin"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.location
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200'
-                }`}
+              className={inputClass(!!errors.location)}
             />
-            {!errors.location && formData.location && (
-              <p className="mt-1 text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">✓ Valeur actuelle: {formData.location}</p>
-            )}
             {errors.location && (
-              <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+              <p className="text-caption text-red-600">{errors.location}</p>
             )}
           </div>
 
           {/* Currency */}
-          <div>
-            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
+          <div className="space-y-1.5">
+            <label htmlFor="currency" className="block text-caption font-medium text-gray-500">
               Devise *
             </label>
             <select
@@ -223,20 +216,19 @@ export const BarDetailsStep: React.FC = () => {
               name="currency"
               value={formData.currency}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.currency ? 'border-red-500 focus:ring-red-200' : 'border-gray-200'
-                }`}
+              className={inputClass(!!errors.currency)}
             >
               <option value="XOF">Franc CFA (XOF)</option>
               <option value="EUR">Euro (€)</option>
               <option value="USD">Dollar ($)</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">La devise utilisée pour vos rapports financiers.</p>
+            <p className="text-caption text-gray-400">La devise utilisée pour vos rapports financiers.</p>
           </div>
 
           {/* Contact Email */}
-          <div>
-            <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1">
-              Email de Contact (optionnel)
+          <div className="space-y-1.5">
+            <label htmlFor="contact" className="block text-caption font-medium text-gray-500">
+              Email de contact <span className="text-gray-400">(optionnel)</span>
             </label>
             <input
               id="contact"
@@ -245,97 +237,86 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.contact}
               onChange={handleChange}
               placeholder="votre@email.com"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.contact
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200'
-                }`}
+              className={inputClass(!!errors.contact)}
             />
-            {!errors.contact && formData.contact && (
-              <p className="mt-1 text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">✓ Valeur actuelle: {formData.contact}</p>
-            )}
             {errors.contact && (
-              <p className="mt-1 text-sm text-red-600">{errors.contact}</p>
+              <p className="text-caption text-red-600">{errors.contact}</p>
             )}
           </div>
 
           {/* Closing Hour */}
-          <div>
-            <label htmlFor="closingHour" className="block text-sm font-medium text-gray-700 mb-1">
-              Heure de Fermeture (Début du Jour Ouvrable) *
+          <div className="space-y-1.5">
+            <label htmlFor="closingHour" className="block text-caption font-medium text-gray-500">
+              Heure de fermeture *
             </label>
             <select
               id="closingHour"
               name="closingHour"
               value={formData.closingHour}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.closingHour
-                ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-200'
-                }`}
+              className={inputClass(!!errors.closingHour)}
             >
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>
-                  {i}:00 (fermeture à {i}:00 du matin)
+                  {i.toString().padStart(2, '0')}:00
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-sm text-gray-500">
-              ℹ️ Les ventes avant votre heure de fermeture sont comptées comme date d'hier
+            <p className="text-caption text-gray-400">
+              Les ventes avant cette heure sont comptées sur la journée précédente.
             </p>
             {errors.closingHour && (
-              <p className="mt-1 text-sm text-red-600">{errors.closingHour}</p>
+              <p className="text-caption text-red-600">{errors.closingHour}</p>
             )}
           </div>
 
           {/* Operating Mode */}
-          <div>
-            <label htmlFor="operatingMode" className="block text-sm font-medium text-gray-700 mb-1">
-              Mode de Fonctionnement *
+          <div className="space-y-1.5">
+            <label htmlFor="operatingMode" className="block text-caption font-medium text-gray-500">
+              Mode de fonctionnement *
             </label>
             <select
               id="operatingMode"
               name="operatingMode"
               value={formData.operatingMode}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200"
+              className={inputClass(false)}
             >
-              <option value="simplifié">Simplifié (pas de comptes utilisateurs, noms seulement)</option>
-              <option value="full">Complet (comptes utilisateur pour chaque serveur)</option>
+              <option value="simplifié">Simplifié (pas de comptes serveurs, noms seulement)</option>
+              <option value="full">Complet (compte utilisateur par serveur)</option>
             </select>
-            <p className="mt-2 text-sm text-gray-500">
-              💡 Vous pouvez modifier cela plus tard si nécessaire
+            <p className="text-caption text-gray-400">
+              Vous pourrez modifier ce choix plus tard.
             </p>
           </div>
 
           {/* Error Message */}
           {errors.submit && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700">{errors.submit}</p>
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-caption text-red-700">{errors.submit}</p>
             </div>
           )}
 
-          {/* Buttons - Responsive Layout */}
-          <div className="pt-6 border-t space-y-3">
-            {/* Mobile: Retour + Étape Suivante sur la même ligne */}
+          {/* Footer */}
+          <div className="pt-6 border-t border-gray-100 space-y-3">
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => previousStep()}
-                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-[hsl(var(--brand-hue),var(--brand-saturation),20%)] bg-white border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] rounded-xl hover:bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] transition-colors duration-200"
+                className="flex-1 sm:flex-none h-11 px-5 text-body-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:border-brand-primary hover:text-brand-primary transition-colors"
               >
                 Retour
               </button>
               <LoadingButton
                 type="submit"
                 isLoading={loading}
-                loadingText="Enregistrement..."
-                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-[image:var(--brand-gradient)] text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-200"
+                loadingText="Enregistrement…"
+                className="flex-1 sm:flex-none sm:ml-auto btn-brand h-11 px-6 rounded-xl text-body-sm font-semibold"
               >
-                Étape Suivante
+                Étape suivante
               </LoadingButton>
             </div>
 
-            {/* Completer Plus Tard centré en dessous */}
             <div className="flex justify-center">
               <LoadingButton
                 type="button"
@@ -345,8 +326,6 @@ export const BarDetailsStep: React.FC = () => {
                   try {
                     if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
 
-                    // Persist current state before leaving (settings are JSONB)
-                    // ✅ Type-safe settings extraction with ExtendedBarSettings
                     const currentSettings: ExtendedBarSettings = (currentBar.settings as ExtendedBarSettings) || {
                       currency: 'XOF',
                       currencySymbol: 'FCFA',
@@ -357,12 +336,11 @@ export const BarDetailsStep: React.FC = () => {
                     const updatePayload = {
                       name: formData.barName,
                       address: formData.location,
-                      // Note: contact/email is stored in settings, not as a separate column
                       settings: {
                         ...currentSettings,
                         businessDayCloseHour: formData.closingHour,
                         operatingMode: dbOperatingMode,
-                        contact: formData.contact, // Store contact in settings
+                        contact: formData.contact,
                         currency: formData.currency,
                         currencySymbol: formData.currency === 'EUR' ? '€' : formData.currency === 'USD' ? '$' : 'FCFA',
                       } as ExtendedBarSettings,
@@ -372,8 +350,6 @@ export const BarDetailsStep: React.FC = () => {
 
                     updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
                     completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                    // Note: Do NOT call completeOnboarding() here - user wants to finish later
-                    // Redirect to dashboard instead
                     navigate('/dashboard');
                   } catch (error: any) {
                     setErrors({ submit: 'Erreur lors de la sauvegarde : ' + error.message });
@@ -381,9 +357,9 @@ export const BarDetailsStep: React.FC = () => {
                     setLoading(false);
                   }
                 }}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] hover:text-[hsl(var(--brand-hue),var(--brand-saturation),20%)] font-medium text-sm transition-colors duration-200"
+                className="text-caption font-medium text-gray-400 hover:text-gray-600 px-3 py-2 transition-colors"
               >
-                Compléter Plus Tard
+                Compléter plus tard
               </LoadingButton>
             </div>
           </div>

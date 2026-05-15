@@ -7,10 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 type DemoPhase =
   | 'intro'
-  | 'picking'     // Task: Pick 2 Heineken
-  | 'adjusting'   // Task: Add a product and remove it
-  | 'alert_stock' // Task: Learn about stock warnings
-  | 'payment'     // Task: Finalize
+  | 'picking'
+  | 'adjusting'
+  | 'alert_stock'
+  | 'payment'
   | 'success';
 
 export const BartenderDemoStep: React.FC = () => {
@@ -21,7 +21,6 @@ export const BartenderDemoStep: React.FC = () => {
   const [phase, setPhase] = useState<DemoPhase>('intro');
   const [loading, setLoading] = useState(false);
 
-  // Simulation State
   const [cart, setCart] = useState<{ id: string; name: string; price: number; qty: number }[]>([]);
   const [showStockWarning, setShowStockWarning] = useState(false);
 
@@ -33,7 +32,7 @@ export const BartenderDemoStep: React.FC = () => {
     try {
       completeStep(OnboardingStep.BARTENDER_DEMO, {
         timestamp: new Date().toISOString(),
-        completedSimulation: true
+        completedSimulation: true,
       });
       nextStep();
     } catch (error) {
@@ -44,112 +43,68 @@ export const BartenderDemoStep: React.FC = () => {
   };
 
   const addToCart = (id: string, name: string, price: number) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.id === id);
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === id);
       if (existing) {
-        return prev.map(i => i.id === id ? { ...i, qty: i.qty + 1 } : i);
+        return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
       }
       return [...prev, { id, name, price, qty: 1 }];
     });
   };
 
   const updateQty = (id: string, delta: number) => {
-    setCart(prev => {
-      return prev.map(i => {
-        if (i.id === id) {
-          const newQty = Math.max(0, i.qty + delta);
-          return { ...i, qty: newQty };
-        }
-        return i;
-      }).filter(i => i.qty > 0);
-    });
-  };
-
-  // --- PREMIUM COMPONENTS ---
-
-  const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`backdrop-blur-md bg-white/60 border border-white/40 shadow-xl rounded-2xl ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
-
-  const renderHeader = () => {
-    let title = "Académie Serveur";
-    let subtitle = "Devenez le roi du comptoir BarTender.";
-
-    switch (phase) {
-      case 'intro':
-        title = "🚀 Académie Serveur";
-        subtitle = "Apprenez à encaisser vos clients en 2 minutes.";
-        break;
-      case 'picking':
-        title = "Mission : La Commande";
-        subtitle = "Sélectionnez les produits demandés par le client.";
-        break;
-      case 'adjusting':
-        title = "Mission : Précision";
-        subtitle = "Maîtrisez les quantités et les erreurs.";
-        break;
-      case 'alert_stock':
-        title = "Mission : Vigilance";
-        subtitle = "Anticipez les ruptures de stock.";
-        break;
-      case 'payment':
-        title = "Mission : Clôture";
-        subtitle = "Finalisez la vente et encaissez le montant.";
-        break;
-      case 'success':
-        title = "Serveur Certifié !";
-        subtitle = "Vous êtes maintenant prêt à servir vos premiers clients.";
-        break;
-    }
-
-    return (
-      <div className={`p-8 text-center transition-all duration-700 bg-[image:var(--brand-gradient)] relative overflow-hidden`}>
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
-          transition={{ duration: 20, repeat: Infinity }}
-          className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"
-        />
-        <h1 className="text-2xl md:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-sm">{title}</h1>
-        <p className="text-white/90 text-sm md:text-lg font-medium max-w-lg mx-auto leading-relaxed">{subtitle}</p>
-      </div>
+    setCart((prev) =>
+      prev
+        .map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i))
+        .filter((i) => i.qty > 0)
     );
   };
 
+  const headerContent: Record<DemoPhase, { title: string; subtitle: string }> = {
+    intro: { title: 'Académie serveur', subtitle: 'Apprenez à encaisser vos clients en 2 minutes.' },
+    picking: { title: 'Mission : la commande', subtitle: 'Sélectionnez les produits demandés par le client.' },
+    adjusting: { title: 'Mission : précision', subtitle: 'Maîtrisez les quantités et les erreurs.' },
+    alert_stock: { title: 'Mission : vigilance', subtitle: 'Anticipez les ruptures de stock.' },
+    payment: { title: 'Mission : clôture', subtitle: 'Finalisez la vente et encaissez le montant.' },
+    success: { title: 'Serveur certifié', subtitle: 'Vous êtes prêt à servir vos premiers clients.' },
+  };
+
+  const { title, subtitle } = headerContent[phase];
+
   return (
     <div className="w-full max-w-4xl mx-auto px-4">
-      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-3xl overflow-hidden flex flex-col min-h-[600px] ring-1 ring-black/5">
-        {renderHeader()}
+      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden flex flex-col min-h-[600px]">
+        {/* Header */}
+        <div className="p-8 text-center bg-brand-gradient text-white">
+          <h1 className="text-h1 text-white mb-2">{title}</h1>
+          <p className="text-body text-white/85 max-w-lg mx-auto">{subtitle}</p>
+        </div>
 
-        <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center relative bg-[hsl(var(--brand-hue),var(--brand-saturation),99%)]">
+        <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center bg-gray-50">
           <AnimatePresence mode="wait">
             {phase === 'intro' && (
               <motion.div
                 key="intro"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.1 }}
-                className="text-center space-y-8 max-w-md"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="text-center space-y-6 max-w-md"
               >
-                <div className="w-24 h-24 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-3xl border-4 border-white shadow-xl flex items-center justify-center mx-auto transform rotate-6">
-                  <Zap className="text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] w-12 h-12" fill="currentColor" />
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center">
+                  <Zap className="w-8 h-8" fill="currentColor" />
                 </div>
-                <div className="space-y-3">
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Vendez à la vitesse de l'éclair</h2>
-                  <p className="text-sm md:text-slate-600 leading-relaxed font-medium">
+                <div className="space-y-2">
+                  <h2 className="text-h2 text-gray-900">Vendez à la vitesse de l'éclair</h2>
+                  <p className="text-body-sm text-gray-600 leading-relaxed">
                     Une application lente fait perdre des clients. BarTender est conçu pour la rapidité. On essaye ?
                   </p>
                 </div>
                 <button
                   onClick={() => setPhase('picking')}
-                  className="group w-full py-4 bg-[image:var(--brand-gradient)] text-white rounded-2xl font-bold hover:brightness-110 transition-all shadow-xl hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 flex items-center justify-center gap-2"
+                  className="btn-brand w-full h-11 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2"
                 >
-                  Démarrer la formation <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  Démarrer la formation <ChevronRight size={16} />
                 </button>
               </motion.div>
             )}
@@ -157,100 +112,95 @@ export const BartenderDemoStep: React.FC = () => {
             {(phase === 'picking' || phase === 'adjusting' || phase === 'alert_stock' || phase === 'payment') && (
               <motion.div
                 key="simulation"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 items-start"
               >
-                {/* Left: Product Selection Simulation */}
-                <div className="space-y-6">
-                  {/* Phase Instruction Banner */}
-                  <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),10%)] text-white p-3 rounded-lg text-sm shadow-md">
-                    <span className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)]">MISSION :</span>
-                    {phase === 'picking' && <> Ajoutez une <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">Heineken</strong> à la commande.</>}
-                    {phase === 'adjusting' && <> Ajoutez un <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">Coca Cola</strong> (erreur) à la commande.</>}
-                    {phase === 'alert_stock' && <> Gérez l'alerte de stock sur le <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">Coca Cola</strong>.</>}
-                    {phase === 'payment' && <> Tout est prêt. <strong className="text-white">Encaissez</strong> la commande.</>}
+                {/* Left: Product Selection */}
+                <div className="space-y-4">
+                  {/* Mission Banner */}
+                  <div className="bg-gray-900 text-white p-3 rounded-xl text-caption">
+                    <span className="font-semibold text-brand-primary mr-1">Mission :</span>
+                    {phase === 'picking' && <>Ajoutez une <span className="font-semibold">Heineken</span> à la commande.</>}
+                    {phase === 'adjusting' && <>Ajoutez un <span className="font-semibold">Coca Cola</span> (erreur) à la commande.</>}
+                    {phase === 'alert_stock' && <>Gérez l'alerte de stock sur le <span className="font-semibold">Coca Cola</span>.</>}
+                    {phase === 'payment' && <>Tout est prêt. <span className="font-semibold">Encaissez</span> la commande.</>}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      Produits <span className="w-6 h-1 bg-slate-200 rounded-full" />
-                    </h3>
-                  </div>
+                  <h3 className="text-micro text-gray-400">Produits</h3>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Simulated Heineken Button */}
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Heineken */}
+                    <button
                       onClick={() => {
                         addToCart('p1', 'Heineken', 1000);
                         if (phase === 'picking') setPhase('adjusting');
                       }}
-                      className={`relative p-4 md:p-6 rounded-2xl border-2 text-left transition-all ${phase === 'picking'
-                        ? 'bg-white border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] shadow-lg ring-4 ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)]/30 animate-float'
-                        : 'bg-white border-transparent shadow-sm'
-                        }`}
+                      className={`relative p-4 rounded-xl border text-left transition-all ${
+                        phase === 'picking'
+                          ? 'bg-white border-brand-primary shadow-sm ring-2 ring-brand-primary/20'
+                          : 'bg-white border-gray-100 shadow-sm hover:border-brand-subtle'
+                      }`}
                     >
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-xl flex items-center justify-center mb-3 md:mb-4 text-green-600">
-                        <Beer size={24} />
+                      <div className="w-10 h-10 bg-brand-subtle rounded-lg flex items-center justify-center mb-3 text-brand-primary">
+                        <Beer size={20} />
                       </div>
-                      <div className="font-bold text-sm md:text-base text-slate-800">Heineken</div>
-                      <div className="font-bold text-sm md:text-base text-slate-800">Heineken</div>
-                      <div className="text-[10px] md:text-sm text-slate-400">1 000 {currency}</div>
-                      <div className="absolute top-3 right-3 md:top-4 md:right-4 text-blue-500">
-                        <Plus size={16} />
+                      <div className="text-body-sm font-semibold text-gray-900">Heineken</div>
+                      <div className="text-caption text-gray-500 tabular-nums">1 000 {currency}</div>
+                      <div className="absolute top-3 right-3 text-brand-primary">
+                        <Plus size={14} />
                       </div>
-                    </motion.button>
+                    </button>
 
-                    {/* Simulated Product with Alert */}
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
+                    {/* Coca Cola */}
+                    <button
                       onClick={() => {
                         if (phase === 'adjusting') setPhase('alert_stock');
                         setShowStockWarning(true);
                         addToCart('p2', 'Coca Cola', 600);
                       }}
-                      className={`relative p-4 md:p-6 rounded-2xl border-2 text-left transition-all bg-white shadow-sm border-transparent ${phase === 'adjusting' ? 'border-amber-400 ring-4 ring-amber-100' : ''
-                        }`}
+                      className={`relative p-4 rounded-xl border text-left transition-all bg-white shadow-sm ${
+                        phase === 'adjusting' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-gray-100 hover:border-brand-subtle'
+                      }`}
                     >
-                      <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-xl flex items-center justify-center mb-3 md:mb-4 text-red-600 font-black text-sm">
+                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mb-3 text-gray-500 text-caption font-semibold">
                         Co
                       </div>
-                      <div className="font-bold text-sm md:text-base text-slate-800">Coca Cola</div>
-                      <div className="font-bold text-sm md:text-base text-slate-800">Coca Cola</div>
-                      <div className="text-[10px] md:text-sm text-slate-400">600 {currency}</div>
+                      <div className="text-body-sm font-semibold text-gray-900">Coca Cola</div>
+                      <div className="text-caption text-gray-500 tabular-nums">600 {currency}</div>
                       {phase === 'alert_stock' && (
-                        <div className="absolute top-2 right-2 bg-amber-500 text-white text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded-full flex items-center gap-1">
-                          STOCK BAS
+                        <div className="absolute top-2 right-2 bg-amber-500 text-white text-micro font-semibold px-2 py-0.5 rounded-full">
+                          Stock bas
                         </div>
                       )}
-                    </motion.button>
+                    </button>
                   </div>
 
                   <AnimatePresence>
                     {showStockWarning && phase === 'alert_stock' && (
                       <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl flex items-start gap-3"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-start gap-3"
                       >
-                        <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={20} />
-                        <div>
-                          <p className="text-sm font-bold text-amber-900">Alerte Stocks !</p>
-                          <p className="text-xs text-amber-800 leading-relaxed">
-                            Quand un produit s'affiche en orange, c'est qu'il en reste moins de 5. <strong>Signalez-le vite à votre gérant !</strong>
+                        <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={16} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-body-sm font-semibold text-amber-900">Alerte stock</p>
+                          <p className="text-caption text-amber-800 leading-relaxed mt-0.5">
+                            Quand un produit s'affiche en orange, il en reste moins de 5. <span className="font-semibold">Signalez-le à votre gérant.</span>
                           </p>
                           <button
                             onClick={() => {
                               setShowStockWarning(false);
                               setPhase('payment');
                             }}
-                            className="mt-3 text-xs font-black text-amber-700 uppercase tracking-widest flex items-center gap-1 hover:gap-2 transition-all"
+                            className="mt-2 text-caption font-semibold text-amber-700 hover:text-amber-900 transition-colors"
                           >
-                            J'ai compris, payer →
+                            J'ai compris, encaisser →
                           </button>
                         </div>
                       </motion.div>
@@ -258,87 +208,76 @@ export const BartenderDemoStep: React.FC = () => {
                   </AnimatePresence>
                 </div>
 
-                {/* Right: Cart Simulation */}
-                <div className="space-y-6">
-                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    Ticket Rapide <span className="w-6 h-1 bg-slate-200 rounded-full" />
-                  </h3>
+                {/* Right: Cart */}
+                <div className="space-y-4">
+                  <h3 className="text-micro text-gray-400">Ticket rapide</h3>
 
-                  <GlassCard className="overflow-hidden flex flex-col min-h-[300px]">
-                    <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+                  <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden flex flex-col min-h-[300px]">
+                    <div className="p-3 bg-gray-900 text-white flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <ShoppingBag size={18} className="text-[hsl(var(--brand-hue),var(--brand-saturation),70%)]" />
-                        <span className="font-bold text-sm">Commande Actuelle</span>
+                        <ShoppingBag size={16} className="text-brand-primary" />
+                        <span className="text-body-sm font-semibold">Commande actuelle</span>
                       </div>
-                      <span className="bg-[hsl(var(--brand-hue),var(--brand-saturation),60%)] text-[10px] px-2 py-1 rounded-full font-bold">
-                        {totalItemsCount} ARTICLES
+                      <span className="bg-brand-primary text-micro font-semibold px-2 py-0.5 rounded-full">
+                        {totalItemsCount} article{totalItemsCount > 1 ? 's' : ''}
                       </span>
                     </div>
 
-                    <div className="flex-1 p-4 space-y-3">
-                      <AnimatePresence>
-                        {cart.length === 0 ? (
-                          <div className="h-full flex flex-col items-center justify-center text-slate-300 py-10">
-                            <ShoppingBag size={48} className="opacity-20 mb-2" />
-                            <p className="text-xs font-bold uppercase tracking-wider">Panier Vide</p>
+                    <div className="flex-1 p-3 space-y-2">
+                      {cart.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-300 py-10">
+                          <ShoppingBag size={36} className="opacity-30 mb-2" />
+                          <p className="text-caption text-gray-400">Panier vide</p>
+                        </div>
+                      ) : (
+                        cart.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100"
+                          >
+                            <div className="min-w-0">
+                              <div className="text-body-sm font-semibold text-gray-900 truncate">{item.name}</div>
+                              <div className="text-micro text-gray-400 tabular-nums">{item.price} {currency} / unité</div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => updateQty(item.id, -1)}
+                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors"
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="text-body-sm font-semibold text-gray-900 w-4 text-center tabular-nums">{item.qty}</span>
+                              <button
+                                onClick={() => updateQty(item.id, 1)}
+                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary transition-colors"
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
                           </div>
-                        ) : (
-                          cart.map((item) => (
-                            <motion.div
-                              key={item.id}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100"
-                            >
-                              <div>
-                                <div className="font-bold text-slate-800 text-sm">{item.name}</div>
-                                <div>
-                                  <div className="font-bold text-slate-800 text-sm">{item.name}</div>
-                                  <div className="text-[10px] text-slate-400 font-mono italic">{item.price} {currency} / unité</div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <button
-                                  onClick={() => updateQty(item.id, -1)}
-                                  className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"
-                                >
-                                  <Minus size={14} />
-                                </button>
-                                <span className="font-black text-slate-900 w-4 text-center">{item.qty}</span>
-                                <button
-                                  onClick={() => updateQty(item.id, 1)}
-                                  className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-500 transition-colors"
-                                >
-                                  <Plus size={14} />
-                                </button>
-                              </div>
-                            </motion.div>
-                          ))
-                        )}
-                      </AnimatePresence>
+                        ))
+                      )}
                     </div>
 
-                    <div className="p-5 bg-slate-50 border-t border-slate-200 space-y-4">
-                      <div className="flex justify-between items-end">
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Net</span>
-                        <div className="flex justify-between items-end">
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Net</span>
-                          <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] tracking-tighter">{cartTotal.toLocaleString()} {currency}</span>
-                        </div>
+                    <div className="p-4 bg-gray-50 border-t border-gray-100 space-y-3">
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-micro text-gray-400">Total net</span>
+                        <span className="text-h2 font-semibold text-brand-primary tabular-nums">{cartTotal.toLocaleString()} {currency}</span>
                       </div>
 
                       <button
                         disabled={cartTotal === 0 || phase !== 'payment'}
                         onClick={() => setPhase('success')}
-                        className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all shadow-lg ${phase === 'payment'
-                          ? 'bg-[image:var(--brand-gradient)] text-white hover:brightness-110 hover:-translate-y-1 shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40'
-                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                          }`}
+                        className={`w-full h-11 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                          phase === 'payment'
+                            ? 'btn-brand'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
                       >
-                        <Banknote size={20} /> ENCAISSER LA VENTE
+                        <Banknote size={16} /> Encaisser la vente
                       </button>
                     </div>
-                  </GlassCard>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -346,44 +285,38 @@ export const BartenderDemoStep: React.FC = () => {
             {phase === 'success' && (
               <motion.div
                 key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center space-y-8 py-10"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="text-center space-y-6 py-6"
               >
-                <div className="w-32 h-32 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-xl border-8 border-white">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', damping: 8, stiffness: 200 }}
-                  >
-                    <CheckCircle2 size={64} className="text-emerald-500" />
-                  </motion.div>
+                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto border border-green-100">
+                  <CheckCircle2 size={40} className="text-green-500" />
                 </div>
-                <div className="space-y-3">
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-800">C'est validé !</h2>
-                  <p className="text-sm md:text-base text-slate-500 max-w-sm mx-auto font-medium">
-                    Vous avez maîtrisé le processus de vente BarTender. Prêt à faire exploser le chiffre d'affaires ?
+                <div className="space-y-2">
+                  <h2 className="text-h2 text-gray-900">C'est validé</h2>
+                  <p className="text-body-sm text-gray-600 max-w-sm mx-auto">
+                    Vous avez maîtrisé le processus de vente BarTender. Prêt à servir vos clients ?
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-4">
-                  <LoadingButton
-                    onClick={handleContinue}
-                    isLoading={loading}
-                    className="w-full max-w-xs py-4 bg-[image:var(--brand-gradient)] text-white rounded-2xl font-bold shadow-xl hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 transition-all flex items-center justify-center gap-2"
-                  >
-                    Aller au Tableau de Bord
-                  </LoadingButton>
-                </div>
+                <LoadingButton
+                  onClick={handleContinue}
+                  isLoading={loading}
+                  className="btn-brand w-full max-w-xs h-11 rounded-xl text-body-sm font-semibold"
+                >
+                  Aller au tableau de bord
+                </LoadingButton>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Action bar for desktop or contextual info */}
-        <div className="bg-slate-100/50 p-4 border-t border-slate-200 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest px-8">
+        {/* Footer */}
+        <div className="bg-gray-50 p-3 border-t border-gray-100 flex items-center justify-between text-micro text-gray-400 px-6">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-slate-300" />
-            Académie Serveur v2.0
+            <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+            Académie serveur v2.0
           </div>
           <div>BarTender © 2026</div>
         </div>

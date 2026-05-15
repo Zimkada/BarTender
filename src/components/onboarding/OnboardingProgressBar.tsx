@@ -39,44 +39,46 @@ export const OnboardingProgressBar: React.FC = () => {
   // Special case for Welcome step (Index 0)
   const isWelcomeStep = currentIndex === 0;
 
+  const progressPercent = isWelcomeStep ? 0 : Math.round((displayStepNumber / displayTotalSteps) * 100);
+
   return (
-    <div className="w-full backdrop-blur-md bg-white/70 border-b border-white/30 py-3 md:py-4 px-3 md:px-6 sticky top-0 z-50 transition-all duration-300 shadow-sm">
+    <div className="w-full bg-white border-b border-gray-100 py-3 md:py-4 px-3 md:px-6 sticky top-0 z-50 shadow-sm">
       <div className="max-w-4xl mx-auto">
         {/* Progress Header */}
-        <div className="flex justify-between items-center mb-2 md:mb-3">
+        <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),15%)] text-sm md:text-base">Configuration en cours</h3>
-            <span className="hidden sm:inline-block px-2.5 py-0.5 bg-[hsl(var(--brand-hue),var(--brand-saturation),92%)] text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] text-xs font-bold rounded-full uppercase tracking-wider">
+            <h3 className="text-body-sm font-semibold text-gray-900">Configuration en cours</h3>
+            <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-brand-subtle text-brand-primary text-micro font-semibold">
               {String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}
             </span>
           </div>
           <div className="text-right">
             {isWelcomeStep ? (
-              <p className="text-xs md:text-sm font-medium text-gray-500">
-                <span className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">Introduction</span>
+              <p className="text-caption text-gray-500">
+                <span className="font-semibold text-brand-primary">Introduction</span>
               </p>
             ) : (
-              <p className="text-xs md:text-sm font-medium text-gray-500">
-                Étape <span className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">{Math.max(1, Number(displayStepNumber))}</span> sur{' '}
-                <span className="font-bold">{Math.max(1, Number(displayTotalSteps))}</span>
+              <p className="text-caption text-gray-500 tabular-nums">
+                Étape <span className="font-semibold text-brand-primary">{Math.max(1, Number(displayStepNumber))}</span> sur{' '}
+                <span className="font-semibold text-gray-700">{Math.max(1, Number(displayTotalSteps))}</span>
               </p>
             )}
           </div>
         </div>
 
-        {/* Progress Bar Container */}
-        <div className="relative h-2 md:h-2.5 bg-gray-200/50 rounded-full overflow-hidden border border-black/5 shadow-inner">
+        {/* Progress Bar */}
+        <div className="relative h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className="absolute top-0 left-0 h-full bg-[image:var(--brand-gradient)] transition-all duration-700 ease-out shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-            style={{ width: `${isWelcomeStep ? 5 : (displayStepNumber / displayTotalSteps) * 100}%` }}
+            className="absolute top-0 left-0 h-full bg-brand-primary transition-all duration-500 ease-out"
+            style={{ width: `${isWelcomeStep ? 5 : progressPercent}%` }}
           />
         </div>
 
         {/* Labels info */}
-        <div className="flex justify-between mt-1 md:mt-2">
-          <span className="text-[10px] md:text-xs text-gray-400 font-medium">Bienvenue</span>
-          <span className="text-[10px] md:text-xs font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">{isWelcomeStep ? 0 : Math.round((displayStepNumber / displayTotalSteps) * 100)}% terminé</span>
-          <span className="text-[10px] md:text-xs text-gray-400 font-medium">Prêt !</span>
+        <div className="flex justify-between mt-1.5">
+          <span className="text-micro text-gray-400">Bienvenue</span>
+          <span className="text-micro text-brand-primary font-semibold tabular-nums">{progressPercent}% terminé</span>
+          <span className="text-micro text-gray-400">Prêt</span>
         </div>
       </div>
     </div>

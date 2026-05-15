@@ -35,7 +35,7 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
 }) => {
 
     return (
-        <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col gap-4">
+        <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col gap-3">
             {/* Ligne 1 : Action Principale (Centre) */}
             {primaryAction && (
                 <div className="flex justify-center">
@@ -43,18 +43,16 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
                         onClick={primaryAction.onClick}
                         isLoading={primaryAction.isLoading}
                         loadingText={primaryAction.loadingText}
-                        className={`w-full sm:w-auto px-8 py-3 rounded-lg text-white font-semibold shadow-md flex items-center justify-center gap-2 transition hover:scale-105 ${primaryAction.className || 'bg-blue-600 hover:bg-blue-700'
-                            }`}
+                        className={`w-full sm:w-auto h-11 px-6 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2 ${primaryAction.className || 'btn-brand'}`}
                     >
                         {primaryAction.label}
-                        {primaryAction.icon || <ArrowRight className="w-5 h-5" />}
+                        {primaryAction.icon || <ArrowRight className="w-4 h-4" />}
                     </LoadingButton>
                 </div>
             )}
 
             {/* Ligne 2 : Retour (Gauche) / Secondaire (Droite) */}
             <div className="flex justify-between items-center w-full px-1">
-                {/* Gauche : Retour */}
                 <div>
                     {onBack && (
                         <BackButton
@@ -67,16 +65,15 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
                     )}
                 </div>
 
-                {/* Droite : Secondaire (Passer / Suivant) */}
                 <div>
                     {secondaryAction && (
                         <button
                             type="button"
                             onClick={secondaryAction.onClick}
                             disabled={secondaryAction.disabled}
-                            className={`font-medium text-sm px-4 py-2 rounded-lg transition ${secondaryAction.variant === 'outline'
-                                ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-                                : 'text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-transparent'
+                            className={`text-body-sm font-medium px-4 py-2 rounded-lg transition-colors ${secondaryAction.variant === 'outline'
+                                ? 'border border-gray-200 bg-white text-gray-700 hover:border-brand-primary hover:text-brand-primary'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                 }`}
                         >
                             {secondaryAction.label}
@@ -91,7 +88,7 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
                     <button
                         type="button"
                         onClick={() => window.location.href = '/dashboard'}
-                        className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2 flex items-center gap-1.5"
+                        className="text-caption text-gray-400 hover:text-gray-600 px-3 py-1.5 flex items-center gap-1.5 transition-colors"
                     >
                         <Clock className="w-3.5 h-3.5" />
                         Compléter plus tard
