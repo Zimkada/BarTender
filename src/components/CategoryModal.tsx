@@ -119,13 +119,13 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
     >
       <div className="flex flex-col gap-4">
         {!category && (
-          <div className="flex p-1 gap-1 bg-gray-50 border border-gray-100 shrink-0 rounded-lg">
+          <div className="flex p-1 gap-1 bg-muted border border-border shrink-0 rounded-lg">
             <Button
                 onClick={() => setMode('global')}
                 variant="ghost"
                 className={`flex-1 font-medium transition-all ${mode === 'global'
                   ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
-                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
+                  : 'text-foreground/70 border-2 border-transparent hover:bg-brand-subtle/50'
                 }`}
             >
                 <Globe size={16} className="mr-2" />
@@ -137,7 +137,7 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                 variant="ghost"
                 className={`flex-1 font-medium transition-all ${mode === 'custom'
                   ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
-                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
+                  : 'text-foreground/70 border-2 border-transparent hover:bg-brand-subtle/50'
                 }`}
             >
                 <PenTool size={16} className="mr-2" />
@@ -162,21 +162,21 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                       onClick={() => setSelectedGlobalId(cat.id)}
                       className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selectedGlobalId === cat.id
                         ? 'border-brand-primary bg-brand-subtle ring-1 ring-brand-primary'
-                        : 'border-gray-200 hover:border-brand-primary/40 hover:bg-gray-50'
+                        : 'border-border hover:border-brand-primary/40 hover:bg-muted'
                         }`}
                     >
                       <div
                         className="w-8 h-8 rounded-full shrink-0"
                         style={{ backgroundColor: cat.color || '#ccc' }}
                       />
-                      <span className="font-medium text-gray-700">{cat.name}</span>
+                      <span className="font-medium text-foreground/80">{cat.name}</span>
                       {selectedGlobalId === cat.id && (
                         <Check className="ml-auto text-brand-primary" size={20} />
                       )}
                     </button>
                   ))}
                   {globalCategories.length === 0 && (
-                    <p className="text-center text-gray-500 py-4">Aucune catégorie globale disponible.</p>
+                    <p className="text-center text-muted-foreground py-4">Aucune catégorie globale disponible.</p>
                   )}
                 </div>
               )}
@@ -233,7 +233,7 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                       whileTap={{ scale: 0.95 }}
                       className={`w-full h-12 rounded-xl border-2 transition-all duration-200 ${formData.color === color.value
                         ? 'border-gray-800 scale-110 shadow-lg'
-                        : 'border-gray-300 hover:border-gray-400'
+                        : 'border-border hover:border-gray-400'
                         }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}

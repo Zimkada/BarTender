@@ -342,10 +342,10 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className={`text-gray-900 flex items-center gap-2 ${isMobile ? 'text-h2' : 'text-h1'}`}>
+          <h2 className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-h2' : 'text-h1'}`}>
             💸 <span>Dépenses & charges</span>
           </h2>
-          <p className="text-body-sm text-gray-500">
+          <p className="text-body-sm text-muted-foreground">
             Gérez vos flux sortants et approvisionnements.
           </p>
         </div>
@@ -355,7 +355,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
             variant="outline"
             size="sm"
             onClick={() => setShowCategoryModal(true)}
-            className="border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
+            className="border-border text-foreground/80 hover:bg-muted bg-card"
           >
             <Plus size={16} className="md:hidden" />
             <span className="md:hidden">Catégorie</span>
@@ -401,39 +401,39 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
         </div>
 
         {/* Total Row */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between min-h-[56px]">
+        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between min-h-[56px]">
           <div className="flex flex-col justify-center">
-            <h3 className="text-micro text-gray-500 mb-1">
+            <h3 className="text-micro text-muted-foreground mb-1">
               Total {periodLabel}
             </h3>
-            <p className="text-h1 font-semibold text-gray-900 tabular-nums">
+            <p className="text-h1 font-semibold text-foreground tabular-nums">
               {formatPrice(totalExpenses)}
             </p>
           </div>
-          <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
             <TrendingDown size={18} />
           </div>
         </div>
       </div>
 
       {/* Categories List */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="text-h3 text-gray-900">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
+        <div className="p-5 border-b border-border flex items-center justify-between">
+          <h3 className="text-h3 text-foreground">
             Par catégorie
           </h3>
-          <span className="bg-gray-100 text-gray-600 text-caption px-2 py-0.5 rounded-full font-medium tabular-nums">
+          <span className="bg-muted text-foreground/70 text-caption px-2 py-0.5 rounded-full font-medium tabular-nums">
             {Object.keys(expensesByCategory).length} groupes
           </span>
         </div>
 
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-border">
           {Object.keys(expensesByCategory).length === 0 ? (
             <div className="p-12 text-center space-y-3">
-              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                <Receipt className="text-gray-300" size={32} />
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                <Receipt className="text-muted-foreground/60" size={32} />
               </div>
-              <p className="text-gray-500 font-medium">Aucune dépense enregistrée sur cette période.</p>
+              <p className="text-muted-foreground font-medium">Aucune dépense enregistrée sur cette période.</p>
             </div>
           ) : (
             Object.entries(expensesByCategory)
@@ -441,7 +441,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
               .map(([key, data]) => {
                 if (key === 'salary') {
                   return (
-                    <div key={key} className="bg-gray-50/50">
+                    <div key={key} className="bg-muted/50">
                       <ExpenseListItem
                         key={key}
                         categoryKey={key}
@@ -453,10 +453,10 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
                         isMobile={isMobile}
                       />
                       {expandedCategories.has(key) && (
-                        <div className="bg-gray-50/80 px-4 md:px-12 py-4 border-t border-gray-100 flex flex-col gap-3 shadow-inner">
+                        <div className="bg-muted/80 px-4 md:px-12 py-4 border-t border-border flex flex-col gap-3 shadow-inner">
                           <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-sm font-bold text-gray-700">Journal des Paies</h4>
-                            <Button variant="outline" size="sm" onClick={() => setShowSalaryModal(true)} className="h-8 text-xs bg-white border-brand-primary/20 text-brand-primary hover:bg-brand-primary/5">
+                            <h4 className="text-sm font-bold text-foreground/80">Journal des Paies</h4>
+                            <Button variant="outline" size="sm" onClick={() => setShowSalaryModal(true)} className="h-8 text-xs bg-card border-brand-primary/20 text-brand-primary hover:bg-brand-primary/5">
                               <Plus size={14} className="mr-1" /> Payer
                             </Button>
                           </div>

@@ -186,14 +186,14 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
             exit={{ opacity: 0, x: -20 }}
             className="flex-1 flex flex-col h-full"
           >
-            <div className="flex flex-wrap p-2 gap-2 bg-gray-50 border-b border-gray-100 rounded-t-xl shrink-0">
+            <div className="flex flex-wrap p-2 gap-2 bg-muted border-b border-border rounded-t-xl shrink-0">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => setMode('global')}
                 className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'global'
                   ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
-                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
+                  : 'text-foreground/80 border-2 border-transparent hover:bg-brand-subtle/50'
                   }`}
               >
                 <Globe size={16} className="mr-1 sm:mr-2 shrink-0" />
@@ -207,7 +207,7 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
                 onMouseDown={handleCustomProductStart} // Action on click
                 className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'custom'
                   ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
-                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
+                  : 'text-foreground/80 border-2 border-transparent hover:bg-brand-subtle/50'
                   }`}
               >
                 <PenTool size={16} className="mr-1 sm:mr-2 shrink-0" />
@@ -225,7 +225,7 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     leftIcon={<Search size={18} />}
-                    className="bg-gray-50"
+                    className="bg-muted"
                   />
                   {isLoadingGlobal ? (
                     <div className="flex justify-center py-8">
@@ -237,9 +237,9 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
                         <div
                           key={gp.id}
                           onClick={() => handleGlobalProductSelect(gp)}
-                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 border-gray-200 hover:border-blue-300 hover:bg-blue-50/30 group active:scale-95`}
+                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 border-border hover:border-blue-300 hover:bg-blue-50/30 group active:scale-95`}
                         >
-                          <div className="w-12 h-12 bg-white rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
+                          <div className="w-12 h-12 bg-card rounded-lg border border-border flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
                             {gp.officialImage ? (
                               <img src={gp.officialImage} alt={gp.name} className="w-full h-full object-contain" />
                             ) : (
@@ -247,8 +247,8 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-900 truncate group-hover:text-blue-700 transition-colors">{gp.name}</h4>
-                            <p className="text-xs text-gray-500">{gp.brand} • {gp.volume}</p>
+                            <h4 className="font-medium text-foreground truncate group-hover:text-blue-700 transition-colors">{gp.name}</h4>
+                            <p className="text-xs text-muted-foreground">{gp.brand} • {gp.volume}</p>
                           </div>
                           <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
                         </div>
@@ -269,7 +269,7 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
           >
             {/* Header with back button only if we came from selection (not direct edit) */}
             {!product && (
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
+              <div className="px-4 py-3 border-b border-border flex items-center gap-2 bg-muted/50">
                 <BackButton
                   onClick={handleBackToSelection}
                   showLabel={true}
@@ -278,10 +278,10 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
                   className='h-8'
                 />
                 {mode === 'global' && selectedGlobalId && (
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-auto">Produit sélectionné</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-auto">Produit sélectionné</span>
                 )}
                 {mode === 'custom' && (
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-auto">Création manuelle</span>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest ml-auto">Création manuelle</span>
                 )}
               </div>
             )}
@@ -395,14 +395,14 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
                     placeholder="0"
                     endAdornment="F"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Coût d'achat par unité (utilisé si aucun approvisionnement n'est enregistré)
                   </p>
                 </div>
               </form>
             </div>
 
-            <div className={`p-4 border-t border-gray-100 flex gap-3 ${inline ? 'mt-auto' : ''}`}>
+            <div className={`p-4 border-t border-border flex gap-3 ${inline ? 'mt-auto' : ''}`}>
               <Button
                 type="button"
                 variant="secondary"

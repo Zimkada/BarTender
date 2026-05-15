@@ -48,11 +48,11 @@ const toastConfig = {
     color: 'text-yellow-600',
   },
   offline: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-300',
-    text: 'text-gray-800',
+    bg: 'bg-muted',
+    border: 'border-border',
+    text: 'text-foreground/80',
     icon: Wifi,
-    color: 'text-gray-600',
+    color: 'text-muted-foreground',
   },
 };
 

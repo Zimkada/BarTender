@@ -13,7 +13,7 @@ const spinnerVariants = cva('inline-block animate-spin rounded-full border-solid
     variant: {
       default: 'text-amber-500',
       primary: 'text-amber-600',
-      secondary: 'text-gray-600',
+      secondary: 'text-muted-foreground',
       white: 'text-white',
     },
   },
@@ -64,10 +64,10 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4 p-8 bg-white rounded-lg shadow-xl">
+      <div className="flex flex-col items-center gap-4 p-8 bg-card rounded-lg shadow-xl">
         <Spinner size={size} />
         {message && (
-          <p className="text-sm font-medium text-gray-700">{message}</p>
+          <p className="text-sm font-medium text-foreground/80">{message}</p>
         )}
       </div>
     </div>

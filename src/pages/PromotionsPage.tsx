@@ -104,10 +104,10 @@ export default function PromotionsPage() {
         switch (status) {
             case 'active': return 'bg-green-50 text-green-700 border-green-200';
             case 'scheduled': return 'bg-brand-subtle text-brand-primary border-brand-subtle';
-            case 'expired': return 'bg-gray-100 text-gray-500 border-gray-200';
+            case 'expired': return 'bg-muted text-muted-foreground border-border';
             case 'paused': return 'bg-amber-50 text-amber-700 border-amber-200';
-            case 'draft': return 'bg-gray-100 text-gray-600 border-gray-200';
-            default: return 'bg-gray-100 text-gray-500 border-gray-200';
+            case 'draft': return 'bg-muted text-foreground/70 border-border';
+            default: return 'bg-muted text-muted-foreground border-border';
         }
     };
 
@@ -152,7 +152,7 @@ export default function PromotionsPage() {
     if (!currentBar) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
-                <p className="text-gray-500">Sélectionnez un bar pour gérer les promotions</p>
+                <p className="text-muted-foreground">Sélectionnez un bar pour gérer les promotions</p>
             </div>
         );
     }
@@ -186,7 +186,7 @@ export default function PromotionsPage() {
             />
 
             {activeTab === 'analytics' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden min-h-[600px]">
+                <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden min-h-[600px]">
                     <PromotionsAnalytics />
                 </div>
             )}
@@ -194,7 +194,7 @@ export default function PromotionsPage() {
             {activeTab === 'list' && (
                 <>
                     {/* Toolbar */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 sm:p-4 mb-6 flex flex-col sm:flex-row gap-3 items-center">
+                    <div className="bg-card rounded-2xl shadow-sm border border-border p-3 sm:p-4 mb-6 flex flex-col sm:flex-row gap-3 items-center">
                         <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full" data-guide="promotions-search">
                             <div className="flex-1 relative">
                                 <Input
@@ -202,8 +202,8 @@ export default function PromotionsPage() {
                                     placeholder="Rechercher une promotion..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    leftIcon={<Search size={18} className="text-gray-400" />}
-                                    className="border-gray-200 rounded-xl h-11 w-full"
+                                    leftIcon={<Search size={18} className="text-muted-foreground" />}
+                                    className="border-border rounded-xl h-11 w-full"
                                 />
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -211,7 +211,7 @@ export default function PromotionsPage() {
                                     options={statusFilterOptions}
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value as any)}
-                                    className="border-gray-200 rounded-xl flex-1 h-11"
+                                    className="border-border rounded-xl flex-1 h-11"
                                 />
                             </div>
                             <Button
@@ -230,12 +230,12 @@ export default function PromotionsPage() {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
                         </div>
                     ) : filteredPromotions.length === 0 ? (
-                        <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-12 text-center flex flex-col items-center">
+                        <div className="bg-card rounded-2xl border border-dashed border-border p-12 text-center flex flex-col items-center">
                             <div className="w-16 h-16 bg-brand-subtle rounded-2xl flex items-center justify-center mx-auto mb-5">
                                 <Gift size={28} className="text-brand-primary" aria-hidden="true" />
                             </div>
-                            <h2 className="text-h2 text-gray-900 mb-2">Aucune promotion trouvée</h2>
-                            <p className="text-body-sm text-gray-500 mb-7 max-w-sm mx-auto">Boostez vos ventes en créant une offre attractive pour vos clients.</p>
+                            <h2 className="text-h2 text-foreground mb-2">Aucune promotion trouvée</h2>
+                            <p className="text-body-sm text-muted-foreground mb-7 max-w-sm mx-auto">Boostez vos ventes en créant une offre attractive pour vos clients.</p>
                             <Button
                                 onClick={() => { setSelectedPromotion(null); setActiveTab('new'); }}
                                 className="gap-2 rounded-xl px-6"
@@ -257,7 +257,7 @@ export default function PromotionsPage() {
                                         transition={{ duration: 0.15 }}
                                         className="group relative h-full"
                                     >
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full">
+                                        <div className="bg-card rounded-2xl border border-border shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col h-full">
                                             <div className="p-5 flex-1">
                                                 <div className="flex justify-between items-start mb-4">
                                                     <div className={`px-3 py-1 rounded-full text-caption font-semibold border flex items-center gap-1.5 ${getStatusColor(promo.status)}`}>
@@ -273,7 +273,7 @@ export default function PromotionsPage() {
                                                             onClick={() => handleToggleStatus(promo)}
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="w-8 h-8 text-gray-400 hover:text-brand-primary hover:bg-brand-subtle rounded-lg"
+                                                            className="w-8 h-8 text-muted-foreground hover:text-brand-primary hover:bg-brand-subtle rounded-lg"
                                                             aria-label={promo.status === 'active' ? 'Mettre en pause' : 'Activer'}
                                                         >
                                                             {promo.status === 'active' ? <Pause size={15} /> : <Play size={15} />}
@@ -282,7 +282,7 @@ export default function PromotionsPage() {
                                                             onClick={() => { setSelectedPromotion(promo); setActiveTab('new'); }}
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="w-8 h-8 text-gray-400 hover:text-brand-primary hover:bg-brand-subtle rounded-lg"
+                                                            className="w-8 h-8 text-muted-foreground hover:text-brand-primary hover:bg-brand-subtle rounded-lg"
                                                             aria-label="Modifier"
                                                         >
                                                             <Edit size={15} />
@@ -291,7 +291,7 @@ export default function PromotionsPage() {
                                                             onClick={() => handleDelete(promo.id)}
                                                             variant="ghost"
                                                             size="icon"
-                                                            className="w-8 h-8 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                                                            className="w-8 h-8 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg"
                                                             aria-label="Supprimer"
                                                         >
                                                             <Trash2 size={15} />
@@ -299,17 +299,17 @@ export default function PromotionsPage() {
                                                     </div>
                                                 </div>
 
-                                                <h2 className="text-body font-semibold text-gray-900 mb-1.5 leading-tight">{promo.name}</h2>
-                                                <p className="text-caption text-gray-500 mb-5 line-clamp-2">{promo.description || 'Optimisez vos ventes avec cette offre exclusive.'}</p>
+                                                <h2 className="text-body font-semibold text-foreground mb-1.5 leading-tight">{promo.name}</h2>
+                                                <p className="text-caption text-muted-foreground mb-5 line-clamp-2">{promo.description || 'Optimisez vos ventes avec cette offre exclusive.'}</p>
 
                                                 <div className="space-y-3">
                                                     {/* Type & Value */}
-                                                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                                                    <div className="flex items-center gap-3 bg-muted p-3 rounded-xl border border-border">
                                                         <div className="w-9 h-9 rounded-lg bg-brand-subtle flex items-center justify-center text-brand-primary flex-shrink-0" aria-hidden="true">
                                                             {getTypeIcon(promo.type)}
                                                         </div>
                                                         <div>
-                                                            <div className="text-body-sm font-medium text-gray-900">{getTypeLabel(promo.type)}</div>
+                                                            <div className="text-body-sm font-medium text-foreground">{getTypeLabel(promo.type)}</div>
                                                             <div className="text-caption text-brand-primary font-semibold tabular-nums">
                                                                 {(promo.type === 'pourcentage' || promo.type === 'percentage') && `-${promo.discountPercentage}%`}
                                                                 {(promo.type === 'reduction_vente' || promo.type === 'fixed_discount') && `-${promo.discountAmount} FCFA total`}
@@ -323,10 +323,10 @@ export default function PromotionsPage() {
 
                                                     {/* Validity */}
                                                     <div className="flex items-center gap-3 px-1">
-                                                        <Calendar size={15} className="text-gray-400 flex-shrink-0" aria-hidden="true" />
+                                                        <Calendar size={15} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
                                                         <div>
-                                                            <div className="text-micro text-gray-400">Validité</div>
-                                                            <div className="text-caption font-medium text-gray-600">
+                                                            <div className="text-micro text-muted-foreground">Validité</div>
+                                                            <div className="text-caption font-medium text-foreground/70">
                                                                 Du {format(new Date(promo.startDate), 'dd MMM yyyy', { locale: fr })}
                                                                 {promo.endDate ? ` au ${format(new Date(promo.endDate), 'dd MMM yyyy', { locale: fr })}` : ' (illimité)'}
                                                             </div>
@@ -336,11 +336,11 @@ export default function PromotionsPage() {
                                             </div>
 
                                             {/* Footer */}
-                                            <div className="border-t border-dashed border-gray-100 px-5 py-3 flex justify-between items-center bg-gray-50/50">
-                                                <span className="text-micro text-gray-400">Usage total</span>
+                                            <div className="border-t border-dashed border-border px-5 py-3 flex justify-between items-center bg-muted/50">
+                                                <span className="text-micro text-muted-foreground">Usage total</span>
                                                 <div className="flex items-baseline gap-1">
-                                                    <span className="text-h3 font-semibold text-gray-900 tabular-nums">{promo.currentUses || 0}</span>
-                                                    <span className="text-caption text-gray-400">fois</span>
+                                                    <span className="text-h3 font-semibold text-foreground tabular-nums">{promo.currentUses || 0}</span>
+                                                    <span className="text-caption text-muted-foreground">fois</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -353,7 +353,7 @@ export default function PromotionsPage() {
             )}
 
             {activeTab === 'new' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
                     <PromotionForm
                         isOpen={true}
                         onClose={() => setActiveTab('list')}

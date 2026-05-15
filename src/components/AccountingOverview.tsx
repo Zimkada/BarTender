@@ -697,12 +697,12 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className={`font-bold text-gray-900 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+            <h2 className={`font-bold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
               📊 Pilotage
             </h2>
           </div>
 
-          <p className="text-gray-500 text-sm font-medium">
+          <p className="text-muted-foreground text-sm font-medium">
             {currentBar.name} • Comptabilité & Finances
           </p>
         </div>
@@ -714,7 +714,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
               <FileSpreadsheet size={16} className="mr-2" />
               {isExporting ? 'Export en cours...' : 'Livre Journal'}
             </Button>
-            <Button variant="default" size="sm" onClick={handleExportAccounting} className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white justify-center sm:justify-start">
+            <Button variant="default" size="sm" onClick={handleExportAccounting} className="w-full sm:w-auto bg-foreground text-background hover:opacity-90 justify-center sm:justify-start">
               <Download size={16} className="mr-2" />
               Export Simple
             </Button>
@@ -726,7 +726,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
               <DollarSign size={16} className="mr-2" />
               Solde Initial
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowCapitalContributionModal(true)} className="w-full sm:w-auto border-blue-600 text-blue-700 hover:bg-blue-50 justify-center sm:justify-start">
+            <Button variant="outline" size="sm" onClick={() => setShowCapitalContributionModal(true)} className="w-full sm:w-auto border-blue-600 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/30 justify-center sm:justify-start">
               <Plus size={16} className="mr-2" />
               Apport Capital
             </Button>
@@ -735,18 +735,18 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       </div>
 
       {/* Controls Bar */}
-      <div className="bg-white border border-gray-100 p-3 rounded-2xl shadow-sm flex flex-col xl:flex-row gap-3 justify-between items-stretch xl:items-center">
+      <div className="bg-card border border-border p-3 rounded-2xl shadow-sm flex flex-col xl:flex-row gap-3 justify-between items-stretch xl:items-center">
         {/* View Mode Switcher — segmented control */}
         <div
           role="radiogroup"
           aria-label="Mode d'affichage"
-          className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200 w-full xl:w-auto"
+          className="flex p-0.5 bg-muted rounded-full border border-border w-full xl:w-auto"
         >
           <button
             role="radio"
             aria-checked={viewMode === 'tresorerie'}
             onClick={() => setViewMode('tresorerie')}
-            className={`flex-1 xl:flex-none xl:min-w-[120px] px-4 py-1.5 rounded-full text-caption transition-all ${viewMode === 'tresorerie' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
+            className={`flex-1 xl:flex-none xl:min-w-[120px] px-4 py-1.5 rounded-full text-caption transition-all ${viewMode === 'tresorerie' ? 'bg-card text-brand-primary shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'}`}
           >
             Trésorerie
           </button>
@@ -754,7 +754,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
             role="radio"
             aria-checked={viewMode === 'analytique'}
             onClick={() => setViewMode('analytique')}
-            className={`flex-1 xl:flex-none xl:min-w-[120px] px-4 py-1.5 rounded-full text-caption transition-all ${viewMode === 'analytique' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
+            className={`flex-1 xl:flex-none xl:min-w-[120px] px-4 py-1.5 rounded-full text-caption transition-all ${viewMode === 'analytique' ? 'bg-card text-brand-primary shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground font-medium'}`}
           >
             Analytique
           </button>
@@ -797,7 +797,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       />
 
       {/* Charts Section */}
-      <Suspense fallback={<div className="h-64 bg-gray-50 rounded-xl animate-pulse flex items-center justify-center text-gray-400">Chargement graphiques...</div>}>
+      <Suspense fallback={<div className="h-64 bg-muted rounded-xl animate-pulse flex items-center justify-center text-muted-foreground">Chargement graphiques...</div>}>
         <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategoryData} />
       </Suspense>
 

@@ -315,21 +315,21 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-gray-50 w-full h-full sm:h-[90vh] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-7xl mx-auto border border-gray-200"
+            className="bg-muted w-full h-full sm:h-[90vh] sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-7xl mx-auto border border-border"
           >
             {/* --- HEADER --- */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-10 shrink-0">
+            <div className="bg-card border-b border-border px-4 py-3 flex items-center justify-between shadow-sm z-10 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="bg-brand-primary/10 p-2 rounded-lg text-brand-primary">
                   <Zap size={20} fill="currentColor" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-800 leading-tight">Vente Rapide</h2>
+                  <h2 className="text-lg font-bold text-foreground leading-tight">Vente Rapide</h2>
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-800"
+                className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
               >
                 <X size={24} />
               </button>
@@ -339,15 +339,15 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             <div className="flex flex-1 overflow-hidden">
 
               {/* LEFT: PRODUCTS GRID (Expanded on Mobile) */}
-              <div className="flex-1 flex flex-col min-w-0 bg-gray-50/50 relative">
+              <div className="flex-1 flex flex-col min-w-0 bg-muted/50 relative">
                 {/* Search Toolbar */}
-                <div className="p-4 bg-white border-b border-gray-200 shadow-sm space-y-3 z-10">
+                <div className="p-4 bg-card border-b border-border shadow-sm space-y-3 z-10">
                   <Input
                     ref={searchInputRef}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     placeholder="Rechercher (nom, volume)..."
-                    leftIcon={<Search size={18} className="text-gray-400" />}
+                    leftIcon={<Search size={18} className="text-muted-foreground" />}
                     size="lg"
                   />
 
@@ -357,7 +357,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       onClick={() => setSelectedCategory('all')}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${selectedCategory === 'all'
                         ? 'bg-gray-800 text-white border-gray-800'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                        : 'bg-card text-foreground/70 border-border hover:border-border'
                         }`}
                     >
                       Tout
@@ -368,7 +368,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         onClick={() => setSelectedCategory(cat.id)}
                         className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border ${selectedCategory === cat.id
                           ? 'bg-gray-800 text-white border-gray-800'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          : 'bg-card text-foreground/70 border-border hover:border-border'
                           }`}
                       >
                         <span className="w-2 h-2 rounded-full inline-block mr-1.5" style={{ backgroundColor: cat.color }}></span>
@@ -387,7 +387,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     getAvailableStock={(productId) => availableStockByProductId.get(productId)}
                   />
                   {filteredProducts.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60 mt-10">
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-60 mt-10">
                       <Search size={48} strokeWidth={1} />
                       <p className="mt-2 font-medium">Aucun résultat</p>
                     </div>
@@ -397,10 +397,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
               {/* RIGHT: CART (Desktop Sidebar) */}
               {!isMobile && (
-                <div className="w-[400px] border-l border-gray-200 bg-white flex flex-col shadow-xl z-20 shrink-0">
+                <div className="w-[400px] border-l border-border bg-card flex flex-col shadow-xl z-20 shrink-0">
                   {/* Header */}
-                  <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                    <h3 className="font-bold text-gray-700 flex items-center gap-2">
+                  <div className="p-4 border-b border-border flex justify-between items-center bg-muted/50">
+                    <h3 className="font-bold text-foreground/80 flex items-center gap-2">
                       <ShoppingCart className="text-brand-primary" size={20} />
                       Panier
                       <span className="bg-brand-primary/10 text-brand-primary text-xs px-2 py-0.5 rounded-full">{totalItems}</span>
@@ -416,7 +416,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   </div>
 
                   {/* Items List */}
-                  <div className="flex-1 overflow-y-auto p-4 bg-gray-50/30">
+                  <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
                     <CartShared
                       items={items}
                       onUpdateQuantity={updateQuantity}
@@ -426,14 +426,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity} // 🛡️ Fix Force Sale
                     />
                     {items.length === 0 && (
-                      <div className="h-40 flex flex-col items-center justify-center text-gray-400 text-sm">
+                      <div className="h-40 flex flex-col items-center justify-center text-muted-foreground text-sm">
                         <ShoppingCart size={32} className="opacity-20 mb-2" />
                         <p>Panier vide</p>
                       </div>
                     )}
                   </div>
                   {/* Footer Actions */}
-                  <div className="p-4 border-t border-gray-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                  <div className="p-4 border-t border-border bg-card shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                     <CartFooter
                       total={total}
                       isSimplifiedMode={isSimplifiedMode}
@@ -476,14 +476,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       initial={{ y: 100 }}
                       animate={{ y: 0 }}
                       exit={{ y: 100 }}
-                      className="p-4 bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.1)] z-30"
+                      className="p-4 bg-card border-t border-border shadow-[0_-4px_10px_rgba(0,0,0,0.1)] z-30"
                     >
                       <button
                         onClick={() => setIsCartDrawerOpen(true)}
                         className="w-full bg-brand-gradient text-white h-14 rounded-xl font-bold flex justify-between px-6 items-center shadow-lg shadow-brand/30 active:scale-95 transition-transform"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="bg-white/20 px-3 py-1 rounded text-sm font-mono">{totalItems}</div>
+                          <div className="bg-card/20 px-3 py-1 rounded text-sm font-mono">{totalItems}</div>
                           <span className="text-sm uppercase tracking-wide opacity-90">Voir Panier</span>
                         </div>
                         <span className="text-xl font-mono">{formatPrice(total)}</span>

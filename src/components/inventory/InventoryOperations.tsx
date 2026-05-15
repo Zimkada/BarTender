@@ -53,14 +53,14 @@ export function InventoryOperations({
                             <button
                                 onClick={() => setMode('add')}
                                 data-guide="inventory-add-btn"
-                                className="group p-6 bg-white rounded-2xl border border-gray-100 hover:border-brand-primary/40 hover:shadow-md shadow-sm transition-all text-left flex items-start gap-4 active:scale-[0.98]"
+                                className="group p-6 bg-card rounded-2xl border border-border hover:border-brand-primary/40 hover:shadow-md shadow-sm transition-all text-left flex items-start gap-4 active:scale-[0.98]"
                             >
                                 <div className="p-3 bg-brand-subtle text-brand-primary rounded-xl flex-shrink-0">
                                     <PlusCircle size={28} />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-h3 text-gray-900">Nouveau produit</h3>
-                                    <p className="text-body-sm text-gray-500 line-clamp-1">Ajout manuel au catalogue</p>
+                                    <h3 className="text-h3 text-foreground">Nouveau produit</h3>
+                                    <p className="text-body-sm text-muted-foreground line-clamp-1">Ajout manuel au catalogue</p>
                                 </div>
                             </button>
 
@@ -68,14 +68,14 @@ export function InventoryOperations({
                                 <button
                                     onClick={() => setMode('import')}
                                     data-guide="inventory-import-btn"
-                                    className="group p-6 bg-white rounded-2xl border border-gray-100 hover:border-brand-primary/40 hover:shadow-md shadow-sm transition-all text-left flex items-start gap-4 active:scale-[0.98]"
+                                    className="group p-6 bg-card rounded-2xl border border-border hover:border-brand-primary/40 hover:shadow-md shadow-sm transition-all text-left flex items-start gap-4 active:scale-[0.98]"
                                 >
                                     <div className="p-3 bg-brand-subtle text-brand-primary rounded-xl flex-shrink-0">
                                         <FileSpreadsheet size={28} />
                                     </div>
                                     <div className="min-w-0">
-                                        <h3 className="text-h3 text-gray-900">Import Excel</h3>
-                                        <p className="text-body-sm text-gray-500 line-clamp-1">Chargement massif</p>
+                                        <h3 className="text-h3 text-foreground">Import Excel</h3>
+                                        <p className="text-body-sm text-muted-foreground line-clamp-1">Chargement massif</p>
                                     </div>
                                 </button>
                             )}
@@ -83,14 +83,14 @@ export function InventoryOperations({
                             <button
                                 onClick={() => setMode('supply')}
                                 data-guide="inventory-supply-btn"
-                                className="group p-6 bg-white rounded-2xl border border-gray-100 hover:border-brand-primary/40 hover:shadow-md shadow-sm transition-all text-left flex items-start gap-4 active:scale-[0.98]"
+                                className="group p-6 bg-card rounded-2xl border border-border hover:border-brand-primary/40 hover:shadow-md shadow-sm transition-all text-left flex items-start gap-4 active:scale-[0.98]"
                             >
                                 <div className="p-3 bg-brand-subtle text-brand-primary rounded-xl flex-shrink-0">
                                     <TruckIcon size={28} />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-h3 text-gray-900">Approvisionner</h3>
-                                    <p className="text-body-sm text-gray-500 line-clamp-1">Entrée de stock directe</p>
+                                    <h3 className="text-h3 text-foreground">Approvisionner</h3>
+                                    <p className="text-body-sm text-muted-foreground line-clamp-1">Entrée de stock directe</p>
                                 </div>
                             </button>
                         </div>
@@ -125,14 +125,14 @@ export function InventoryOperations({
                             />
                         )}
                         {mode === 'import' && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 min-h-[400px]">
-                                <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
+                            <div className="bg-card rounded-2xl shadow-sm border border-border p-4 min-h-[400px]">
+                                <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
                                     <BackButton
                                         onClick={handleBack}
                                     />
                                     <h2 className="text-h3 text-gray-900">Importation massive</h2>
                                 </div>
-                                <Suspense fallback={<div className="py-12 text-center text-gray-400">Chargement...</div>}>
+                                <Suspense fallback={<div className="py-12 text-center text-muted-foreground">Chargement...</div>}>
                                     <ProductImport
                                         isOpen={true}
                                         inline={true}

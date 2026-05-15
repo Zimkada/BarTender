@@ -41,18 +41,18 @@ export function InventoryCard({
 
     return (
         <div className={cn(
-            "bg-white rounded-xl border shadow-sm transition-all duration-200 relative",
+            "bg-card rounded-xl border shadow-sm transition-all duration-200 relative",
             anomaly ? (
-                anomaly.severity === 'red' ? "border-red-300 bg-red-50/10 shadow-red-50" :
-                    anomaly.severity === 'orange' ? "border-orange-300 bg-orange-50/10" :
-                        "border-yellow-300 bg-yellow-50/10"
-            ) : "border-gray-200 hover:border-brand-primary/40"
+                anomaly.severity === 'red' ? "border-red-300 dark:border-red-900/40 bg-red-50/10 dark:bg-red-950/10 shadow-red-50 dark:shadow-none" :
+                    anomaly.severity === 'orange' ? "border-orange-300 dark:border-orange-900/40 bg-orange-50/10 dark:bg-orange-950/10" :
+                        "border-yellow-300 dark:border-yellow-900/40 bg-yellow-50/10 dark:bg-yellow-950/10"
+            ) : "border-border hover:border-brand-primary/40"
         )}>
             <div className="p-4">
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <h2 className="text-h3 text-gray-900 truncate">{product.name}</h2>
+                            <h2 className="text-h3 text-foreground truncate">{product.name}</h2>
                             {/* ✨ Diagnostic d'Anomalie Compact Réactif au Clic */}
                             {anomaly && (
                                 <div className="flex-shrink-0">
@@ -96,8 +96,8 @@ export function InventoryCard({
                                 </div>
                             )}
                         </div>
-                        <p className="text-body-sm text-gray-500 mt-1">{product.volume || 'Format non spécifié'}</p>
-                        <span className="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-caption font-medium rounded">
+                        <p className="text-body-sm text-muted-foreground mt-1">{product.volume || 'Format non spécifié'}</p>
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-muted text-foreground/70 text-caption font-medium rounded">
                             {categoryName}
                         </span>
                     </div>
@@ -105,38 +105,38 @@ export function InventoryCard({
                     <div className="text-right">
                         <div className={cn(
                             "text-h2 font-semibold tabular-nums leading-none",
-                            isLowStock ? 'text-red-500' : 'text-gray-900'
+                            isLowStock ? 'text-red-500' : 'text-foreground'
                         )}>
                             {availableStock}
                         </div>
-                        <div className="text-micro text-gray-500 mt-1">
+                        <div className="text-micro text-muted-foreground mt-1">
                             Disponible
                         </div>
                         {currentStock !== availableStock && (
-                            <div className="text-caption text-gray-400 mt-0.5">
+                            <div className="text-caption text-muted-foreground mt-0.5">
                                 Physique : <span className="tabular-nums">{currentStock}</span>
                             </div>
                         )}
                     </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-100">
+                <div className="grid grid-cols-3 gap-2 py-3 border-y border-border">
                     <div className="text-center">
-                        <div className="text-micro text-gray-500 mb-1">Prix</div>
-                        <div className="text-caption font-semibold text-gray-900 tabular-nums">{formatPrice(product.price)}</div>
+                        <div className="text-micro text-muted-foreground mb-1">Prix</div>
+                        <div className="text-caption font-semibold text-foreground tabular-nums">{formatPrice(product.price)}</div>
                     </div>
-                    <div className="text-center border-x border-gray-100">
-                        <div className="text-micro text-gray-500 mb-1">Coût</div>
-                        <div className="text-caption font-semibold text-gray-700 tabular-nums">{displayCost.cost > 0 ? formatPrice(displayCost.cost) : '—'}</div>
+                    <div className="text-center border-x border-border">
+                        <div className="text-micro text-muted-foreground mb-1">Coût</div>
+                        <div className="text-caption font-semibold text-foreground/80 tabular-nums">{displayCost.cost > 0 ? formatPrice(displayCost.cost) : '—'}</div>
                         {displayCost.source !== 'none' && displayCost.source !== 'cump' && (
-                            <div className="text-[10px] text-gray-400 mt-0.5">{getCostSourceLabel(displayCost.source)}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{getCostSourceLabel(displayCost.source)}</div>
                         )}
                     </div>
                     <div className="text-center">
-                        <div className="text-micro text-gray-500 mb-1">Marge</div>
+                        <div className="text-micro text-muted-foreground mb-1">Marge</div>
                         <div className={cn(
                             "text-caption font-semibold tabular-nums",
-                            margin > 40 ? 'text-green-600' : margin > 20 ? 'text-brand-primary' : 'text-red-500'
+                            margin > 40 ? 'text-green-600 dark:text-green-400' : margin > 20 ? 'text-brand-primary' : 'text-red-500'
                         )}>
                             {margin > 0 ? `${margin.toFixed(0)}%` : '—'}
                         </div>
@@ -166,7 +166,7 @@ export function InventoryCard({
                         onClick={() => onHistory(product)}
                         variant="ghost"
                         size="icon"
-                        className="text-gray-400 hover:text-brand-primary hover:bg-brand-subtle"
+                        className="text-muted-foreground hover:text-brand-primary hover:bg-brand-subtle"
                         title="Voir historique"
                         data-guide="inventory-history-btn"
                     >
@@ -176,7 +176,7 @@ export function InventoryCard({
                         onClick={() => onDelete(product)}
                         variant="ghost"
                         size="icon"
-                        className="text-gray-400 hover:text-red-500 hover:bg-red-50"
+                        className="text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
                         title="Supprimer"
                     >
                         <Trash2 size={16} />

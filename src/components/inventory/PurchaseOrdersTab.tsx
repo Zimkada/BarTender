@@ -37,8 +37,8 @@ const STATUS_CONFIG: Record<PurchaseOrderStatus, {
 }> = {
     draft: {
         label: 'Brouillon',
-        icon: <Clock size={14} className="text-gray-500" />,
-        badge: 'bg-gray-100 text-gray-600 border-gray-200',
+        icon: <Clock size={14} className="text-muted-foreground" />,
+        badge: 'bg-muted text-foreground/70 border-border',
     },
     ordered: {
         label: 'En attente',
@@ -134,7 +134,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
             <div className="space-y-4">
                 <div className="flex items-center gap-3">
                     <BackButton onClick={() => setCreationMode('prep')} />
-                    <h2 className="text-h3 text-gray-900">Finalisation commande</h2>
+                    <h2 className="text-h3 text-foreground">Finalisation commande</h2>
                 </div>
                 <OrderFinalization onOrderSaved={handleBackToList} />
             </div>
@@ -149,7 +149,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                 <div
                     role="radiogroup"
                     aria-label="Filtrer les commandes"
-                    className="flex flex-1 p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                    className="flex flex-1 p-0.5 bg-muted rounded-full border border-border"
                 >
                     <button
                         role="radio"
@@ -158,15 +158,15 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                         className={cn(
                             'flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-all',
                             filterMode === 'active'
-                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
-                                : 'text-gray-600 hover:text-gray-900 font-medium',
+                                ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                                : 'text-muted-foreground hover:text-foreground font-medium',
                         )}
                     >
                         En cours
                         {activeOrders.length > 0 && (
                             <span className={cn(
                                 'px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums',
-                                filterMode === 'active' ? 'bg-brand-subtle text-brand-primary' : 'bg-gray-200 text-gray-600',
+                                filterMode === 'active' ? 'bg-brand-subtle text-brand-primary' : 'bg-border text-foreground/70',
                             )}>
                                 {activeOrders.length}
                             </span>
@@ -179,8 +179,8 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                         className={cn(
                             'flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-all',
                             filterMode === 'history'
-                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
-                                : 'text-gray-600 hover:text-gray-900 font-medium',
+                                ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                                : 'text-muted-foreground hover:text-foreground font-medium',
                         )}
                     >
                         Historique
@@ -191,7 +191,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                 <div className="flex items-center gap-2 sm:flex-shrink-0">
                     <button
                         onClick={() => refetch()}
-                        className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+                        className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors flex-shrink-0"
                         aria-label="Actualiser"
                         title="Actualiser"
                     >
@@ -215,10 +215,10 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-48 gap-3">
                     <Spinner size="lg" />
-                    <p className="text-sm text-gray-400">Chargement des commandes…</p>
+                    <p className="text-sm text-muted-foreground">Chargement des commandes…</p>
                 </div>
             ) : displayed.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200">
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-card rounded-2xl border border-dashed border-border">
                     <ClipboardList size={48} className="mb-3 opacity-20" />
                     <p className="text-body font-medium">
                         {filterMode === 'active'
@@ -252,7 +252,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.15 }}
-                                    className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+                                    className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
                                 >
                                     {/* Card header */}
                                     <div className="p-4 flex items-start gap-3">
@@ -268,20 +268,20 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                                     {cfg.icon}
                                                     {cfg.label}
                                                 </span>
-                                                <span className="text-caption text-gray-400">
+                                                <span className="text-caption text-muted-foreground">
                                                     {format(order.createdAt, "d MMM yyyy", { locale: fr })}
                                                 </span>
                                             </div>
                                             <div className="mt-1 flex items-baseline gap-3 flex-wrap">
-                                                <span className="text-body font-semibold text-gray-900 tabular-nums">
+                                                <span className="text-body font-semibold text-foreground tabular-nums">
                                                     {formatPrice(order.totalCost)}
                                                 </span>
-                                                <span className="text-caption text-gray-500">
+                                                <span className="text-caption text-muted-foreground">
                                                     {order.itemsCount} produit{order.itemsCount > 1 ? 's' : ''}
                                                 </span>
                                             </div>
                                             {order.notes && (
-                                                <p className="text-caption text-gray-400 italic mt-1 truncate">
+                                                <p className="text-caption text-muted-foreground italic mt-1 truncate">
                                                     {order.notes}
                                                 </p>
                                             )}
@@ -290,7 +290,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
 
                                     {/* Actions */}
                                     {(canReceive || canSendToSupplier || canCancel) && (
-                                        <div className="border-t border-gray-50 px-4 py-2 flex items-center gap-2 flex-wrap">
+                                        <div className="border-t border-border px-4 py-2 flex items-center gap-2 flex-wrap">
                                             {canReceive && (
                                                 <Button
                                                     size="sm"
@@ -307,7 +307,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                                     variant="outline"
                                                     onClick={() => handleMarkOrdered(order)}
                                                     disabled={markAsOrdered.isPending}
-                                                    className="gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50"
+                                                    className="gap-1.5 border-amber-200 dark:border-amber-900/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
                                                 >
                                                     <CheckCircle2 size={14} />
                                                     Marquer comme envoyée
@@ -316,14 +316,14 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                             {canCancel && (
                                                 <button
                                                     onClick={() => setOrderToCancel(order)}
-                                                    className="ml-auto flex items-center gap-1 text-caption text-red-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg transition-all"
+                                                    className="ml-auto flex items-center gap-1 text-caption text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 px-2 py-1 rounded-lg transition-all"
                                                 >
                                                     <Ban size={12} />
                                                     Annuler
                                                 </button>
                                             )}
                                             {order.status === 'received' && (
-                                                <span className="flex items-center gap-1 text-caption text-green-600 font-medium">
+                                                <span className="flex items-center gap-1 text-caption text-green-600 dark:text-green-400 font-medium">
                                                     <CheckCircle2 size={14} />
                                                     Réceptionné le {order.receivedAt
                                                         ? format(order.receivedAt, "d MMM", { locale: fr })
@@ -332,7 +332,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                                 </span>
                                             )}
                                             {order.status !== 'received' && order.status !== 'cancelled' && order.status !== 'draft' && (
-                                                <span className="ml-auto flex items-center gap-1 text-caption text-gray-400">
+                                                <span className="ml-auto flex items-center gap-1 text-caption text-muted-foreground">
                                                     <ChevronRight size={14} />
                                                 </span>
                                             )}

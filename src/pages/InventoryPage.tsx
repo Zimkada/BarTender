@@ -205,11 +205,11 @@ export default function InventoryPage() {
                                 {/* Ligne 2 : Trier + Filtrer */}
                                 <div className="flex flex-wrap items-center gap-3">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-micro text-gray-500 uppercase">Trier</span>
+                                        <span className="text-micro text-muted-foreground uppercase">Trier</span>
                                         <div
                                             role="radiogroup"
                                             aria-label="Mode de tri"
-                                            className="inline-flex items-center p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                                            className="inline-flex items-center p-0.5 bg-muted rounded-full border border-border"
                                         >
                                             {[
                                                 { mode: 'category' as SortMode, Icon: Folder, label: 'Catégorie' },
@@ -229,8 +229,8 @@ export default function InventoryPage() {
                                                         className={cn(
                                                             "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all",
                                                             isActive
-                                                                ? "bg-white text-brand-primary shadow-sm font-semibold"
-                                                                : "text-gray-600 hover:text-gray-900 font-medium"
+                                                                ? "bg-card text-brand-primary shadow-sm font-semibold"
+                                                                : "text-muted-foreground hover:text-foreground font-medium"
                                                         )}
                                                     >
                                                         <Icon size={14} />
@@ -242,7 +242,7 @@ export default function InventoryPage() {
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        <span className="text-micro text-gray-500 uppercase">Filtrer</span>
+                                        <span className="text-micro text-muted-foreground uppercase">Filtrer</span>
                                         <button
                                             onClick={() => setShowAnomalies(!showAnomalies)}
                                             data-guide="inventory-filter-anomalies"
@@ -250,7 +250,7 @@ export default function InventoryPage() {
                                                 "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all border",
                                                 showAnomalies
                                                     ? "bg-red-500 text-white border-red-500 font-semibold"
-                                                    : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50 font-medium"
+                                                    : "bg-card text-foreground/80 border-border hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 font-medium"
                                             )}
                                         >
                                             <AlertCircle size={14} className={showAnomalies ? 'text-white' : 'text-red-500'} />
@@ -258,7 +258,7 @@ export default function InventoryPage() {
                                             {anomalyCount > 0 && (
                                                 <span className={cn(
                                                     "ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums",
-                                                    showAnomalies ? "bg-white/25" : "bg-red-100 text-red-700"
+                                                    showAnomalies ? "bg-white/25" : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400"
                                                 )}>
                                                     {anomalyCount}
                                                 </span>

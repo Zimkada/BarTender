@@ -98,13 +98,13 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                     className="flex-none"
                 />
                 <div className="relative w-full md:flex-1 md:max-w-lg mt-2 md:mt-0">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <input
                         type="text"
                         placeholder="Rechercher une date (JJ-MM-AAAA)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-brand-subtle rounded-xl focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all shadow-sm"
+                        className="w-full pl-10 pr-4 py-2 bg-card border border-brand-subtle rounded-xl text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all shadow-sm"
                     />
                 </div>
             </div>
@@ -117,16 +117,16 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                     { label: 'Mobile Money', value: totals.mobile, icon: Smartphone },
                     { label: 'Carte & Autres', value: totals.card, icon: CreditCard },
                 ].map((kpi, idx) => (
-                    <div key={idx} className={`bg-white rounded-2xl p-4 shadow-sm border flex items-center gap-3 hover:shadow-md transition-shadow ${kpi.accent ? 'border-brand-primary/30' : 'border-gray-100'}`}>
+                    <div key={idx} className={`bg-card rounded-2xl p-4 shadow-sm border flex items-center gap-3 hover:shadow-md transition-shadow ${kpi.accent ? 'border-brand-primary/30' : 'border-border'}`}>
                         <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
                             <kpi.icon size={18} />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-micro text-gray-500">{kpi.label}</p>
+                            <p className="text-micro text-muted-foreground">{kpi.label}</p>
                             {periodLabel && (
-                                <p className="text-[10px] text-gray-400 mb-0.5">{periodLabel}</p>
+                                <p className="text-[10px] text-muted-foreground mb-0.5">{periodLabel}</p>
                             )}
-                            <p className="text-body font-semibold text-gray-900 tabular-nums truncate">
+                            <p className="text-body font-semibold text-foreground tabular-nums truncate">
                                 {formatPrice(kpi.value)}
                             </p>
                         </div>
@@ -134,15 +134,15 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                 ))}
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+            <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
                             <DollarSign size={18} />
                         </div>
                         <div>
-                            <h2 className="text-h3 text-gray-900">Journal des recettes</h2>
-                            <p className="text-body-sm text-gray-500">Vos revenus détaillés jour par jour</p>
+                            <h2 className="text-h3 text-foreground">Journal des recettes</h2>
+                            <p className="text-body-sm text-muted-foreground">Vos revenus détaillés jour par jour</p>
                         </div>
                     </div>
                 </div>
@@ -152,15 +152,15 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
                     </div>
                 ) : filteredDays.length === 0 ? (
-                    <div className="text-center py-12 text-gray-500">
-                        <DollarSign size={48} className="mx-auto text-gray-300 mb-4" />
+                    <div className="text-center py-12 text-muted-foreground">
+                        <DollarSign size={48} className="mx-auto text-muted-foreground/40 mb-4" />
                         <p className="text-body-sm">Aucune recette sur cette période</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-micro text-gray-500 border-b border-gray-100">
+                                <tr className="text-micro text-muted-foreground border-b border-border">
                                     <th className="pb-4">Date</th>
                                     <th className="pb-4 text-center">Espèces</th>
                                     <th className="pb-4 text-center hidden sm:table-cell">Mobile Money</th>
@@ -169,17 +169,17 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                                     <th className="pb-4 text-center text-brand-primary">Total jour</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody className="divide-y divide-border">
                                 {filteredDays.slice(0, visibleCount).map((day, idx) => (
-                                    <tr key={day.sale_date || idx} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="py-2 md:py-4 text-xs md:text-sm font-medium text-gray-900">
+                                    <tr key={day.sale_date || idx} className="hover:bg-muted/50 transition-colors group">
+                                        <td className="py-2 md:py-4 text-xs md:text-sm font-medium text-foreground">
                                             {day.sale_date?.split('-').reverse().join('-')}
                                         </td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center">{formatPrice(day.cash_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.card_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center sm:hidden">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-gray-900 text-center">{formatPrice(day.net_revenue, false)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center">{formatPrice(day.cash_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.card_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center sm:hidden">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-foreground text-center">{formatPrice(day.net_revenue, false)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -188,7 +188,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                             <div className="flex justify-center pt-4 pb-2">
                                 <button
                                     onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
                                 >
                                     <ChevronDown size={16} />
                                     Voir plus ({filteredDays.length - visibleCount} jours restants)

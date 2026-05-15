@@ -33,8 +33,8 @@ export function InventoryStats({
             <InventorySummaryCards products={products} formatPrice={formatPrice} barSettings={barSettings} />
 
             {/* Répartition Catégories */}
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <h2 className="text-h3 text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-card p-4 rounded-2xl border border-border shadow-sm">
+                <h2 className="text-h3 text-foreground mb-4 flex items-center gap-2">
                     <LayoutGrid size={18} className="text-brand-primary" />
                     Répartition par catégorie
                 </h2>
@@ -76,8 +76,8 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
         return (
             <div className="bg-brand-subtle p-6 rounded-2xl border border-brand-primary/20 text-center">
                 <CheckCircle2 className="mx-auto text-brand-primary mb-2" size={32} />
-                <h3 className="text-h3 text-gray-900">Inventaire en parfaite santé</h3>
-                <p className="text-body-sm text-gray-500 mt-1">Aucune anomalie détectée sur vos produits.</p>
+                <h3 className="text-h3 text-foreground">Inventaire en parfaite santé</h3>
+                <p className="text-body-sm text-muted-foreground mt-1">Aucune anomalie détectée sur vos produits.</p>
             </div>
         );
     }
@@ -86,9 +86,9 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
     // Les couleurs de statut (rouge/orange) restent hardcodées : elles sont universelles,
     // indépendantes du thème du bar. Pour le cas info-seulement, on utilise le token brand.
     const panelClass = criticalCount > 0
-        ? 'bg-red-50 border-red-200'
+        ? 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900/40'
         : warningCount > 0
-            ? 'bg-orange-50 border-orange-200'
+            ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900/40'
             : 'bg-brand-subtle border-brand-primary/20';
 
     const iconClass = criticalCount > 0
@@ -103,7 +103,7 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
             {/* En-tête */}
             <div>
                 <AlertTriangle className={`mx-auto ${iconClass} mb-2`} size={32} />
-                <h3 className="text-h3 text-gray-900">
+                <h3 className="text-h3 text-foreground">
                     {totalCount} produit{totalCount > 1 ? 's' : ''} nécessite{totalCount > 1 ? 'nt' : ''} votre attention
                 </h3>
             </div>
@@ -114,31 +114,31 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
                     count={criticalCount}
                     label="Critique"
                     icon={ShieldAlert}
-                    colorClass="bg-red-100 text-red-700 border-red-200"
+                    colorClass="bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/40"
                     iconClass="text-red-500"
                 />
                 <SeverityPill
                     count={warningCount}
                     label="Alerte"
                     icon={AlertOctagon}
-                    colorClass="bg-orange-100 text-orange-700 border-orange-200"
+                    colorClass="bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900/40"
                     iconClass="text-orange-500"
                 />
                 <SeverityPill
                     count={infoCount}
                     label="Info"
                     icon={Info}
-                    colorClass="bg-amber-100 text-amber-700 border-amber-200"
+                    colorClass="bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/40"
                     iconClass="text-amber-500"
                 />
             </div>
 
             {/* Contexte stock bas → opérations (seulement si pertinent) */}
             {lowStockCount > 0 && (
-                <p className="text-body-sm text-gray-600 flex items-center justify-center gap-1.5">
-                    <Wrench size={14} className="text-gray-400 shrink-0" />
+                <p className="text-body-sm text-foreground/80 flex items-center justify-center gap-1.5">
+                    <Wrench size={14} className="text-muted-foreground shrink-0" />
                     Dont{' '}
-                    <span className="font-semibold text-gray-800 tabular-nums">{lowStockCount}</span>
+                    <span className="font-semibold text-foreground tabular-nums">{lowStockCount}</span>
                     {' '}en stock bas à réapprovisionner
                 </p>
             )}
@@ -204,16 +204,16 @@ function InventorySummaryCards({ products, formatPrice, barSettings }: { product
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: idx * 0.04 }}
-                    className="p-4 rounded-2xl border border-gray-100 shadow-sm bg-white flex flex-col items-start gap-3"
+                    className="p-4 rounded-2xl border border-border shadow-sm bg-card flex flex-col items-start gap-3"
                 >
                     <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
                         <card.icon size={18} />
                     </div>
                     <div className="min-w-0 w-full">
-                        <div className="text-h2 text-gray-900 leading-tight tabular-nums truncate">
+                        <div className="text-h2 text-foreground leading-tight tabular-nums truncate">
                             {card.value}
                         </div>
-                        <div className="text-micro text-gray-500 mt-1">
+                        <div className="text-micro text-muted-foreground mt-1">
                             {card.label}
                         </div>
                     </div>

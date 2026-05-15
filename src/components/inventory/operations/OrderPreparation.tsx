@@ -190,8 +190,8 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
             <div className="flex items-center gap-3">
                 <BackButton onClick={onBack} />
                 <div className="min-w-0">
-                    <h2 className="text-h3 text-gray-900">Nouvelle commande</h2>
-                    <p className="text-body-sm text-gray-500">Optimisez votre stock</p>
+                    <h2 className="text-h3 text-foreground">Nouvelle commande</h2>
+                    <p className="text-body-sm text-muted-foreground">Optimisez votre stock</p>
                 </div>
             </div>
 
@@ -199,7 +199,7 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
             <div
                 role="radiogroup"
                 aria-label="Mode d'affichage"
-                className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                className="flex p-0.5 bg-muted rounded-full border border-border"
             >
                 <button
                     role="radio"
@@ -208,8 +208,8 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                     className={cn(
                         "flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption transition-all whitespace-nowrap",
                         viewMode === 'suggestions'
-                            ? "bg-white text-brand-primary shadow-sm font-semibold"
-                            : "text-gray-600 hover:text-gray-900 font-medium"
+                            ? "bg-card text-brand-primary shadow-sm font-semibold"
+                            : "text-muted-foreground hover:text-foreground font-medium"
                     )}
                 >
                     <Sparkles size={14} />
@@ -222,8 +222,8 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                     className={cn(
                         "hidden sm:flex flex-1 items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption transition-all whitespace-nowrap",
                         viewMode === 'alerts'
-                            ? "bg-white text-red-600 shadow-sm font-semibold"
-                            : "text-gray-600 hover:text-gray-900 font-medium"
+                            ? "bg-card text-red-600 dark:text-red-400 shadow-sm font-semibold"
+                            : "text-muted-foreground hover:text-foreground font-medium"
                     )}
                 >
                     <AlertTriangle size={14} />
@@ -231,7 +231,7 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                     {alerts.length > 0 && (
                         <span className={cn(
                             "px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums",
-                            viewMode === 'alerts' ? "bg-red-100 text-red-700" : "bg-gray-200 text-gray-600"
+                            viewMode === 'alerts' ? "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400" : "bg-border text-foreground/70"
                         )}>
                             {alerts.length}
                         </span>
@@ -244,8 +244,8 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                     className={cn(
                         "flex-1 flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-caption transition-all whitespace-nowrap",
                         viewMode === 'catalog'
-                            ? "bg-white text-brand-primary shadow-sm font-semibold"
-                            : "text-gray-600 hover:text-gray-900 font-medium"
+                            ? "bg-card text-brand-primary shadow-sm font-semibold"
+                            : "text-muted-foreground hover:text-foreground font-medium"
                     )}
                 >
                     <LayoutGrid size={14} />
@@ -256,13 +256,13 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
             {/* Search Bar (Catalog Mode) */}
             {viewMode === 'catalog' && (
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
                         type="text"
                         placeholder="Rechercher un produit..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all"
+                        className="w-full pl-9 pr-4 py-2.5 bg-card border border-border rounded-xl text-body-sm text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all"
                     />
                 </div>
             )}
@@ -288,10 +288,10 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                             layout
                             key={pid}
                             className={cn(
-                                "p-4 rounded-2xl border transition-all relative bg-white",
+                                "p-4 rounded-2xl border transition-all relative bg-card",
                                 isSelected
                                     ? "border-brand-primary shadow-md"
-                                    : "border-gray-100 shadow-sm hover:border-brand-primary/40 hover:shadow-md"
+                                    : "border-border shadow-sm hover:border-brand-primary/40 hover:shadow-md"
                             )}
                         >
                             {isSelected && (
@@ -301,8 +301,8 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                             )}
 
                             <div className="mb-3 pr-6">
-                                <h4 className="text-body font-semibold text-gray-900 line-clamp-1">{pname}</h4>
-                                <p className="text-caption text-gray-500">{pvol}</p>
+                                <h4 className="text-body font-semibold text-foreground line-clamp-1">{pname}</h4>
+                                <p className="text-caption text-muted-foreground">{pvol}</p>
                             </div>
 
                             {/* Suggestion Badge */}
@@ -317,10 +317,10 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
 
                             <div className="flex justify-between items-end">
                                 <div>
-                                    <p className="text-micro text-gray-500">Stock</p>
+                                    <p className="text-micro text-muted-foreground">Stock</p>
                                     <p className={cn(
                                         "text-body font-semibold tabular-nums",
-                                        availableStock <= 0 ? "text-red-500" : "text-gray-900"
+                                        availableStock <= 0 ? "text-red-500" : "text-foreground"
                                     )}>
                                         {availableStock}
                                     </p>
@@ -328,10 +328,10 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
 
                                 {/* Action Stepper */}
                                 {isSelected ? (
-                                    <div className="flex items-center gap-1 bg-white rounded-full border border-brand-primary/30 p-0.5">
+                                    <div className="flex items-center gap-1 bg-card rounded-full border border-brand-primary/30 p-0.5">
                                         <button
                                             onClick={() => handleDecrement(pid)}
-                                            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 active:scale-95 transition-transform"
+                                            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-muted text-foreground/70 active:scale-95 transition-transform"
                                             aria-label="Diminuer"
                                         >
                                             <Minus size={14} />
@@ -363,14 +363,14 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
 
             {/* Footer flottant — Récap + CTA finalisation */}
             {totals.itemsCount > 0 && (
-                <div className="fixed bottom-[80px] md:bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-xl z-40 pb-safe">
+                <div className="fixed bottom-[80px] md:bottom-0 left-0 right-0 p-4 bg-card border-t border-border shadow-xl z-40 pb-safe">
                     <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
 
                         <div className="flex flex-col w-full md:w-auto">
-                            <span className="text-micro text-gray-500">Votre commande</span>
+                            <span className="text-micro text-muted-foreground">Votre commande</span>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-h2 font-semibold text-brand-primary tabular-nums">{formatPrice(totals.totalCost)}</span>
-                                <span className="text-body-sm text-gray-400 tabular-nums">
+                                <span className="text-body-sm text-muted-foreground tabular-nums">
                                     ({totals.itemsCount} {totals.itemsCount > 1 ? 'articles' : 'article'})
                                 </span>
                             </div>

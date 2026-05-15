@@ -135,7 +135,7 @@ export const Modal: React.FC<ModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'relative z-10 w-full bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col',
+              'relative z-10 w-full bg-card text-foreground rounded-lg shadow-xl max-h-[90vh] flex flex-col',
               sizeClasses[size],
               className
             )}
@@ -147,7 +147,7 @@ export const Modal: React.FC<ModalProps> = ({
             {/* Header */}
             {(title || showCloseButton) && (
               <div className={cn(
-                "flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0",
+                "flex items-start justify-between p-6 border-b border-border flex-shrink-0",
                 headerClassName
               )}>
                 <div className="flex-1 flex items-center gap-3">
@@ -156,7 +156,7 @@ export const Modal: React.FC<ModalProps> = ({
                     {title && (
                       <h2
                         id="modal-title"
-                        className={cn("text-lg font-semibold text-gray-900", titleClassName)}
+                        className={cn("text-lg font-semibold text-foreground", titleClassName)}
                       >
                         {title}
                       </h2>
@@ -164,7 +164,7 @@ export const Modal: React.FC<ModalProps> = ({
                     {description && (
                       <p
                         id="modal-description"
-                        className="mt-1 text-sm text-gray-500"
+                        className="mt-1 text-sm text-muted-foreground"
                       >
                         {description}
                       </p>
@@ -174,7 +174,7 @@ export const Modal: React.FC<ModalProps> = ({
                 {showCloseButton && (
                   <button
                     onClick={onClose}
-                    className="ml-4 text-gray-400 hover:text-gray-500 transition-colors"
+                    className="ml-4 text-muted-foreground hover:text-foreground transition-colors"
                     aria-label="Close modal"
                   >
                     <X size={20} />
@@ -189,7 +189,7 @@ export const Modal: React.FC<ModalProps> = ({
             {/* Footer */}
             {footer && (
               <div className={cn(
-                "flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0",
+                "flex items-center justify-end gap-3 p-6 border-t border-border bg-muted flex-shrink-0",
                 footerClassName
               )}>
                 {footer}
@@ -279,7 +279,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground/80 mb-2">
               Tapez <span className="font-mono font-semibold">"{confirmationValue}"</span> pour confirmer:
             </label>
             <Input
@@ -291,9 +291,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               autoFocus
               disabled={isLoading}
             />
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               {inputValue === confirmationValue ? (
-                <span className="text-green-600">✓ Confirmation valide</span>
+                <span className="text-green-600 dark:text-green-400">✓ Confirmation valide</span>
               ) : (
                 <span>Doit correspondre exactement</span>
               )}

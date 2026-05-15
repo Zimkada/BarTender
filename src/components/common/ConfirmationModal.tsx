@@ -42,7 +42,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
+                    className="relative bg-card rounded-xl shadow-xl w-full max-w-md overflow-hidden"
                 >
                     <div className="p-6">
                         <div className="flex items-start gap-4">
@@ -50,17 +50,17 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                                 <AlertTriangle size={24} />
                             </div>
                             <div className="flex-1">
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
-                                <p className="text-gray-600 leading-relaxed">{message}</p>
+                                <h3 className="text-lg font-bold text-foreground mb-2">{title}</h3>
+                                <p className="text-foreground/70 leading-relaxed">{message}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3">
+                    <div className="bg-muted px-6 py-4 flex items-center justify-end gap-3">
                         <button
                             onClick={onClose}
                             disabled={isLoading}
-                            className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
+                            className="px-4 py-2 text-foreground/80 font-medium hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
                         >
                             {cancelLabel}
                         </button>
