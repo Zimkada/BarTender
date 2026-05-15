@@ -52,7 +52,7 @@ const Left: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 /** Heading element - auto-truncated for long titles */
 const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex-1 min-w-0">
-        <h1 className="text-h3 sm:text-h2 text-gray-900 truncate">{children}</h1>
+        <h1 className="text-h3 sm:text-h2 text-foreground truncate">{children}</h1>
     </div>
 );
 
@@ -65,7 +65,7 @@ const Icon: React.FC<{ children: React.ReactNode, className?: string }> = ({ chi
 
 /** Subtitle/description text */
 const Description: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`text-body-sm text-gray-500 mt-0.5 ${className || ''}`}>
+    <div className={`text-body-sm text-muted-foreground mt-0.5 ${className || ''}`}>
         {children}
     </div>
 );

@@ -15,8 +15,12 @@ import {
   Calendar,
   Zap,
   GraduationCap,
+  Monitor,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useColorMode } from '../context/ColorModeContext';
 import { AuthService } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import type { User as UserType } from '../types';
@@ -28,6 +32,7 @@ import { getRoleTheme } from '../theme/themeHelpers';
 
 export function ProfileSettings() {
   const { currentSession, changePassword, refreshSession } = useAuth();
+  const { colorMode, setColorMode } = useColorMode();
   const { isMobile } = useViewport();
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -246,6 +251,44 @@ export function ProfileSettings() {
                         leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
                         className="h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       />
+                    </div>
+                  </div>
+
+                  {/* Apparence — choix du mode d'affichage (préférence locale, par device) */}
+                  <div className="space-y-2 pt-4 border-t border-gray-100">
+                    <div>
+                      <p className="text-body-sm font-semibold text-gray-900">Apparence</p>
+                      <p className="text-caption text-gray-500">Choix du mode d'affichage, enregistré sur cet appareil.</p>
+                    </div>
+                    <div
+                      className="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200"
+                      role="radiogroup"
+                      aria-label="Mode d'affichage"
+                    >
+                      {([
+                        { value: 'system', label: 'Système', icon: Monitor },
+                        { value: 'light', label: 'Clair', icon: Sun },
+                        { value: 'dark', label: 'Sombre', icon: Moon },
+                      ] as const).map(({ value, label, icon: Icon }) => {
+                        const active = colorMode === value;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            onClick={() => setColorMode(value)}
+                            className={`flex items-center justify-center gap-1.5 h-9 rounded-lg text-caption font-medium transition-colors ${
+                              active
+                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          >
+                            <Icon size={14} />
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
