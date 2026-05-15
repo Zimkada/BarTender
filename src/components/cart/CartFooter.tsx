@@ -5,6 +5,7 @@ import { Select, SelectOption } from '../ui/Select';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { PaymentMethodSelector, PaymentMethod, PAYMENT_METHODS } from './PaymentMethodSelector';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getInitials } from '../../utils/stringFormatting';
 
 interface CartFooterProps {
     total: number;
@@ -86,15 +87,6 @@ export function CartFooter({
         }
     };
 
-    // Helper: Générer les initiales (ex: "Serveur Test" -> "ST")
-    const getInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map(n => n[0])
-            .join('')
-            .substring(0, 2)
-            .toUpperCase();
-    };
 
     // Helper: Générer une couleur de fond stable à partir du nom
     const getAvatarColor = (name: string) => {

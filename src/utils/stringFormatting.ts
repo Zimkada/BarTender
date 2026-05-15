@@ -20,6 +20,25 @@ export function replaceAccents(str: string): string {
 }
 
 /**
+ * Génère les initiales d'un nom (max 2 caractères, en majuscules)
+ * @example
+ * getInitials('Chez Ali') => 'CA'
+ * getInitials('BarTender') => 'B'
+ * getInitials('Sandra KOFFI') => 'SK'
+ * getInitials(null) => '?'
+ */
+export function getInitials(name: string | undefined | null, fallback: string = '?'): string {
+  if (!name?.trim()) return fallback;
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+}
+
+/**
  * Tente de formater une adresse qui pourrait être stockée sous forme de JSON stringifié
  * @example
  * formatAddress('{"address":"Cotonou","phone":"..."}') => 'Cotonou'

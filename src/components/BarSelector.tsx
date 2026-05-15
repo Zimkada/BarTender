@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from "../context/AuthContext";
 import AnimatedBarName from './AnimatedBarName';
+import { getInitials } from '../utils/stringFormatting';
 
 interface BarSelectorProps {
   onCreateNew?: () => void;
@@ -57,17 +58,18 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
         aria-label={hasMultipleBars ? "Sélectionner un bar" : "Nom du bar"}
         aria-expanded={hasMultipleBars ? isOpen : undefined}
       >
-        <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-          <img
-            src="/icons/icon-48x48.png"
-            alt="Bar"
-            className="w-4 h-4 rounded-sm"
-          />
+        <div
+          className={`${variant === 'default' ? 'w-8 h-8' : 'w-6 h-6'} rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0`}
+          aria-hidden="true"
+        >
+          <span className={`${variant === 'default' ? 'text-caption' : 'text-micro'} font-bold text-white`}>
+            {getInitials(currentBar?.name, 'B')}
+          </span>
         </div>
-        <div className="flex flex-col items-start leading-none justify-center h-full">
+        <div className="flex flex-col items-start leading-none justify-center h-full min-w-0">
           <AnimatedBarName
             text={currentBar?.name || 'Sélectionner'}
-            className={`${variant === 'default' ? 'text-lg' : 'text-sm'} font-black text-white uppercase tracking-tight truncate`}
+            className={`${variant === 'default' ? 'text-body' : 'text-body-sm'} font-semibold text-white truncate`}
           />
         </div>
         {hasMultipleBars && (
@@ -88,37 +90,47 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
             className="absolute top-full mt-3 left-0 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl py-2 min-w-[280px] border border-brand-primary/20 overflow-hidden z-[120]"
           >
             <div className="px-4 py-2 border-b border-gray-100/50 mb-1">
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Passer à un autre bar</p>
+              <p className="text-micro text-gray-400">Passer à un autre bar</p>
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
-              {userBars.map((bar) => (
-                <button
-                  key={bar.id}
-                  onClick={() => handleSwitch(bar.id)}
-                  className={`w-full text-left px-4 py-3 hover:bg-brand-primary/5 transition-all flex items-center gap-3 relative group ${currentBar?.id === bar.id ? 'bg-brand-primary/10' : ''}`}
-                >
-                  <div className={`w-1.5 h-6 rounded-full transition-all ${currentBar?.id === bar.id ? 'bg-brand-primary scale-y-100' : 'bg-transparent scale-y-0'}`} />
+              {userBars.map((bar) => {
+                const isActive = currentBar?.id === bar.id;
+                return (
+                  <button
+                    key={bar.id}
+                    onClick={() => handleSwitch(bar.id)}
+                    className={`w-full text-left px-4 py-3 hover:bg-brand-primary/5 transition-colors flex items-center gap-3 ${isActive ? 'bg-brand-primary/10' : ''}`}
+                  >
+                    <div className={`w-1 h-8 rounded-full transition-colors ${isActive ? 'bg-brand-primary' : 'bg-transparent'}`} />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className={`font-black text-sm uppercase tracking-tight truncate ${currentBar?.id === bar.id ? 'text-brand-primary' : 'text-gray-900'}`}>
-                        {bar.name}
-                      </p>
-                      {bar.isSetupComplete && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <div
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-600'}`}
+                      aria-hidden="true"
+                    >
+                      <span className="text-caption font-bold">{getInitials(bar.name, 'B')}</span>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className={`text-body-sm font-semibold truncate ${isActive ? 'text-brand-primary' : 'text-gray-900'}`}>
+                          {bar.name}
+                        </p>
+                        {bar.isSetupComplete && (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                        )}
+                      </div>
+                      {bar.address && (
+                        <p className="text-caption text-gray-500 truncate mt-0.5">{bar.address}</p>
                       )}
                     </div>
-                    {bar.address && (
-                      <p className="text-[10px] text-gray-500 truncate font-medium mt-0.5">{bar.address}</p>
-                    )}
-                  </div>
 
-                  {currentBar?.id === bar.id && (
-                    <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                  )}
-                </button>
-              ))}
+                    {isActive && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-primary flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {hasPermission('canCreateBars') && onCreateNew && (
@@ -129,12 +141,12 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
                     onCreateNew();
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center gap-3 text-emerald-600 group"
+                  className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center gap-3 text-emerald-600"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
                     <Plus size={18} />
                   </div>
-                  <span className="font-black text-xs uppercase tracking-wider">Créer un nouveau bar</span>
+                  <span className="text-body-sm font-semibold">Créer un nouveau bar</span>
                 </button>
               </>
             )}

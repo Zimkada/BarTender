@@ -29,6 +29,7 @@ import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import AnimatedBarName from './AnimatedBarName';
 import { AnimatedCounter } from './AnimatedCounter';
+import { getInitials } from '../utils/stringFormatting';
 
 //import { Bar } from '../types'; // NEW: Import Bar type
 
@@ -108,13 +109,13 @@ export function Header({
               </div>
 
               {/* Logo + Nom bar - CENTER/RIGHT */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
-                <img
-                  src="/icons/icon-48x48.png"
-                  alt="BarTender"
-                  className="w-5 h-5 flex-shrink-0 rounded"
-                />
-                <h1 className="text-sm font-bold text-white truncate">
+              <div className="flex items-center gap-2 flex-1 min-w-0 justify-center">
+                <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                  <span className="text-micro font-bold text-white">
+                    {getInitials(currentSession?.role === 'super_admin' ? 'BarTender Pro' : currentBar?.name, 'B')}
+                  </span>
+                </div>
+                <h1 className="text-body-sm font-semibold text-white truncate">
                   <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
                 </h1>
               </div>
@@ -172,12 +173,12 @@ export function Header({
                   {currentSession?.role === 'promoteur' ? (
                     <BarSelector onCreateNew={onShowCreateBar} variant="transparent" />
                   ) : (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/icon-48x48.png"
-                        alt="BarTender"
-                        className="w-5 h-5 flex-shrink-0 rounded"
-                      />
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                        <span className="text-micro font-bold text-white">
+                          {getInitials(currentBar?.name, 'B')}
+                        </span>
+                      </div>
                       <span className="text-body-sm font-semibold text-white truncate">
                         <AnimatedBarName text={currentBar?.name || 'BarTender'} />
                       </span>
@@ -243,13 +244,13 @@ export function Header({
             {currentSession?.role === 'promoteur' ? (
               <BarSelector onCreateNew={onShowCreateBar} />
             ) : (
-              <div className="flex items-center gap-2">
-                <img
-                  src="/icons/icon-48x48.png"
-                  alt="BarTender"
-                  className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0 rounded"
-                />
-                <h1 className="text-lg md:text-2xl font-bold text-white">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 md:w-9 md:h-9 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                  <span className="text-caption font-bold text-white">
+                    {getInitials(currentSession?.role === 'super_admin' ? 'BarTender Pro' : currentBar?.name, 'B')}
+                  </span>
+                </div>
+                <h1 className="text-body md:text-h2 font-semibold text-white truncate">
                   <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
                 </h1>
               </div>
