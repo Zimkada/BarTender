@@ -13,7 +13,7 @@ const getButtonClasses = (isSelected: boolean) => {
     if (isSelected) {
         return `${base} bg-brand-primary text-white border-brand-primary shadow-sm font-semibold`;
     }
-    return `${base} bg-white text-gray-700 border-gray-200 hover:border-brand-primary/40 hover:bg-brand-subtle font-medium`;
+    return `${base} bg-card text-foreground/80 border-border hover:border-brand-primary/40 hover:bg-brand-subtle font-medium`;
 };
 
 interface CategoryFilterProps {
@@ -54,7 +54,7 @@ export function CategoryFilter({
     return (
         <>
             <div className="space-y-2">
-                <p className="text-micro text-gray-500 uppercase">Catégories</p>
+                <p className="text-micro text-muted-foreground uppercase">Catégories</p>
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={() => onSelectCategory('all')}
@@ -82,7 +82,7 @@ export function CategoryFilter({
                         <motion.button
                             onClick={onAddCategory}
                             whileTap={{ scale: 0.96 }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption border border-dashed border-gray-300 text-gray-500 hover:text-brand-primary hover:border-brand-primary/40 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption border border-dashed border-border text-muted-foreground hover:text-brand-primary hover:border-brand-primary/40 transition-colors"
                             title="Ajouter une catégorie"
                         >
                             <Plus size={14} />

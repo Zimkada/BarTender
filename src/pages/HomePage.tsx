@@ -56,9 +56,9 @@ export default function HomePage() {
   // 2. Le retour anticipé est placé après tous les hooks
   if (!currentBar) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-gray-800 p-4">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-foreground p-4">
         <h1 className="text-display text-brand-dark mb-3">Bienvenue sur BarTender</h1>
-        <p className="text-body text-gray-600">Sélectionnez un bar pour commencer.</p>
+        <p className="text-body text-muted-foreground">Sélectionnez un bar pour commencer.</p>
       </div>
     );
   }
@@ -74,17 +74,17 @@ export default function HomePage() {
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-micro text-gray-500 uppercase mb-1">{currentBar.name}</p>
-            <h1 className="text-h1 text-gray-900">
+            <p className="text-micro text-muted-foreground uppercase mb-1">{currentBar.name}</p>
+            <h1 className="text-h1 text-foreground">
               Vente <span className="text-brand-primary">rapide</span>
             </h1>
           </div>
 
           <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-subtle rounded-full border border-brand-subtle flex-shrink-0">
             <ShoppingCart size={14} className="text-brand-primary" />
-            <span className="text-caption text-brand-dark">
+            <span className="text-caption text-brand-text">
               <span className="font-semibold">{products.length}</span>
-              <span className="text-gray-500 ml-1">produits</span>
+              <span className="text-muted-foreground ml-1">produits</span>
             </span>
           </div>
         </div>
@@ -116,7 +116,7 @@ export default function HomePage() {
         {isLoading ? (
           <ProductGridSkeleton count={12} />
         ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
             <p className="text-body">Aucun produit trouvé</p>
           </div>
         ) : (
