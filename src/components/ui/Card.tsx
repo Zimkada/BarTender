@@ -5,10 +5,10 @@ import { cn } from '../../lib/utils';
 const cardVariants = cva('rounded-lg border transition-colors', {
   variants: {
     variant: {
-      default: 'bg-white border-gray-200',
-      elevated: 'bg-white border-gray-200 shadow-sm hover:shadow-md',
-      outline: 'bg-transparent border-gray-300',
-      ghost: 'bg-gray-50 border-transparent',
+      default: 'bg-card text-card-foreground border-border',
+      elevated: 'bg-card text-card-foreground border-border shadow-sm hover:shadow-md',
+      outline: 'bg-transparent border-border',
+      ghost: 'bg-muted border-transparent',
     },
     padding: {
       none: '',
@@ -74,7 +74,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-gray-500', className)}
+    className={cn('text-sm text-muted-foreground', className)}
     {...props}
   />
 ));

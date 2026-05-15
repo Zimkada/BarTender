@@ -376,24 +376,24 @@ export default function SalesHistoryPage() {
                 )}
 
                 {/* ==================== FILTERS AREA ==================== */}
-                <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10" data-guide="sales-filters">
+                <div className="bg-card border-b border-border p-4 shadow-sm z-10" data-guide="sales-filters">
                     <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
                         {/* Bloc 1: Recherche + Période */}
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
                             {/* Search */}
                             <div className="relative w-full sm:w-64">
-                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                 <Input
                                     type="text"
                                     placeholder="Rechercher ID ou produit..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                                    className="w-full pl-9 bg-muted border-border focus:bg-card transition-colors"
                                 />
                                 {/* Indicateur de recherche étendue (serveur) */}
                                 {searchTerm && searchTerm.length >= 3 && filteredSales.length === 0 && isLoadingSales && (
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 flex items-center gap-1">
-                                        <span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-brand-primary rounded-full animate-spin" />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground flex items-center gap-1">
+                                        <span className="inline-block w-3 h-3 border-2 border-border border-t-brand-primary rounded-full animate-spin" />
                                         Recherche étendue…
                                     </span>
                                 )}
@@ -415,7 +415,7 @@ export default function SalesHistoryPage() {
                             <div
                                 role="radiogroup"
                                 aria-label="Filtre par statut"
-                                className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200 w-full lg:w-auto"
+                                className="flex p-0.5 bg-muted rounded-full border border-border w-full lg:w-auto"
                             >
                                 {(['validated', 'rejected', 'cancelled'] as const).map((status) => {
                                     const labels = { validated: 'Validées', rejected: 'Rejetées', cancelled: 'Annulées' };
@@ -427,8 +427,8 @@ export default function SalesHistoryPage() {
                                             aria-checked={isActive}
                                             onClick={() => setStatusFilter(status)}
                                             className={`flex-1 lg:flex-none lg:min-w-[100px] px-3 py-1.5 rounded-full text-caption transition-all ${isActive
-                                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
-                                                : 'text-gray-600 hover:text-gray-900 font-medium'
+                                                ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                                                : 'text-muted-foreground hover:text-foreground font-medium'
                                                 }`}
                                         >
                                             {labels[status]}
@@ -441,18 +441,18 @@ export default function SalesHistoryPage() {
 
                     {/* Export format toggle & Action (mobile) */}
                     {isMobile && (
-                        <div className="flex items-center gap-2 w-full pt-2 border-t border-gray-100 mt-2">
-                            <span className="text-caption text-gray-500 whitespace-nowrap">Format</span>
+                        <div className="flex items-center gap-2 w-full pt-2 border-t border-border mt-2">
+                            <span className="text-caption text-muted-foreground whitespace-nowrap">Format</span>
                             <div
                                 role="radiogroup"
                                 aria-label="Format d'export"
-                                className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                                className="flex p-0.5 bg-muted rounded-full border border-border"
                             >
                                 <button
                                     role="radio"
                                     aria-checked={exportFormat === 'excel'}
                                     onClick={() => setExportFormat('excel')}
-                                    className={`px-3 py-1 rounded-full text-caption transition-all ${exportFormat === 'excel' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 font-medium'}`}
+                                    className={`px-3 py-1 rounded-full text-caption transition-all ${exportFormat === 'excel' ? 'bg-card text-brand-primary shadow-sm font-semibold' : 'text-muted-foreground font-medium'}`}
                                 >
                                     XLS
                                 </button>
@@ -460,7 +460,7 @@ export default function SalesHistoryPage() {
                                     role="radio"
                                     aria-checked={exportFormat === 'csv'}
                                     onClick={() => setExportFormat('csv')}
-                                    className={`px-3 py-1 rounded-full text-caption transition-all ${exportFormat === 'csv' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 font-medium'}`}
+                                    className={`px-3 py-1 rounded-full text-caption transition-all ${exportFormat === 'csv' ? 'bg-card text-brand-primary shadow-sm font-semibold' : 'text-muted-foreground font-medium'}`}
                                 >
                                     CSV
                                 </button>
@@ -481,7 +481,7 @@ export default function SalesHistoryPage() {
                 </div>
 
                 {/* ==================== CONTENT AREA ==================== */}
-                <div className="flex-1 overflow-y-auto p-4 bg-gray-50/30">
+                <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
                     <div className="flex items-center justify-between mb-4">
                         <DataFreshnessIndicatorCompact
                             viewName="sales_history"
@@ -490,14 +490,14 @@ export default function SalesHistoryPage() {
                     </div>
 
                     {filteredSales.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                            <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-h3 text-gray-700 mb-2">
+                        <div className="text-center py-20 bg-card rounded-2xl border border-border shadow-sm">
+                            <ShoppingCart size={48} className="text-muted-foreground/60 mx-auto mb-4" />
+                            <h3 className="text-h3 text-foreground/80 mb-2">
                                 {statusFilter === 'cancelled' ? 'Aucune vente annulée'
                                     : statusFilter === 'rejected' ? 'Aucune vente rejetée'
                                         : 'Aucune vente trouvée'}
                             </h3>
-                            <p className="text-body-sm text-gray-500">
+                            <p className="text-body-sm text-muted-foreground">
                                 {statusFilter === 'validated'
                                     ? 'Ajustez vos filtres ou changez la période'
                                     : `Aucune vente ${statusFilter === 'cancelled' ? 'annulée' : 'rejetée'} sur cette période`}

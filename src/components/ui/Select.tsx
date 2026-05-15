@@ -4,11 +4,11 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 const selectVariants = cva(
-  'flex w-full appearance-none rounded-md border bg-white text-sm transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 pr-10',
+  'flex w-full appearance-none rounded-md border bg-card text-foreground text-sm transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 pr-10',
   {
     variants: {
       variant: {
-        default: 'border-gray-300 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20',
+        default: 'border-border focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20',
         error: 'border-red-500 focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-500/20',
         success: 'border-green-500 focus-visible:border-green-500 focus-visible:ring-2 focus-visible:ring-green-500/20',
       },
@@ -70,7 +70,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const select = (
       <div className="relative">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10">
             {leftIcon}
           </div>
         )}
@@ -102,7 +102,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
           <ChevronDown size={18} />
         </div>
       </div>
@@ -117,7 +117,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="text-sm font-medium text-gray-700 block"
+            className="text-sm font-medium text-foreground/80 block"
           >
             {label}
             {props.required && <span className="text-red-500 ml-1">*</span>}
@@ -130,7 +130,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           </p>
         )}
         {helperText && !error && (
-          <p id={helperTextId} className="text-sm text-gray-500">
+          <p id={helperTextId} className="text-sm text-muted-foreground">
             {helperText}
           </p>
         )}

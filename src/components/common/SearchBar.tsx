@@ -42,7 +42,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <div className={`relative ${className}`}>
             {/* Icône de recherche */}
             <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
                 size={18}
             />
 
@@ -52,14 +52,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-brand-primary/20 bg-white focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all outline-none text-gray-800 placeholder-gray-400 font-medium"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-brand-primary/20 bg-card focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all outline-none text-foreground placeholder-muted-foreground font-medium"
             />
 
             {/* Bouton clear (visible seulement si valeur non vide) */}
             {value && (
                 <button
                     onClick={() => onChange('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                     aria-label="Effacer la recherche"
                 >
                     <X size={16} />

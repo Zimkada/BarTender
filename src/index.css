@@ -141,9 +141,11 @@
     --brand-light: 65%;
     --brand-dark: 55%;
 
-    /* Subtle bg : passe d'un blanc cassé à un teinté sombre brand */
-    --brand-bg-subtle: hsl(var(--brand-hue), var(--brand-saturation), 14%);
-    --brand-border: hsla(var(--brand-hue), var(--brand-saturation), 60%, 0.25);
+    /* Subtle bg : très désaturé en dark pour éviter l'effet "marron café".
+       On garde la teinte du brand mais avec une saturation divisée pour que
+       les accents brand-primary (à pleine saturation) ressortent fortement. */
+    --brand-bg-subtle: hsl(var(--brand-hue), calc(var(--brand-saturation) / 3), 13%);
+    --brand-border: hsla(var(--brand-hue), var(--brand-saturation), 60%, 0.2);
     --brand-text: hsl(var(--brand-hue), var(--brand-saturation), 85%);
   }
 
@@ -206,6 +208,13 @@
               0 4px 12px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.04);
 }
 
+.dark .glass-page-header {
+  background: hsla(220, 13%, 14%, 0.7);
+  border: 1px solid hsla(0, 0%, 100%, 0.06);
+  border-top: 3px solid hsl(var(--brand-hue), var(--brand-saturation), 55%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 /* 🎯 PageHeader Icon - Plat moderne */
 .glass-page-icon {
   background: var(--brand-gradient);
@@ -256,6 +265,13 @@
   border-radius: 0.8rem !important;
 }
 
+.dark .glass-action-button-2026 {
+  background: hsla(220, 13%, 18%, 0.7) !important;
+  border: 1px solid hsla(0, 0%, 100%, 0.08) !important;
+  color: hsl(0, 0%, 90%) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
 .glass-action-button-2026:hover {
   background: linear-gradient(135deg,
       hsla(var(--brand-hue), var(--brand-saturation), 90%, 0.95) 0%,
@@ -263,6 +279,12 @@
   border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.45) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 8px 20px -4px var(--brand-shadow) !important;
+}
+
+.dark .glass-action-button-2026:hover {
+  background: hsla(220, 13%, 22%, 0.85) !important;
+  border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 60%, 0.3) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* 🎯 Bouton Actif (Tabs) - Utilise brand-gradient */
