@@ -486,40 +486,40 @@ export default function TeamManagementPage() {
         {pageTab === 'members' && (
           <>
             {/* Smart Toolbar for Members Tab */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-card rounded-xl shadow-sm border border-border">
               {/* Search Input */}
               <div className="relative flex-grow w-full md:w-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                 <Input
                   type="text"
                   placeholder="Rechercher un membre..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-body-sm rounded-xl border border-gray-200 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
+                  className="pl-9 pr-3 py-2 text-body-sm rounded-xl border border-border focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
                   aria-label="Rechercher un membre de l'équipe"
                 />
               </div>
 
               {/* Compact Stats Strip */}
-              <div className="flex items-center gap-4 text-caption text-gray-500 w-full md:w-auto justify-between md:justify-start">
+              <div className="flex items-center gap-4 text-caption text-muted-foreground w-full md:w-auto justify-between md:justify-start">
                 <div className="flex items-center gap-1.5">
                   <UserIcon className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-                  <span>Gérants : <span className="font-semibold text-gray-700 tabular-nums">{managersCount}</span></span>
+                  <span>Gérants : <span className="font-semibold text-foreground/80 tabular-nums">{managersCount}</span></span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-                  <span>Serveurs : <span className="font-semibold text-gray-700 tabular-nums">{serversCount}</span></span>
+                  <span>Serveurs : <span className="font-semibold text-foreground/80 tabular-nums">{serversCount}</span></span>
                 </div>
                 {inactiveCount > 0 && (
                   <Button
                     onClick={() => setShowInactive(!showInactive)}
                     variant="ghost"
                     size="sm"
-                    className={`flex items-center gap-2 text-gray-500 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-brand-primary' : ''}`}
+                    className={`flex items-center gap-2 text-muted-foreground hover:bg-muted ${showInactive ? 'bg-muted text-brand-primary' : ''}`}
                     title={showInactive ? "Masquer les inactifs" : "Inclure les inactifs"}
                     aria-label={showInactive ? "Masquer les membres inactifs" : "Afficher les membres inactifs"}
                   >
-                    {showInactive ? <Eye size={15} className="text-brand-primary" /> : <EyeOff size={15} className="text-gray-400" />}
+                    {showInactive ? <Eye size={15} className="text-brand-primary" /> : <EyeOff size={15} className="text-muted-foreground" />}
                     <span className="text-caption font-medium">
                       {showInactive ? 'Masquer inactifs' : `Inactifs (${inactiveCount})`}
                     </span>
@@ -558,15 +558,15 @@ export default function TeamManagementPage() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15, delay: index * 0.03 }}
-                      className={`group relative bg-white rounded-2xl p-5 border transition-all hover:shadow-md ${!member.isActive
-                        ? 'border-gray-100 bg-gray-50/50 opacity-70'
-                        : 'border-gray-100 shadow-sm'
+                      className={`group relative bg-card rounded-2xl p-5 border transition-all hover:shadow-md ${!member.isActive
+                        ? 'border-border bg-muted/50 opacity-70'
+                        : 'border-border shadow-sm'
                         }`}
                     >
                       {/* Status Dot */}
                       <div className="absolute top-5 left-5 flex items-center gap-1.5">
-                        <span className={`w-2 h-2 rounded-full ${member.isActive ? (isRecentLogin ? 'bg-green-500' : 'bg-gray-300') : 'bg-red-400'}`}></span>
-                        <span className="text-micro text-gray-400">
+                        <span className={`w-2 h-2 rounded-full ${member.isActive ? (isRecentLogin ? 'bg-green-500' : 'bg-muted-foreground/40') : 'bg-red-400'}`}></span>
+                        <span className="text-micro text-muted-foreground">
                           {!member.isActive ? 'Inactif' : (isRecentLogin ? 'Actif récemment' : 'Hors ligne')}
                         </span>
                       </div>
@@ -578,7 +578,7 @@ export default function TeamManagementPage() {
                             (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
                             <button
                               onClick={() => handleRemoveMember(member)}
-                              className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                              className="p-2 text-muted-foreground/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all"
                               title="Retirer de l'équipe"
                               aria-label={`Retirer ${member.user?.name || 'ce membre'} de l'équipe`}
                             >
@@ -591,14 +591,14 @@ export default function TeamManagementPage() {
                       <div className="mt-7 mb-5 flex flex-col items-center">
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-h3 font-semibold mb-3 ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
                           member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
-                            'bg-gray-100 text-gray-500'
+                            'bg-muted text-muted-foreground'
                           }`}
                           aria-hidden="true"
                         >
                           {initials}
                         </div>
-                        <h2 className="text-body font-semibold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
-                        <p className="text-caption text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
+                        <h2 className="text-body font-semibold text-foreground leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
+                        <p className="text-caption text-muted-foreground mb-2">@{user?.username || 'unknown'}</p>
 
                         {/* Role Badge + interactive role switch */}
                         {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' && hasPermission('canCreateManagers') ? (
@@ -613,7 +613,7 @@ export default function TeamManagementPage() {
                         ) : (
                           <span className={`px-3 py-1 rounded-full text-micro font-semibold ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
                             member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
-                              'bg-gray-100 text-gray-600'
+                              'bg-muted text-foreground/70'
                             }`}>
                             {getRoleLabel(member.role)}
                           </span>
@@ -621,30 +621,30 @@ export default function TeamManagementPage() {
                       </div>
 
                       {/* Details Grid */}
-                      <div className="space-y-2.5 pt-4 border-t border-dashed border-gray-100">
+                      <div className="space-y-2.5 pt-4 border-t border-dashed border-border">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Phone size={13} className="text-gray-400" />
+                          <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Phone size={13} className="text-muted-foreground" />
                           </div>
-                          <span className="text-caption text-gray-600">{user?.phone || 'Non renseigné'}</span>
+                          <span className="text-caption text-foreground/70">{user?.phone || 'Non renseigné'}</span>
                         </div>
 
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Mail size={13} className="text-gray-400" />
+                          <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Mail size={13} className="text-muted-foreground" />
                           </div>
-                          <span className="text-caption text-gray-600 truncate max-w-[180px]" title={user?.email}>
+                          <span className="text-caption text-foreground/70 truncate max-w-[180px]" title={user?.email}>
                             {user?.email || 'Pas d\'email'}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Clock size={13} className="text-gray-400" aria-hidden="true" />
+                          <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <Clock size={13} className="text-muted-foreground" aria-hidden="true" />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-micro text-gray-400">Dernière connexion</span>
-                            <span className="text-caption font-medium text-gray-700">
+                            <span className="text-micro text-muted-foreground">Dernière connexion</span>
+                            <span className="text-caption font-medium text-foreground/80">
                               {user?.lastLoginAt
                                 ? new Date(user.lastLoginAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                                 : 'Jamais'}

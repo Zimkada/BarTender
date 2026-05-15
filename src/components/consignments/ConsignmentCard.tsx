@@ -54,9 +54,9 @@ export function ConsignmentCard({
 
     // Helper for visual status
     const getStatusParams = () => {
-        if (isExpired) return { color: "bg-red-500", border: "border-red-500/20", bg: "bg-red-50" };
-        if (isExpiringSoon) return { color: "bg-amber-500", border: "border-amber-500/20", bg: "bg-amber-50" };
-        return { color: "bg-brand-primary", border: "border-brand-primary/20", bg: "bg-white" };
+        if (isExpired) return { color: "bg-red-500", border: "border-red-500/20", bg: "bg-red-50 dark:bg-red-950/30" };
+        if (isExpiringSoon) return { color: "bg-amber-500", border: "border-amber-500/20", bg: "bg-amber-50 dark:bg-amber-950/30" };
+        return { color: "bg-brand-primary", border: "border-brand-primary/20", bg: "bg-card" };
     };
 
     const status = getStatusParams();
@@ -66,8 +66,8 @@ export function ConsignmentCard({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className={cn(
-                "group relative bg-white rounded-[1.5rem] p-5 border shadow-md hover:shadow-xl transition-all overflow-hidden",
-                "border-gray-100 hover:border-brand-primary/30 hover:shadow-brand-primary/5"
+                "group relative bg-card rounded-[1.5rem] p-5 border shadow-md hover:shadow-xl transition-all overflow-hidden",
+                "border-border hover:border-brand-primary/30 hover:shadow-brand-primary/5"
             )}
         >
             {/* Elite Left Accent Bar */}
@@ -78,7 +78,7 @@ export function ConsignmentCard({
                 <div className="flex justify-between items-start mb-5">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-black text-gray-900 text-lg truncate leading-none">
+                            <h4 className="font-black text-foreground text-lg truncate leading-none">
                                 {consignment.customerName}
                             </h4>
                             {isExpiringSoon && !isExpired && (
@@ -88,21 +88,21 @@ export function ConsignmentCard({
                         {consignment.customerPhone ? (
                             <a
                                 href={`tel:${consignment.customerPhone}`}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-brand-primary transition-colors bg-gray-50 px-2 py-1 rounded-md border border-gray-100"
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-brand-primary transition-colors bg-muted px-2 py-1 rounded-md border border-border"
                             >
                                 <Phone size={10} strokeWidth={3} />
                                 {consignment.customerPhone}
                             </a>
                         ) : (
-                            <span className="text-[10px] text-gray-300 italic">Sans contact</span>
+                            <span className="text-[10px] text-muted-foreground/60 italic">Sans contact</span>
                         )}
                     </div>
 
                     <div className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm",
-                        isExpired ? "bg-red-50 border-red-100 text-red-600" :
-                            isExpiringSoon ? "bg-amber-50 border-amber-100 text-amber-700" :
-                                "bg-gray-50 border-gray-100 text-gray-500"
+                        isExpired ? "bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/40 text-red-600 dark:text-red-400" :
+                            isExpiringSoon ? "bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 text-amber-700 dark:text-amber-400" :
+                                "bg-muted border-border text-muted-foreground"
                     )}>
                         {isExpired ? (
                             <>
@@ -121,31 +121,28 @@ export function ConsignmentCard({
                 </div>
 
                 {/* Ticket Zone: Product Details */}
-                <div className="bg-gray-50/50 rounded-xl p-4 border border-dashed border-gray-200 mb-5 relative group-hover:border-brand-primary/20 transition-colors">
+                <div className="bg-muted/50 rounded-xl p-4 border border-dashed border-border mb-5 relative group-hover:border-brand-primary/20 transition-colors">
                     <div className="flex items-start gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center shrink-0">
-                            <span className="font-black text-xl text-gray-900">{consignment.quantity}</span>
+                        <div className="w-12 h-12 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center shrink-0">
+                            <span className="font-black text-xl text-foreground">{consignment.quantity}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Produit</p>
-                            <p className="font-bold text-gray-900 leading-tight">{consignment.productName}</p>
-                            <p className="text-[10px] text-gray-500 mt-0.5">{consignment.productVolume || 'Standard'}</p>
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Produit</p>
+                            <p className="font-bold text-foreground leading-tight">{consignment.productName}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{consignment.productVolume || 'Standard'}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100/50 border-dashed">
+                    <div className="flex items-center justify-between pt-3 border-t border-border border-dashed">
                         <div>
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Valeur Stockée</p>
-                            <p
-                                className="font-black text-sm font-mono tracking-tighter"
-                                style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
-                            >
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider mb-0.5">Valeur Stockée</p>
+                            <p className="font-black text-sm font-mono tracking-tighter text-brand-primary">
                                 {formatPrice(consignment.totalAmount)}
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Limite</p>
-                            <p className={`text-xs font-bold ${isExpiringSoon ? 'text-amber-600' : 'text-gray-600'}`}>
+                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider mb-0.5">Limite</p>
+                            <p className={`text-xs font-bold ${isExpiringSoon ? 'text-amber-600 dark:text-amber-400' : 'text-foreground/70'}`}>
                                 {expiresAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                             </p>
                         </div>
@@ -156,13 +153,13 @@ export function ConsignmentCard({
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     {/* Meta Info (Seller & ID) */}
                     <div className="flex items-center justify-between sm:justify-start gap-3 mb-2 sm:mb-0 sm:mr-auto">
-                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
                             #{consignment.id.slice(-4).toUpperCase()}
                         </span>
                         {originalSeller && (
-                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-purple-50 border border-purple-100/50">
-                                <User size={10} className="text-purple-600" />
-                                <span className="text-[9px] font-black text-purple-600 uppercase tracking-tight">
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-brand-subtle border border-brand-subtle">
+                                <User size={10} className="text-brand-primary" />
+                                <span className="text-[9px] font-black text-brand-primary uppercase tracking-tight">
                                     {originalSeller.name}
                                 </span>
                             </div>

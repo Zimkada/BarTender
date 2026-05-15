@@ -53,7 +53,7 @@ export default function ConsignmentPage() {
       />
 
       {/* Content Container - Elite Style */}
-      <div className="bg-gray-50/50 rounded-3xl shadow-inner border border-gray-100 p-4 sm:p-8 min-h-[60vh]">
+      <div className="bg-muted/50 rounded-3xl shadow-inner border border-border p-4 sm:p-8 min-h-[60vh]">
         <AnimatePresence mode="wait">
           {activeTab === 'create' && (
             <motion.div key="create" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} data-guide="consignments-create-tab">
@@ -216,7 +216,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-brand-subtle shadow-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card/60 dark:bg-muted/60 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-brand-subtle shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center shadow-sm">
             <span className="text-2xl font-black text-brand-primary font-mono leading-none">
@@ -236,7 +236,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             </span>
           </div>
 
-          <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1.5 gap-1.5 border border-brand-subtle shadow-sm overflow-x-auto scrollbar-hide">
+          <div className="flex bg-card/40 dark:bg-muted/40 backdrop-blur-md rounded-2xl p-1.5 gap-1.5 border border-brand-subtle shadow-sm overflow-x-auto scrollbar-hide">
             {[
               { id: "all", label: "Tout" },
               { id: "soon", label: "Bientôt" },
@@ -262,15 +262,15 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Nom, produit, ID..."
             leftIcon={<Search className="w-4 h-4" />}
-            className="bg-white/80 border-brand-subtle rounded-xl focus:border-[var(--brand-primary)]"
+            className="bg-card/80 border-brand-subtle rounded-xl focus:border-[var(--brand-primary)]"
           />
         </div>
       </div>
 
       {filteredConsignments.length === 0 ? (
-        <div className="py-20 text-center bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
-          <Package className="w-16 h-16 mx-auto mb-4 opacity-10 text-gray-400" />
-          <p className="text-gray-500 font-medium">Aucune consignation trouvée</p>
+        <div className="py-20 text-center bg-muted/50 rounded-3xl border-2 border-dashed border-border">
+          <Package className="w-16 h-16 mx-auto mb-4 opacity-30 text-muted-foreground" />
+          <p className="text-muted-foreground font-medium">Aucune consignation trouvée</p>
           <button
             onClick={() => {
               setSearchTerm("");
@@ -379,7 +379,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 flex-wrap bg-white/40 backdrop-blur-md p-1.5 rounded-2xl border border-brand-subtle w-fit shadow-sm">
+      <div className="flex gap-2 flex-wrap bg-card/40 dark:bg-muted/40 backdrop-blur-md p-1.5 rounded-2xl border border-brand-subtle w-fit shadow-sm">
         {[
           { value: "all", label: "Tout" },
           { value: "claimed", label: "Récupérés" },
@@ -391,7 +391,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
             onClick={() => setFilterStatus(filter.value as "all" | "claimed" | "expired" | "forfeited")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${filterStatus === filter.value
               ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
-              : "glass-action-button-2026 text-gray-400"
+              : "glass-action-button-2026 text-muted-foreground"
               }`}
           >
             {filter.label}
@@ -400,7 +400,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
       </div>
 
       {sortedHistory.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+        <div className="text-center py-12 text-muted-foreground bg-muted rounded-xl border border-dashed border-border">
           <Archive className="w-16 h-16 mx-auto mb-3 opacity-50" />
           <p>Aucun historique</p>
         </div>
@@ -412,12 +412,12 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
             return (
               <div
                 key={consignment.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h4 className="font-medium text-gray-900">{consignment.customerName}</h4>
-                    <p className="text-sm text-gray-600">
+                    <h4 className="font-medium text-foreground">{consignment.customerName}</h4>
+                    <p className="text-sm text-muted-foreground">
                       {consignment.quantity} × {consignment.productName}{" "}
                       {consignment.productVolume}
                     </p>
@@ -428,13 +428,13 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
                   <StatusBadge status={consignment.status} />
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-600">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>Créé: {new Date(consignment.createdAt).toLocaleDateString("fr-FR")}</span>
                   <span>{formatPrice(consignment.totalAmount)}</span>
                 </div>
 
                 {consignment.claimedAt && (
-                  <div className="text-xs text-green-600 mt-1">
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
                     Récupéré le {new Date(consignment.claimedAt).toLocaleDateString("fr-FR")}
                   </div>
                 )}
@@ -445,7 +445,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
             <div className="flex justify-center py-4">
               <button
                 onClick={() => setVisibleCount(c => c + HISTORY_PAGE_SIZE)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
               >
                 <ChevronDown size={16} />
                 Voir plus ({sortedHistory.length - visibleCount} restantes)

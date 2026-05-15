@@ -39,23 +39,23 @@ export function TeamPerformanceTable({
     const maxRevenue = Math.max(...filteredData.map(u => u.revenue), 1);
 
     const getRankInfo = (index: number) => {
-        if (index === 0) return { icon: <Trophy size={14} className="text-amber-500" />, bg: 'bg-amber-50 border-amber-100' };
-        if (index === 1) return { icon: <Award size={14} className="text-slate-400" />, bg: 'bg-slate-50 border-slate-100' };
-        if (index === 2) return { icon: <Award size={14} className="text-orange-400" />, bg: 'bg-orange-50 border-orange-100' };
-        return { icon: <span className="text-[10px] font-black text-gray-400">{index + 1}</span>, bg: 'bg-gray-50 border-gray-100' };
+        if (index === 0) return { icon: <Trophy size={14} className="text-amber-500" />, bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40' };
+        if (index === 1) return { icon: <Award size={14} className="text-slate-400" />, bg: 'bg-muted border-border' };
+        if (index === 2) return { icon: <Award size={14} className="text-orange-400" />, bg: 'bg-orange-50 dark:bg-orange-950/30 border-orange-100 dark:border-orange-900/40' };
+        return { icon: <span className="text-[10px] font-black text-muted-foreground">{index + 1}</span>, bg: 'bg-muted border-border' };
     };
 
     if (data.length === 0) {
         return (
-            <div className="bg-white rounded-3xl p-8 border border-brand-subtle text-center">
-                <Users className="mx-auto text-gray-300 mb-3" size={32} />
-                <p className="text-gray-500 font-black uppercase tracking-widest text-[10px]">Aucune donnée</p>
+            <div className="bg-card rounded-3xl p-8 border border-border text-center">
+                <Users className="mx-auto text-muted-foreground/60 mb-3" size={32} />
+                <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">Aucune donnée</p>
             </div>
         );
     }
 
     return (
-        <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] p-4 sm:p-6 border-2 border-brand-primary shadow-xl shadow-brand-subtle/10 overflow-hidden">
+        <div className="bg-card/40 dark:bg-muted/40 backdrop-blur-md rounded-[2.5rem] p-4 sm:p-6 border-2 border-brand-primary shadow-xl shadow-brand-subtle/10 overflow-hidden">
             {/* Header: Title & Filter on stacked layout for mobile safety */}
             <div className="flex flex-col gap-3 mb-6">
                 <div className="flex items-start gap-2.5">
@@ -64,7 +64,7 @@ export function TeamPerformanceTable({
                     </div>
                     <div className="flex-1 min-w-0">
                         <h4 className="text-base font-black text-brand-dark uppercase tracking-tight leading-tight">{title}</h4>
-                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mt-1 opacity-70 leading-none">{subtitle}</p>
+                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mt-1 opacity-70 leading-none">{subtitle}</p>
                     </div>
                 </div>
 
@@ -78,7 +78,7 @@ export function TeamPerformanceTable({
                         value={filter}
                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onFilterChange(e.target.value as any)}
                         size="sm"
-                        className="w-full sm:w-40 bg-white border-brand-subtle shadow-sm rounded-xl font-black uppercase text-[10px]"
+                        className="w-full sm:w-40 bg-card border-brand-subtle shadow-sm rounded-xl font-black uppercase text-[10px]"
                     />
                 </div>
             </div>
@@ -96,7 +96,7 @@ export function TeamPerformanceTable({
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.05 }}
-                            className="relative group bg-white rounded-2xl border border-brand-subtle/50 p-3 shadow-sm"
+                            className="relative group bg-card rounded-2xl border border-border p-3 shadow-sm"
                         >
                             <div className="flex items-start gap-3">
                                 {/* Compact Rank Icon */}
@@ -115,23 +115,23 @@ export function TeamPerformanceTable({
                                     <div className="flex flex-wrap items-center gap-y-2">
                                         {/* CA - Left side focus */}
                                         <div className="flex items-center gap-1.5 pr-3">
-                                            <span className="text-xs font-black text-gray-900 font-mono tracking-tighter">
+                                            <span className="text-xs font-black text-foreground font-mono tracking-tighter">
                                                 {formatPrice(user.revenue)}
                                             </span>
                                         </div>
 
                                         {/* Sales count - with divider */}
-                                        <div className="flex items-center gap-1.5 px-3 border-l border-gray-100">
+                                        <div className="flex items-center gap-1.5 px-3 border-l border-border">
                                             <div className="w-1 h-1 rounded-full bg-emerald-400"></div>
-                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                                            <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none">
                                                 {user.sales} VTES
                                             </span>
                                         </div>
 
                                         {/* Performance share - with divider */}
-                                        <div className="flex items-center gap-1.5 px-3 border-l border-gray-100">
+                                        <div className="flex items-center gap-1.5 px-3 border-l border-border">
                                             <div className="w-1 h-1 rounded-full bg-blue-400"></div>
-                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                                            <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest leading-none">
                                                 {totalPerfShare.toFixed(1)}% JOURNÉE
                                             </span>
                                         </div>
@@ -165,7 +165,7 @@ export function TeamPerformanceTable({
 
             {/* Total Footer */}
             <div className="mt-6 pt-4 border-t border-brand-subtle/20 flex items-center justify-between">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Total Performance</span>
+                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Total Performance</span>
                 <div className="bg-brand-dark/5 px-3 py-1.5 rounded-xl border border-brand-subtle/20">
                     <span className="text-xs font-black text-brand-dark font-mono tracking-tight">{formatPrice(totalRevenue)}</span>
                 </div>

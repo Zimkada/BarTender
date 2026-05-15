@@ -141,12 +141,13 @@
     --brand-light: 65%;
     --brand-dark: 55%;
 
-    /* Subtle bg : très désaturé en dark pour éviter l'effet "marron café".
-       On garde la teinte du brand mais avec une saturation divisée pour que
-       les accents brand-primary (à pleine saturation) ressortent fortement. */
-    --brand-bg-subtle: hsl(var(--brand-hue), calc(var(--brand-saturation) / 3), 13%);
+    /* Subtle bg : NEUTRE en dark mode pour éviter que la teinte du bar/rôle
+       ne change la couleur globale du fond (super_admin indigo → fond bleu,
+       promoteur orange → fond brun, etc.). Le brand reste sur les accents
+       (--brand-primary, btn-brand) qui contrastent fortement. */
+    --brand-bg-subtle: hsl(220, 13%, 13%);
     --brand-border: hsla(var(--brand-hue), var(--brand-saturation), 60%, 0.2);
-    --brand-text: hsl(var(--brand-hue), var(--brand-saturation), 85%);
+    --brand-text: hsl(0, 0%, 90%);
   }
 
   /* ♿ Design System accessible (Targeting specific content grays instead of global override) */

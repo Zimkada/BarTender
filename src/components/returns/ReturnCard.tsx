@@ -35,17 +35,17 @@ function getStatusBadgeColor(status: Return["status"]): string {
 function getReasonBadgeClass(color: string): string {
   switch (color) {
     case "red":
-      return "bg-red-50 text-red-700 border-red-100";
+      return "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-100 dark:border-red-900/40";
     case "orange":
     case "amber":
       return "bg-brand-subtle text-brand-primary border-brand-primary/20";
     case "blue":
-      return "bg-blue-50 text-blue-700 border-blue-100";
+      return "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-900/40";
     case "purple":
-      return "bg-gray-100 text-gray-700 border-gray-200";
+      return "bg-muted text-foreground/80 border-border";
     case "gray":
     default:
-      return "bg-gray-50 text-gray-700 border-gray-100";
+      return "bg-muted text-foreground/70 border-border";
   }
 }
 
@@ -71,7 +71,7 @@ export function ReturnCard({
       key={returnItem.id}
       id={`return-${returnItem.id}`}
       {...cardProps}
-      className="bg-white rounded-2xl p-5 border border-gray-100 hover:border-brand-primary/40 hover:shadow-md transition-all shadow-sm relative overflow-hidden"
+      className="bg-card rounded-2xl p-5 border border-border hover:border-brand-primary/40 hover:shadow-md transition-all shadow-sm relative overflow-hidden"
     >
       {/* Barre d'accentuation latérale (statut) */}
       <div className={`absolute left-0 top-0 bottom-0 w-1 ${getStatusBadgeColor(returnItem.status)}`} aria-hidden="true" />
@@ -82,35 +82,35 @@ export function ReturnCard({
           {/* Gauche: Info Produit */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-2">
-              <h4 className="text-h3 text-gray-900 leading-tight">
+              <h4 className="text-h3 text-foreground leading-tight">
                 {returnItem.productName}
               </h4>
-              <span className="text-caption font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+              <span className="text-caption font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-md border border-border">
                 {returnItem.productVolume}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-x-2 gap-y-1.5 items-center">
-              <span className="text-caption text-gray-500 tabular-nums">#{returnItem.id.slice(-6).toUpperCase()}</span>
-              <span className="w-1 h-1 rounded-full bg-gray-300" aria-hidden="true" />
-              <span className="text-caption text-gray-500 tabular-nums">
+              <span className="text-caption text-muted-foreground tabular-nums">#{returnItem.id.slice(-6).toUpperCase()}</span>
+              <span className="w-1 h-1 rounded-full bg-muted-foreground/40" aria-hidden="true" />
+              <span className="text-caption text-muted-foreground tabular-nums">
                 {new Date(returnItem.returnedAt).toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' })} • {new Date(returnItem.returnedAt).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
               </span>
               {serverUser && (
-                <span className="text-caption text-gray-600 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                <span className="text-caption text-foreground/70 bg-muted px-2 py-0.5 rounded-full border border-border">
                   Vendeur : {serverUser.name}
                 </span>
               )}
               {initiatorUser && initiatorUser.id !== serverUser?.id && (
-                <span className="text-caption text-gray-600 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                <span className="text-caption text-foreground/70 bg-muted px-2 py-0.5 rounded-full border border-border">
                   Initié par : {initiatorUser.name}
                 </span>
               )}
               {validatorUser && (
-                <span className="text-caption text-gray-600 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                <span className="text-caption text-foreground/70 bg-muted px-2 py-0.5 rounded-full border border-border">
                   {returnItem.status === 'rejected' ? 'Rejeté' : 'Validé'} par : {validatorUser.name}
                 </span>
               )}
@@ -128,9 +128,9 @@ export function ReturnCard({
           )}
 
           {/* Droite: Chiffres clés (Remboursement & Qté) */}
-          <div className="flex items-center justify-between lg:justify-end gap-8 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-dashed border-gray-100 lg:pl-6 shrink-0">
+          <div className="flex items-center justify-between lg:justify-end gap-8 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-dashed border-border lg:pl-6 shrink-0">
             <div className="text-left lg:text-right">
-              <span className="block text-micro text-gray-500 mb-1">
+              <span className="block text-micro text-muted-foreground mb-1">
                 Remboursement
               </span>
               <span className="block text-h2 font-semibold text-brand-primary tabular-nums">
@@ -138,19 +138,19 @@ export function ReturnCard({
               </span>
             </div>
             <div className="text-right">
-              <span className="block text-micro text-gray-500 mb-1">Qté</span>
+              <span className="block text-micro text-muted-foreground mb-1">Qté</span>
               <div className="flex items-baseline justify-end gap-1">
-                <span className="text-h2 font-semibold text-gray-900 tabular-nums">
+                <span className="text-h2 font-semibold text-foreground tabular-nums">
                   {returnItem.quantityReturned}
                 </span>
-                <span className="text-caption text-gray-400 tabular-nums">/ {returnItem.quantitySold}</span>
+                <span className="text-caption text-muted-foreground tabular-nums">/ {returnItem.quantitySold}</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Pied de Carte: Badges & Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-border">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium border ${getReasonBadgeClass(returnReasons[returnItem.reason].color)}`}
@@ -173,7 +173,7 @@ export function ReturnCard({
             )}
 
             {!returnItem.isRefunded && returnItem.refundAmount === 0 && !returnItem.linkedSaleId && (
-              <span className="text-caption font-medium bg-gray-50 text-gray-500 border border-gray-100 px-2.5 py-1 rounded-full italic">
+              <span className="text-caption font-medium bg-muted text-muted-foreground border border-border px-2.5 py-1 rounded-full italic">
                 Sans flux financier
               </span>
             )}
@@ -239,9 +239,9 @@ export function ReturnCard({
         </div>
       </div>
       {returnItem.notes && (
-        <div className="mt-4 ml-3 bg-gray-50 p-3 rounded-xl border border-dashed border-gray-200">
-          <p className="text-caption text-gray-600 italic leading-relaxed">
-            <span className="text-micro text-gray-500 not-italic mr-2">Note</span>
+        <div className="mt-4 ml-3 bg-muted p-3 rounded-xl border border-dashed border-border">
+          <p className="text-caption text-foreground/70 italic leading-relaxed">
+            <span className="text-micro text-muted-foreground not-italic mr-2">Note</span>
             « {returnItem.notes} »
           </p>
         </div>

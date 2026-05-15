@@ -534,7 +534,7 @@ export default function ReturnsPage() {
       {/* Filters Area (Visible in List and Stats modes) */}
       {!showCreateReturn && (
         <div
-          className="space-y-4 pt-4 border-t border-gray-100"
+          className="space-y-4 pt-4 border-t border-border"
           data-guide="returns-search"
         >
           {/* Unified Period Filter */}
@@ -591,7 +591,7 @@ export default function ReturnsPage() {
       )}
 
       {/* Main Content Area */}
-      <div className="bg-gray-50/50 rounded-3xl shadow-inner border border-gray-100 p-4 sm:p-8 min-h-[60vh]">
+      <div className="bg-muted/50 rounded-3xl shadow-inner border border-border p-4 sm:p-8 min-h-[60vh]">
         {/* Disable AnimatePresence on mobile to reduce TBT (expensive animation calculations) */}
         {isMobile ? (
           <>
@@ -599,13 +599,13 @@ export default function ReturnsPage() {
               <div className="space-y-4">
                 {filteredReturns.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="bg-gray-50 p-6 rounded-full mb-4">
-                      <RotateCcw size={48} className="text-gray-300" aria-hidden="true" />
+                    <div className="bg-muted p-6 rounded-full mb-4">
+                      <RotateCcw size={48} className="text-muted-foreground/60" aria-hidden="true" />
                     </div>
-                    <h2 className="text-lg font-medium text-gray-600 mb-2">
+                    <h2 className="text-lg font-medium text-foreground/80 mb-2">
                       Aucun retour trouvé
                     </h2>
-                    <p className="text-gray-500 max-w-md">
+                    <p className="text-muted-foreground max-w-md">
                       Il n'y a pas de retours correspondant à vos critères.
                       Cliquez sur "Nouveau retour" pour en créer un.
                     </p>
@@ -632,7 +632,7 @@ export default function ReturnsPage() {
                       <div className="flex justify-center py-4">
                         <button
                           onClick={() => setVisibleCount(c => c + RETURNS_PAGE_SIZE)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
                         >
                           <ChevronDown size={16} />
                           Voir plus ({allFilteredReturns.length - visibleCount} restants)
@@ -675,13 +675,13 @@ export default function ReturnsPage() {
               >
                 {filteredReturns.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="bg-gray-50 p-6 rounded-full mb-4">
-                      <RotateCcw size={48} className="text-gray-300" aria-hidden="true" />
+                    <div className="bg-muted p-6 rounded-full mb-4">
+                      <RotateCcw size={48} className="text-muted-foreground/60" aria-hidden="true" />
                     </div>
-                    <h2 className="text-lg font-medium text-gray-600 mb-2">
+                    <h2 className="text-lg font-medium text-foreground/80 mb-2">
                       Aucun retour trouvé
                     </h2>
-                    <p className="text-gray-500 max-w-md">
+                    <p className="text-muted-foreground max-w-md">
                       Il n'y a pas de retours correspondant à vos critères.
                       Cliquez sur "Nouveau retour" pour en créer un.
                     </p>
@@ -708,7 +708,7 @@ export default function ReturnsPage() {
                       <div className="flex justify-center py-4">
                         <button
                           onClick={() => setVisibleCount(c => c + RETURNS_PAGE_SIZE)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
                         >
                           <ChevronDown size={16} />
                           Voir plus ({allFilteredReturns.length - visibleCount} restants)
