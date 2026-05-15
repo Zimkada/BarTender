@@ -109,19 +109,17 @@ export function StockAdjustmentModal({
             className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50/50 to-blue-50/50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-blue-50/50">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                 <BarChart3 size={20} className="text-blue-600" />
                 Ajuster le stock
               </h2>
-              <motion.button
+              <button
                 onClick={onClose}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                className="text-gray-600 hover:text-gray-700 transition-colors"
+                className="text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <X size={24} />
-              </motion.button>
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -299,21 +297,17 @@ export function StockAdjustmentModal({
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-6 border-t border-gray-200">
-                <motion.button
+                <button
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
                 >
                   Annuler
-                </motion.button>
-                <motion.button
+                </button>
+                <button
                   type="submit"
                   disabled={!isValidDelta || newStock < 0 || isSubmitting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   className="flex-1 py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
@@ -324,7 +318,7 @@ export function StockAdjustmentModal({
                   ) : (
                     'Confirmer'
                   )}
-                </motion.button>
+                </button>
               </div>
             </form>
           </motion.div>

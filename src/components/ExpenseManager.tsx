@@ -339,13 +339,13 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with Premium Style */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className={`font-bold text-gray-900 flex items-center gap-2 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-            💸 <span className="bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">Dépenses & Charges</span>
+          <h2 className={`text-gray-900 flex items-center gap-2 ${isMobile ? 'text-h2' : 'text-h1'}`}>
+            💸 <span>Dépenses & charges</span>
           </h2>
-          <p className="text-sm text-gray-500 font-medium tracking-tight">
+          <p className="text-body-sm text-gray-500">
             Gérez vos flux sortants et approvisionnements.
           </p>
         </div>

@@ -51,7 +51,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle">
+    <div className="min-h-screen bg-brand-subtle">
       <TabbedPageHeader
         title="Dashboard"
         subtitle={isMobile ? displayDate : `Suivi du ${displayDate}`}
