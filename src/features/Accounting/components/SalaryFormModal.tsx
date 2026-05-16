@@ -85,7 +85,7 @@ export const SalaryFormModal: React.FC<SalaryFormModalProps> = ({
                                 }}
                                 className="pl-10 border-emerald-100"
                             />
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         </div>
                     </div>
 
@@ -109,7 +109,7 @@ export const SalaryFormModal: React.FC<SalaryFormModalProps> = ({
                                 onChange={(e) => setForm({ ...form, memberId: e.target.value })}
                                 className="pl-10 border-emerald-100"
                             />
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         </div>
                     </div>
                 </div>
@@ -126,7 +126,7 @@ export const SalaryFormModal: React.FC<SalaryFormModalProps> = ({
                             className="pl-10 font-mono text-lg border-emerald-100 focus:ring-emerald-500"
                             autoFocus
                         />
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     </div>
                 </div>
             </div>

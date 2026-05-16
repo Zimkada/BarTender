@@ -117,20 +117,20 @@ export function CartFooter({
                     <button
                         onClick={() => setShowServerSelection(true)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedServer
-                            ? 'bg-white border-gray-200 shadow-sm shadow-gray-100/50'
+                            ? 'bg-card border-border shadow-sm shadow-gray-100/50'
                             : 'bg-brand-primary/5 border-brand-primary/30 shadow-sm shadow-brand-primary/5'
                             }`}
                     >
                         <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedServer ? 'bg-gray-100 text-gray-600' : 'bg-brand-primary/10 text-brand-primary'}`}>
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedServer ? 'bg-muted text-foreground/70' : 'bg-brand-primary/10 text-brand-primary'}`}>
                                 {selectedServer ? <User size={16} strokeWidth={2.5} /> : <Users size={16} />}
                             </div>
                             <div className="flex flex-col items-start">
-                                <span className={`text-[10px] font-black uppercase tracking-wide ${selectedServer ? 'text-gray-800' : 'text-brand-primary'}`}>
+                                <span className={`text-[10px] font-black uppercase tracking-wide ${selectedServer ? 'text-foreground' : 'text-brand-primary'}`}>
                                     {selectedServerLabel || 'Sélectionner un serveur...'}
                                 </span>
                                 {selectedServer && (
-                                    <span className="text-[8px] text-gray-400 font-medium uppercase tracking-wider">
+                                    <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">
                                         Serveur actif
                                     </span>
                                 )}
@@ -161,7 +161,7 @@ export function CartFooter({
                         </div>
                         <button
                             onClick={() => onBonChange?.('')}
-                            className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         >
                             <X size={18} />
                         </button>
@@ -207,11 +207,11 @@ export function CartFooter({
                             initial={{ opacity: 0, y: 100 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 100 }}
-                            className="fixed inset-x-0 bottom-0 bg-white shadow-2xl z-[101] rounded-t-2xl border-t border-gray-100 p-4 max-h-[70vh] flex flex-col"
+                            className="fixed inset-x-0 bottom-0 bg-card shadow-2xl z-[101] rounded-t-2xl border-t border-border p-4 max-h-[70vh] flex flex-col"
                         >
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">Qui prend cette commande ?</h3>
-                                <button onClick={() => setShowServerSelection(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                                <h3 className="text-sm font-black text-foreground uppercase tracking-wide">Qui prend cette commande ?</h3>
+                                <button onClick={() => setShowServerSelection(false)} className="p-2 bg-muted rounded-full hover:bg-gray-200 transition-colors">
                                     <X size={16} />
                                 </button>
                             </div>
@@ -229,13 +229,13 @@ export function CartFooter({
                                             }}
                                             className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${isSelected
                                                 ? 'bg-brand-primary/5 border-brand-primary shadow-sm'
-                                                : 'bg-white border-gray-100 hover:border-brand-primary/30 hover:bg-gray-50'
+                                                : 'bg-card border-border hover:border-brand-primary/30 hover:bg-muted'
                                                 }`}
                                         >
                                             <div className={`w-12 h-12 rounded-full mb-2 flex items-center justify-center text-sm font-black shadow-sm ${getAvatarColor(opt.label)}`}>
                                                 {getInitials(opt.label)}
                                             </div>
-                                            <span className={`text-[10px] font-black uppercase text-center leading-tight ${isSelected ? 'text-brand-primary' : 'text-gray-700'}`}>
+                                            <span className={`text-[10px] font-black uppercase text-center leading-tight ${isSelected ? 'text-brand-primary' : 'text-foreground/80'}`}>
                                                 {opt.label}
                                             </span>
 
@@ -268,11 +268,11 @@ export function CartFooter({
                             initial={{ opacity: 0, y: 100 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 100 }}
-                            className="fixed inset-x-0 bottom-0 bg-white shadow-2xl z-50 rounded-t-2xl border-t border-gray-100 p-4 max-h-[70vh] flex flex-col"
+                            className="fixed inset-x-0 bottom-0 bg-card shadow-2xl z-50 rounded-t-2xl border-t border-border p-4 max-h-[70vh] flex flex-col"
                         >
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-sm font-black text-gray-900 uppercase">Choisir un bon</h3>
-                                <button onClick={() => setShowBonSelection(false)} className="p-2 bg-gray-100 rounded-full">
+                                <h3 className="text-sm font-black text-foreground uppercase">Choisir un bon</h3>
+                                <button onClick={() => setShowBonSelection(false)} className="p-2 bg-muted rounded-full">
                                     <X size={16} />
                                 </button>
                             </div>
@@ -284,7 +284,7 @@ export function CartFooter({
                                             <span className="font-black text-xs text-brand-primary uppercase">Nouveau Bon</span>
                                             <button
                                                 onClick={() => setIsCreatingBon(false)}
-                                                className="text-[10px] font-bold text-gray-400 uppercase hover:text-gray-600"
+                                                className="text-[10px] font-bold text-muted-foreground uppercase hover:text-foreground/70"
                                             >
                                                 Annuler
                                             </button>
@@ -292,7 +292,7 @@ export function CartFooter({
 
                                         <div className="space-y-2">
                                             <div>
-                                                <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                                                <label className="block text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
                                                     N° Table (Optionnel)
                                                 </label>
                                                 <input
@@ -301,12 +301,12 @@ export function CartFooter({
                                                     onChange={(e) => setTableNumber(e.target.value)}
                                                     placeholder="Ex: 5"
                                                     onKeyDown={(e) => e.key === 'Enter' && handleConfirmCreateBon()}
-                                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
                                                 />
                                             </div>
 
                                             <div>
-                                                <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                                                <label className="block text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
                                                     Client (Optionnel)
                                                 </label>
                                                 <input
@@ -316,7 +316,7 @@ export function CartFooter({
                                                     onChange={(e) => setCustomerName(e.target.value)}
                                                     placeholder="Ex: Jean"
                                                     onKeyDown={(e) => e.key === 'Enter' && handleConfirmCreateBon()}
-                                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary uppercase placeholder:normal-case"
+                                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary uppercase placeholder:normal-case"
                                                 />
                                             </div>
                                         </div>
@@ -354,12 +354,12 @@ export function CartFooter({
                                                 onBonChange(opt.value);
                                                 setShowBonSelection(false);
                                             }}
-                                            className="w-full text-left p-3 rounded-xl border-l-4 border-t border-r border-b border-gray-100 bg-white shadow-sm flex items-center justify-between active:scale-95 transition-all"
+                                            className="w-full text-left p-3 rounded-xl border-l-4 border-t border-r border-b border-border bg-card shadow-sm flex items-center justify-between active:scale-95 transition-all"
                                             style={{
                                                 borderLeftColor: `hsl(var(--brand-hue), var(--brand-saturation), ${lightness}%)`
                                             }}
                                         >
-                                            <span className="font-black text-gray-800 text-xs">{opt.label}</span>
+                                            <span className="font-black text-foreground text-xs">{opt.label}</span>
                                             <ArrowRight size={14} className="text-gray-300" />
                                         </button>
                                     );
@@ -382,7 +382,7 @@ export function CartFooter({
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="border border-gray-200 rounded-xl p-2 bg-white shadow-sm"
+                                    className="border border-border rounded-xl p-2 bg-card shadow-sm"
                                 >
                                     <button
                                         onClick={() => setIsPaymentExpanded(false)}
@@ -409,7 +409,7 @@ export function CartFooter({
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     onClick={() => setIsPaymentExpanded(true)}
-                                    className="w-full flex items-center justify-between p-2.5 border border-gray-200 rounded-xl bg-white text-gray-700 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all"
+                                    className="w-full flex items-center justify-between p-2.5 border border-border rounded-xl bg-card text-foreground/80 hover:border-brand-primary/50 hover:bg-brand-primary/5 transition-all"
                                 >
                                     <div className="flex items-center gap-2">
                                         {(() => {
@@ -427,7 +427,7 @@ export function CartFooter({
                                             );
                                         })()}
                                     </div>
-                                    <ChevronDown size={14} className="text-gray-400" />
+                                    <ChevronDown size={14} className="text-muted-foreground" />
                                 </motion.button>
                             )}
                         </AnimatePresence>
@@ -436,7 +436,7 @@ export function CartFooter({
 
                 {/* Total Display (Right) */}
                 <div className="text-right leading-none flex-shrink-0 pt-1">
-                    <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest block mb-0.5">
+                    <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest block mb-0.5">
                         {isBonMode ? 'Montant à ajouter' : 'NET À PAYER'}
                     </span>
                     <span className="text-2xl font-black text-brand-primary font-mono">
@@ -465,7 +465,7 @@ export function CartFooter({
                 <button
                     onClick={onClear}
                     disabled={!hasItems}
-                    className="w-12 h-12 flex items-center justify-center bg-white border border-red-50 text-red-300 hover:text-red-500 rounded-xl hover:bg-red-50 active:scale-95 disabled:opacity-20 transition-all"
+                    className="w-12 h-12 flex items-center justify-center bg-card border border-red-50 text-red-300 hover:text-red-500 rounded-xl hover:bg-red-50 active:scale-95 disabled:opacity-20 transition-all"
                 >
                     <Trash2 size={16} />
                 </button>

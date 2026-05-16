@@ -330,18 +330,18 @@ export function AnalyticsView({
   });
 
   const TrendIcon = ({ change }: { change: number }) => {
-    if (change > 0) return <ArrowUp className="w-4 h-4 text-green-600" />;
-    if (change < 0) return <ArrowDown className="w-4 h-4 text-red-600" />;
-    return <Minus className="w-4 h-4 text-gray-400" />;
+    if (change > 0) return <ArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />;
+    if (change < 0) return <ArrowDown className="w-4 h-4 text-red-600 dark:text-red-400" />;
+    return <Minus className="w-4 h-4 text-muted-foreground" />;
   };
 
   // Message si pas de données
   if (sales.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <BarChart3 size={64} className="text-gray-300 mx-auto mb-4" />
-        <h3 className="text-h3 text-gray-700 mb-2">Aucune donnée disponible</h3>
-        <p className="text-body-sm text-gray-500">Effectuez des ventes pour voir les analytics</p>
+        <BarChart3 size={64} className="text-muted-foreground/40 mx-auto mb-4" />
+        <h3 className="text-h3 text-foreground/80 mb-2">Aucune donnée disponible</h3>
+        <p className="text-body-sm text-muted-foreground">Effectuez des ventes pour voir les analytics</p>
       </div>
     );
   }
@@ -352,10 +352,10 @@ export function AnalyticsView({
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
           <h4 className="text-micro text-brand-primary mb-1">Chiffre d'affaires</h4>
-          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{formatPrice(kpis.revenue.value)}</p>
+          <p className="text-h2 font-semibold text-foreground tabular-nums">{formatPrice(kpis.revenue.value)}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.revenue.change} />
-            <span className={`text-caption font-medium tabular-nums ${kpis.revenue.change > 0 ? 'text-green-600' : kpis.revenue.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-caption font-medium tabular-nums ${kpis.revenue.change > 0 ? 'text-green-600 dark:text-green-400' : kpis.revenue.change < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
               {kpis.revenue.change > 0 ? '+' : ''}{kpis.revenue.change.toFixed(1)}%
             </span>
           </div>
@@ -363,10 +363,10 @@ export function AnalyticsView({
 
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
           <h4 className="text-micro text-brand-primary mb-1">Ventes totales</h4>
-          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{kpis.salesCount.value}</p>
+          <p className="text-h2 font-semibold text-foreground tabular-nums">{kpis.salesCount.value}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.salesCount.change} />
-            <span className={`text-caption font-medium tabular-nums ${kpis.salesCount.change > 0 ? 'text-green-600' : kpis.salesCount.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-caption font-medium tabular-nums ${kpis.salesCount.change > 0 ? 'text-green-600 dark:text-green-400' : kpis.salesCount.change < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
               {kpis.salesCount.change > 0 ? '+' : ''}{kpis.salesCount.change.toFixed(1)}%
             </span>
           </div>
@@ -374,7 +374,7 @@ export function AnalyticsView({
 
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
           <h4 className="text-micro text-brand-primary mb-1">{kpis.kpi.label}</h4>
-          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{formatPrice(kpis.kpi.value)}</p>
+          <p className="text-h2 font-semibold text-foreground tabular-nums">{formatPrice(kpis.kpi.value)}</p>
           <div className="flex items-center gap-1 mt-1">
             <Clock className="w-4 h-4 text-brand-primary" />
             <span className="text-caption font-medium text-brand-primary">Période actuelle</span>
@@ -383,10 +383,10 @@ export function AnalyticsView({
 
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
           <h4 className="text-micro text-brand-primary mb-1">Articles vendus</h4>
-          <p className="text-h2 font-semibold text-gray-900 tabular-nums">{kpis.items.value}</p>
+          <p className="text-h2 font-semibold text-foreground tabular-nums">{kpis.items.value}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.items.change} />
-            <span className={`text-caption font-medium tabular-nums ${kpis.items.change > 0 ? 'text-green-600' : kpis.items.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-caption font-medium tabular-nums ${kpis.items.change > 0 ? 'text-green-600 dark:text-green-400' : kpis.items.change < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
               {kpis.items.change > 0 ? '+' : ''}{kpis.items.change.toFixed(1)}%
             </span>
           </div>
@@ -396,10 +396,10 @@ export function AnalyticsView({
       {/* Graphiques principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`} data-guide="analytics-charts">
         {/* Évolution CA - granularité adaptative */}
-        <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
-          <h4 className="text-sm font-semibold text-gray-800 mb-3">
+        <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+          <h4 className="text-sm font-semibold text-foreground mb-3">
             Évolution du CA
-            <span className="text-xs text-gray-500 ml-2">
+            <span className="text-xs text-muted-foreground ml-2">
               ({timeRange === 'today' ? 'par heure' : timeRange === 'week' ? 'par jour' : timeRange === 'month' ? 'par semaine' : 'par jour'})
             </span>
           </h4>
@@ -410,7 +410,7 @@ export function AnalyticsView({
                 <XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid var(--brand-primary)', borderRadius: '12px', boxShadow: '0 4px 12px var(--brand-shadow)' }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))', border: '1px solid var(--brand-primary)', borderRadius: '12px', boxShadow: '0 4px 12px var(--brand-shadow)' }}
                   formatter={(value: any) => formatPrice(Number(value))}
                 />
                 <Line type="monotone" dataKey="revenue" stroke="var(--brand-primary)" strokeWidth={3} dot={{ fill: 'var(--brand-primary)', r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} isAnimationActive={false} />
@@ -420,8 +420,8 @@ export function AnalyticsView({
         </div>
 
         {/* Répartition par catégorie */}
-        <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
-          <h4 className="text-sm font-semibold text-gray-800 mb-3">Répartition par catégorie</h4>
+        <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+          <h4 className="text-sm font-semibold text-foreground mb-3">Répartition par catégorie</h4>
           <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <PieChart>

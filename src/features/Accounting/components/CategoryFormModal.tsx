@@ -62,7 +62,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                             className="pl-10 border-amber-100 focus:ring-amber-500"
                             autoFocus
                         />
-                        <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <Type className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     </div>
                 </div>
 
@@ -76,9 +76,9 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                             placeholder="📝"
                             className="pl-10 border-amber-100 focus:ring-amber-500 text-xl"
                         />
-                        <Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     </div>
-                    <p className="text-xs text-gray-400">Utilisez un emoji qui illustre bien la catégorie.</p>
+                    <p className="text-xs text-muted-foreground">Utilisez un emoji qui illustre bien la catégorie.</p>
                 </div>
             </div>
         </Modal>

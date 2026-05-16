@@ -51,7 +51,7 @@ export function DataFreshnessIndicator({
     return (
         <div className={`flex items-center gap-2 ${className}`}>
             {/* Indicateur de fraîcheur */}
-            <div className={`flex items-center gap-1.5 text-xs ${isStale ? 'text-amber-600' : 'text-gray-500'
+            <div className={`flex items-center gap-1.5 text-xs ${isStale ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'
                 }`}>
                 {isStale ? (
                     <AlertCircle className="w-3.5 h-3.5" />
@@ -73,8 +73,8 @@ export function DataFreshnessIndicator({
             flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium
             transition-all duration-200
             ${isRefreshing
-                            ? 'bg-gray-100 text-gray-600 cursor-not-allowed'
-                            : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-amber-600 border border-gray-200 hover:border-amber-300'
+                            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                            : 'bg-card hover:bg-muted text-foreground/80 hover:text-amber-600 dark:hover:text-amber-400 border border-border hover:border-amber-300 dark:hover:border-amber-900/40'
                         }
           `}
                     title="Actualiser les données"
@@ -152,7 +152,7 @@ export function DataFreshnessIndicatorCompact({
             className={`
         flex items-center gap-1.5 px-2 py-1 rounded-md text-xs
         transition-all duration-200
-        ${isStale ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}
+        ${isStale ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30' : 'text-muted-foreground hover:text-foreground/80 hover:bg-muted'}
         ${isRefreshing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
         ${className}
       `}

@@ -43,26 +43,26 @@ function MobileSaleRow({ sale, formatPrice, onViewDetails, getReturnsBySale, use
         <div
             style={style}
             onClick={() => onViewDetails(sale)}
-            className="p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer border-b border-gray-100"
+            className="p-4 flex items-center justify-between hover:bg-muted active:bg-muted transition-colors cursor-pointer border-b border-border"
         >
             <div className="flex flex-col w-14 shrink-0">
-                <span className="text-body-sm font-semibold text-gray-900 leading-tight tabular-nums">{timeStr}</span>
-                <span className="text-micro text-gray-400 leading-tight tabular-nums">#{sale.id.slice(-4)}</span>
+                <span className="text-body-sm font-semibold text-foreground leading-tight tabular-nums">{timeStr}</span>
+                <span className="text-micro text-muted-foreground leading-tight tabular-nums">#{sale.id.slice(-4)}</span>
             </div>
             <div className="flex-1 px-3 min-w-0">
                 <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-body-sm font-medium text-gray-800 truncate">{seller?.name || 'Inconnu'}</span>
+                    <span className="text-body-sm font-medium text-foreground truncate">{seller?.name || 'Inconnu'}</span>
                     {hasReturns && <span className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0" aria-label="Avec retours" />}
                 </div>
-                <div className="text-caption text-gray-500 truncate tabular-nums">
+                <div className="text-caption text-muted-foreground truncate tabular-nums">
                     {itemCount} articles • {sale.status === 'validated' ? 'Payé' : sale.status === 'cancelled' ? 'Annulée' : sale.status === 'rejected' ? 'Rejetée' : sale.status}
                 </div>
             </div>
             <div className="text-right shrink-0">
                 {dateStr && (
-                    <div className="text-micro text-gray-400 leading-tight mb-0.5 tabular-nums">{dateStr}</div>
+                    <div className="text-micro text-muted-foreground leading-tight mb-0.5 tabular-nums">{dateStr}</div>
                 )}
-                <div className={`text-body-sm font-semibold leading-tight tabular-nums ${hasReturns ? 'text-amber-600' : 'text-gray-900'}`}>
+                <div className={`text-body-sm font-semibold leading-tight tabular-nums ${hasReturns ? 'text-amber-600' : 'text-foreground'}`}>
                     {formatPrice(netAmount)}
                 </div>
                 {hasReturns && (
@@ -118,7 +118,7 @@ export function SalesListView({
         // Small lists: render normally (no virtualization overhead)
         if (sales.length < VIRTUALIZE_THRESHOLD) {
             return (
-                <div className="space-y-0 divide-y divide-gray-100 border-t border-b border-gray-100 bg-white">
+                <div className="space-y-0 divide-y divide-gray-100 border-t border-b border-border bg-card">
                     {sales.map(sale => (
                         <MobileSaleRow
                             key={sale.id}
@@ -135,7 +135,7 @@ export function SalesListView({
 
         // Large lists: virtualize for performance
         return (
-            <div ref={containerRef} className="border-t border-b border-gray-100 bg-white">
+            <div ref={containerRef} className="border-t border-b border-border bg-card">
                 <List
                     height={listHeight}
                     itemCount={sales.length}
@@ -150,19 +150,19 @@ export function SalesListView({
     }
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto shadow-sm">
+        <div className="bg-card rounded-2xl border border-border overflow-x-auto shadow-sm">
             <table className="w-full min-w-[900px]">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-muted border-b border-border">
                     <tr>
-                        <th className="text-left p-4 text-micro text-gray-500">ID</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Statut</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Date</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Auteur</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Articles</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Total</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Retours</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Net</th>
-                        <th className="text-left p-4 text-micro text-gray-500">Actions</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">ID</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Statut</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Date</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Auteur</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Articles</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Total</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Retours</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Net</th>
+                        <th className="text-left p-4 text-micro text-muted-foreground">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -182,18 +182,18 @@ export function SalesListView({
                             pending: { label: 'En attente', color: 'bg-amber-50 text-amber-700 border-amber-100' },
                             validated: { label: 'Validée', color: 'bg-green-50 text-green-700 border-green-100' },
                             rejected: { label: 'Rejetée', color: 'bg-red-50 text-red-700 border-red-100' },
-                            cancelled: { label: 'Annulée', color: 'bg-gray-100 text-gray-600 border-gray-200' }
-                        }[sale.status] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-700 border-gray-200' };
+                            cancelled: { label: 'Annulée', color: 'bg-muted text-foreground/70 border-border' }
+                        }[sale.status] || { label: 'Inconnu', color: 'bg-muted text-foreground/80 border-border' };
 
                         const serverUserId = sale.soldBy;
                         const seller = users?.find(u => u.id === serverUserId);
                         const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
                         return (
-                            <tr key={sale.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors">
+                            <tr key={sale.id} className="border-t border-border hover:bg-muted transition-colors">
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-body-sm text-gray-600 tabular-nums">#{sale.id.slice(-6)}</span>
+                                        <span className="text-body-sm text-foreground/70 tabular-nums">#{sale.id.slice(-6)}</span>
                                         {hasReturns && (
                                             <span className="text-caption bg-red-50 text-red-700 px-2 py-0.5 rounded-full border border-red-100 tabular-nums">
                                                 {saleReturns.length} retour{saleReturns.length > 1 ? 's' : ''}
@@ -208,21 +208,21 @@ export function SalesListView({
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="text-body-sm font-medium text-gray-800 tabular-nums">{getSaleDate(sale).toLocaleDateString('fr-FR')}</p>
-                                        <p className="text-caption text-gray-500 tabular-nums">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR')}</p>
+                                        <p className="text-body-sm font-medium text-foreground tabular-nums">{getSaleDate(sale).toLocaleDateString('fr-FR')}</p>
+                                        <p className="text-caption text-muted-foreground tabular-nums">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR')}</p>
                                     </div>
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="text-body-sm font-medium text-gray-800 truncate">{seller?.name || 'Inconnu'}</p>
+                                        <p className="text-body-sm font-medium text-foreground truncate">{seller?.name || 'Inconnu'}</p>
                                         {validator && (
-                                            <p className="text-caption text-gray-500 truncate">Val. : {validator.name}</p>
+                                            <p className="text-caption text-muted-foreground truncate">Val. : {validator.name}</p>
                                         )}
                                     </div>
                                 </td>
-                                <td className="p-4 text-body-sm text-gray-600 tabular-nums">{itemCount} art.</td>
+                                <td className="p-4 text-body-sm text-foreground/70 tabular-nums">{itemCount} art.</td>
                                 <td className="p-4">
-                                    <span className={`text-body-sm tabular-nums ${hasReturns ? 'text-gray-500 line-through' : 'text-gray-900 font-medium'}`}>
+                                    <span className={`text-body-sm tabular-nums ${hasReturns ? 'text-muted-foreground line-through' : 'text-foreground font-medium'}`}>
                                         {formatPrice(sale.total)}
                                     </span>
                                 </td>
@@ -234,7 +234,7 @@ export function SalesListView({
                                     )}
                                 </td>
                                 <td className="p-4">
-                                    <span className="text-body font-semibold text-gray-900 tabular-nums">{formatPrice(netAmount)}</span>
+                                    <span className="text-body font-semibold text-foreground tabular-nums">{formatPrice(netAmount)}</span>
                                 </td>
                                 <td className="p-4">
                                     <EnhancedButton

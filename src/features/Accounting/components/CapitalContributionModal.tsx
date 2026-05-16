@@ -71,19 +71,19 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                 {/* ... existing content ... */}
 
                 {/* Col Gauche: Historique récent */}
-                <div className="lg:col-span-1 bg-gray-50 rounded-xl p-4 border border-gray-100 h-fit">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Historique récent</h4>
+                <div className="lg:col-span-1 bg-muted rounded-xl p-4 border border-border h-fit">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Historique récent</h4>
                     {existingContributions.length === 0 ? (
-                        <p className="text-xs text-gray-400 italic">Aucun apport enregistré.</p>
+                        <p className="text-xs text-muted-foreground italic">Aucun apport enregistré.</p>
                     ) : (
                         <div className="space-y-3">
                             {existingContributions.slice(0, 5).map((c, i) => (
-                                <div key={i} className="bg-white p-2 rounded border border-gray-100 shadow-sm">
+                                <div key={i} className="bg-card p-2 rounded border border-border shadow-sm">
                                     <div className="flex justify-between items-start">
-                                        <span className="text-xs font-bold text-gray-700">{formatPrice(c.amount)}</span>
-                                        <span className="text-[10px] text-gray-400">{new Date(c.date).toLocaleDateString()}</span>
+                                        <span className="text-xs font-bold text-foreground/80">{formatPrice(c.amount)}</span>
+                                        <span className="text-[10px] text-muted-foreground">{new Date(c.date).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-500 mt-1 truncate">
+                                    <p className="text-[10px] text-muted-foreground mt-1 truncate">
                                         {CAPITAL_SOURCE_LABELS[c.source as CapitalSource]?.icon} {CAPITAL_SOURCE_LABELS[c.source as CapitalSource]?.label ?? c.source}
                                         {c.description ? ` - ${c.description}` : ''}
                                     </p>
@@ -96,7 +96,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                 {/* Col Droite: Formulaire */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Montant (FCFA) <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-medium text-foreground/80">Montant (FCFA) <span className="text-red-500">*</span></label>
                         <Input
                             type="number"
                             value={form.amount}
@@ -109,7 +109,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Source <span className="text-red-500">*</span></label>
+                            <label className="text-sm font-medium text-foreground/80">Source <span className="text-red-500">*</span></label>
                             <Select
                                 value={form.source}
                                 onChange={(e) => setForm({ ...form, source: e.target.value as CapitalSource })}
@@ -123,7 +123,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">Date <span className="text-red-500">*</span></label>
+                            <label className="text-sm font-medium text-foreground/80">Date <span className="text-red-500">*</span></label>
                             <Input
                                 type="date"
                                 value={form.date}
@@ -133,7 +133,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Détails Source (Optionnel)</label>
+                        <label className="text-sm font-medium text-foreground/80">Détails Source (Optionnel)</label>
                         <Input
                             value={form.sourceDetails}
                             onChange={(e) => setForm({ ...form, sourceDetails: e.target.value })}
@@ -142,7 +142,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Note / Détails</label>
+                        <label className="text-sm font-medium text-foreground/80">Note / Détails</label>
                         <Input
                             value={form.description}
                             onChange={(e) => setForm({ ...form, description: e.target.value })}

@@ -52,7 +52,7 @@ export function CartShared({
                         >
                             <div className="flex items-stretch gap-2">
                                 {/* MAIN CONTENT: Product + Qty (Bordured) */}
-                                <div className={`flex-1 p-1.5 flex items-center gap-2 bg-white rounded-2xl border-2 ${isMaxReached ? 'border-orange-200' : 'border-brand-primary'} shadow-sm overflow-hidden transition-colors duration-300`}>
+                                <div className={`flex-1 p-1.5 flex items-center gap-2 bg-card rounded-2xl border-2 ${isMaxReached ? 'border-orange-200' : 'border-brand-primary'} shadow-sm overflow-hidden transition-colors duration-300`}>
                                     {/* 1. Thumbnail (Small) */}
                                     <div className="w-9 h-9 rounded-xl bg-brand-subtle/50 flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
                                         {item.product.image ? (
@@ -68,14 +68,14 @@ export function CartShared({
 
                                     {/* 2. Info (Middle) */}
                                     <div className="flex-1 min-w-0 pr-1">
-                                        <h3 className="font-black text-[10px] text-gray-900 uppercase tracking-tight truncate leading-tight">
+                                        <h3 className="font-black text-[10px] text-foreground uppercase tracking-tight truncate leading-tight">
                                             {item.product.name}
                                         </h3>
                                         <div className="flex items-center gap-1.5">
-                                            <span className="text-[8px] font-black text-gray-900 font-mono leading-none">
+                                            <span className="text-[8px] font-black text-foreground font-mono leading-none">
                                                 {formatPrice(item.total_price)}
                                             </span>
-                                            <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                                            <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none">
                                                 {item.product.volume}
                                             </span>
                                             {isMaxReached && (
@@ -87,15 +87,15 @@ export function CartShared({
                                     </div>
 
                                     {/* 3. Controls (Compact Right) */}
-                                    <div className="flex items-center bg-gray-50 rounded-lg p-0.5 gap-1.5 border border-gray-100 ml-auto">
+                                    <div className="flex items-center bg-muted rounded-lg p-0.5 gap-1.5 border border-border ml-auto">
                                         <button
                                             onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                                            className="w-6 h-6 rounded-md bg-white border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
+                                            className="w-6 h-6 rounded-md bg-card border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
                                         >
                                             <Minus size={12} strokeWidth={3} />
                                         </button>
 
-                                        <span className={`text-[11px] font-black font-mono w-4 text-center ${isMaxReached ? 'text-orange-600' : 'text-gray-900'}`}>
+                                        <span className={`text-[11px] font-black font-mono w-4 text-center ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}>
                                             {item.quantity}
                                         </span>
 

@@ -55,19 +55,19 @@ export function BonStrip({ tickets }: BonStripProps) {
                             <div
                                 key={ticket.id}
                                 onClick={() => setViewDetailsId(ticket.id)}
-                                className="bg-white rounded-xl border border-brand-subtle/30 p-3 shadow-sm transition-all w-full cursor-pointer hover:border-brand-primary/40 active:scale-[0.98]"
+                                className="bg-card rounded-xl border border-brand-subtle/30 p-3 shadow-sm transition-all w-full cursor-pointer hover:border-brand-primary/40 active:scale-[0.98]"
                             >
                                 <div className="flex items-center justify-between mb-1">
                                     <span className="text-[10px] font-black text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap">
                                         BON #{ticket.ticketNumber || '?'}
                                     </span>
-                                    <span className="text-[10px] font-black text-gray-500 whitespace-nowrap">
+                                    <span className="text-[10px] font-black text-muted-foreground whitespace-nowrap">
                                         {ticket.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
 
                                 {hasContextInfo && (
-                                    <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1 truncate flex items-center gap-1.5">
+                                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight mb-1 truncate flex items-center gap-1.5">
                                         {isManagerOrPromoter ? (
                                             // Gérant/Promoteur : Nom serveur prioritaire
                                             <>
@@ -106,15 +106,15 @@ export function BonStrip({ tickets }: BonStripProps) {
                                     </div>
                                 )}
 
-                                <p className="text-[10px] font-black text-gray-700 truncate mb-2">{ticket.productSummary}</p>
+                                <p className="text-[10px] font-black text-foreground/80 truncate mb-2">{ticket.productSummary}</p>
                                 <div className="flex items-center justify-between">
                                     <div className="flex flex-col">
-                                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">Net à payer</span>
+                                        <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-0.5">Net à payer</span>
                                         <span className="text-xs font-black text-brand-dark font-mono truncate mr-2">
                                             {formatPrice(ticket.totalAmount)}
                                         </span>
                                     </div>
-                                    <span className="text-[9px] font-black text-gray-400 whitespace-nowrap">
+                                    <span className="text-[9px] font-black text-muted-foreground whitespace-nowrap">
                                         ({ticket.salesCount} ventes)
                                     </span>
                                 </div>

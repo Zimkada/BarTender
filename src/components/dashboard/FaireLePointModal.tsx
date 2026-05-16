@@ -84,20 +84,20 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                 animate={{ opacity: 1, scale: 1 }}
                 className="fixed inset-0 z-[210] flex items-center justify-center px-4"
             >
-                <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                <div className="bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                         <div className="flex items-center gap-2">
                             <Receipt size={18} className="text-brand-primary" />
-                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Faire le point</h3>
+                            <h3 className="text-sm font-black text-foreground uppercase tracking-tighter">Faire le point</h3>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 bg-gray-50 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full">
+                        <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 bg-muted text-muted-foreground hover:text-foreground hover:bg-muted rounded-full">
                             <X size={16} />
                         </Button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {tickets.length === 0 ? (
-                            <div className="text-center py-10 text-gray-400">
+                            <div className="text-center py-10 text-muted-foreground">
                                 <p className="text-xs">Aucun bon ouvert.</p>
                             </div>
                         ) : (
@@ -106,7 +106,7 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                 const isPayingMode = payingId === ticket.id;
 
                                 return (
-                                    <div key={ticket.id} className={`rounded-xl border transition-all ${isPayingMode ? 'border-brand-primary ring-1 ring-brand-primary bg-white shadow-md' : 'border-gray-100 bg-gray-50/30'}`}>
+                                    <div key={ticket.id} className={`rounded-xl border transition-all ${isPayingMode ? 'border-brand-primary ring-1 ring-brand-primary bg-card shadow-md' : 'border-border bg-muted/30'}`}>
                                         <div className="p-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 {/* Content Area */}
@@ -115,14 +115,14 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                                         <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest">
                                                             BON #{ticket.ticketNumber || '?'}
                                                         </p>
-                                                        <span className="text-[10px] font-black text-gray-400 whitespace-nowrap">
+                                                        <span className="text-[10px] font-black text-muted-foreground whitespace-nowrap">
                                                             {new Date(ticket.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
 
                                                     {/* Context Area (Role & Screen Size Sensitive) */}
                                                     {(ticket.serverName || formatTicketInfo(ticket)) && (
-                                                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1 truncate flex items-center gap-1.5">
+                                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight mb-1 truncate flex items-center gap-1.5">
                                                             {isManagerOrPromoter ? (
                                                                 <>
                                                                     <span className="flex items-center gap-0.5 text-brand-primary/70 shrink-0">
@@ -162,9 +162,9 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
 
                                                 <div className="flex flex-col items-end gap-2">
                                                     <div className="text-right leading-none">
-                                                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1 block">Net à payer</span>
+                                                        <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1 block">Net à payer</span>
                                                         <span className="text-sm font-black text-brand-dark font-mono block">{formatPrice(ticket.totalAmount)}</span>
-                                                        <span className="text-[9px] font-black text-gray-400 uppercase mt-1 inline-block">({ticket.salesCount} ventes)</span>
+                                                        <span className="text-[9px] font-black text-muted-foreground uppercase mt-1 inline-block">({ticket.salesCount} ventes)</span>
                                                     </div>
 
                                                     {!isPayingMode && !isPaid && (
@@ -173,7 +173,7 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                                                 variant="ghost"
                                                                 size="sm"
                                                                 onClick={() => setViewDetailsId(ticket.id)}
-                                                                className="h-7 w-7 p-0 rounded-full text-gray-400 hover:text-brand-primary hover:bg-brand-primary/10"
+                                                                className="h-7 w-7 p-0 rounded-full text-muted-foreground hover:text-brand-primary hover:bg-brand-primary/10"
                                                             >
                                                                 <Eye size={14} />
                                                             </Button>
@@ -205,8 +205,8 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                                         exit={{ height: 0, opacity: 0 }}
                                                         className="overflow-hidden"
                                                     >
-                                                        <div className="pt-4 mt-4 border-t border-gray-100">
-                                                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-2">Mode de paiement :</p>
+                                                        <div className="pt-4 mt-4 border-t border-border">
+                                                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Mode de paiement :</p>
                                                             <PaymentMethodSelector
                                                                 value={paymentMethod}
                                                                 onChange={setPaymentMethod}
@@ -215,7 +215,7 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                                                 <Button
                                                                     variant="ghost"
                                                                     onClick={() => setPayingId(null)}
-                                                                    className="flex-1 text-gray-500"
+                                                                    className="flex-1 text-muted-foreground"
                                                                     size="sm"
                                                                 >
                                                                     Annuler

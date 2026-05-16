@@ -173,10 +173,10 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                 animate={{ opacity: 1, scale: 1 }}
                 className="fixed inset-0 z-[310] flex items-center justify-center px-4 print:block print:inset-auto"
             >
-                <div className="print-target bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col print:shadow-none print:rounded-none print:max-h-none print:max-w-full">
+                <div className="print-target bg-card rounded-2xl shadow-xl w-full max-w-md max-h-[85vh] flex flex-col print:shadow-none print:rounded-none print:max-h-none print:max-w-full">
                     {/* Modal controls — hidden on print */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 print:hidden">
-                        <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter">Facture</h3>
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-border print:hidden">
+                        <h3 className="text-sm font-black text-foreground uppercase tracking-tighter">Facture</h3>
                         <div className="flex items-center gap-2">
                             <Button
                                 variant="ghost"
@@ -186,7 +186,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                             >
                                 <Printer size={10} /> Imprimer
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 bg-gray-50 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-full">
+                            <Button variant="ghost" size="icon" onClick={onClose} className="w-8 h-8 bg-muted text-muted-foreground hover:text-foreground hover:bg-muted rounded-full">
                                 <X size={16} />
                             </Button>
                         </div>
@@ -195,14 +195,14 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                     {/* Invoice content */}
                     <div className="flex-1 overflow-y-auto p-6 print:overflow-visible">
                         {isLoading ? (
-                            <p className="text-center text-gray-400 text-sm py-8">Chargement...</p>
+                            <p className="text-center text-muted-foreground text-sm py-8">Chargement...</p>
                         ) : (
                             <div className="space-y-5">
                                 {/* Bar name + reference */}
                                 <div className="text-center">
-                                    <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">{currentBar?.name || 'Bar'}</h1>
+                                    <h1 className="text-lg font-black text-foreground uppercase tracking-tighter">{currentBar?.name || 'Bar'}</h1>
                                     <div className="flex flex-col items-center gap-1 mt-1">
-                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                                             {ticketNumber ? `BON #${ticketNumber}` : (ticketId.startsWith('temp_') ? 'BON PROVISOIRE' : `BON-${ticketId.slice(0, 8)}`)} • {today}
                                         </p>
                                         {ticketId.startsWith('temp_') && (
@@ -225,11 +225,11 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                     )}
                                 </div>
 
-                                <div className="border-t border-dashed border-gray-200" />
+                                <div className="border-t border-dashed border-border" />
 
                                 {/* Items table */}
                                 <div>
-                                    <div className="grid grid-cols-[1fr_25px_50px_70px] gap-x-2 text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">
+                                    <div className="grid grid-cols-[1fr_25px_50px_70px] gap-x-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-2 px-1">
                                         <span>Produit</span>
                                         <span className="text-right">Qté</span>
                                         <span className="text-right">P.U</span>
@@ -237,23 +237,23 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                     </div>
                                     <div className="space-y-1.5">
                                         {filteredItems.map((item, i) => (
-                                            <div key={i} className="grid grid-cols-[1fr_25px_50px_70px] gap-x-2 text-[11px] text-gray-800 px-1 items-center">
+                                            <div key={i} className="grid grid-cols-[1fr_25px_50px_70px] gap-x-2 text-[11px] text-foreground px-1 items-center">
                                                 <span className="font-black truncate">{item.name}</span>
-                                                <span className="text-right text-gray-500 whitespace-nowrap">{item.qty}</span>
-                                                <span className="text-right text-gray-500 font-mono whitespace-nowrap">{formatPrice(item.unitPrice, { showSymbol: false })}</span>
+                                                <span className="text-right text-muted-foreground whitespace-nowrap">{item.qty}</span>
+                                                <span className="text-right text-muted-foreground font-mono whitespace-nowrap">{formatPrice(item.unitPrice, { showSymbol: false })}</span>
                                                 <span className="text-right font-black font-mono whitespace-nowrap">{formatPrice(item.total)}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                <div className="border-t border-dashed border-gray-200" />
+                                <div className="border-t border-dashed border-border" />
 
                                 {/* Totaux avec déduction des retours */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between px-1">
-                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sous-total</span>
-                                        <span className="text-sm font-bold text-gray-700 font-mono">{formatPrice(grandTotal)}</span>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Sous-total</span>
+                                        <span className="text-sm font-bold text-foreground/80 font-mono">{formatPrice(grandTotal)}</span>
                                     </div>
 
                                     {totalRefunds > 0 && (
@@ -263,18 +263,18 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                         </div>
                                     )}
 
-                                    <div className="border-t border-gray-200 pt-2" />
+                                    <div className="border-t border-border pt-2" />
 
                                     <div className="flex items-center justify-between px-1">
-                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">NET À PAYER</span>
+                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">NET À PAYER</span>
                                         <span className="text-xl font-black text-brand-dark font-mono">{formatPrice(netTotal)}</span>
                                     </div>
                                 </div>
 
                                 {/* Payment methods */}
                                 <div className="px-1">
-                                    <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Modes de paiement : </span>
-                                    <span className="text-[9px] font-black text-gray-600">
+                                    <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Modes de paiement : </span>
+                                    <span className="text-[9px] font-black text-foreground/70">
                                         {paymentMethod
                                             ? (paymentLabels[paymentMethod] || paymentMethod)
                                             : (paymentMethods.size > 0
@@ -285,15 +285,15 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                 </div>
 
                                 {/* Signature lines — visible on print only */}
-                                <div className="mt-8 pt-4 border-t border-gray-200 hidden print:block">
+                                <div className="mt-8 pt-4 border-t border-border hidden print:block">
                                     <div className="flex justify-between">
                                         <div>
                                             <div className="w-40 border-b border-gray-400 mb-1" />
-                                            <span className="text-[8px] text-gray-400">Signature du gérant</span>
+                                            <span className="text-[8px] text-muted-foreground">Signature du gérant</span>
                                         </div>
                                         <div>
                                             <div className="w-40 border-b border-gray-400 mb-1" />
-                                            <span className="text-[8px] text-gray-400">Signature du client</span>
+                                            <span className="text-[8px] text-muted-foreground">Signature du client</span>
                                         </div>
                                     </div>
                                 </div>

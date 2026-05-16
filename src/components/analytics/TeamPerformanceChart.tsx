@@ -26,8 +26,8 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
 
     if (!sortedData || sortedData.length === 0) {
         return (
-            <div className="w-full h-[300px] flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                <p className="text-gray-400 text-sm">Aucune donnée de performance disponible</p>
+            <div className="w-full h-[300px] flex items-center justify-center bg-muted rounded-lg border border-dashed border-border">
+                <p className="text-muted-foreground text-sm">Aucune donnée de performance disponible</p>
             </div>
         );
     }
@@ -36,16 +36,16 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
         if (active && payload && payload.length) {
             const dataPoint = payload[0].payload;
             return (
-                <div className="bg-white p-3 border border-brand-subtle rounded-xl shadow-lg">
-                    <p className="font-bold text-gray-800 mb-1">{dataPoint.name}</p>
+                <div className="bg-card p-3 border border-border rounded-xl shadow-lg">
+                    <p className="font-bold text-foreground mb-1">{dataPoint.name}</p>
                     <p className="text-sm text-brand-primary font-bold">
                         {formatPrice(dataPoint.revenue)}
                     </p>
-                    <div className="mt-2 border-t border-gray-100 pt-2 flex justify-between gap-4 text-xs text-gray-500">
+                    <div className="mt-2 border-t border-border pt-2 flex justify-between gap-4 text-xs text-muted-foreground">
                         <span>Ventes: {dataPoint.sales}</span>
                         <span>Articles: {dataPoint.items}</span>
                     </div>
-                    <p className="text-xs text-purple-500 mt-1 capitalize">{dataPoint.role}</p>
+                    <p className="text-xs text-brand-primary mt-1 capitalize">{dataPoint.role}</p>
                 </div>
             );
         }
@@ -53,8 +53,8 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
     };
 
     return (
-        <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
-            <h4 className="text-sm font-semibold text-gray-800 mb-4 px-2">Performance par Membre</h4>
+        <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+            <h4 className="text-sm font-semibold text-foreground mb-4 px-2">Performance par Membre</h4>
 
             <div className="w-full h-[300px]">
                 <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>

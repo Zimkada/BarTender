@@ -75,7 +75,7 @@ export const InitialBalanceModal: React.FC<InitialBalanceModalProps> = ({
 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Montant (FCFA) <span className="text-red-500">*</span></Label>
+                        <Label className="text-sm font-medium text-foreground/80">Montant (FCFA) <span className="text-red-500">*</span></Label>
                         <Input
                             type="number"
                             value={form.amount}
@@ -84,12 +84,12 @@ export const InitialBalanceModal: React.FC<InitialBalanceModalProps> = ({
                             autoFocus
                             className="font-mono text-lg"
                         />
-                        <p className="text-xs text-gray-400">Peut être négatif en cas de dette initiale.</p>
+                        <p className="text-xs text-muted-foreground">Peut être négatif en cas de dette initiale.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-700">Date de référence <span className="text-red-500">*</span></Label>
+                            <Label className="text-sm font-medium text-foreground/80">Date de référence <span className="text-red-500">*</span></Label>
                             <Input
                                 type="date"
                                 value={form.date}
@@ -99,7 +99,7 @@ export const InitialBalanceModal: React.FC<InitialBalanceModalProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Description (Optionnel)</Label>
+                        <Label className="text-sm font-medium text-foreground/80">Description (Optionnel)</Label>
                         <Input
                             value={form.description}
                             onChange={(e) => setForm({ ...form, description: e.target.value })}

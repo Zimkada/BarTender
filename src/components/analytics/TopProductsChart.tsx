@@ -48,10 +48,10 @@ export function TopProductsChart({
   // Loading State
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl p-4 border border-brand-subtle">
+      <div className="bg-card rounded-xl p-4 border border-border">
         <div className="flex flex-col items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4"></div>
-          <p className="text-sm text-gray-600">Chargement des top produits...</p>
+          <p className="text-sm text-foreground/70">Chargement des top produits...</p>
         </div>
       </div>
     );
@@ -65,13 +65,13 @@ export function TopProductsChart({
   // Empty State
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-4 border border-brand-subtle">
+      <div className="bg-card rounded-xl p-4 border border-border">
         <div className="flex flex-col items-center justify-center py-12">
-          <BarChart3 size={48} className="text-gray-300 mb-4" />
-          <h4 className="text-sm font-semibold text-gray-700 mb-2">
+          <BarChart3 size={48} className="text-muted-foreground/40 mb-4" />
+          <h4 className="text-sm font-semibold text-foreground/80 mb-2">
             Aucun produit vendu
           </h4>
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-xs text-muted-foreground text-center">
             Aucune vente enregistrée sur cette période
           </p>
         </div>
@@ -85,13 +85,13 @@ export function TopProductsChart({
   const needsScroll = isMobile && chartData.length > 5;
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
+    <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
       {/* Header avec contrôles */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           {/* Titre avec sélecteur de limite */}
           <div className="flex items-center gap-2">
-            <h4 className="text-sm font-semibold text-gray-800">Top</h4>
+            <h4 className="text-sm font-semibold text-foreground">Top</h4>
             <Select
               options={[
                 { value: '5', label: '5' },
@@ -104,20 +104,20 @@ export function TopProductsChart({
               size="sm"
               className="w-20 btn-brand h-8 text-[11px] font-bold"
             />
-            <h4 className="text-sm font-semibold text-gray-800">produits</h4>
+            <h4 className="text-sm font-semibold text-foreground">produits</h4>
           </div>
 
           {/* Contrôles : Métrique */}
           <div className="flex items-center flex-wrap gap-2">
             {!isMobile && (
-              <span className="text-sm font-medium text-gray-600">Affiché par :</span>
+              <span className="text-sm font-medium text-foreground/70">Affiché par :</span>
             )}
             <button
               onClick={() => onMetricChange('units')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
               ${metric === 'units'
                   ? 'btn-brand shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  : 'bg-muted text-foreground/70 hover:bg-muted/80'}`}
             >
               📦 Unités
             </button>
@@ -126,7 +126,7 @@ export function TopProductsChart({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
               ${metric === 'revenue'
                   ? 'btn-brand shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  : 'bg-muted text-foreground/70 hover:bg-muted/80'}`}
             >
               💰 Revenu
             </button>
@@ -135,7 +135,7 @@ export function TopProductsChart({
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
               ${metric === 'profit'
                   ? 'btn-brand shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  : 'bg-muted text-foreground/70 hover:bg-muted/80'}`}
             >
               📈 Marge
             </button>
@@ -177,7 +177,7 @@ export function TopProductsChart({
 
       {/* Hint de scroll pour mobile */}
       {needsScroll && (
-        <p className="text-xs text-gray-500 text-center mt-2">
+        <p className="text-xs text-muted-foreground text-center mt-2">
           ← Faites défiler horizontalement →
         </p>
       )}

@@ -30,11 +30,11 @@ export function PaymentMethodSelector({ value, onChange, className = '' }: Payme
                             flex-1 flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-lg border transition-all duration-200
                             ${isSelected
                                 ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
-                                : 'bg-white border-gray-200 text-gray-500 hover:border-brand-primary/30 hover:bg-gray-50'
+                                : 'bg-card border-border text-muted-foreground hover:border-brand-primary/30 hover:bg-muted'
                             }
                         `}
                     >
-                        <div className={`${isSelected ? 'text-white' : 'text-gray-400'}`}>
+                        <div className={`${isSelected ? 'text-white' : 'text-muted-foreground'}`}>
                             <Icon size={16} strokeWidth={2.5} />
                         </div>
                         <span className="text-[9px] font-black uppercase tracking-tight leading-none text-center">

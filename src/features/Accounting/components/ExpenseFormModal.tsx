@@ -80,7 +80,7 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
                             placeholder="5000"
                             className="pl-10 font-mono text-lg border-rose-100 focus:ring-rose-500"
                         />
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     </div>
                 </div>
 
@@ -116,7 +116,7 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
                                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                                 className="pl-10 border-rose-100"
                             />
-                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         </div>
                     </div>
                 </div>
@@ -132,7 +132,7 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
                             rows={3}
                             className="pl-10 border-rose-100 resize-none"
                         />
-                        <Type className="absolute left-3 top-3 text-gray-400" size={18} />
+                        <Type className="absolute left-3 top-3 text-muted-foreground" size={18} />
                     </div>
                 </div>
             </div>

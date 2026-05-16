@@ -165,7 +165,7 @@ export function CartDrawer({
                         variants={drawerVariants}
                         transition={{ type: "spring", damping: 30, stiffness: 400 }}
                         className={`
-                            fixed z-[110] bg-white/95 backdrop-blur-2xl shadow-[0_-20px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col
+                            fixed z-[110] bg-card/95 backdrop-blur-2xl shadow-[0_-20px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col
                             ${isMobile
                                 ? 'bottom-0 left-0 right-0 h-[94vh] rounded-t-[3rem]' // Mobile
                                 : 'top-0 right-0 bottom-0 w-[420px] rounded-l-[3rem]' // Desktop
@@ -181,9 +181,9 @@ export function CartDrawer({
                         )}
 
                         {/* --- HEADER VISION 2026 --- */}
-                        <div className="flex items-center justify-between px-6 py-2 border-b border-gray-100/50">
+                        <div className="flex items-center justify-between px-6 py-2 border-b border-border/50">
                             <div className="flex flex-row items-center gap-2">
-                                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
+                                <h2 className="text-lg font-black text-foreground flex items-center gap-2 uppercase tracking-tighter">
                                     <ShoppingBag className="text-brand-primary" size={20} strokeWidth={2.5} />
                                     Panier
                                     <span className="ml-2 bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide uppercase">
@@ -193,7 +193,7 @@ export function CartDrawer({
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
+                                className="w-8 h-8 flex items-center justify-center bg-muted text-gray-600 hover:text-foreground rounded-full transition-all hover:rotate-90"
                             >
                                 <X size={18} />
                             </button>
@@ -216,12 +216,12 @@ export function CartDrawer({
                                     animate={{ opacity: 1, y: 0 }}
                                     className="h-full flex flex-col items-center justify-center text-gray-300 space-y-6 pb-20"
                                 >
-                                    <div className="w-24 h-24 bg-gray-50 rounded-[2.5rem] flex items-center justify-center border border-gray-100 italic">
+                                    <div className="w-24 h-24 bg-muted rounded-[2.5rem] flex items-center justify-center border border-border italic">
                                         <ShoppingCart size={48} strokeWidth={1} />
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-xl font-black text-gray-400 uppercase tracking-tighter">Votre panier est vide</p>
-                                        <p className="text-xs font-medium text-gray-400 mt-2">Commencez par ajouter des boissons</p>
+                                        <p className="text-xl font-black text-muted-foreground uppercase tracking-tighter">Votre panier est vide</p>
+                                        <p className="text-xs font-medium text-muted-foreground mt-2">Commencez par ajouter des boissons</p>
                                     </div>
                                     <button
                                         onClick={onClose}
@@ -235,7 +235,7 @@ export function CartDrawer({
 
                         {/* --- FOOTER STICKY GLASS --- */}
                         {items.length > 0 && (
-                            <div className="p-6 bg-white/80 backdrop-blur-xl border-t border-gray-100 rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] safe-pb">
+                            <div className="p-6 bg-card/80 backdrop-blur-xl border-t border-border rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] safe-pb">
                                 <CartFooter
                                     total={total}
                                     isSimplifiedMode={isSimplifiedMode}

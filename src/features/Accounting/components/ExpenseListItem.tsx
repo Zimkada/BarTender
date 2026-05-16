@@ -38,21 +38,21 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
     const { formatPrice } = useCurrencyFormatter();
 
     return (
-        <div className="border-b border-gray-100 last:border-0">
+        <div className="border-b border-border last:border-0">
             <button
                 onClick={onToggle}
                 className={cn(
-                    "w-full p-4 flex items-center justify-between hover:bg-gray-50/80 transition-all",
-                    isExpanded && "bg-gray-50/50"
+                    "w-full p-4 flex items-center justify-between hover:bg-muted/80 transition-all",
+                    isExpanded && "bg-muted/50"
                 )}
             >
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-xl">
+                    <div className="w-10 h-10 rounded-xl bg-card shadow-sm border border-border flex items-center justify-center text-xl">
                         {data.icon}
                     </div>
                     <div className="text-left">
-                        <p className="font-bold text-gray-800">{data.label}</p>
-                        <p className="text-xs text-gray-500 font-medium">
+                        <p className="font-bold text-foreground">{data.label}</p>
+                        <p className="text-xs text-muted-foreground font-medium">
                             {data.count} opération{data.count > 1 ? 's' : ''}
                         </p>
                     </div>
@@ -65,7 +65,7 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                     </div>
                     <div className={cn(
                         "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
-                        isExpanded ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-400"
+                        isExpanded ? "bg-amber-100 text-amber-600" : "bg-muted text-muted-foreground"
                     )}>
                         {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </div>
@@ -78,7 +78,7 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden bg-gray-50/30"
+                        className="overflow-hidden bg-muted/30"
                     >
                         <div className="px-4 pb-4 space-y-2">
                             {items
@@ -86,11 +86,11 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                                 .map(item => (
                                     <div
                                         key={item.id}
-                                        className="flex items-center justify-between bg-white/80 backdrop-blur-sm p-3 rounded-xl border border-white shadow-sm group transition-all hover:shadow-md"
+                                        className="flex items-center justify-between bg-card/80 backdrop-blur-sm p-3 rounded-xl border border-white shadow-sm group transition-all hover:shadow-md"
                                     >
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-0.5">
-                                                <p className="font-bold text-gray-900">
+                                                <p className="font-bold text-foreground">
                                                     {formatPrice(item.amount)}
                                                 </p>
                                                 {item.isOptimistic && (
@@ -104,7 +104,7 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-medium uppercase tracking-wide">
+                                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
                                                 <span>{new Date(item.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                                 {item.beneficiary && (
                                                     <>
@@ -114,7 +114,7 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                                                 )}
                                             </div>
                                             {item.notes && (
-                                                <p className="text-xs text-gray-600 mt-1 line-clamp-2 italic">
+                                                <p className="text-xs text-foreground/70 mt-1 line-clamp-2 italic">
                                                     "{item.notes}"
                                                 </p>
                                             )}
@@ -132,7 +132,7 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                                         {item.isSupply && !item.isOptimistic && (
                                             <div className="flex items-center gap-1">
                                                 {item.supplyReversed ? (
-                                                    <span className="text-[9px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-black uppercase tracking-wider">
+                                                    <span className="text-[9px] bg-muted text-muted-foreground px-2 py-1 rounded-full font-black uppercase tracking-wider">
                                                         Annulé
                                                     </span>
                                                 ) : canManageSupplies && (

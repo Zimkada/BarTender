@@ -72,11 +72,11 @@ export const WelcomeTrainingCard: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-3 mb-2">
                             <span className="text-2xl">👋</span>
-                            <h2 className="text-2xl font-bold text-gray-900">
+                            <h2 className="text-2xl font-bold text-foreground">
                                 Bienvenue, {currentSession.userName.split(' ')[0]} !
                             </h2>
                         </div>
-                        <p className="text-gray-600 max-w-xl text-lg leading-relaxed">
+                        <p className="text-foreground/70 max-w-xl text-lg leading-relaxed">
                             Ravi de vous compter parmi nous. Pour prendre en main l'outil rapidement et sans stress, nous vous avons préparé un guide interactif de 3 minutes.
                         </p>
                     </div>
@@ -84,7 +84,7 @@ export const WelcomeTrainingCard: React.FC = () => {
                     <div className="flex items-center gap-3 flex-shrink-0 w-full md:w-auto">
                         <button
                             onClick={handleDismiss}
-                            className="px-4 py-3 text-gray-500 hover:text-gray-700 font-medium hover:bg-white/50 rounded-xl transition-colors text-sm"
+                            className="px-4 py-3 text-muted-foreground hover:text-foreground/80 font-medium hover:bg-card/50 rounded-xl transition-colors text-sm"
                         >
                             Plus tard
                         </button>
