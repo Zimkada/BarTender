@@ -1,6 +1,6 @@
 import React from 'react';
-import { Monitor, Sun, Moon } from 'lucide-react';
-import { useColorMode, ColorMode } from '../context/ColorModeContext';
+import { Sun, Moon } from 'lucide-react';
+import { useColorMode } from '../context/ColorModeContext';
 
 interface ColorModeToggleProps {
   /** Variant 'header' = glass button cohérent avec liquid-gold-header (white/15 + border-white/20) */
@@ -9,31 +9,29 @@ interface ColorModeToggleProps {
 }
 
 /**
- * Bouton cyclique de bascule entre les modes d'affichage.
- * Cycle : Système → Clair → Sombre → Système → ...
+ * Bouton de bascule entre Clair et Sombre, pour usage en accès rapide (header).
  *
- * Pattern utilisé par Vercel, Linear, GitHub : un seul bouton qui change d'icône
- * (Monitor / Sun / Moon) selon le mode actuel. Aucun menu, aucun popover —
- * 1 clic = 1 transition. L'utilisateur découvre rapidement les 3 états en cliquant.
+ * Comportement :
+ * - Affiche Sun ou Moon selon le mode EFFECTIVEMENT appliqué (resolvedMode).
+ *   Jamais l'icône Monitor — pour éviter toute confusion dans le header.
+ * - 1 clic = bascule vers l'opposé du mode actuel (force light ↔ dark).
+ *   Si l'utilisateur était en mode 'system', le bouton "casse" ce lien et
+ *   force désormais light ou dark explicitement.
+ * - Pour revenir au mode 'system' (suivre l'OS), l'utilisateur va dans
+ *   Profil → Apparence, qui propose les 3 options (Système / Clair / Sombre).
  */
 export function ColorModeToggle({ variant = 'default', className = '' }: ColorModeToggleProps) {
-  const { colorMode, setColorMode } = useColorMode();
+  const { resolvedMode, setColorMode } = useColorMode();
 
-  const next: ColorMode =
-    colorMode === 'system' ? 'light' : colorMode === 'light' ? 'dark' : 'system';
+  const isDark = resolvedMode === 'dark';
+  const Icon = isDark ? Sun : Moon;
+  const next = isDark ? 'light' : 'dark';
 
-  const Icon =
-    colorMode === 'system' ? Monitor : colorMode === 'light' ? Sun : Moon;
+  const label = isDark
+    ? 'Mode actuel : Sombre. Cliquer pour passer en mode Clair.'
+    : 'Mode actuel : Clair. Cliquer pour passer en mode Sombre.';
 
-  const label =
-    colorMode === 'system'
-      ? 'Mode actuel : Système. Cliquer pour passer en mode Clair.'
-      : colorMode === 'light'
-        ? 'Mode actuel : Clair. Cliquer pour passer en mode Sombre.'
-        : 'Mode actuel : Sombre. Cliquer pour suivre le système.';
-
-  const tooltip =
-    colorMode === 'system' ? 'Système' : colorMode === 'light' ? 'Clair' : 'Sombre';
+  const tooltip = isDark ? 'Passer en mode Clair' : 'Passer en mode Sombre';
 
   const baseClasses =
     variant === 'header'
