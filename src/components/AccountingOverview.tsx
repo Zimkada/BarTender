@@ -710,7 +710,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
           {/* Modal Actions — Secondary (outline) */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowInitialBalanceModal(true)} className="w-full sm:w-auto justify-center sm:justify-start">
+            <Button variant="outline" size="sm" onClick={() => setShowInitialBalanceModal(true)} className="w-full sm:w-auto justify-center sm:justify-start bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted">
               <DollarSign size={16} className="mr-2" />
               Solde Initial
             </Button>
