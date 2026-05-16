@@ -105,10 +105,10 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
             {isLoading ? (
                 <div className="flex flex-col items-center justify-center h-40 gap-3">
                     <Spinner size="lg" />
-                    <p className="text-sm text-gray-400">Chargement de la commande…</p>
+                    <p className="text-sm text-muted-foreground">Chargement de la commande…</p>
                 </div>
             ) : !fullOrder ? (
-                <div className="p-4 text-center text-gray-400">Commande introuvable.</div>
+                <div className="p-4 text-center text-muted-foreground">Commande introuvable.</div>
             ) : (
                 <div className="space-y-4">
                     {/* Info banner */}
@@ -133,7 +133,7 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                         'rounded-xl border p-3 transition-all',
                                         isFull && 'border-green-200 bg-green-50/50',
                                         isPartial && 'border-amber-200 bg-amber-50/50',
-                                        isMissing && 'border-gray-200 bg-white',
+                                        isMissing && 'border-border bg-card',
                                     )}
                                 >
                                     <div className="flex items-center gap-3">
@@ -142,31 +142,31 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                             'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
                                             isFull && 'bg-green-100',
                                             isPartial && 'bg-amber-100',
-                                            isMissing && 'bg-gray-100',
+                                            isMissing && 'bg-muted',
                                         )}>
                                             {isFull
                                                 ? <CheckCircle2 size={16} className="text-green-600" />
                                                 : isPartial
                                                     ? <AlertTriangle size={16} className="text-amber-500" />
-                                                    : <Package size={16} className="text-gray-400" />
+                                                    : <Package size={16} className="text-muted-foreground" />
                                             }
                                         </div>
 
                                         {/* Product info */}
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-gray-900 text-sm truncate">{item.productName}</p>
-                                            <p className="text-xs text-gray-500">{item.productVolume}</p>
+                                            <p className="font-bold text-foreground text-sm truncate">{item.productName}</p>
+                                            <p className="text-xs text-muted-foreground">{item.productVolume}</p>
                                         </div>
 
                                         {/* Qty comparison */}
                                         <div className="text-right mr-2 hidden sm:block">
-                                            <p className="text-[10px] uppercase font-bold text-gray-400">Commandé</p>
-                                            <p className="text-sm font-black text-gray-700">{item.quantity}</p>
+                                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Commandé</p>
+                                            <p className="text-sm font-black text-foreground/80">{item.quantity}</p>
                                         </div>
 
                                         {/* Input received qty */}
                                         <div className="flex flex-col items-center">
-                                            <p className="text-[10px] uppercase font-bold text-gray-400 mb-1">Reçu</p>
+                                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Reçu</p>
                                             <input
                                                 type="number"
                                                 min={0}
@@ -180,7 +180,7 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                                     'w-20 px-2 py-1.5 text-center font-black text-base rounded-lg border outline-none focus:ring-2',
                                                     isFull && 'border-green-300 bg-green-50 text-green-800 focus:ring-green-200',
                                                     isPartial && 'border-amber-300 bg-amber-50 text-amber-800 focus:ring-amber-200',
-                                                    isMissing && 'border-gray-200 bg-gray-50 text-gray-700 focus:ring-brand-primary/20',
+                                                    isMissing && 'border-border bg-muted text-foreground/80 focus:ring-brand-primary/20',
                                                 )}
                                             />
                                         </div>
@@ -188,7 +188,7 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                         {/* Expand toggle for details */}
                                         <button
                                             onClick={() => toggleExpand(item.id)}
-                                            className="p-1 text-gray-400 hover:text-gray-600"
+                                            className="p-1 text-muted-foreground hover:text-foreground/70"
                                         >
                                             {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </button>
@@ -196,19 +196,19 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
 
                                     {/* Expanded details */}
                                     {isExpanded && (
-                                        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                                        <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                                             <div>
-                                                <p className="uppercase font-bold text-gray-400">Lot / Condit.</p>
-                                                <p className="font-bold text-gray-700">{item.lotSize} unités</p>
+                                                <p className="uppercase font-bold text-muted-foreground">Lot / Condit.</p>
+                                                <p className="font-bold text-foreground/80">{item.lotSize} unités</p>
                                             </div>
                                             <div>
-                                                <p className="uppercase font-bold text-gray-400">Prix / Lot</p>
-                                                <p className="font-bold text-gray-700">{formatPrice(item.lotPrice)}</p>
+                                                <p className="uppercase font-bold text-muted-foreground">Prix / Lot</p>
+                                                <p className="font-bold text-foreground/80">{formatPrice(item.lotPrice)}</p>
                                             </div>
                                             {item.supplierName && (
                                                 <div>
-                                                    <p className="uppercase font-bold text-gray-400">Fournisseur</p>
-                                                    <p className="font-bold text-gray-700">{item.supplierName}</p>
+                                                    <p className="uppercase font-bold text-muted-foreground">Fournisseur</p>
+                                                    <p className="font-bold text-foreground/80">{item.supplierName}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -219,10 +219,10 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                     </div>
 
                     {/* Summary footer */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
                         <div>
-                            <p className="text-xs text-gray-500 uppercase font-bold">Total reçu</p>
-                            <p className="text-lg font-black text-gray-900">{totalReceived} unités</p>
+                            <p className="text-xs text-muted-foreground uppercase font-bold">Total reçu</p>
+                            <p className="text-lg font-black text-foreground">{totalReceived} unités</p>
                             {!allFullyReceived && totalReceived > 0 && (
                                 <p className="text-xs text-amber-600 font-medium mt-0.5">Livraison partielle</p>
                             )}

@@ -192,7 +192,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                 className={`flex flex-col md:flex-row overflow-hidden h-full w-full ${isOpen ? '' : 'hidden'}`}
             >
                 {/* Header (Mobile-Friendly) */}
-                <div className="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between">
+                <div className="md:hidden bg-card border-b border-border p-4 flex items-center justify-between">
                     <BackButton onClick={onClose} className="mr-2" />
                     <h2 className="font-bold text-gray-800">Promotion Studio</h2>
                     <Button onClick={() => handleSubmit()} size="sm" className="btn-brand font-bold">
@@ -201,18 +201,18 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                 </div>
 
                 {/* Left Column: Configuration Form */}
-                <div className="flex-1 overflow-y-auto bg-white shadow-2xl z-10">
+                <div className="flex-1 overflow-y-auto bg-card shadow-2xl z-10">
                     <div className="max-w-3xl mx-auto p-6 md:p-12 space-y-10 pb-32">
                         {/* Title Section */}
                         <div className="hidden md:flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
                                 <BackButton onClick={onClose} />
                                 <div>
-                                    <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+                                    <h1 className="text-3xl font-black text-foreground uppercase tracking-tight flex items-center gap-3">
                                         Promotion Studio
                                         <Wand2 className="text-brand-primary" />
                                     </h1>
-                                    <p className="text-gray-500 font-medium">Configurez votre offre marketing irrésistible</p>
+                                    <p className="text-muted-foreground font-medium">Configurez votre offre marketing irrésistible</p>
                                 </div>
                             </div>
                         </div>
@@ -220,30 +220,30 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 1: Basics */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">L'Identité</h2>
+                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">L'Identité</h2>
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="promoName" className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Nom de la promotion</Label>
+                                    <Label htmlFor="promoName" className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 block">Nom de la promotion</Label>
                                     <Input
                                         id="promoName"
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="ex: HAPPY HOUR CHILL..."
-                                        className="h-14 text-lg font-bold bg-slate-50 border-transparent focus:bg-white focus:border-brand-primary transition-all rounded-2xl"
+                                        className="h-14 text-lg font-bold bg-slate-50 border-transparent focus:bg-card focus:border-brand-primary transition-all rounded-2xl"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="description" className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 block">Accroche Marketing</Label>
+                                    <Label htmlFor="description" className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 block">Accroche Marketing</Label>
                                     <Textarea
                                         id="description"
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder="Décrivez l'avantage client..."
                                         rows={2}
-                                        className="bg-slate-50 border-transparent focus:bg-white focus:border-brand-primary transition-all rounded-2xl p-4"
+                                        className="bg-slate-50 border-transparent focus:bg-card focus:border-brand-primary transition-all rounded-2xl p-4"
                                     />
                                 </div>
                             </div>
@@ -252,7 +252,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 2: Type Selection */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">Le Mécanisme</h2>
+                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">Le Mécanisme</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                 {promotionTypes.map((t) => (
@@ -262,14 +262,14 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         onClick={() => setType(t.id as PromotionType)}
                                         className={`p-4 rounded-2xl border-2 text-left transition-all group ${type === t.id
                                             ? 'border-brand-primary bg-brand-subtle shadow-lg shadow-brand-subtle/40'
-                                            : 'border-gray-100 hover:border-brand-subtle bg-slate-50/50'
+                                            : 'border-border hover:border-brand-subtle bg-slate-50/50'
                                             }`}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-all ${type === t.id ? 'btn-brand shadow-lg' : 'bg-white text-gray-400'}`}>
+                                        <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-all ${type === t.id ? 'btn-brand shadow-lg' : 'bg-card text-muted-foreground'}`}>
                                             {t.icon}
                                         </div>
-                                        <div className={`font-bold text-sm ${type === t.id ? 'text-brand-dark' : 'text-gray-700'}`}>{t.label}</div>
-                                        <div className="text-[10px] text-gray-400 font-medium truncate italic">{t.description}</div>
+                                        <div className={`font-bold text-sm ${type === t.id ? 'text-brand-dark' : 'text-foreground/80'}`}>{t.label}</div>
+                                        <div className="text-[10px] text-muted-foreground font-medium truncate italic">{t.description}</div>
                                     </button>
                                 ))}
                             </div>
@@ -279,7 +279,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                 layout
                                 className="bg-brand-subtle p-6 rounded-3xl border border-brand-subtle flex flex-col sm:flex-row items-center gap-6"
                             >
-                                <div className="hidden sm:flex w-16 h-16 rounded-full bg-white items-center justify-center text-brand-primary shadow-inner">
+                                <div className="hidden sm:flex w-16 h-16 rounded-full bg-card items-center justify-center text-brand-primary shadow-inner">
                                     <Tag size={32} />
                                 </div>
                                 <div className="flex-1 w-full space-y-2">
@@ -332,7 +332,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 min="2"
                                                 value={bundleQuantity}
                                                 onChange={(e) => setBundleQuantity(Number(e.target.value))}
-                                                className="w-16 bg-white rounded-xl p-2 text-2xl font-black text-brand-primary text-center shadow-sm"
+                                                className="w-16 bg-card rounded-xl p-2 text-2xl font-black text-brand-primary text-center shadow-sm"
                                             />
                                             <span className="font-bold text-brand-primary opacity-40 uppercase">Articles pour</span>
                                             <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 3: Targeting */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">Le Ciblage</h2>
+                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">Le Ciblage</h2>
                             </div>
 
                             <RadioGroup
@@ -375,10 +375,10 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     >
                                         <RadioGroupItem value={t.id} id={`targetType-${t.id}`} className="text-brand-primary border-brand-subtle shrink-0" />
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                                            <span className={`p-1.5 rounded-md shrink-0 ${targetType === t.id ? 'bg-brand-primary text-white' : 'bg-white text-gray-400'}`}>
+                                            <span className={`p-1.5 rounded-md shrink-0 ${targetType === t.id ? 'bg-brand-primary text-white' : 'bg-card text-muted-foreground'}`}>
                                                 {t.icon}
                                             </span>
-                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-brand-dark' : 'text-gray-600'}`}>
+                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-brand-dark' : 'text-foreground/70'}`}>
                                                 {t.label}
                                             </span>
                                         </div>
@@ -392,20 +392,20 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="border border-gray-100 rounded-3xl p-6 bg-slate-50 max-h-64 overflow-y-auto overflow-hidden shadow-inner"
+                                        className="border border-border rounded-3xl p-6 bg-slate-50 max-h-64 overflow-y-auto overflow-hidden shadow-inner"
                                     >
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {categories.map(cat => (
                                                 <div
                                                     key={cat.id}
                                                     onClick={() => toggleCategory(cat.id)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedCategoryIds.includes(cat.id) ? 'bg-brand-primary text-white shadow-lg shadow-brand-subtle/40 scale-[1.02]' : 'bg-white hover:bg-brand-subtle text-gray-700'}`}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedCategoryIds.includes(cat.id) ? 'bg-brand-primary text-white shadow-lg shadow-brand-subtle/40 scale-[1.02]' : 'bg-card hover:bg-brand-subtle text-foreground/80'}`}
                                                 >
                                                     <Checkbox
                                                         id={`category-${cat.id}`}
                                                         checked={selectedCategoryIds.includes(cat.id)}
                                                         onCheckedChange={() => toggleCategory(cat.id)}
-                                                        className={`shrink-0 ${selectedCategoryIds.includes(cat.id) ? 'border-white' : 'border-gray-200'}`}
+                                                        className={`shrink-0 ${selectedCategoryIds.includes(cat.id) ? 'border-white' : 'border-border'}`}
                                                     />
                                                     <span className="text-sm font-bold line-clamp-2 leading-tight">{cat.name}</span>
                                                 </div>
@@ -418,16 +418,16 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="border border-gray-100 rounded-3xl p-6 bg-slate-50 overflow-hidden shadow-inner"
+                                        className="border border-border rounded-3xl p-6 bg-slate-50 overflow-hidden shadow-inner"
                                     >
                                         <div className="relative mb-4">
-                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                                             <input
                                                 type="text"
                                                 placeholder="Rechercher un produit..."
                                                 value={productSearch}
                                                 onChange={(e) => setProductSearch(e.target.value)}
-                                                className="w-full bg-white rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
+                                                className="w-full bg-card rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
                                             />
                                         </div>
                                         <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
@@ -435,17 +435,17 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 <div
                                                     key={product.id}
                                                     onClick={() => toggleProduct(product.id)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedProductIds.includes(product.id) ? 'bg-brand-primary text-white shadow-lg shadow-brand-subtle/40' : 'bg-white hover:bg-brand-subtle text-gray-700'}`}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedProductIds.includes(product.id) ? 'bg-brand-primary text-white shadow-lg shadow-brand-subtle/40' : 'bg-card hover:bg-brand-subtle text-foreground/80'}`}
                                                 >
                                                     <Checkbox
                                                         id={`product-${product.id}`}
                                                         checked={selectedProductIds.includes(product.id)}
                                                         onCheckedChange={() => toggleProduct(product.id)}
-                                                        className={`shrink-0 ${selectedProductIds.includes(product.id) ? 'border-white' : 'border-gray-200'}`}
+                                                        className={`shrink-0 ${selectedProductIds.includes(product.id) ? 'border-white' : 'border-border'}`}
                                                     />
                                                     <div className="flex-1 min-w-0">
                                                         <div className="text-sm font-bold line-clamp-2 leading-tight">{product.name}</div>
-                                                        <div className={`text-[10px] uppercase font-medium ${selectedProductIds.includes(product.id) ? 'text-white/70' : 'text-gray-400'}`}>{product.volume}</div>
+                                                        <div className={`text-[10px] uppercase font-medium ${selectedProductIds.includes(product.id) ? 'text-white/70' : 'text-muted-foreground'}`}>{product.volume}</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -458,11 +458,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 4: Dates */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">La Période</h2>
+                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">La Période</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="startDate" className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Date de lancement</Label>
+                                    <Label htmlFor="startDate" className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Date de lancement</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                         <input
@@ -476,7 +476,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="endDate" className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Fin (Illimité si vide)</Label>
+                                    <Label htmlFor="endDate" className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Fin (Illimité si vide)</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-hover:text-brand-primary" size={18} />
                                         <input
@@ -493,11 +493,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         </section>
 
                         {/* Desktop Footer Actions */}
-                        <div className="hidden md:flex pt-10 border-t border-gray-100 gap-4">
+                        <div className="hidden md:flex pt-10 border-t border-border gap-4">
                             <Button
                                 onClick={onClose}
                                 variant="ghost"
-                                className="h-14 px-8 rounded-2xl font-bold text-gray-500 hover:bg-slate-100 transition-all flex-1"
+                                className="h-14 px-8 rounded-2xl font-bold text-muted-foreground hover:bg-slate-100 transition-all flex-1"
                             >
                                 Abandonner
                             </Button>
@@ -530,7 +530,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             key={type + name + discountAmount + discountPercentage}
                             initial={{ scale: 0.9, opacity: 0, rotateX: 20 }}
                             animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-                            className="bg-white rounded-[2.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-white overflow-hidden"
+                            className="bg-card rounded-[2.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] border border-white overflow-hidden"
                         >
                             {/* Card Body */}
                             <div className="p-10 text-center relative overflow-hidden">
@@ -546,14 +546,14 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                 <h2 className="text-3xl font-black text-gray-800 mb-2 uppercase tracking-tight break-words">
                                     {name || 'Nom de la Promo'}
                                 </h2>
-                                <p className="text-gray-400 font-medium italic text-sm mb-10 min-h-[40px]">
+                                <p className="text-muted-foreground font-medium italic text-sm mb-10 min-h-[40px]">
                                     {description || "Dites quelque chose d'alléchant ici..."}
                                 </p>
 
                                 <div className="space-y-6">
-                                    <div className="py-6 border-y border-dashed border-gray-100">
+                                    <div className="py-6 border-y border-dashed border-border">
                                         <div className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Offre Exclusive</div>
-                                        <div className="text-5xl font-black text-gray-900 leading-tight">
+                                        <div className="text-5xl font-black text-foreground leading-tight">
                                             {(type === 'pourcentage' || type === 'percentage') && `-${discountPercentage}%`}
                                             {(type === 'reduction_vente' || type === 'fixed_discount') && `-${discountAmount} F`}
                                             {type === 'reduction_produit' && `-${discountAmount} F`}
@@ -561,7 +561,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                             {(type === 'prix_special' || type === 'special_price') && `${specialPrice} F`}
                                             {(type === 'lot' || type === 'bundle') && `${bundleQuantity} pts / ${bundlePrice} F`}
                                         </div>
-                                        <div className="text-xs font-bold text-gray-400 mt-2 uppercase">
+                                        <div className="text-xs font-bold text-muted-foreground mt-2 uppercase">
                                             {type === 'reduction_produit' || type === 'majoration_produit' || type === 'prix_special' ? 'Par unité' : 'Sur votre achat'}
                                         </div>
                                     </div>
@@ -569,11 +569,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     <div className="flex justify-between items-center text-[10px] font-black text-gray-300 uppercase tracking-widest px-4">
                                         <div className="flex flex-col items-start gap-1">
                                             <span>Valide Du</span>
-                                            <span className="text-gray-900 bg-slate-50 px-2 py-1 rounded-md">{format(new Date(startDate), 'dd MMM yyyy', { locale: fr })}</span>
+                                            <span className="text-foreground bg-slate-50 px-2 py-1 rounded-md">{format(new Date(startDate), 'dd MMM yyyy', { locale: fr })}</span>
                                         </div>
                                         <div className="flex flex-col items-end gap-1 text-right">
                                             <span>Expire Le</span>
-                                            <span className="text-gray-900 bg-slate-50 px-2 py-1 rounded-md">
+                                            <span className="text-foreground bg-slate-50 px-2 py-1 rounded-md">
                                                 {endDate ? format(new Date(endDate), 'dd MMM yyyy', { locale: fr }) : 'JAMAIS'}
                                             </span>
                                         </div>
@@ -588,7 +588,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         <div key={i} className={`bg-gray-900 w-[${Math.random() * 3 + 1}px] h-full`}></div>
                                     ))}
                                 </div>
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.4em]">BarTender Digital Pass</span>
+                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.4em]">BarTender Digital Pass</span>
                             </div>
                         </motion.div>
                     </div>

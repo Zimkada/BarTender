@@ -101,14 +101,14 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
     const SortIcon = ({ field }: { field: SortField }) => (
         <ArrowUpDown
             size={14}
-            className={`inline-block ml-1 transition-colors ${sortField === field ? 'text-blue-600' : 'text-gray-300'}`}
+            className={`inline-block ml-1 transition-colors ${sortField === field ? 'text-blue-600' : 'text-muted-foreground/60'}`}
         />
     );
 
     return (
         <div className="space-y-4">
             {/* Barre d'outils (Recherche & Filtres) */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-xl border border-border shadow-sm">
                 <div className="w-full sm:w-64">
                     <Input
                         type="text"
@@ -120,7 +120,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Filter className="text-gray-600" size={18} />
+                    <Filter className="text-foreground/70" size={18} />
                     <Select
                         options={categoryOptions}
                         value={selectedCategory}
@@ -131,71 +131,71 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
             </div>
 
             {/* Tableau */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-muted border-b border-border">
                             <tr>
-                                <th className="px-4 py-3 font-medium text-gray-500 w-16">Img</th>
+                                <th className="px-4 py-3 font-medium text-muted-foreground w-16">Img</th>
                                 <th
-                                    className="px-4 py-3 font-medium text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
+                                    className="px-4 py-3 font-medium text-muted-foreground cursor-pointer hover:bg-muted transition-colors"
                                     onClick={() => handleSort('name')}
                                 >
                                     Produit <SortIcon field="name" />
                                 </th>
                                 <th
-                                    className="px-4 py-3 font-medium text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors hidden md:table-cell"
+                                    className="px-4 py-3 font-medium text-muted-foreground cursor-pointer hover:bg-muted transition-colors hidden md:table-cell"
                                     onClick={() => handleSort('brand')}
                                 >
                                     Marque <SortIcon field="brand" />
                                 </th>
                                 <th
-                                    className="px-4 py-3 font-medium text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors"
+                                    className="px-4 py-3 font-medium text-muted-foreground cursor-pointer hover:bg-muted transition-colors"
                                     onClick={() => handleSort('category')}
                                 >
                                     Catégorie <SortIcon field="category" />
                                 </th>
-                                <th className="px-4 py-3 font-medium text-gray-500 hidden sm:table-cell">Volume</th>
+                                <th className="px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Volume</th>
                                 <th
-                                    className="px-4 py-3 font-medium text-gray-500 cursor-pointer hover:bg-gray-100 transition-colors text-right"
+                                    className="px-4 py-3 font-medium text-muted-foreground cursor-pointer hover:bg-muted transition-colors text-right"
                                     onClick={() => handleSort('price')}
                                 >
                                     Prix Sugg. <SortIcon field="price" />
                                 </th>
-                                <th className="px-4 py-3 font-medium text-gray-500 text-right w-24">Actions</th>
+                                <th className="px-4 py-3 font-medium text-muted-foreground text-right w-24">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {paginatedProducts.map((product) => (
                                 <tr key={product.id} className="hover:bg-blue-50/50 transition-colors group">
                                     <td className="px-4 py-2">
-                                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden border border-border">
                                             {product.officialImage ? (
                                                 <GlobalCatalogTableImage
                                                     src={product.officialImage}
                                                     alt={product.name}
                                                 />
                                             ) : (
-                                                <Package size={16} className="text-gray-300" />
+                                                <Package size={16} className="text-muted-foreground/60" />
                                             )}
                                         </div>
                                     </td>
                                     <td className="px-4 py-2">
-                                        <div className="font-medium text-gray-900">{product.name}</div>
-                                        <div className="text-xs text-gray-500 md:hidden">{product.brand}</div>
+                                        <div className="font-medium text-foreground">{product.name}</div>
+                                        <div className="text-xs text-muted-foreground md:hidden">{product.brand}</div>
                                     </td>
-                                    <td className="px-4 py-2 hidden md:table-cell text-gray-600">
+                                    <td className="px-4 py-2 hidden md:table-cell text-foreground/70">
                                         {product.brand || '-'}
                                     </td>
                                     <td className="px-4 py-2">
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
                                             {product.category}
                                         </span>
                                     </td>
-                                    <td className="px-4 py-2 hidden sm:table-cell text-gray-600">
+                                    <td className="px-4 py-2 hidden sm:table-cell text-foreground/70">
                                         {product.volume}
                                     </td>
-                                    <td className="px-4 py-2 text-right font-mono text-gray-700">
+                                    <td className="px-4 py-2 text-right font-mono text-foreground/80">
                                         {product.suggestedPriceMin ? formatPrice(product.suggestedPriceMin) : '-'}
                                     </td>
                                     <td className="px-4 py-2 text-right">
@@ -204,7 +204,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                                 onClick={() => onEdit(product)}
                                                 variant="ghost"
                                                 size="icon"
-                                                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-foreground/70 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                 title="Modifier"
                                             >
                                                 <Edit2 size={16} />
@@ -213,7 +213,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                                 onClick={() => onDelete(product)}
                                                 variant="ghost"
                                                 size="icon"
-                                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-foreground/70 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Supprimer"
                                             >
                                                 <Trash2 size={16} />
@@ -237,8 +237,8 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
 
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-                        <div className="text-sm text-gray-500">
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted">
+                        <div className="text-sm text-muted-foreground">
                             Affichage de <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> à <span className="font-medium">{Math.min(currentPage * itemsPerPage, processedProducts.length)}</span> sur <span className="font-medium">{processedProducts.length}</span> résultats
                         </div>
                         <div className="flex items-center gap-2">
@@ -250,7 +250,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                             >
                                 <ChevronLeft size={16} />
                             </Button>
-                            <span className="text-sm font-medium text-gray-700 px-2">
+                            <span className="text-sm font-medium text-foreground/80 px-2">
                                 Page {currentPage} sur {totalPages}
                             </span>
                             <Button

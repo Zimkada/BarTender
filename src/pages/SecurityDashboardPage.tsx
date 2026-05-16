@@ -244,22 +244,22 @@ export default function SecurityDashboardPage() {
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3">
           <Shield className="w-7 h-7 text-red-600" />
           Dashboard Sécurité & Monitoring
         </h1>
-        <p className="text-gray-500 mt-1 text-sm md:text-base">
+        <p className="text-muted-foreground mt-1 text-sm md:text-base">
           Tour de contrôle technique et opérationnelle
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b bg-white mb-6 rounded-t-lg overflow-hidden">
+      <div className="flex border-b bg-card mb-6 rounded-t-lg overflow-hidden">
         <button
           onClick={() => setActiveTab('health')}
           className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'health'
             ? 'border-red-600 text-red-600 bg-red-50'
-            : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            : 'border-transparent text-foreground/70 hover:text-foreground hover:bg-muted'
             }`}
         >
           <Activity className="w-4 h-4" />
@@ -269,7 +269,7 @@ export default function SecurityDashboardPage() {
           onClick={() => setActiveTab('database')}
           className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'database'
             ? 'border-indigo-600 text-indigo-600 bg-indigo-50'
-            : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+            : 'border-transparent text-foreground/70 hover:text-foreground hover:bg-muted'
             }`}
         >
           <Database className="w-4 h-4" />
@@ -286,10 +286,10 @@ export default function SecurityDashboardPage() {
             </p>
           </Alert>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 text-center">
-            <Activity className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">En attente des premiers signaux...</h3>
-            <p className="text-gray-500 max-w-md mx-auto mt-2">
+          <div className="bg-card rounded-2xl shadow-sm border border-border p-8 text-center">
+            <Activity className="w-12 h-12 text-muted-foreground/60 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground">En attente des premiers signaux...</h3>
+            <p className="text-muted-foreground max-w-md mx-auto mt-2">
               Le système "Heartbeat" vient d'être activé. Les données apparaîtront ici dès que les tablettes enverront leurs premiers pings (toutes les 5 minutes).
             </p>
           </div>
@@ -322,7 +322,7 @@ export default function SecurityDashboardPage() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-gray-600 text-sm mb-1">RLS Violations (24h)</p>
+                  <p className="text-foreground/70 text-sm mb-1">RLS Violations (24h)</p>
                   <p className="text-3xl font-bold text-red-600">{totalViolations}</p>
                   {recentViolations.length > 0 && (
                     <p className="text-xs text-red-700 mt-2">
@@ -338,7 +338,7 @@ export default function SecurityDashboardPage() {
               <div className="flex items-start gap-3">
                 <Database className="w-6 h-6 text-amber-600 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-gray-600 text-sm mb-1">Échecs Refresh (7j)</p>
+                  <p className="text-foreground/70 text-sm mb-1">Échecs Refresh (7j)</p>
                   <p className="text-3xl font-bold text-amber-600">{totalFailedRefreshes}</p>
                   {totalFailedRefreshes > 0 && (
                     <p className="text-xs text-amber-700 mt-2">
@@ -354,7 +354,7 @@ export default function SecurityDashboardPage() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-6 h-6 text-purple-600 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-gray-600 text-sm mb-1">Alertes Actives</p>
+                  <p className="text-foreground/70 text-sm mb-1">Alertes Actives</p>
                   <p className="text-3xl font-bold text-purple-600">{totalActiveAlerts}</p>
                   {totalActiveAlerts > 0 && (
                     <p className="text-xs text-purple-700 mt-2">Nécessitent attention</p>
@@ -376,8 +376,8 @@ export default function SecurityDashboardPage() {
                 </div>
               </Alert>
 
-              <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="bg-card rounded-2xl shadow-sm border border-red-100 p-6">
+                <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                   <AlertCircle className="w-5 h-5 text-red-600" />
                   Alertes Échecs Refresh Consécutifs
                 </h2>
@@ -392,7 +392,7 @@ export default function SecurityDashboardPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Database className="w-4 h-4 text-red-600" />
-                            <p className="font-semibold text-gray-900">{alert.view_name}</p>
+                            <p className="font-semibold text-foreground">{alert.view_name}</p>
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs font-semibold ${alert.status === 'active'
                                 ? 'bg-red-100 text-red-700'
@@ -405,13 +405,13 @@ export default function SecurityDashboardPage() {
 
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
-                              <p className="text-gray-600">Échecs consécutifs:</p>
+                              <p className="text-foreground/70">Échecs consécutifs:</p>
                               <p className="font-semibold text-red-600">
                                 {alert.consecutive_failures}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Durée incident:</p>
+                              <p className="text-foreground/70">Durée incident:</p>
                               <p className="font-semibold">
                                 {Math.floor(alert.incident_duration_seconds / 60)} min
                               </p>
@@ -420,7 +420,7 @@ export default function SecurityDashboardPage() {
 
                           {alert.error_messages.length > 0 && (
                             <div className="mt-3">
-                              <p className="text-xs text-gray-600 mb-1">Dernier message:</p>
+                              <p className="text-xs text-foreground/70 mb-1">Dernier message:</p>
                               <p className="text-xs font-mono bg-red-100 p-2 rounded">
                                 {alert.error_messages[alert.error_messages.length - 1]}
                               </p>
@@ -445,9 +445,9 @@ export default function SecurityDashboardPage() {
 
           {/* Materialized Views Stats */}
           <section className="mb-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+            <div className="bg-card rounded-2xl shadow-sm border border-purple-100 p-6">
               <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <Database className="w-5 h-5 text-purple-600" />
                   Performance Materialized Views (7 derniers jours)
                 </h2>
@@ -457,7 +457,7 @@ export default function SecurityDashboardPage() {
                     onClick={toggleNotifications}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${notificationsEnabled
                       ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-muted text-foreground/80 hover:bg-gray-200'
                       }`}
                     title="Activer/Désactiver les notifications"
                   >
@@ -509,27 +509,27 @@ export default function SecurityDashboardPage() {
               {/* Desktop: Table View */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-muted border-b border-border">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-foreground/70 uppercase">
                         Vue
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                         Total
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                         Succès
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                         Échecs
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                         Timeouts
                       </th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                         Avg (ms)
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-foreground/70 uppercase">
                         Dernier Refresh
                       </th>
                     </tr>
@@ -549,10 +549,10 @@ export default function SecurityDashboardPage() {
                       const needsRefresh = minutesSinceRefresh > 10;
 
                       return (
-                        <tr key={stat.view_name} className="hover:bg-gray-50">
+                        <tr key={stat.view_name} className="hover:bg-muted">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
-                              <Database className="w-4 h-4 text-gray-600" />
+                              <Database className="w-4 h-4 text-foreground/70" />
                               <span className="font-medium text-sm">{stat.view_name}</span>
                               {needsRefresh && (
                                 <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
@@ -571,12 +571,12 @@ export default function SecurityDashboardPage() {
                               <span className="text-sm font-semibold text-green-600">
                                 {stat.success_count}
                               </span>
-                              <span className="text-xs text-gray-500">({successRate}%)</span>
+                              <span className="text-xs text-muted-foreground">({successRate}%)</span>
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span
-                              className={`text-sm font-semibold ${stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
+                              className={`text-sm font-semibold ${stat.failed_count > 0 ? 'text-red-600' : 'text-foreground/70'
                                 }`}
                             >
                               {stat.failed_count}
@@ -584,7 +584,7 @@ export default function SecurityDashboardPage() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span
-                              className={`text-sm font-semibold ${stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
+                              className={`text-sm font-semibold ${stat.timeout_count > 0 ? 'text-amber-600' : 'text-foreground/70'
                                 }`}
                             >
                               {stat.timeout_count}
@@ -595,10 +595,10 @@ export default function SecurityDashboardPage() {
                           </td>
                           <td className="px-4 py-3">
                             <div className="text-sm">
-                              <div className="text-gray-900 font-medium">
+                              <div className="text-foreground font-medium">
                                 {formatRelativeTime(stat.last_refresh_at)}
                               </div>
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {new Date(stat.last_refresh_at).toLocaleString('fr-FR', {
                                   day: '2-digit',
                                   month: '2-digit',
@@ -633,12 +633,12 @@ export default function SecurityDashboardPage() {
                   return (
                     <div
                       key={stat.view_name}
-                      className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                      className="bg-muted rounded-lg p-4 border border-border"
                     >
                       {/* Header */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <Database className="w-4 h-4 text-gray-600" />
+                          <Database className="w-4 h-4 text-foreground/70" />
                           <span className="font-semibold text-sm">{stat.view_name}</span>
                         </div>
                         {needsRefresh && (
@@ -653,29 +653,29 @@ export default function SecurityDashboardPage() {
                       <div className="grid grid-cols-2 gap-3">
                         {/* Total */}
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Total</div>
-                          <div className="text-lg font-bold text-gray-900">
+                          <div className="text-xs text-muted-foreground mb-1">Total</div>
+                          <div className="text-lg font-bold text-foreground">
                             {stat.total_refreshes}
                           </div>
                         </div>
 
                         {/* Success */}
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Succès</div>
+                          <div className="text-xs text-muted-foreground mb-1">Succès</div>
                           <div className="flex items-center gap-1">
                             <CheckCircle className="w-4 h-4 text-green-600" />
                             <span className="text-lg font-bold text-green-600">
                               {stat.success_count}
                             </span>
-                            <span className="text-xs text-gray-500">({successRate}%)</span>
+                            <span className="text-xs text-muted-foreground">({successRate}%)</span>
                           </div>
                         </div>
 
                         {/* Failures */}
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Échecs</div>
+                          <div className="text-xs text-muted-foreground mb-1">Échecs</div>
                           <div
-                            className={`text-lg font-bold ${stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
+                            className={`text-lg font-bold ${stat.failed_count > 0 ? 'text-red-600' : 'text-foreground/70'
                               }`}
                           >
                             {stat.failed_count}
@@ -684,9 +684,9 @@ export default function SecurityDashboardPage() {
 
                         {/* Timeouts */}
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Timeouts</div>
+                          <div className="text-xs text-muted-foreground mb-1">Timeouts</div>
                           <div
-                            className={`text-lg font-bold ${stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
+                            className={`text-lg font-bold ${stat.timeout_count > 0 ? 'text-amber-600' : 'text-foreground/70'
                               }`}
                           >
                             {stat.timeout_count}
@@ -695,18 +695,18 @@ export default function SecurityDashboardPage() {
                       </div>
 
                       {/* Footer */}
-                      <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
+                      <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
                         <div>
-                          <span className="text-gray-500">Avg:</span>{' '}
-                          <span className="font-semibold text-gray-900">
+                          <span className="text-muted-foreground">Avg:</span>{' '}
+                          <span className="font-semibold text-foreground">
                             {Math.round(stat.avg_duration_ms)}ms
                           </span>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-foreground">
                             {formatRelativeTime(stat.last_refresh_at)}
                           </div>
-                          <div className="text-gray-500">
+                          <div className="text-muted-foreground">
                             {new Date(stat.last_refresh_at).toLocaleString('fr-FR', {
                               day: '2-digit',
                               month: '2-digit',
@@ -726,8 +726,8 @@ export default function SecurityDashboardPage() {
           {/* RLS Violations - Recent Suspicious Users */}
           {recentViolations.length > 0 && (
             <section className="mb-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="bg-card rounded-2xl shadow-sm border border-red-100 p-6">
+                <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5 text-red-600" />
                   Utilisateurs Suspects (3+ violations en 1h)
                 </h2>
@@ -742,24 +742,24 @@ export default function SecurityDashboardPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Users className="w-4 h-4 text-red-600" />
-                            <p className="font-semibold text-gray-900">
+                            <p className="font-semibold text-foreground">
                               {violation.user_email || 'Email inconnu'}
                             </p>
                           </div>
 
                           <div className="grid grid-cols-3 gap-3 text-sm">
                             <div>
-                              <p className="text-gray-600">Violations:</p>
+                              <p className="text-foreground/70">Violations:</p>
                               <p className="font-semibold text-red-600">
                                 {violation.violation_count}
                               </p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Tables affectées:</p>
+                              <p className="text-foreground/70">Tables affectées:</p>
                               <p className="font-semibold">{violation.tables_affected.length}</p>
                             </div>
                             <div>
-                              <p className="text-gray-600">Dernière violation:</p>
+                              <p className="text-foreground/70">Dernière violation:</p>
                               <p className="font-semibold text-xs">
                                 {new Date(violation.last_violation).toLocaleTimeString('fr-FR')}
                               </p>
@@ -767,7 +767,7 @@ export default function SecurityDashboardPage() {
                           </div>
 
                           <div className="mt-2">
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-foreground/70">
                               Tables:{' '}
                               <span className="font-mono">
                                 {violation.tables_affected.join(', ')}
@@ -786,36 +786,36 @@ export default function SecurityDashboardPage() {
           {/* RLS Violations - 24h Heatmap */}
           {securityDashboard.length > 0 && (
             <section>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-gray-600" />
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+                <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-foreground/70" />
                   Heatmap Violations RLS (24h)
                 </h2>
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
+                    <thead className="bg-muted border-b border-border">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-foreground/70 uppercase">
                           Heure
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-foreground/70 uppercase">
                           Table
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                        <th className="px-4 py-3 text-left text-xs font-semibold text-foreground/70 uppercase">
                           Opération
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                           Violations
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-foreground/70 uppercase">
                           Utilisateurs
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {securityDashboard.slice(0, 20).map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
+                        <tr key={index} className="hover:bg-muted">
                           <td className="px-4 py-3 text-sm">
                             {new Date(item.hour).toLocaleString('fr-FR', {
                               day: '2-digit',
@@ -826,7 +826,7 @@ export default function SecurityDashboardPage() {
                           </td>
                           <td className="px-4 py-3 text-sm font-mono">{item.table_name}</td>
                           <td className="px-4 py-3">
-                            <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold">
+                            <span className="px-2 py-1 bg-muted text-foreground/80 rounded text-xs font-semibold">
                               {item.operation}
                             </span>
                           </td>
@@ -852,9 +852,9 @@ export default function SecurityDashboardPage() {
             recentViolations.length === 0 &&
             refreshStats.length === 0 && (
               <div className="text-center py-12">
-                <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">Aucune donnée de sécurité disponible</p>
-                <p className="text-gray-600 text-sm mt-2">
+                <Shield className="w-16 h-16 text-muted-foreground/60 mx-auto mb-4" />
+                <p className="text-muted-foreground text-lg">Aucune donnée de sécurité disponible</p>
+                <p className="text-foreground/70 text-sm mt-2">
                   Les violations RLS et erreurs de refresh apparaîtront ici
                 </p>
               </div>
@@ -863,17 +863,17 @@ export default function SecurityDashboardPage() {
           {/* Performance Charts Section */}
           {refreshHistory.length > 0 && (
             <section className="mb-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
+                <h2 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-blue-600" />
                   Analyse de Performance
                 </h2>
 
-                <Suspense fallback={<div className="text-center py-8 text-gray-500">Chargement des graphiques...</div>}>
+                <Suspense fallback={<div className="text-center py-8 text-muted-foreground">Chargement des graphiques...</div>}>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Duration Timeline */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-foreground/80 mb-3">
                         Historique Durée Refresh (20 derniers)
                       </h4>
                       <RefreshHistoryChart
@@ -890,8 +890,8 @@ export default function SecurityDashboardPage() {
                     </div>
 
                     {/* Status Distribution */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-foreground/80 mb-3">
                         Distribution Statuts
                       </h4>
                       <RefreshHistoryChart
@@ -908,8 +908,8 @@ export default function SecurityDashboardPage() {
                     </div>
 
                     {/* Duration Trend */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-foreground/80 mb-3">
                         Tendance Performance
                       </h4>
                       <RefreshHistoryChart
@@ -926,8 +926,8 @@ export default function SecurityDashboardPage() {
                     </div>
 
                     {/* Average by View */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="text-sm font-semibold text-foreground/80 mb-3">
                         Durée Moyenne par Vue
                       </h4>
                       <RefreshHistoryChart
@@ -950,7 +950,7 @@ export default function SecurityDashboardPage() {
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Clock className="w-4 h-4 text-blue-600" />
-                      <p className="text-sm font-semibold text-gray-700">Refresh le Plus Rapide</p>
+                      <p className="text-sm font-semibold text-foreground/80">Refresh le Plus Rapide</p>
                     </div>
                     <p className="text-2xl font-bold text-blue-600">
                       {Math.min(
@@ -965,7 +965,7 @@ export default function SecurityDashboardPage() {
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Activity className="w-4 h-4 text-amber-600" />
-                      <p className="text-sm font-semibold text-gray-700">Durée Moyenne Totale</p>
+                      <p className="text-sm font-semibold text-foreground/80">Durée Moyenne Totale</p>
                     </div>
                     <p className="text-2xl font-bold text-amber-600">
                       {Math.round(
@@ -982,7 +982,7 @@ export default function SecurityDashboardPage() {
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <CheckCircle className="w-4 h-4 text-green-600" />
-                      <p className="text-sm font-semibold text-gray-700">Taux de Succès</p>
+                      <p className="text-sm font-semibold text-foreground/80">Taux de Succès</p>
                     </div>
                     <p className="text-2xl font-bold text-green-600">
                       {(

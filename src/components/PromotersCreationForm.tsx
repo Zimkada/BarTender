@@ -248,13 +248,13 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
+                    className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col"
                 >
                     {/* Header */}
                     <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            className="absolute top-4 right-4 p-2 hover:bg-card/20 rounded-lg transition-colors"
                         >
                             <X className="w-6 h-6" />
                         </button>
@@ -304,14 +304,14 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                             {/* Grid 2 cols pour firstName/lastName */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground/80 mb-1">
                                         Prénom(s) *
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.firstName}
                                         onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.firstName ? 'border-red-500' : 'border-gray-300'
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.firstName ? 'border-red-500' : 'border-border'
                                             }`}
                                         placeholder="Luc"
                                     />
@@ -321,14 +321,14 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    <label className="block text-sm font-medium text-foreground/80 mb-1">
                                         Nom *
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.lastName}
                                         onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.lastName ? 'border-red-500' : 'border-gray-300'
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.lastName ? 'border-red-500' : 'border-border'
                                             }`}
                                         placeholder="GOUNOU"
                                     />
@@ -340,14 +340,14 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
                             {/* Email */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground/80 mb-1">
                                     Email *
                                 </label>
                                 <input
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.email ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.email ? 'border-red-500' : 'border-border'
                                         }`}
                                     placeholder="luc.gounou@example.com"
                                 />
@@ -358,14 +358,14 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
                             {/* Phone */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground/80 mb-1">
                                     Téléphone *
                                 </label>
                                 <input
                                     type="tel"
                                     value={formData.phone}
                                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.phone ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.phone ? 'border-red-500' : 'border-border'
                                         }`}
                                     placeholder="01 97 XX XX XX"
                                 />
@@ -376,7 +376,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
                             {/* Password avec toggle et generate */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground/80 mb-1">
                                     Mot de passe *
                                 </label>
                                 <div className="flex gap-2">
@@ -385,16 +385,16 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                             type={showPassword ? 'text' : 'password'}
                                             value={formData.password}
                                             onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                                            className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.password ? 'border-red-500' : 'border-gray-300'
+                                            className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.password ? 'border-red-500' : 'border-border'
                                                 }`}
                                             placeholder="••••••••"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded"
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-muted rounded"
                                         >
-                                            {showPassword ? <EyeOff className="w-4 h-4 text-gray-500" /> : <Eye className="w-4 h-4 text-gray-500" />}
+                                            {showPassword ? <EyeOff className="w-4 h-4 text-muted-foreground" /> : <Eye className="w-4 h-4 text-muted-foreground" />}
                                         </button>
                                     </div>
                                     <button
@@ -413,47 +413,47 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
                             {/* Divider */}
                             <div className="border-t pt-4">
-                                <p className="text-sm text-gray-500 mb-3">Informations du bar (optionnel)</p>
+                                <p className="text-sm text-muted-foreground mb-3">Informations du bar (optionnel)</p>
                             </div>
 
                             {/* barName */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground/80 mb-1">
                                     Nom du bar
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.barName}
                                     onChange={(e) => setFormData(prev => ({ ...prev, barName: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                     placeholder="Bar La Concorde (optionnel)"
                                 />
                             </div>
 
                             {/* barAddress */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground/80 mb-1">
                                     Adresse du bar
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.barAddress}
                                     onChange={(e) => setFormData(prev => ({ ...prev, barAddress: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                     placeholder="Cotonou, Bénin (optionnel)"
                                 />
                             </div>
 
                             {/* barPhone */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                <label className="block text-sm font-medium text-foreground/80 mb-1">
                                     Téléphone du bar
                                 </label>
                                 <input
                                     type="tel"
                                     value={formData.barPhone}
                                     onChange={(e) => setFormData(prev => ({ ...prev, barPhone: e.target.value }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                    className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                     placeholder="01 XX XX XX XX (optionnel)"
                                 />
                             </div>
@@ -461,13 +461,13 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                     </div>
 
                     {/* Footer Buttons */}
-                    <div className="p-6 bg-gray-50 border-t flex justify-end gap-3">
+                    <div className="p-6 bg-muted border-t flex justify-end gap-3">
                         {barCreationFailed ? (
                             <>
                                 <button
                                     onClick={handleFinishWithoutBar}
                                     disabled={loading}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                                    className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 transition-colors"
                                 >
                                     Terminer sans bar
                                 </button>
@@ -485,7 +485,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                 <button
                                     onClick={onClose}
                                     disabled={loading}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                                    className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 transition-colors"
                                 >
                                     Annuler
                                 </button>

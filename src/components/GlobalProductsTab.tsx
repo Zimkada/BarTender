@@ -208,7 +208,7 @@ export function GlobalProductsTab() {
                 </div>
 
                 <div className="flex gap-2 w-full md:w-auto">
-                    <div className="flex bg-gray-100 rounded-lg p-1">
+                    <div className="flex bg-muted rounded-lg p-1">
                         <Button
                             onClick={() => setViewMode('grid')}
                             variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -243,10 +243,10 @@ export function GlobalProductsTab() {
                         {filteredProducts.map((product) => (
                             <div
                                 key={product.id}
-                                className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex flex-col group hover:shadow-md transition-shadow"
+                                className="bg-card p-3 rounded-xl border border-border shadow-sm flex flex-col group hover:shadow-md transition-shadow"
                             >
                                 <div className="flex justify-between items-start mb-2">
-                                    <span className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-md font-medium truncate max-w-[70%]">
+                                    <span className="px-1.5 py-0.5 bg-muted text-foreground/70 text-[10px] rounded-md font-medium truncate max-w-[70%]">
                                         {product.category}
                                     </span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -254,7 +254,7 @@ export function GlobalProductsTab() {
                                             onClick={() => handleOpenModal(product)}
                                             variant="ghost"
                                             size="icon"
-                                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                            className="p-1 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                         >
                                             <Edit2 className="w-3.5 h-3.5" />
                                         </Button>
@@ -262,32 +262,32 @@ export function GlobalProductsTab() {
                                             onClick={() => handleDeleteClick(product)}
                                             variant="ghost"
                                             size="icon"
-                                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                            className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
                                     </div>
                                 </div>
 
-                                <div className="aspect-square mb-2 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden relative">
+                                <div className="aspect-square mb-2 bg-muted rounded-lg flex items-center justify-center overflow-hidden relative">
                                     {product.officialImage ? (
                                         <GlobalCatalogProductImage
                                             src={product.officialImage}
                                             alt={product.name}
                                         />
                                     ) : (
-                                        <div className="text-gray-300 text-[10px] text-center p-2">
+                                        <div className="text-muted-foreground/60 text-[10px] text-center p-2">
                                             Pas d'image
                                         </div>
                                     )}
                                 </div>
 
-                                <h4 className="font-bold text-gray-900 text-sm leading-tight mb-0.5 line-clamp-2">{product.name}</h4>
-                                <p className="text-xs text-gray-500 mb-2 truncate">{product.brand} - {product.volume}</p>
+                                <h4 className="font-bold text-foreground text-sm leading-tight mb-0.5 line-clamp-2">{product.name}</h4>
+                                <p className="text-xs text-muted-foreground mb-2 truncate">{product.brand} - {product.volume}</p>
 
-                                <div className="mt-auto pt-2 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-1">
-                                    <span className="text-gray-600 text-[10px]">Prix suggéré</span>
-                                    <span className="font-semibold text-gray-900">
+                                <div className="mt-auto pt-2 border-t border-border flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-1">
+                                    <span className="text-foreground/70 text-[10px]">Prix suggéré</span>
+                                    <span className="font-semibold text-foreground">
                                         {product.suggestedPriceMin ? `${product.suggestedPriceMin}` : ''}
                                         {product.suggestedPriceMin && product.suggestedPriceMax ? '-' : ''}
                                         {product.suggestedPriceMax || '?'} F
@@ -317,7 +317,7 @@ export function GlobalProductsTab() {
                             <Button
                                 onClick={() => setIsModalOpen(false)}
                                 variant="secondary"
-                                className="px-4 py-2 text-gray-700 rounded-lg font-medium"
+                                className="px-4 py-2 text-foreground/80 rounded-lg font-medium"
                             >
                                 Annuler
                             </Button>

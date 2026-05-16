@@ -111,12 +111,12 @@ export function AdminSetPasswordModal({ isOpen, onClose, user, onSuccess }: Admi
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
+            className="bg-card rounded-lg shadow-xl w-full max-w-md p-6 relative"
           >
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 text-gray-600 hover:text-gray-600 transition-colors"
+              className="absolute top-4 right-4 text-foreground/70 hover:text-foreground/70 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -126,13 +126,13 @@ export function AdminSetPasswordModal({ isOpen, onClose, user, onSuccess }: Admi
               <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                 <Lock className="w-5 h-5 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900">Définir un nouveau mot de passe</h3>
+              <h3 className="text-xl font-semibold text-foreground">Définir un nouveau mot de passe</h3>
             </div>
 
             {/* User info */}
-            <div className="bg-gray-50 rounded-lg p-3 mb-6 text-sm text-gray-600">
-              <p className="font-medium text-gray-900">{user.name}</p>
-              <p className="text-gray-500">{user.email}</p>
+            <div className="bg-muted rounded-lg p-3 mb-6 text-sm text-foreground/70">
+              <p className="font-medium text-foreground">{user.name}</p>
+              <p className="text-muted-foreground">{user.email}</p>
             </div>
 
             {/* Form */}

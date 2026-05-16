@@ -78,11 +78,11 @@ export default function SuperAdminPage() {
     <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8"> {/* Added padding */}
       <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"> {/* Made header responsive */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3"> {/* Increased font size on md */}
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-3"> {/* Increased font size on md */}
             <ShieldCheck className="w-7 h-7 text-purple-600" />
             Dashboard Super Admin
           </h1>
-          <p className="text-gray-500 mt-1 text-sm md:text-base">Vue d'overview de BarTender Pro</p> {/* Increased font size on md */}
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">Vue d'overview de BarTender Pro</p> {/* Increased font size on md */}
         </div>
         {/* Filtre de période - DRY: Utiliser configuration centralisée */}
         <div className="flex flex-wrap justify-center sm:justify-end gap-2"> {/* Made buttons wrap on small screens */}
@@ -95,7 +95,7 @@ export default function SuperAdminPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                   filter.isActive(timeRange)
                     ? 'bg-purple-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                    : 'bg-card text-foreground/80 hover:bg-muted'
                 }`}
                 title={config.description}
               >
@@ -139,17 +139,17 @@ export default function SuperAdminPage() {
         </section>
 
         {/* Section 2: Statistiques des Bars */}
-        <section className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+        <section className="bg-card rounded-2xl shadow-sm border border-purple-100 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-5 h-5 text-purple-600" />
-            <h3 className="text-lg font-bold text-gray-900">Statistiques des Bars</h3>
+            <h3 className="text-lg font-bold text-foreground">Statistiques des Bars</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4"> {/* Made grid more responsive */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm border border-purple-200">
               <div className="flex items-start gap-3">
                 <Building2 className="w-6 h-6 text-purple-600 flex-shrink-0" />
                 <div>
-                  <p className="text-gray-600 text-xs md:text-sm mb-1">Total Bars</p>
+                  <p className="text-foreground/70 text-xs md:text-sm mb-1">Total Bars</p>
                   <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.bars_count}</p>
                 </div>
               </div>
@@ -158,7 +158,7 @@ export default function SuperAdminPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
                 <div>
-                  <p className="text-gray-600 text-xs md:text-sm mb-1">Bars Actifs</p>
+                  <p className="text-foreground/70 text-xs md:text-sm mb-1">Bars Actifs</p>
                   <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.active_bars_count}</p>
                 </div>
               </div>
@@ -167,7 +167,7 @@ export default function SuperAdminPage() {
               <div className="flex items-start gap-3">
                 <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
                 <div>
-                  <p className="text-gray-600 text-xs md:text-sm mb-1">Bars Suspendus</p>
+                  <p className="text-foreground/70 text-xs md:text-sm mb-1">Bars Suspendus</p>
                   <p className="text-2xl md:text-3xl font-bold text-red-600">{suspendedBarsCount}</p>
                 </div>
               </div>

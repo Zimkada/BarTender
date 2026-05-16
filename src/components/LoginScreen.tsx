@@ -173,14 +173,14 @@ function LoginScreen() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
+          className="bg-card rounded-2xl shadow-xl p-8 w-full max-w-md"
         >
           <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mb-4">
               <Lock className="w-8 h-8 text-brand-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800">Vérification 2FA</h2>
-            <p className="text-gray-600 mt-2">Veuillez entrer le code de votre application d'authentification.</p>
+            <h2 className="text-2xl font-bold text-foreground">Vérification 2FA</h2>
+            <p className="text-foreground/70 mt-2">Veuillez entrer le code de votre application d'authentification.</p>
           </div>
 
           <form onSubmit={handleMfaVerify} className="space-y-4">
@@ -216,7 +216,7 @@ function LoginScreen() {
                 setMfaError('');
                 setError('Connexion annulée.'); // Optionally show a message
               }}
-              className="w-full mt-2 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200"
+              className="w-full mt-2 bg-gray-200 text-foreground/80 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all duration-200"
             >
               Annuler
             </button>
@@ -233,14 +233,14 @@ function LoginScreen() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
+          className="bg-card rounded-2xl shadow-xl p-8 w-full max-w-md"
         >
           <div className="text-center mb-8">
             <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mb-4">
               <Lock className="w-8 h-8 text-brand-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800">Première connexion</h2>
-            <p className="text-gray-600 mt-2">Veuillez changer votre mot de passe</p>
+            <h2 className="text-2xl font-bold text-foreground">Première connexion</h2>
+            <p className="text-foreground/70 mt-2">Veuillez changer votre mot de passe</p>
           </div>
 
           <form onSubmit={handlePasswordChange} className="space-y-4">
@@ -285,7 +285,7 @@ function LoginScreen() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
+        className="bg-card rounded-2xl shadow-xl p-8 w-full max-w-md"
       >
         <div className="text-center mb-8">
           <div className="mx-auto w-20 h-20 mb-4 flex items-center justify-center">
@@ -296,7 +296,7 @@ function LoginScreen() {
             />
           </div>
           <h1 className="text-3xl font-bold text-brand-primary">BarTender Pro</h1>
-          <p className="text-gray-600 mt-2">Connectez-vous à votre espace</p>
+          <p className="text-foreground/70 mt-2">Connectez-vous à votre espace</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -342,7 +342,7 @@ function LoginScreen() {
         </div>
 
         <div className="mt-4 text-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Contactez votre administrateur pour obtenir vos identifiants
           </p>
         </div>

@@ -297,12 +297,12 @@ export function CreateReturnForm({
                 transition={{ duration: 0.15 }}
                 className="space-y-5"
               >
-                <h3 className="text-h3 text-gray-900">1. Sélectionner une vente</h3>
+                <h3 className="text-h3 text-foreground">1. Sélectionner une vente</h3>
 
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative flex-1">
                     <Search
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground z-10"
                       size={16}
                     />
                     <input
@@ -310,7 +310,7 @@ export function CreateReturnForm({
                       placeholder={isMobile ? "Rechercher vente ou produit" : "Rechercher une vente ou un produit…"}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 h-11 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors outline-none"
+                      className="w-full pl-9 pr-3 h-11 border border-border rounded-xl bg-muted focus:bg-card text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors outline-none"
                     />
                   </div>
 
@@ -326,15 +326,15 @@ export function CreateReturnForm({
                         ]}
                         value={filterSeller}
                         onChange={(e) => setFilterSeller(e.target.value)}
-                        className="bg-gray-50 border-gray-200 h-11 rounded-xl text-body-sm"
+                        className="bg-muted border-border h-11 rounded-xl text-body-sm"
                       />
                     </div>
                   )}
                 </div>
 
                 {filteredSales.length === 0 ? (
-                  <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                    <p className="text-body-sm text-gray-500">
+                  <div className="text-center py-10 bg-muted rounded-xl border border-dashed border-border">
+                    <p className="text-body-sm text-muted-foreground">
                       {returnableSales.length === 0
                         ? "Aucune vente dans la journée commerciale actuelle"
                         : "Aucune vente trouvée"}
@@ -373,9 +373,9 @@ export function CreateReturnForm({
                                   </span>
                                 </div>
                               ) : (
-                                <div className="text-caption text-gray-400">Vendeur inconnu</div>
+                                <div className="text-caption text-muted-foreground">Vendeur inconnu</div>
                               )}
-                              <span className="text-micro text-gray-400 tabular-nums flex-shrink-0">
+                              <span className="text-micro text-muted-foreground tabular-nums flex-shrink-0">
                                 {new Date(
                                   sale.validatedAt || sale.createdAt,
                                 ).toLocaleTimeString("fr-FR", {
@@ -387,7 +387,7 @@ export function CreateReturnForm({
 
                             {/* Middle: Product List */}
                             <div
-                              className="text-caption text-gray-700 font-medium line-clamp-2 leading-relaxed bg-gray-50 p-2.5 rounded-lg border border-gray-100"
+                              className="text-caption text-foreground/80 font-medium line-clamp-2 leading-relaxed bg-muted p-2.5 rounded-lg border border-border"
                               title={productPreview}
                             >
                               {productPreview}
@@ -395,10 +395,10 @@ export function CreateReturnForm({
 
                             {/* Bottom: ID & Price */}
                             <div className="flex items-center justify-between pt-0.5">
-                              <span className="text-micro text-gray-400">
+                              <span className="text-micro text-muted-foreground">
                                 #{sale.id.slice(-4).toUpperCase()}
                               </span>
-                              <span className="text-caption font-semibold text-gray-900 tabular-nums">
+                              <span className="text-caption font-semibold text-foreground tabular-nums">
                                 {formatPrice(sale.total)}
                               </span>
                             </div>
@@ -426,11 +426,11 @@ export function CreateReturnForm({
                       setSelectedProduct(null);
                     }}
                   />
-                  <h3 className="text-h3 text-gray-900">2. Choisir le produit</h3>
+                  <h3 className="text-h3 text-foreground">2. Choisir le produit</h3>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="block text-micro text-gray-400">
+                  <label className="block text-micro text-muted-foreground">
                     Sélectionner un produit à retourner
                   </label>
                   <div className="space-y-2">
@@ -455,28 +455,28 @@ export function CreateReturnForm({
                           status={isFullyUnavailable ? 'disabled' : 'default'}
                           statusText={isFullyUnavailable ? 'Déjà retourné' : undefined}
                           priceDisplay={
-                            <span className="text-body-sm font-semibold text-gray-900 tabular-nums">
+                            <span className="text-body-sm font-semibold text-foreground tabular-nums">
                               {formatPrice(productPrice)}
                             </span>
                           }
                         >
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-2">
-                              <span className="text-body-sm font-semibold text-gray-900">
+                              <span className="text-body-sm font-semibold text-foreground">
                                 {productName}
                               </span>
                               {productVolume && (
-                                <span className="text-micro text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                                   {productVolume}
                                 </span>
                               )}
                             </div>
 
                             <div className="flex items-center gap-2 text-caption">
-                              <span className="text-gray-400">Disponible</span>
+                              <span className="text-muted-foreground">Disponible</span>
                               <span className="font-semibold text-brand-primary tabular-nums">{available}</span>
                               <span className="text-gray-300">·</span>
-                              <span className="text-gray-400">Vendu <span className="font-medium text-gray-600 tabular-nums">{item.quantity}</span></span>
+                              <span className="text-muted-foreground">Vendu <span className="font-medium text-foreground/70 tabular-nums">{item.quantity}</span></span>
                             </div>
                           </div>
                         </SelectionCard>
@@ -497,15 +497,15 @@ export function CreateReturnForm({
               >
                 <div className="flex items-center gap-3">
                   <BackButton onClick={() => setSelectedProduct(null)} />
-                  <h3 className="text-h3 text-gray-900">3. Détails du retour</h3>
+                  <h3 className="text-h3 text-foreground">3. Détails du retour</h3>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
                   {/* Left Column: Form Controls */}
-                  <div className="lg:col-span-2 space-y-6 p-5 sm:p-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                  <div className="lg:col-span-2 space-y-6 p-5 sm:p-6 bg-card rounded-2xl border border-border shadow-sm">
                     {/* Product Header */}
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 overflow-hidden flex-shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center border border-border overflow-hidden flex-shrink-0">
                         {products.find(p => p.id === selectedProduct.product_id)?.image ? (
                           <img
                             src={products.find(p => p.id === selectedProduct.product_id)?.image}
@@ -517,8 +517,8 @@ export function CreateReturnForm({
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-micro text-gray-400">Article à traiter</p>
-                        <h4 className="text-body-sm font-semibold text-gray-900 truncate">
+                        <p className="text-micro text-muted-foreground">Article à traiter</p>
+                        <h4 className="text-body-sm font-semibold text-foreground truncate">
                           {selectedProduct.product_name}
                         </h4>
                       </div>
@@ -527,22 +527,22 @@ export function CreateReturnForm({
                     <div className="grid grid-cols-1 gap-6">
                       {/* 1. Quantity Selector */}
                       <div>
-                        <Label className="text-micro text-gray-400 mb-3 block">
+                        <Label className="text-micro text-muted-foreground mb-3 block">
                           1. Quantité à retourner
                         </Label>
                         <div className="flex items-center gap-5">
-                          <div className="flex items-center gap-2 bg-gray-50 p-1.5 rounded-full border border-gray-100">
+                          <div className="flex items-center gap-2 bg-muted p-1.5 rounded-full border border-border">
                             <button
                               type="button"
                               onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                              className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-700 hover:text-brand-primary hover:border-brand-primary border border-gray-200 transition-colors disabled:opacity-30 disabled:hover:text-gray-700 disabled:hover:border-gray-200"
+                              className="w-10 h-10 flex items-center justify-center bg-card rounded-full text-foreground/80 hover:text-brand-primary hover:border-brand-primary border border-border transition-colors disabled:opacity-30 disabled:hover:text-foreground/80 disabled:hover:border-border"
                               disabled={quantity <= 1}
                             >
                               <Minus size={16} />
                             </button>
 
                             <div className="w-14 text-center select-none">
-                              <span className="text-h2 font-semibold text-gray-900 tabular-nums">
+                              <span className="text-h2 font-semibold text-foreground tabular-nums">
                                 {quantity}
                               </span>
                             </div>
@@ -550,7 +550,7 @@ export function CreateReturnForm({
                             <button
                               type="button"
                               onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
-                              className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-700 hover:text-brand-primary hover:border-brand-primary border border-gray-200 transition-colors disabled:opacity-30 disabled:hover:text-gray-700 disabled:hover:border-gray-200"
+                              className="w-10 h-10 flex items-center justify-center bg-card rounded-full text-foreground/80 hover:text-brand-primary hover:border-brand-primary border border-border transition-colors disabled:opacity-30 disabled:hover:text-foreground/80 disabled:hover:border-border"
                               disabled={quantity >= availableQty}
                             >
                               <Plus size={16} />
@@ -558,15 +558,15 @@ export function CreateReturnForm({
                           </div>
 
                           <div className="hidden sm:flex flex-col">
-                            <span className="text-micro text-gray-400">Capacité</span>
-                            <span className="text-caption font-medium text-gray-700 tabular-nums">{availableQty} unités</span>
+                            <span className="text-micro text-muted-foreground">Capacité</span>
+                            <span className="text-caption font-medium text-foreground/80 tabular-nums">{availableQty} unités</span>
                           </div>
                         </div>
                       </div>
 
                       {/* 2. Reason Selector */}
                       <div>
-                        <Label className="text-micro text-gray-400 mb-3 block">
+                        <Label className="text-micro text-muted-foreground mb-3 block">
                           2. Motif du retour
                         </Label>
                         <ReturnReasonSelector
@@ -578,7 +578,7 @@ export function CreateReturnForm({
 
                       {/* 3. Notes */}
                       <div>
-                        <Label htmlFor="returnNotes" className="text-micro text-gray-400 mb-2 block">
+                        <Label htmlFor="returnNotes" className="text-micro text-muted-foreground mb-2 block">
                           3. Précisions (optionnel)
                         </Label>
                         <Textarea
@@ -586,7 +586,7 @@ export function CreateReturnForm({
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           rows={3}
-                          className="rounded-xl border-gray-200 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-body-sm bg-gray-50 focus:bg-white transition-colors resize-none outline-none"
+                          className="rounded-xl border-border focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-body-sm bg-muted focus:bg-card transition-colors resize-none outline-none"
                           placeholder="Ex : bouteille cassée, erreur de saisie…"
                         />
                       </div>
@@ -594,22 +594,22 @@ export function CreateReturnForm({
                   </div>
 
                   {/* Right Column: Summary Panel */}
-                  <div className="lg:col-span-1 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm relative flex flex-col justify-between min-h-[480px]">
+                  <div className="lg:col-span-1 p-6 bg-card rounded-2xl border border-border shadow-sm relative flex flex-col justify-between min-h-[480px]">
                     {/* Accent bar */}
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-brand-primary rounded-l-2xl" />
 
                     <div className="space-y-6">
                       <div>
-                        <h4 className="text-micro text-gray-400 mb-4">Validation finale</h4>
+                        <h4 className="text-micro text-muted-foreground mb-4">Validation finale</h4>
 
-                        <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div className="space-y-3 bg-muted p-4 rounded-xl border border-border">
                           <div className="flex justify-between items-center">
-                            <span className="text-caption text-gray-500">Quantité</span>
-                            <span className="text-body-sm font-semibold text-gray-900 tabular-nums">{quantity} unités</span>
+                            <span className="text-caption text-muted-foreground">Quantité</span>
+                            <span className="text-body-sm font-semibold text-foreground tabular-nums">{quantity} unités</span>
                           </div>
 
                           {reason === 'exchange' && (
-                            <div className="pt-4 mt-1 border-t border-gray-200" data-guide="returns-exchange-summary">
+                            <div className="pt-4 mt-1 border-t border-border" data-guide="returns-exchange-summary">
                               <div className="flex items-center justify-between mb-3">
                                 <span className="text-micro text-brand-primary">Flux échange produit</span>
                                 <div className="px-2 py-0.5 bg-brand-subtle rounded-full text-micro font-semibold text-brand-primary">
@@ -618,12 +618,12 @@ export function CreateReturnForm({
                               </div>
 
                               {swapProduct ? (
-                                <div className="bg-white p-4 rounded-xl border border-brand-subtle">
+                                <div className="bg-card p-4 rounded-xl border border-brand-subtle">
                                   <div className="flex flex-col gap-3">
                                     <div className="flex justify-between items-start gap-2">
                                       <div className="flex flex-col gap-0.5 min-w-0">
-                                        <span className="text-micro text-gray-400">Article de remplacement</span>
-                                        <span className="text-body-sm font-semibold text-gray-900 truncate">{swapProduct.name}</span>
+                                        <span className="text-micro text-muted-foreground">Article de remplacement</span>
+                                        <span className="text-body-sm font-semibold text-foreground truncate">{swapProduct.name}</span>
                                       </div>
                                       <span className="text-body-sm font-semibold text-brand-primary tabular-nums bg-brand-subtle px-2 py-0.5 rounded-lg flex-shrink-0">
                                         {formatPrice(swapProduct.price)}
@@ -642,35 +642,35 @@ export function CreateReturnForm({
                               ) : (
                                 <button
                                   onClick={() => setIsSelectingSwapProduct(true)}
-                                  className="w-full flex flex-col items-center justify-center py-6 px-5 rounded-xl border border-dashed border-brand-subtle bg-white hover:bg-brand-subtle/30 hover:border-brand-primary transition-colors"
+                                  className="w-full flex flex-col items-center justify-center py-6 px-5 rounded-xl border border-dashed border-brand-subtle bg-card hover:bg-brand-subtle/30 hover:border-brand-primary transition-colors"
                                 >
                                   <div className="w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center text-brand-primary mb-2">
                                     <Plus size={18} />
                                   </div>
-                                  <span className="text-body-sm font-semibold text-gray-900">Choisir l'article</span>
-                                  <p className="text-caption text-gray-500 mt-0.5 text-center">L'ancien produit est remis en stock automatiquement</p>
+                                  <span className="text-body-sm font-semibold text-foreground">Choisir l'article</span>
+                                  <p className="text-caption text-muted-foreground mt-0.5 text-center">L'ancien produit est remis en stock automatiquement</p>
                                 </button>
                               )}
                             </div>
                           )}
 
                           <div className="flex justify-between items-center">
-                            <span className="text-caption text-gray-500">Prix unitaire d'origine</span>
-                            <span className="text-body-sm font-medium text-gray-700 tabular-nums">{formatPrice(selectedProduct.unit_price)}</span>
+                            <span className="text-caption text-muted-foreground">Prix unitaire d'origine</span>
+                            <span className="text-body-sm font-medium text-foreground/80 tabular-nums">{formatPrice(selectedProduct.unit_price)}</span>
                           </div>
 
-                          <div className="pt-4 border-t border-gray-200 flex flex-col items-end gap-1">
+                          <div className="pt-4 border-t border-border flex flex-col items-end gap-1">
                             {reason === 'exchange' && swapProduct ? (
                               <>
                                 <div className="flex items-center gap-2 mb-1">
                                   <div className={`w-1.5 h-1.5 rounded-full ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "bg-amber-500" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "bg-emerald-500" : "bg-gray-400"}`} />
-                                  <span className="text-micro text-gray-400">Écart à régulariser</span>
+                                  <span className="text-micro text-muted-foreground">Écart à régulariser</span>
                                 </div>
                                 <div className="flex flex-col items-end gap-1.5">
-                                  <span className={`text-h2 font-semibold tabular-nums leading-none ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "text-amber-600" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                                  <span className={`text-h2 font-semibold tabular-nums leading-none ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "text-amber-600" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "text-emerald-600" : "text-foreground"}`}>
                                     {formatPrice(quantity * (swapProduct.price - selectedProduct.unit_price))}
                                   </span>
-                                  <p className="text-caption text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-100">
+                                  <p className="text-caption text-muted-foreground bg-card px-2 py-1 rounded-lg border border-border">
                                     {(swapProduct.price - selectedProduct.unit_price) > 0
                                       ? "Le client doit verser l'écart"
                                       : (swapProduct.price - selectedProduct.unit_price) < 0
@@ -682,7 +682,7 @@ export function CreateReturnForm({
                             ) : (
                               <>
                                 <span className="text-micro text-brand-primary mb-1">Total à rembourser</span>
-                                <span className="text-h1 font-semibold text-gray-900 tabular-nums">
+                                <span className="text-h1 font-semibold text-foreground tabular-nums">
                                   {formatPrice(quantity * selectedProduct.unit_price)}
                                 </span>
                               </>
@@ -692,7 +692,7 @@ export function CreateReturnForm({
                       </div>
 
                       <div>
-                        <p className="text-micro text-gray-400 mb-2">Impact inventaire</p>
+                        <p className="text-micro text-muted-foreground mb-2">Impact inventaire</p>
                         <div className={`flex items-center gap-3 p-3 rounded-xl border ${reason === 'defective' || reason === 'expired'
                           ? "bg-red-50 text-red-700 border-red-100"
                           : "bg-emerald-50 text-emerald-700 border-emerald-100"
@@ -724,7 +724,7 @@ export function CreateReturnForm({
 
                       <button
                         onClick={onCancel}
-                        className="w-full py-2 text-caption text-gray-400 hover:text-gray-600 transition-colors"
+                        className="w-full py-2 text-caption text-muted-foreground hover:text-foreground/70 transition-colors"
                       >
                         Annuler l'opération
                       </button>

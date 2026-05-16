@@ -184,7 +184,7 @@ export const OfflineBanner: React.FC = () => {
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono
                                 ${errorCount > 0
                                     ? 'bg-red-500/25 text-red-300'
-                                    : 'bg-white/10 text-white/80'
+                                    : 'bg-card/10 text-white/80'
                                 }`}>
                                 {pendingCount + errorCount}
                             </span>
@@ -205,11 +205,11 @@ export const OfflineBanner: React.FC = () => {
                             className="px-5 pb-5 pt-1"
                         >
                             {/* STATUS DETAILS */}
-                            <div className="mb-4 text-sm text-gray-300 border-t border-white/10 pt-3 mt-1">
+                            <div className="mb-4 text-sm text-muted-foreground/60 border-t border-white/10 pt-3 mt-1">
                                 {isManagerRole ? (
                                     <div className="space-y-3">
                                         <p className="font-bold text-amber-400">Action Requise pour le Gérant :</p>
-                                        <ol className="space-y-2 text-xs text-gray-400 list-decimal pl-4">
+                                        <ol className="space-y-2 text-xs text-muted-foreground list-decimal pl-4">
                                             <li>
                                                 <span className="text-gray-200">Vérifiez votre connexion</span> (Wi-Fi/4G).
                                             </li>
@@ -236,7 +236,7 @@ export const OfflineBanner: React.FC = () => {
                                                 🚨 Votre rôle de Serveur nécessite une connexion active pour garantir l'intégrité des opérations.
                                             </p>
                                         </div>
-                                        <p className="text-[10px] text-gray-400 italic text-center">
+                                        <p className="text-[10px] text-muted-foreground italic text-center">
                                             Vérifiez votre Wi-Fi/4G ou contactez un gérant.
                                         </p>
                                     </>
@@ -254,7 +254,7 @@ export const OfflineBanner: React.FC = () => {
                                         disabled={isSyncing}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
                                             ${isSyncing
-                                                ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
+                                                ? 'bg-gray-700/50 text-muted-foreground cursor-not-allowed'
                                                 : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 active:scale-95'
                                             }`}
                                     >
@@ -275,14 +275,14 @@ export const OfflineBanner: React.FC = () => {
 
                             {/* QUEUE STATUS */}
                             {pendingCount > 0 && (
-                                <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5 mb-3">
+                                <div className="flex items-center justify-between bg-card/5 p-3 rounded-xl border border-white/5 mb-3">
                                     <div className="flex items-center gap-2">
                                         <Clock size={14} className="text-amber-400" />
-                                        <span className="text-xs font-medium text-gray-300">
+                                        <span className="text-xs font-medium text-muted-foreground/60">
                                             En attente de synchro
                                         </span>
                                     </div>
-                                    <span className="text-sm font-bold text-white bg-white/10 px-2 py-0.5 rounded-md">
+                                    <span className="text-sm font-bold text-white bg-card/10 px-2 py-0.5 rounded-md">
                                         {pendingCount}
                                     </span>
                                 </div>
@@ -307,7 +307,7 @@ export const OfflineBanner: React.FC = () => {
                                         disabled={isRetryingErrors || isSyncing}
                                         className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
                                             ${isRetryingErrors || isSyncing
-                                                ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
+                                                ? 'bg-gray-700/50 text-muted-foreground cursor-not-allowed'
                                                 : 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 active:scale-95'
                                             }`}
                                     >

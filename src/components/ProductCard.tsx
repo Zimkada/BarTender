@@ -118,7 +118,7 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
               transition={{ duration: 0.15 }}
               className="absolute inset-0 bg-brand-primary/85 flex items-center justify-center z-20"
             >
-              <div className="bg-white rounded-full p-2 shadow-lg">
+              <div className="bg-card rounded-full p-2 shadow-lg">
                 <Check className="text-brand-primary w-5 h-5" strokeWidth={3} />
               </div>
             </motion.div>

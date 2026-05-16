@@ -223,12 +223,12 @@ export const OnboardingFlow: React.FC = () => {
       case OnboardingStep.COMPLETE:
         return (
           <div className="w-full max-w-2xl mx-auto px-4">
-            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 md:p-10 text-center">
+            <div className="bg-card border border-border shadow-sm rounded-2xl p-8 md:p-10 text-center">
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
                 🎉
               </div>
-              <h1 className="text-h1 text-gray-900 mb-2">Configuration terminée</h1>
-              <p className="text-body text-gray-500 mb-8">Votre bar est prêt à être utilisé.</p>
+              <h1 className="text-h1 text-foreground mb-2">Configuration terminée</h1>
+              <p className="text-body text-muted-foreground mb-8">Votre bar est prêt à être utilisé.</p>
               <button
                 onClick={async () => {
                   try {
@@ -251,8 +251,8 @@ export const OnboardingFlow: React.FC = () => {
       default:
         return (
           <div className="w-full max-w-2xl mx-auto px-4">
-            <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 text-center">
-              <p className="text-body-sm text-gray-500">Chargement de l'onboarding…</p>
+            <div className="bg-card border border-border shadow-sm rounded-2xl p-8 text-center">
+              <p className="text-body-sm text-muted-foreground">Chargement de l'onboarding…</p>
             </div>
           </div>
         );
@@ -260,7 +260,7 @@ export const OnboardingFlow: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+    <div className="min-h-screen bg-muted relative overflow-hidden">
       {/* Progress indicator - sticky at top */}
       <OnboardingProgressBar />
 

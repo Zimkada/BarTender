@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/HP/ ELITEBOOK/DEV/BarTender/src/types/**)",
+      "Read(//c/Users/HP/ ELITEBOOK/DEV/BarTender/src/services/supabase/**)",
+      "Read(//c/Users/HP/ ELITEBOOK/DEV/BarTender/src/services/**)",
+      "Bash(npx tsc:*)",
+      "Read(//c/Users/HP/ ELITEBOOK/DEV/BarTender/src/pages/**)",
+      "Read(//c/Users/HP/ ELITEBOOK/DEV/BarTender/src/lib/**)",
+      "Read(//c/Users/HP/ ELITEBOOK/DEV/BarTender/src/components/inventory/**)",
+      "Read(//c/Users/**)"
+    ]
+  }
+}

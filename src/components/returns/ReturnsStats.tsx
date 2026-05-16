@@ -118,38 +118,38 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}
-                        className={`bg-white rounded-2xl p-4 shadow-sm border transition-shadow hover:shadow-md ${kpi.isDanger ? 'border-red-200' : 'border-gray-100'}`}
+                        className={`bg-card rounded-2xl p-4 shadow-sm border transition-shadow hover:shadow-md ${kpi.isDanger ? 'border-red-200' : 'border-border'}`}
                     >
                         <div className="flex items-center justify-between mb-3">
                             <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.isDanger ? 'bg-red-50 text-red-600' : 'bg-brand-subtle text-brand-primary'}`}>
                                 <kpi.Icon size={18} />
                             </div>
-                            <span className="text-micro text-gray-500">{kpi.label}</span>
+                            <span className="text-micro text-muted-foreground">{kpi.label}</span>
                         </div>
                         <div className="flex items-baseline gap-1.5">
                             {kpi.animated !== false ? (
-                                <AnimatedCounter value={kpi.value} className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600' : 'text-gray-900'}`} />
+                                <AnimatedCounter value={kpi.value} className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600' : 'text-foreground'}`} />
                             ) : (
-                                <div className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600' : 'text-gray-900'}`}>
+                                <div className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600' : 'text-foreground'}`}>
                                     <AnimatedCounter value={kpi.value} />
                                 </div>
                             )}
                             {kpi.unit && (
-                                <span className="text-caption font-medium text-gray-400">{kpi.unit}</span>
+                                <span className="text-caption font-medium text-muted-foreground">{kpi.unit}</span>
                             )}
                             {kpi.hasPulse && (
                                 <span className="flex h-1.5 w-1.5 rounded-full bg-brand-primary animate-pulse" aria-hidden="true" />
                             )}
                         </div>
-                        <p className="text-caption text-gray-500 mt-1 truncate tabular-nums">{kpi.sub}</p>
+                        <p className="text-caption text-muted-foreground mt-1 truncate tabular-nums">{kpi.sub}</p>
                     </motion.div>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Breakdown par motif */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-h3 text-gray-900 mb-5 flex items-center gap-2">
+                <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
+                    <h3 className="text-h3 text-foreground mb-5 flex items-center gap-2">
                         <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
                             <TrendingDown size={18} />
                         </div>
@@ -159,16 +159,16 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                         {stats.reasonStats.map((item) => (
                             <div key={item.reason} className="space-y-1.5">
                                 <div className="flex justify-between items-baseline">
-                                    <span className="text-body-sm font-medium text-gray-700 flex items-center gap-2">
+                                    <span className="text-body-sm font-medium text-foreground/80 flex items-center gap-2">
                                         <span className="text-base leading-none">{item.icon}</span>
                                         <span>{item.label}</span>
                                     </span>
-                                    <span className="text-caption text-gray-500">
-                                        <span className="text-body-sm font-semibold text-gray-900 mr-1 tabular-nums">{item.count}</span>
+                                    <span className="text-caption text-muted-foreground">
+                                        <span className="text-body-sm font-semibold text-foreground mr-1 tabular-nums">{item.count}</span>
                                         retour{item.count > 1 ? 's' : ''}
                                     </span>
                                 </div>
-                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${item.percentage}%` }}
@@ -189,23 +189,23 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                 </div>
 
                 {/* Analyse & Conseil — panneau analytique propre */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
                     <div className="flex items-center gap-3 mb-5">
                         <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
                             <TrendingDown size={18} />
                         </div>
                         <div>
-                            <h4 className="text-h3 text-gray-900">Analyse & conseil</h4>
-                            <p className="text-caption text-gray-500">Intelligence opérationnelle</p>
+                            <h4 className="text-h3 text-foreground">Analyse & conseil</h4>
+                            <p className="text-caption text-muted-foreground">Intelligence opérationnelle</p>
                         </div>
                     </div>
 
                     {stats.validatedCount > 0 ? (
                         <>
-                            <p className="text-body text-gray-900 mb-2 font-semibold">
+                            <p className="text-body text-foreground mb-2 font-semibold">
                                 Motif dominant : <span className="text-brand-primary">{stats.topReason?.label}</span>
                             </p>
-                            <p className="text-body-sm text-gray-600 leading-relaxed mb-5">
+                            <p className="text-body-sm text-foreground/70 leading-relaxed mb-5">
                                 {stats.topReason?.reason === 'defective'
                                     ? "Un taux élevé de produits défectueux suggère un problème de stockage ou de manipulation. Un audit de la chaîne froide est conseillé."
                                     : stats.topReason?.reason === 'wrong_item'
@@ -214,23 +214,23 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                             </p>
                         </>
                     ) : (
-                        <div className="py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 mb-5">
-                            <p className="text-body-sm text-gray-500 italic px-4">
+                        <div className="py-8 text-center bg-muted rounded-xl border border-dashed border-border mb-5">
+                            <p className="text-body-sm text-muted-foreground italic px-4">
                                 En attente de données validées pour générer une recommandation.
                             </p>
                         </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <p className="text-micro text-gray-500 mb-1">Impact ventes</p>
-                            <p className="text-body font-semibold text-gray-900 tabular-nums">
+                        <div className="p-3 rounded-xl bg-muted border border-border">
+                            <p className="text-micro text-muted-foreground mb-1">Impact ventes</p>
+                            <p className="text-body font-semibold text-foreground tabular-nums">
                                 {Math.round((stats.validatedCount / (stats.validatedCount + stats.pendingCount || 1)) * 100)}%
-                                <span className="text-caption font-medium text-gray-500 ml-1">traités</span>
+                                <span className="text-caption font-medium text-muted-foreground ml-1">traités</span>
                             </p>
                         </div>
-                        <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <p className="text-micro text-gray-500 mb-1">Qualité stock</p>
+                        <div className="p-3 rounded-xl bg-muted border border-border">
+                            <p className="text-micro text-muted-foreground mb-1">Qualité stock</p>
                             <p className={`text-body font-semibold ${stats.itemsRestocked > stats.lostProductCount ? 'text-green-600' : 'text-red-600'}`}>
                                 {stats.itemsRestocked > stats.lostProductCount ? "Stable" : "Alerte"}
                             </p>

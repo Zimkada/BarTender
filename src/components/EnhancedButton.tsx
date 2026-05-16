@@ -67,7 +67,7 @@ const buttonAnimations = {
 const getVariantStyles = (variant: ButtonVariant) => {
   const styles = {
     primary: 'btn-brand', // Uses var(--brand-gradient) for dynamic theming
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
+    secondary: 'bg-gray-200 text-foreground hover:bg-gray-300',
     success: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600',
     danger: 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600',
     warning: 'btn-brand', // Uses var(--brand-gradient) for dynamic theming
@@ -194,7 +194,7 @@ export function EnhancedButton({
         {ripples.map(ripple => (
           <motion.span
             key={ripple.id}
-            className="absolute bg-white/30 rounded-full pointer-events-none"
+            className="absolute bg-card/30 rounded-full pointer-events-none"
             initial={{
               width: 0,
               height: 0,
@@ -328,11 +328,11 @@ export function ButtonShowcase() {
   return (
     <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">Système de boutons amélioré</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-8">Système de boutons amélioré</h1>
 
         {/* Variantes */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">Variantes</h2>
+          <h2 className="text-xl font-semibold text-foreground/80">Variantes</h2>
           <div className="flex flex-wrap gap-4">
             <EnhancedButton variant="primary">Primaire</EnhancedButton>
             <EnhancedButton variant="secondary">Secondaire</EnhancedButton>
@@ -345,7 +345,7 @@ export function ButtonShowcase() {
 
         {/* Tailles */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">Tailles</h2>
+          <h2 className="text-xl font-semibold text-foreground/80">Tailles</h2>
           <div className="flex flex-wrap items-center gap-4">
             <EnhancedButton size="sm">Petit</EnhancedButton>
             <EnhancedButton size="md">Moyen</EnhancedButton>
@@ -356,7 +356,7 @@ export function ButtonShowcase() {
 
         {/* Animations */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">Animations</h2>
+          <h2 className="text-xl font-semibold text-foreground/80">Animations</h2>
           <div className="flex flex-wrap gap-4">
             <EnhancedButton animation="bounce">Bounce</EnhancedButton>
             <EnhancedButton animation="pulse">Pulse</EnhancedButton>
@@ -368,7 +368,7 @@ export function ButtonShowcase() {
 
         {/* États */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">États</h2>
+          <h2 className="text-xl font-semibold text-foreground/80">États</h2>
           <div className="flex flex-wrap gap-4">
             <EnhancedButton
               loading={loading}
@@ -385,7 +385,7 @@ export function ButtonShowcase() {
 
         {/* Boutons spécialisés */}
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-700">Boutons spécialisés</h2>
+          <h2 className="text-xl font-semibold text-foreground/80">Boutons spécialisés</h2>
           <div className="flex flex-wrap gap-4">
             <QuickActionButton icon={<Zap size={16} />}>Action rapide</QuickActionButton>
             <FavoriteButton

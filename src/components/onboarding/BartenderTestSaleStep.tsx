@@ -40,10 +40,10 @@ export const BartenderTestSaleStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden">
+      <div className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden">
         {/* Success Header */}
         <div className="p-10 text-center bg-brand-gradient text-white">
-          <div className="w-16 h-16 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-5 border border-white/20">
+          <div className="w-16 h-16 bg-card/15 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-5 border border-white/20">
             <CheckCircle2 size={32} className="text-white" />
           </div>
           <h1 className="text-h1 text-white mb-2">Certification terminée</h1>
@@ -56,11 +56,11 @@ export const BartenderTestSaleStep: React.FC = () => {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             {stats.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="text-center p-4 bg-gray-50 border border-gray-100 rounded-xl">
+              <div key={label} className="text-center p-4 bg-muted border border-border rounded-xl">
                 <div className="w-9 h-9 bg-brand-subtle rounded-lg flex items-center justify-center mx-auto mb-2 text-brand-primary">
                   <Icon size={18} />
                 </div>
-                <p className="text-micro text-gray-400">{label}</p>
+                <p className="text-micro text-muted-foreground">{label}</p>
                 <p className="text-body-sm font-semibold text-brand-primary">{value}</p>
               </div>
             ))}
@@ -68,16 +68,16 @@ export const BartenderTestSaleStep: React.FC = () => {
 
           {/* Next Steps */}
           <div className="space-y-3">
-            <h3 className="text-micro text-gray-400 text-center">Vos prochaines étapes</h3>
+            <h3 className="text-micro text-muted-foreground text-center">Vos prochaines étapes</h3>
             <div className="space-y-2.5">
               {nextSteps.map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="flex items-center gap-3 p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
+                <div key={title} className="flex items-center gap-3 p-3.5 bg-muted border border-border rounded-xl">
                   <div className="w-9 h-9 bg-brand-subtle rounded-lg flex items-center justify-center text-brand-primary flex-shrink-0">
                     <Icon size={18} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-body-sm font-semibold text-gray-900">{title}</h4>
-                    <p className="text-caption text-gray-500">{desc}</p>
+                    <h4 className="text-body-sm font-semibold text-foreground">{title}</h4>
+                    <p className="text-caption text-muted-foreground">{desc}</p>
                   </div>
                 </div>
               ))}
@@ -86,7 +86,7 @@ export const BartenderTestSaleStep: React.FC = () => {
 
           {/* Tips Banner */}
           <div className="bg-gray-900 rounded-2xl p-5 text-white flex items-center gap-4">
-            <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/10">
+            <div className="w-11 h-11 bg-card/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-white/10">
               <LayoutDashboard size={20} className="text-brand-primary" />
             </div>
             <div className="flex-1">
@@ -98,7 +98,7 @@ export const BartenderTestSaleStep: React.FC = () => {
           </div>
 
           {/* Action Button */}
-          <div className="flex justify-center pt-6 border-t border-gray-100">
+          <div className="flex justify-center pt-6 border-t border-border">
             <LoadingButton
               onClick={handleFinish}
               isLoading={loading}
@@ -109,7 +109,7 @@ export const BartenderTestSaleStep: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-gray-50 p-3 text-center text-micro text-gray-400 border-t border-gray-100">
+        <div className="bg-muted p-3 text-center text-micro text-muted-foreground border-t border-border">
           Système certifié BarTender Academy — 2026
         </div>
       </div>

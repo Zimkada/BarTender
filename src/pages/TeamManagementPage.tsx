@@ -286,7 +286,7 @@ export default function TeamManagementPage() {
   if (!currentBar) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-gray-500">Sélectionnez un bar pour gérer l'équipe</p>
+        <p className="text-muted-foreground">Sélectionnez un bar pour gérer l'équipe</p>
       </div>
     );
   }
@@ -662,7 +662,7 @@ export default function TeamManagementPage() {
 
         {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
         {pageTab === 'mappings' && FEATURES.ENABLE_SWITCHING_MODE && (
-          <div className="bg-white rounded-xl shadow-sm border border-brand-subtle overflow-hidden" data-guide="team-mappings">
+          <div className="bg-card rounded-xl shadow-sm border border-brand-subtle overflow-hidden" data-guide="team-mappings">
             <div className="p-6">
               <ServerMappingsManager
                 barId={currentBar.id}
@@ -700,7 +700,7 @@ export default function TeamManagementPage() {
                   <div className="bg-brand-subtle p-2 rounded-lg">
                     <AlertTriangle className="w-4 h-4 text-brand-primary" />
                   </div>
-                  <p className="text-body-sm font-semibold text-gray-800">Processus de recrutement</p>
+                  <p className="text-body-sm font-semibold text-foreground">Processus de recrutement</p>
                 </div>
                 {isInfoExpanded ? (
                   <ChevronDown className="w-5 h-5 text-brand-primary" />
@@ -720,15 +720,15 @@ export default function TeamManagementPage() {
                       <div className="space-y-3">
                         <div className="flex items-start gap-3">
                           <span className="bg-brand-subtle text-brand-primary w-6 h-6 rounded-full flex items-center justify-center text-micro font-semibold shrink-0 mt-0.5">1</span>
-                          <p className="text-body-sm text-gray-600">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
+                          <p className="text-body-sm text-foreground/70">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
                         </div>
                         <div className="flex items-start gap-3">
                           <span className="bg-brand-subtle text-brand-primary w-6 h-6 rounded-full flex items-center justify-center text-micro font-semibold shrink-0 mt-0.5">2</span>
-                          <p className="text-body-sm text-gray-600">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
+                          <p className="text-body-sm text-foreground/70">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
                         </div>
                         <div className="flex items-start gap-3">
                           <span className="bg-brand-subtle text-brand-primary w-6 h-6 rounded-full flex items-center justify-center text-micro font-semibold shrink-0 mt-0.5">3</span>
-                          <p className="text-body-sm text-gray-600">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
+                          <p className="text-body-sm text-foreground/70">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
                         </div>
                       </div>
                     </div>
@@ -740,24 +740,24 @@ export default function TeamManagementPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column: Form */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
+                <div className="bg-card rounded-3xl p-6 md:p-8 border border-border shadow-sm">
                   {/* Step 1: Mode Selection */}
                   <div className="flex flex-col gap-5">
-                    <h3 className="text-h3 text-gray-900">1. Type d'ajout</h3>
+                    <h3 className="text-h3 text-foreground">1. Type d'ajout</h3>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         onClick={() => setActiveTab('new')}
                         className={`p-5 rounded-xl border transition-all flex flex-col items-center gap-2.5 text-center ${activeTab === 'new'
                           ? 'bg-brand-subtle border-brand-primary shadow-sm'
-                          : 'bg-white border-gray-100 hover:border-brand-subtle'}`}
+                          : 'bg-card border-border hover:border-brand-subtle'}`}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-brand-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                           <UserIcon size={20} />
                         </div>
                         <div>
-                          <p className="text-body-sm font-semibold text-gray-900">Nouveau compte</p>
-                          <p className="text-caption text-gray-500 mt-0.5">Créer des identifiants pour un nouvel employé</p>
+                          <p className="text-body-sm font-semibold text-foreground">Nouveau compte</p>
+                          <p className="text-caption text-muted-foreground mt-0.5">Créer des identifiants pour un nouvel employé</p>
                         </div>
                       </button>
 
@@ -765,35 +765,35 @@ export default function TeamManagementPage() {
                         onClick={() => setActiveTab('existing')}
                         className={`p-5 rounded-xl border transition-all flex flex-col items-center gap-2.5 text-center ${activeTab === 'existing'
                           ? 'bg-brand-subtle border-brand-primary shadow-sm'
-                          : 'bg-white border-gray-100 hover:border-brand-subtle'}`}
+                          : 'bg-card border-border hover:border-brand-subtle'}`}
                       >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-brand-primary text-white' : 'bg-muted text-muted-foreground'}`}>
                           <UserPlus size={20} />
                         </div>
                         <div>
-                          <p className="text-body-sm font-semibold text-gray-900">Membre existant</p>
-                          <p className="text-caption text-gray-500 mt-0.5">Importer un membre d'un autre bar</p>
+                          <p className="text-body-sm font-semibold text-foreground">Membre existant</p>
+                          <p className="text-caption text-muted-foreground mt-0.5">Importer un membre d'un autre bar</p>
                         </div>
                       </button>
                     </div>
 
-                    <div className="h-px bg-gray-100" />
+                    <div className="h-px bg-muted" />
 
                     <div className="space-y-5">
-                      <h3 className="text-h3 text-gray-900">2. Détails & rôle</h3>
+                      <h3 className="text-h3 text-foreground">2. Détails & rôle</h3>
 
                       {/* Role segmented control */}
                       <div className="space-y-2">
-                        <Label className="text-caption font-medium text-gray-500">Rôle à attribuer</Label>
-                        <div className="flex bg-gray-100 p-0.5 rounded-full border border-gray-200" role="radiogroup" aria-label="Rôle">
+                        <Label className="text-caption font-medium text-muted-foreground">Rôle à attribuer</Label>
+                        <div className="flex bg-muted p-0.5 rounded-full border border-border" role="radiogroup" aria-label="Rôle">
                           {hasPermission('canCreateManagers') && (
                             <button
                               role="radio"
                               aria-checked={selectedRole === 'gerant'}
                               onClick={() => setSelectedRole('gerant')}
                               className={`flex-1 py-2 px-4 rounded-full text-body-sm font-medium transition-all ${selectedRole === 'gerant'
-                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
-                                : 'text-gray-500 hover:text-gray-700'}`}
+                                ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                                : 'text-muted-foreground hover:text-foreground/80'}`}
                             >
                               Gérant
                             </button>
@@ -804,8 +804,8 @@ export default function TeamManagementPage() {
                               aria-checked={selectedRole === 'serveur'}
                               onClick={() => setSelectedRole('serveur')}
                               className={`flex-1 py-2 px-4 rounded-full text-body-sm font-medium transition-all ${selectedRole === 'serveur'
-                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
-                                : 'text-gray-500 hover:text-gray-700'}`}
+                                ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                                : 'text-muted-foreground hover:text-foreground/80'}`}
                             >
                               Serveur
                             </button>
@@ -834,47 +834,47 @@ export default function TeamManagementPage() {
                           >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-1.5">
-                                <Label htmlFor="username" className="text-caption font-medium text-gray-500">Identifiant de connexion *</Label>
+                                <Label htmlFor="username" className="text-caption font-medium text-muted-foreground">Identifiant de connexion *</Label>
                                 <Input
                                   id="username"
                                   type="text"
                                   value={username}
                                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
                                   placeholder="exemple: sandra.koffi"
-                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-muted border-border focus:bg-card"
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <Label htmlFor="password" className="text-caption font-medium text-gray-500">Mot de passe temporaire *</Label>
+                                <Label htmlFor="password" className="text-caption font-medium text-muted-foreground">Mot de passe temporaire *</Label>
                                 <Input
                                   id="password"
                                   type="text"
                                   value={password}
                                   onChange={(e) => setPassword(e.target.value)}
                                   placeholder="Min. 8 caractères"
-                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-muted border-border focus:bg-card"
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <Label htmlFor="name" className="text-caption font-medium text-gray-500">Nom & prénom *</Label>
+                                <Label htmlFor="name" className="text-caption font-medium text-muted-foreground">Nom & prénom *</Label>
                                 <Input
                                   id="name"
                                   type="text"
                                   value={name}
                                   onChange={(e) => setName(e.target.value)}
                                   placeholder="Sandra KOFFI"
-                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-muted border-border focus:bg-card"
                                 />
                               </div>
                               <div className="space-y-1.5">
-                                <Label htmlFor="phone" className="text-caption font-medium text-gray-500">Téléphone *</Label>
+                                <Label htmlFor="phone" className="text-caption font-medium text-muted-foreground">Téléphone *</Label>
                                 <Input
                                   id="phone"
                                   type="tel"
                                   value={phone}
                                   onChange={(e) => setPhone(e.target.value)}
                                   placeholder="+229 00 00 00 00"
-                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-muted border-border focus:bg-card"
                                 />
                               </div>
                             </div>
@@ -899,9 +899,9 @@ export default function TeamManagementPage() {
                             onSubmit={handleAddExistingUser}
                           >
                             <div className="space-y-1.5">
-                              <Label className="text-caption font-medium text-gray-500">Importer depuis un autre bar</Label>
+                              <Label className="text-caption font-medium text-muted-foreground">Importer depuis un autre bar</Label>
                               {loadingCandidates ? (
-                                <div className="h-11 animate-pulse bg-gray-100 rounded-xl" />
+                                <div className="h-11 animate-pulse bg-muted rounded-xl" />
                               ) : (
                                 <Select
                                   value={selectedCandidateId}
@@ -914,19 +914,19 @@ export default function TeamManagementPage() {
                                     value: c.id,
                                     label: `${c.name} (${c.role} chez ${c.sourceBarName})`
                                   }))}
-                                  className="h-11 border-gray-200 focus:border-[var(--brand-primary)]"
+                                  className="h-11 border-border focus:border-[var(--brand-primary)]"
                                 />
                               )}
                             </div>
 
                             <div className="flex items-center gap-3">
-                              <div className="h-px bg-gray-100 flex-1" />
-                              <span className="text-caption text-gray-400">ou</span>
-                              <div className="h-px bg-gray-100 flex-1" />
+                              <div className="h-px bg-muted flex-1" />
+                              <span className="text-caption text-muted-foreground">ou</span>
+                              <div className="h-px bg-muted flex-1" />
                             </div>
 
                             <div className="space-y-1.5">
-                              <Label htmlFor="existing-email" className="text-caption font-medium text-gray-500">Rechercher par email / identifiant</Label>
+                              <Label htmlFor="existing-email" className="text-caption font-medium text-muted-foreground">Rechercher par email / identifiant</Label>
                               <Input
                                 id="existing-email"
                                 type="text"
@@ -936,7 +936,7 @@ export default function TeamManagementPage() {
                                   setExistingEmail(e.target.value.trim());
                                   if (e.target.value) setSelectedCandidateId('');
                                 }}
-                                className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                                className="h-11 bg-muted border-border focus:bg-card"
                               />
                             </div>
 
@@ -963,30 +963,30 @@ export default function TeamManagementPage() {
               <div className="lg:col-span-1">
                 <div className="bg-brand-subtle/50 rounded-2xl p-5 border border-dashed border-brand-primary/25 relative overflow-hidden h-full flex flex-col min-h-[360px]">
                   {/* Cutouts */}
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 bg-gray-50 rounded-full" />
-                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 bg-gray-50 rounded-full" />
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 bg-muted rounded-full" />
+                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 bg-muted rounded-full" />
 
                   <div className="text-center mb-5">
-                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3 border border-brand-primary/20">
+                    <div className="w-12 h-12 bg-card rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3 border border-brand-primary/20">
                       <UserIcon size={22} className="text-brand-primary" />
                     </div>
                     <p className="text-micro text-brand-primary font-semibold">Aperçu profil</p>
                   </div>
 
                   <div className="space-y-3 flex-1">
-                    <div className="bg-white/60 p-3 rounded-xl">
+                    <div className="bg-card/60 p-3 rounded-xl">
                       <p className="text-micro text-brand-primary mb-1">Nom complet</p>
-                      <p className="text-body-sm font-semibold text-gray-900 leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau membre')}</p>
+                      <p className="text-body-sm font-semibold text-foreground leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau membre')}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-white/60 p-3 rounded-xl">
+                      <div className="bg-card/60 p-3 rounded-xl">
                         <p className="text-micro text-brand-primary mb-1">Rôle</p>
-                        <p className="text-caption font-semibold text-gray-700">{selectedRole === 'gerant' ? 'Gérant' : 'Serveur'}</p>
+                        <p className="text-caption font-semibold text-foreground/80">{selectedRole === 'gerant' ? 'Gérant' : 'Serveur'}</p>
                       </div>
-                      <div className="bg-white/60 p-3 rounded-xl">
+                      <div className="bg-card/60 p-3 rounded-xl">
                         <p className="text-micro text-brand-primary mb-1">Identifiant</p>
-                        <p className="text-caption font-medium text-gray-700 truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
+                        <p className="text-caption font-medium text-foreground/80 truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
                       </div>
                     </div>
 
@@ -996,7 +996,7 @@ export default function TeamManagementPage() {
                     </div>
 
                     <div className="text-center pt-2">
-                      <div className="flex items-center justify-center gap-1.5 text-gray-400">
+                      <div className="flex items-center justify-center gap-1.5 text-muted-foreground">
                         <Info size={13} />
                         <span className="text-caption">Connexion possible dès validation</span>
                       </div>
@@ -1006,7 +1006,7 @@ export default function TeamManagementPage() {
                   <div className="mt-5">
                     <button
                       onClick={() => setPageTab('members')}
-                      className="w-full py-2.5 text-caption text-gray-400 hover:text-gray-600 font-medium transition-colors"
+                      className="w-full py-2.5 text-caption text-muted-foreground hover:text-foreground/70 font-medium transition-colors"
                     >
                       Abandonner
                     </button>

@@ -157,7 +157,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
           >
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Réseau:</span>
+                <span className="text-foreground/70">Réseau:</span>
                 <span className="font-medium">
                   {networkStatus === 'online' && '🟢 En ligne'}
                   {networkStatus === 'offline' && '🔴 Hors ligne'}
@@ -165,18 +165,18 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">En attente:</span>
+                <span className="text-foreground/70">En attente:</span>
                 <span className="font-medium">{pendingCount}</span>
               </div>
               {syncingCount > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">En cours:</span>
+                  <span className="text-foreground/70">En cours:</span>
                   <span className="font-medium">{syncingCount}</span>
                 </div>
               )}
               {errorCount > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Erreurs:</span>
+                  <span className="text-foreground/70">Erreurs:</span>
                   <span className="font-medium text-red-400">{errorCount}</span>
                 </div>
               )}
@@ -215,19 +215,19 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+              className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-red-50">
+              <div className="flex items-center justify-between p-6 border-b border-border bg-red-50">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-6 h-6 text-red-500" />
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-foreground">
                     Erreurs de synchronisation ({errorCount})
                   </h2>
                 </div>
                 <button
                   onClick={() => setShowErrorsModal(false)}
-                  className="p-2 text-gray-600 hover:text-gray-600 rounded-lg transition-colors"
+                  className="p-2 text-foreground/70 hover:text-foreground/70 rounded-lg transition-colors"
                 >
                   <X size={24} />
                 </button>
@@ -247,14 +247,14 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
                             <span className="text-sm font-medium text-red-800">
                               {error.type}
                             </span>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-muted-foreground">
                               Tentatives: {error.retryCount}
                             </span>
                           </div>
                           <p className="text-sm text-red-700 mb-2">
                             {error.errorMessage || 'Erreur inconnue'}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             ID: {error.id}
                           </p>
                         </div>
@@ -271,7 +271,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="border-t border-gray-200 p-4 bg-gray-50">
+              <div className="border-t border-border p-4 bg-muted">
                 <button
                   onClick={() => {
                     retryAll();

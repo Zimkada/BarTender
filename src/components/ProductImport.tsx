@@ -254,14 +254,14 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
   if (!isOpen && !inline) return null;
 
   const content = (
-    <div className={`${inline ? '' : 'bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col'}`}>
+    <div className={`${inline ? '' : 'bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col'}`}>
       {!inline && (
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <UploadCloud className="w-6 h-6 text-amber-500" />
-            <h2 className="text-xl font-bold text-gray-800">Importer des Produits</h2>
+            <h2 className="text-xl font-bold text-foreground">Importer des Produits</h2>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-600 hover:text-gray-600 rounded-lg">
+          <button onClick={onClose} className="p-2 text-foreground/70 hover:text-foreground/70 rounded-lg">
             <X size={24} />
           </button>
         </div>
@@ -296,30 +296,30 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
         {/* Dropzone */}
         <div
           {...getRootProps()}
-          className={`p-12 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${isDragActive ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400'
+          className={`p-12 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${isDragActive ? 'border-amber-500 bg-amber-50' : 'border-border hover:border-amber-400'
             }`}
         >
           <input {...getInputProps()} />
-          <UploadCloud className="w-12 h-12 mx-auto text-gray-600 mb-4" />
+          <UploadCloud className="w-12 h-12 mx-auto text-foreground/70 mb-4" />
           {isDragActive ? (
             <p className="text-amber-600 font-semibold">Déposez le fichier ici...</p>
           ) : (
             <div>
-              <p className="font-semibold text-gray-700">Glissez-déposez votre fichier ici</p>
-              <p className="text-sm text-gray-500 mt-1">ou cliquez pour sélectionner</p>
+              <p className="font-semibold text-foreground/80">Glissez-déposez votre fichier ici</p>
+              <p className="text-sm text-muted-foreground mt-1">ou cliquez pour sélectionner</p>
             </div>
           )}
         </div>
 
         {/* File Info & Preview */}
         {fileName && (
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div className="bg-muted rounded-lg p-4 border border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <FileText className="w-6 h-6 text-gray-600" />
+                <FileText className="w-6 h-6 text-foreground/70" />
                 <div>
-                  <p className="font-medium text-gray-800">{fileName}</p>
-                  <p className="text-sm text-gray-600">{importedProducts.length} produit(s) détecté(s)</p>
+                  <p className="font-medium text-foreground">{fileName}</p>
+                  <p className="text-sm text-foreground/70">{importedProducts.length} produit(s) détecté(s)</p>
                 </div>
               </div>
               <button onClick={() => { setFileName(null); setImportedProducts([]); }} className="text-sm text-red-600 hover:underline">
@@ -331,7 +331,7 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
       </div>
 
       {/* Footer / Actions */}
-      <div className={`p-6 border-t border-gray-200 ${inline ? 'mt-4' : 'bg-gray-50'}`}>
+      <div className={`p-6 border-t border-border ${inline ? 'mt-4' : 'bg-muted'}`}>
         <div className="flex justify-end gap-4">
           <EnhancedButton variant="secondary" onClick={onClose}>
             Annuler

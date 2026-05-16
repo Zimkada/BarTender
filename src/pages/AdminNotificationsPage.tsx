@@ -108,7 +108,7 @@ export default function AdminNotificationsPage() {
             <button
               onClick={() => setFilter('all')}
               className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${filter === 'all'
-                ? 'bg-white text-purple-700'
+                ? 'bg-card text-purple-700'
                 : 'bg-purple-500/30 hover:bg-purple-500/50'
                 }`}
             >
@@ -117,7 +117,7 @@ export default function AdminNotificationsPage() {
             <button
               onClick={() => setFilter('high')}
               className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${filter === 'high'
-                ? 'bg-white text-red-700'
+                ? 'bg-card text-red-700'
                 : 'bg-purple-500/30 hover:bg-purple-500/50'
                 }`}
             >
@@ -126,7 +126,7 @@ export default function AdminNotificationsPage() {
             <button
               onClick={() => setFilter('medium')}
               className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${filter === 'medium'
-                ? 'bg-white text-amber-700'
+                ? 'bg-card text-amber-700'
                 : 'bg-purple-500/30 hover:bg-purple-500/50'
                 }`}
             >
@@ -137,7 +137,7 @@ export default function AdminNotificationsPage() {
 
         {/* Actions globales */}
         {notifications.length > 0 && (
-          <div className="bg-gray-50 p-3 border-b border-gray-200 flex gap-2 flex-wrap">
+          <div className="bg-muted p-3 border-b border-border flex gap-2 flex-wrap">
             <button
               onClick={markAllAsRead}
               className="flex-1 md:flex-none px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold text-sm hover:bg-blue-200 transition-colors"
@@ -158,10 +158,10 @@ export default function AdminNotificationsPage() {
         )}
 
         {/* Liste notifications */}
-        <div className="bg-gray-50 rounded-b-2xl p-4 space-y-3">
+        <div className="bg-muted rounded-b-2xl p-4 space-y-3">
           {filteredNotifications.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <div className="text-center py-12 text-muted-foreground">
+              <CheckCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground/60" />
               <p className="text-lg font-semibold">Aucune notification</p>
               <p className="text-sm">Tout va bien ! 🎉</p>
             </div>
@@ -179,32 +179,32 @@ export default function AdminNotificationsPage() {
                   {/* Header */}
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Icon className="w-5 h-5 text-gray-700 flex-shrink-0" />
+                      <Icon className="w-5 h-5 text-foreground/80 flex-shrink-0" />
                       <div>
-                        <h2 className="font-bold text-gray-900 text-sm">
+                        <h2 className="font-bold text-foreground text-sm">
                           {priorityIcons[notification.priority]} {notification.title}
                         </h2>
-                        <p className="text-xs text-gray-600">{notification.barName}</p>
+                        <p className="text-xs text-foreground/70">{notification.barName}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => deleteNotification(notification.id)}
-                      className="text-gray-600 hover:text-gray-600 p-1"
+                      className="text-foreground/70 hover:text-foreground/70 p-1"
                     >
                       <AlertCircle className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* Message */}
-                  <p className="text-sm text-gray-800 mb-3">{notification.message}</p>
+                  <p className="text-sm text-foreground mb-3">{notification.message}</p>
 
                   {/* Metadata (si présent) */}
                   {notification.metadata && Object.keys(notification.metadata).length > 0 && (
-                    <div className="bg-white/60 rounded p-2 mb-3 text-xs space-y-1">
+                    <div className="bg-card/60 rounded p-2 mb-3 text-xs space-y-1">
                       {Object.entries(notification.metadata).map(([key, value]) => (
                         <div key={key} className="flex justify-between">
-                          <span className="text-gray-600 font-medium">{key}:</span>
-                          <span className="text-gray-900 font-semibold">
+                          <span className="text-foreground/70 font-medium">{key}:</span>
+                          <span className="text-foreground font-semibold">
                             {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                           </span>
                         </div>
@@ -243,7 +243,7 @@ export default function AdminNotificationsPage() {
                   </div>
 
                   {/* Timestamp */}
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     {new Date(notification.timestamp).toLocaleString('fr-FR')}
                   </p>
                 </div>

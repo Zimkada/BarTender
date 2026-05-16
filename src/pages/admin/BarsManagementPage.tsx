@@ -136,7 +136,7 @@ export default function BarsManagementPage() {
             </div>
             <button
               onClick={() => setShowAuditLogs(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-card/10 hover:bg-card/20 rounded-lg transition-colors text-sm font-medium"
             >
               <History className="w-4 h-4" />
               <span className="hidden sm:inline">Historique d'audit</span>
@@ -145,22 +145,22 @@ export default function BarsManagementPage() {
         </div>
 
         {/* Filters */}
-        <div className="p-3 md:p-6 border-b bg-white rounded-none">
+        <div className="p-3 md:p-6 border-b bg-card rounded-none">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <div className="flex-1 min-w-0">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Rechercher par nom, adresse ou email..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/70"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -171,7 +171,7 @@ export default function BarsManagementPage() {
             </div>
             <div className="sm:w-56">
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Select
                   options={[
                     { value: 'all', label: 'Tous les statuts' },
@@ -189,7 +189,7 @@ export default function BarsManagementPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 border-b bg-white rounded-none">
+          <div className="p-4 border-b bg-card rounded-none">
             <Alert variant="destructive" title="Erreur de chargement">
               <div className="flex items-center justify-between">
                 <span>{error}</span>
@@ -205,12 +205,12 @@ export default function BarsManagementPage() {
         )}
 
         {/* Content */}
-        <div className="flex-1 bg-gray-50">
+        <div className="flex-1 bg-muted">
           {loading && bars.length === 0 ? (
             <AdminPanelSkeleton count={4} type="card" />
           ) : !loading && bars.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <div className="text-center py-12 text-muted-foreground">
+              <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground/60" />
               <p className="text-lg font-semibold">Aucun bar trouvé</p>
               <p className="text-sm mb-4">Essayez de modifier vos critères de recherche</p>
               <button
@@ -246,8 +246,8 @@ export default function BarsManagementPage() {
         </div>
 
         {/* Pagination */}
-        <div className="p-3 sm:p-4 border-t flex-shrink-0 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">
-          <p className="text-xs sm:text-sm text-gray-600">
+        <div className="p-3 sm:p-4 border-t flex-shrink-0 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">
+          <p className="text-xs sm:text-sm text-foreground/70">
             Page <span className="font-semibold">{currentPage}</span> sur{' '}
             <span className="font-semibold">{totalPages}</span> ({totalCount} bars)
           </p>
@@ -255,14 +255,14 @@ export default function BarsManagementPage() {
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              className="px-3 py-2 bg-card border border-border rounded-lg text-sm disabled:opacity-50 hover:bg-muted transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              className="px-3 py-2 bg-card border border-border rounded-lg text-sm disabled:opacity-50 hover:bg-muted transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

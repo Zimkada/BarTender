@@ -34,7 +34,7 @@ export function ForecastingAISystem() {
         hideSubtitleOnMobile={true}
       />
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
         <div className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
           <>
             {activeTab === 'sales' && (
@@ -43,12 +43,12 @@ export function ForecastingAISystem() {
 
             {activeTab === 'advanced' && (
               <div className="flex items-center justify-center h-full">
-                <div className="text-center text-gray-400 py-12 px-6">
+                <div className="text-center text-muted-foreground py-12 px-6">
                   <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3 shadow-inner">
                     <ShoppingCart size={40} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">Assistant IA Intelligent</h3>
-                  <p className="text-gray-500 max-w-sm mx-auto leading-relaxed">
+                  <h3 className="text-xl font-bold text-foreground mb-3">Assistant IA Intelligent</h3>
+                  <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed">
                     {/* TODO: Intégrer l'Assistant avec un LLM (OpenAI/Mistral) pour l'analyse conversationnelle des données */}
                     Votre coach personnel entraîné sur vos données arrive bientôt pour répondre à vos questions sur la rentabilité.
                   </p>
@@ -71,14 +71,14 @@ export function ForecastingAISystem() {
 function SalesForecastView() {
   return (
     <div className="flex items-center justify-center min-h-[400px] p-6 lg:p-12">
-      <div className="text-center max-w-2xl bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+      <div className="text-center max-w-2xl bg-card p-8 rounded-3xl border border-border shadow-sm">
         <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6">
           <DollarSign size={40} className="text-amber-500" />
         </div>
-        <h3 className="text-2xl font-bold text-gray-800 mb-3">
+        <h3 className="text-2xl font-bold text-foreground mb-3">
           Prévisions de Croissance
         </h3>
-        <p className="text-gray-500 mb-8 max-w-md mx-auto">
+        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
           {/* TODO: Implémenter le graphique de projection linéaire basé sur les services passés */}
           Nous collectons les données de vos ventes pour générer des courbes de tendance fiables.
         </p>

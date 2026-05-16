@@ -106,8 +106,8 @@ export function TrainingTab() {
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl btn-brand mb-6 shadow-lg shadow-brand-subtle rotate-3 hover:rotate-0 transition-transform">
                     <GraduationCap className="w-10 h-10 text-white" />
                 </div>
-                <h2 className="text-3xl font-black text-gray-900 mb-2">Formation BarTender</h2>
-                <p className="text-gray-600 font-medium">
+                <h2 className="text-3xl font-black text-foreground mb-2">Formation BarTender</h2>
+                <p className="text-foreground/70 font-medium">
                     Maîtrisez l'application pour votre rôle de {getRoleLabel(currentSession?.role || '')}
                 </p>
             </div>
@@ -142,11 +142,11 @@ export function TrainingTab() {
             )}
 
             {/* Progress Card */}
-            <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
+            <div className="bg-card rounded-3xl p-8 border border-border shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                     <div>
-                        <p className="text-sm font-black text-gray-400 uppercase tracking-widest mb-1">Votre Progression</p>
-                        <p className="text-4xl font-black text-gray-900">{completionPercentage}%</p>
+                        <p className="text-sm font-black text-muted-foreground uppercase tracking-widest mb-1">Votre Progression</p>
+                        <p className="text-4xl font-black text-foreground">{completionPercentage}%</p>
                     </div>
                     <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200">
                         {completionPercentage === 100 ? (
@@ -158,7 +158,7 @@ export function TrainingTab() {
                 </div>
 
                 {/* Progress Bar */}
-                <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-6">
+                <div className="relative h-4 bg-muted rounded-full overflow-hidden mb-6">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${completionPercentage}%` }}
@@ -168,13 +168,13 @@ export function TrainingTab() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-1">Version actuelle</p>
-                        <p className="text-2xl font-black text-gray-900">{latestVersion?.version || 1}</p>
+                    <div className="bg-muted rounded-2xl p-4 border border-border">
+                        <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1">Version actuelle</p>
+                        <p className="text-2xl font-black text-foreground">{latestVersion?.version || 1}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-wider mb-1">Version complétée</p>
-                        <p className="text-2xl font-black text-gray-900">{userCompletedVersion}</p>
+                    <div className="bg-muted rounded-2xl p-4 border border-border">
+                        <p className="text-xs font-black text-muted-foreground uppercase tracking-wider mb-1">Version complétée</p>
+                        <p className="text-2xl font-black text-foreground">{userCompletedVersion}</p>
                     </div>
                 </div>
 
@@ -195,33 +195,33 @@ export function TrainingTab() {
                     <h3 className="text-lg font-black text-blue-900">Modules de formation</h3>
                 </div>
                 <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-blue-100">
+                    <div className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-blue-100">
                         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
                             <span className="text-blue-600 font-black">1</span>
                         </div>
                         <div className="flex-1">
-                            <p className="font-bold text-gray-900">Introduction à votre rôle</p>
-                            <p className="text-xs text-gray-600">Comprendre vos responsabilités</p>
+                            <p className="font-bold text-foreground">Introduction à votre rôle</p>
+                            <p className="text-xs text-foreground/70">Comprendre vos responsabilités</p>
                         </div>
                         {userCompletedVersion >= 1 && <CheckCircle className="w-5 h-5 text-green-600" />}
                     </div>
-                    <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-blue-100">
+                    <div className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-blue-100">
                         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
                             <span className="text-blue-600 font-black">2</span>
                         </div>
                         <div className="flex-1">
-                            <p className="font-bold text-gray-900">Navigation et fonctionnalités clés</p>
-                            <p className="text-xs text-gray-600">Maîtriser l'interface</p>
+                            <p className="font-bold text-foreground">Navigation et fonctionnalités clés</p>
+                            <p className="text-xs text-foreground/70">Maîtriser l'interface</p>
                         </div>
                         {userCompletedVersion >= 1 && <CheckCircle className="w-5 h-5 text-green-600" />}
                     </div>
-                    <div className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-blue-100">
+                    <div className="flex items-center gap-3 p-4 bg-card rounded-2xl border border-blue-100">
                         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
                             <span className="text-blue-600 font-black">3</span>
                         </div>
                         <div className="flex-1">
-                            <p className="font-bold text-gray-900">Simulation pratique</p>
-                            <p className="text-xs text-gray-600">Exercices interactifs</p>
+                            <p className="font-bold text-foreground">Simulation pratique</p>
+                            <p className="text-xs text-foreground/70">Exercices interactifs</p>
                         </div>
                         {userCompletedVersion >= 1 && <CheckCircle className="w-5 h-5 text-green-600" />}
                     </div>

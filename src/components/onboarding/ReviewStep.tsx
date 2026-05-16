@@ -172,14 +172,14 @@ export const ReviewStep: React.FC = () => {
       ) : status === 'missing' ? (
         <span className="w-5 h-5 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-caption font-bold">✕</span>
       ) : (
-        <span className="w-5 h-5 rounded-full border border-gray-200 text-gray-300 flex items-center justify-center text-caption">○</span>
+        <span className="w-5 h-5 rounded-full border border-border text-muted-foreground/60 flex items-center justify-center text-caption">○</span>
       );
 
     return (
-      <div className="flex items-center justify-between gap-3 p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
+      <div className="flex items-center justify-between gap-3 p-3.5 bg-muted border border-border rounded-xl">
         <div className="flex-1 min-w-0">
-          <p className="text-body-sm font-medium text-gray-900">{label}</p>
-          <p className="text-caption text-gray-500">{detail}</p>
+          <p className="text-body-sm font-medium text-foreground">{label}</p>
+          <p className="text-caption text-muted-foreground">{detail}</p>
           {children}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -198,11 +198,11 @@ export const ReviewStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-6 md:p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-h1 text-gray-900 mb-2">Prêt à lancer ?</h1>
-          <p className="text-body-sm text-gray-500">
+          <h1 className="text-h1 text-foreground mb-2">Prêt à lancer ?</h1>
+          <p className="text-body-sm text-muted-foreground">
             Vérifiez votre configuration et lancez votre bar.
           </p>
         </div>
@@ -214,27 +214,27 @@ export const ReviewStep: React.FC = () => {
               <div className="flex justify-between items-start gap-3">
                 <div className="min-w-0">
                   <p className="text-micro text-brand-primary">Nom du bar</p>
-                  <p className="text-h3 text-gray-900 truncate">{barDetails?.barName || currentBar?.name || 'N/A'}</p>
+                  <p className="text-h3 text-foreground truncate">{barDetails?.barName || currentBar?.name || 'N/A'}</p>
                 </div>
-                <span className="w-7 h-7 rounded-full bg-white text-brand-primary flex items-center justify-center font-bold flex-shrink-0">✓</span>
+                <span className="w-7 h-7 rounded-full bg-card text-brand-primary flex items-center justify-center font-bold flex-shrink-0">✓</span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-3 border-t border-brand-subtle">
                 <div>
                   <p className="text-micro text-brand-primary">Localisation</p>
-                  <p className="text-caption font-medium text-gray-900">{formatAddress(barDetails?.location || currentBar?.address || 'N/A')}</p>
+                  <p className="text-caption font-medium text-foreground">{formatAddress(barDetails?.location || currentBar?.address || 'N/A')}</p>
                 </div>
                 <div>
                   <p className="text-micro text-brand-primary">Mode</p>
-                  <p className="text-caption font-medium text-gray-900 capitalize">{barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'N/A'}</p>
+                  <p className="text-caption font-medium text-foreground capitalize">{barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-micro text-brand-primary">Fermeture</p>
-                  <p className="text-caption font-medium text-gray-900 tabular-nums">{((barDetails?.closingHour ?? currentBar?.closingHour) || 6).toString().padStart(2, '0')}:00</p>
+                  <p className="text-caption font-medium text-foreground tabular-nums">{((barDetails?.closingHour ?? currentBar?.closingHour) || 6).toString().padStart(2, '0')}:00</p>
                 </div>
                 <div>
                   <p className="text-micro text-brand-primary">Contact</p>
-                  <p className="text-caption font-medium text-gray-900 truncate">{barDetails?.contact || currentBar?.phone || 'Non fourni'}</p>
+                  <p className="text-caption font-medium text-foreground truncate">{barDetails?.contact || currentBar?.phone || 'Non fourni'}</p>
                 </div>
               </div>
             </div>
@@ -263,7 +263,7 @@ export const ReviewStep: React.FC = () => {
               {realData.productNames.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {realData.productNames.map((name, idx) => (
-                    <span key={idx} className="inline-block px-2 py-0.5 bg-white border border-gray-200 rounded-full text-caption text-gray-600">
+                    <span key={idx} className="inline-block px-2 py-0.5 bg-card border border-border rounded-full text-caption text-foreground/70">
                       {name}
                     </span>
                   ))}
@@ -279,12 +279,12 @@ export const ReviewStep: React.FC = () => {
           </div>
 
           {/* Info boxes */}
-          <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
-            <p className="text-caption text-gray-600 leading-relaxed">
-              <span className="font-semibold text-gray-900">✨ Une fois lancé,</span> votre bar est prêt pour les ventes. Les gérants peuvent commencer à créer des transactions.
+          <div className="p-4 bg-muted border border-border rounded-xl space-y-2">
+            <p className="text-caption text-foreground/70 leading-relaxed">
+              <span className="font-semibold text-foreground">✨ Une fois lancé,</span> votre bar est prêt pour les ventes. Les gérants peuvent commencer à créer des transactions.
             </p>
-            <p className="text-caption text-gray-600 leading-relaxed">
-              <span className="font-semibold text-gray-900">💡 Conseil :</span> cliquez sur le bouton <span className="font-medium text-brand-primary">Guide (?)</span> en haut à droite pour des visites guidées.
+            <p className="text-caption text-foreground/70 leading-relaxed">
+              <span className="font-semibold text-foreground">💡 Conseil :</span> cliquez sur le bouton <span className="font-medium text-brand-primary">Guide (?)</span> en haut à droite pour des visites guidées.
             </p>
           </div>
 
@@ -296,11 +296,11 @@ export const ReviewStep: React.FC = () => {
           )}
 
           {/* Footer */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100 items-center justify-between">
+          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-border items-center justify-between">
             <button
               type="button"
               onClick={previousStep}
-              className="text-body-sm font-medium text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="text-body-sm font-medium text-foreground/70 hover:text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors"
             >
               Retour
             </button>
@@ -308,7 +308,7 @@ export const ReviewStep: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate('/dashboard')}
-              className="text-caption text-gray-400 hover:text-gray-600 font-medium px-3 py-2 transition-colors"
+              className="text-caption text-muted-foreground hover:text-foreground/70 font-medium px-3 py-2 transition-colors"
             >
               Compléter plus tard
             </button>

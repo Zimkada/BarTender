@@ -49,34 +49,34 @@ export const WelcomeStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 md:p-10 text-center">
+      <div className="bg-card border border-border shadow-sm rounded-2xl p-6 md:p-10 text-center">
         {/* Header */}
         <div className="mb-6 md:mb-8">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
             {content.icon}
           </div>
-          <h1 className="text-h1 text-gray-900 mb-2">{content.title}</h1>
-          <p className="text-body text-gray-500">{content.subtitle}</p>
+          <h1 className="text-h1 text-foreground mb-2">{content.title}</h1>
+          <p className="text-body text-muted-foreground">{content.subtitle}</p>
         </div>
 
         {/* Intro */}
-        <p className="text-body-sm text-gray-600 mb-8 leading-relaxed max-w-xl mx-auto">
+        <p className="text-body-sm text-foreground/70 mb-8 leading-relaxed max-w-xl mx-auto">
           {content.intro}
         </p>
 
         {/* Features */}
         <div className="mb-8">
-          <h2 className="text-micro text-gray-400 mb-4">{content.sectionLabel}</h2>
+          <h2 className="text-micro text-muted-foreground mb-4">{content.sectionLabel}</h2>
           <div className={`grid grid-cols-1 ${gridCols} gap-3`}>
             {content.features.map((feature, idx) => (
               <div
                 key={idx}
-                className="flex md:flex-col items-center md:text-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-xl"
+                className="flex md:flex-col items-center md:text-center gap-3 p-4 bg-muted border border-border rounded-xl"
               >
                 <span className="text-2xl flex-shrink-0">{feature.emoji}</span>
                 <div className="flex-1 text-left md:text-center">
-                  <p className="text-body-sm font-semibold text-gray-900">{feature.title}</p>
-                  <p className="text-caption text-gray-500">{feature.desc}</p>
+                  <p className="text-body-sm font-semibold text-foreground">{feature.title}</p>
+                  <p className="text-caption text-muted-foreground">{feature.desc}</p>
                 </div>
               </div>
             ))}
@@ -91,10 +91,10 @@ export const WelcomeStep: React.FC = () => {
         </div>
 
         {/* CTA */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100 items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-border items-center justify-between">
           <button
             onClick={() => { window.location.href = '/dashboard'; }}
-            className="text-caption text-gray-400 hover:text-gray-600 font-medium px-3 py-2 transition-colors order-2 sm:order-1"
+            className="text-caption text-muted-foreground hover:text-foreground/70 font-medium px-3 py-2 transition-colors order-2 sm:order-1"
           >
             {content.skipLabel}
           </button>

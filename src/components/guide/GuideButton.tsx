@@ -24,16 +24,16 @@ const GuideSuggestionsPopover: React.FC<{
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="absolute top-16 right-0 w-72 md:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col max-h-[70vh] md:max-h-96"
+          className="absolute top-16 right-0 w-72 md:w-80 bg-card rounded-lg shadow-xl border border-border z-50 flex flex-col max-h-[70vh] md:max-h-96"
           initial={{ opacity: 0, scale: 0.95, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10 }}
           transition={{ duration: 0.2 }}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0">
-            <h3 className="font-semibold text-gray-900">Aide & Guides</h3>
-            <p className="text-xs text-gray-600 mt-1">Apprenez à utiliser les fonctionnalités</p>
+          <div className="px-4 py-3 border-b border-border flex-shrink-0">
+            <h3 className="font-semibold text-foreground">Aide & Guides</h3>
+            <p className="text-xs text-foreground/70 mt-1">Apprenez à utiliser les fonctionnalités</p>
           </div>
 
           {/* Guide list - Scrollable */}
@@ -50,7 +50,7 @@ const GuideSuggestionsPopover: React.FC<{
                     <div className="flex items-center gap-2">
                       {guide.emoji && <span className="text-lg">{guide.emoji}</span>}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
+                        <p className="text-sm font-medium text-foreground group-hover:text-blue-600">
                           {guide.title}
                         </p>
                       </div>
@@ -60,7 +60,7 @@ const GuideSuggestionsPopover: React.FC<{
               </div>
             ) : (
               <div className="px-4 py-6 text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-foreground/70">
                   Aucun guide disponible pour le moment
                 </p>
               </div>
@@ -68,8 +68,8 @@ const GuideSuggestionsPopover: React.FC<{
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
-            <p className="text-xs text-gray-600">
+          <div className="px-4 py-3 border-t border-border bg-muted flex-shrink-0">
+            <p className="text-xs text-foreground/70">
               💡 Accédez aux guides via le bouton bleu 🔵 en haut de chaque page
             </p>
           </div>

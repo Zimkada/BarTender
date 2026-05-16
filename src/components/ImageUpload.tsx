@@ -80,11 +80,11 @@ export function ImageUpload({
 
     return (
         <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">Image du produit</label>
+            <label className="block text-sm font-medium text-foreground/80">Image du produit</label>
 
             {/* Preview Area */}
             {currentImage ? (
-                <div className="relative w-full h-48 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 group">
+                <div className="relative w-full h-48 bg-muted rounded-xl overflow-hidden border border-border group">
                     <img
                         src={currentImage}
                         alt="Preview"
@@ -94,27 +94,27 @@ export function ImageUpload({
                         <button
                             onClick={clearImage}
                             type="button"
-                            className="p-2 bg-white text-red-600 rounded-full hover:bg-red-50 transition-colors"
+                            className="p-2 bg-card text-red-600 rounded-full hover:bg-red-50 transition-colors"
                         >
                             <X size={20} />
                         </button>
                     </div>
                 </div>
             ) : (
-                <div className="w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-600">
+                <div className="w-full h-48 bg-muted border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center text-foreground/70">
                     <ImageIcon size={48} className="mb-2 opacity-50" />
                     <span className="text-sm">Aucune image sélectionnée</span>
                 </div>
             )}
 
             {/* Input Methods Tabs */}
-            <div className="flex p-1 bg-gray-100 rounded-lg">
+            <div className="flex p-1 bg-muted rounded-lg">
                 <button
                     type="button"
                     onClick={() => setMode('upload')}
                     className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${mode === 'upload'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-card text-blue-600 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground/80'
                         }`}
                 >
                     <Upload size={16} />
@@ -124,8 +124,8 @@ export function ImageUpload({
                     type="button"
                     onClick={() => setMode('url')}
                     className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${mode === 'url'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
+                            ? 'bg-card text-blue-600 shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground/80'
                         }`}
                 >
                     <LinkIcon size={16} />
@@ -147,9 +147,9 @@ export function ImageUpload({
                     />
                     <label
                         htmlFor="image-upload"
-                        className={`flex items-center justify-center gap-2 w-full px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium cursor-pointer transition-colors ${uploading
-                                ? 'bg-gray-50 text-gray-600 cursor-not-allowed'
-                                : 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
+                        className={`flex items-center justify-center gap-2 w-full px-4 py-3 border border-border rounded-xl text-sm font-medium cursor-pointer transition-colors ${uploading
+                                ? 'bg-muted text-foreground/70 cursor-not-allowed'
+                                : 'bg-card text-foreground/80 hover:bg-muted hover:border-gray-400'
                             }`}
                     >
                         {uploading ? (
@@ -164,7 +164,7 @@ export function ImageUpload({
                             </>
                         )}
                     </label>
-                    <p className="text-xs text-gray-500 mt-1 text-center">
+                    <p className="text-xs text-muted-foreground mt-1 text-center">
                         JPG, PNG, WEBP (Max 2MB)
                     </p>
                 </div>
@@ -175,7 +175,7 @@ export function ImageUpload({
                         value={urlInput}
                         onChange={(e) => setUrlInput(e.target.value)}
                         placeholder="https://exemple.com/image.jpg"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-3 py-2 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <button
                         type="button"

@@ -38,7 +38,7 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
     const baseClasses = 'px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all duration-200';
 
     if (!isActive) {
-      return cn(baseClasses, 'bg-gray-100 text-gray-500 hover:bg-gray-200');
+      return cn(baseClasses, 'bg-muted text-muted-foreground hover:bg-gray-200');
     }
 
     switch (role) {
@@ -62,7 +62,7 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
   return (
     <div className="flex flex-col gap-2">
       {showLabel && (
-        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+        <label className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
           Rôle
         </label>
       )}
@@ -76,7 +76,7 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
             className={cn(
               getRoleColor(role, role === value),
               'disabled:opacity-50 disabled:cursor-not-allowed',
-              'hover:disabled:bg-gray-100',
+              'hover:disabled:bg-muted',
               'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary',
               'transition-all duration-200'
             )}
@@ -97,7 +97,7 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
       </div>
 
       {/* Accessible hint */}
-      <p className="text-[10px] text-gray-400 mt-1">
+      <p className="text-[10px] text-muted-foreground mt-1">
         Cliquez sur un rôle pour le changer
       </p>
     </div>

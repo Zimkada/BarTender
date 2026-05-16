@@ -103,7 +103,7 @@ export default function AnalyticsPage() {
   if (!currentBar) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-gray-500">Sélectionnez un bar pour voir les analytics</p>
+        <p className="text-muted-foreground">Sélectionnez un bar pour voir les analytics</p>
       </div>
     );
   }
@@ -111,14 +111,14 @@ export default function AnalyticsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-brand-subtle mb-6 overflow-hidden" data-guide="analytics-header">
+      <div className="bg-card rounded-2xl shadow-sm border border-brand-subtle mb-6 overflow-hidden" data-guide="analytics-header">
         <div className="bg-brand-primary text-white p-6" style={{ background: 'var(--brand-gradient)' }}>
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="rounded-lg transition-colors hover:bg-white/20"
+              className="rounded-lg transition-colors hover:bg-card/20"
             >
               <ArrowLeft size={24} />
             </Button>
@@ -134,7 +134,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts */}
-      <div className="bg-white rounded-2xl shadow-sm border border-brand-subtle p-6 min-h-[400px]" data-guide="analytics-charts">
+      <div className="bg-card rounded-2xl shadow-sm border border-brand-subtle p-6 min-h-[400px]" data-guide="analytics-charts">
         <AnalyticsCharts
           data={chartData}
           expensesByCategory={expensesByCategory}

@@ -34,13 +34,13 @@ export const ResetPasswordConfirmationModal: React.FC<ResetPasswordConfirmationM
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
+            className="bg-card rounded-lg shadow-xl w-full max-w-md p-6 relative"
           >
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-600 hover:text-gray-600">
+            <button onClick={onClose} className="absolute top-4 right-4 text-foreground/70 hover:text-foreground/70">
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirmer la réinitialisation du mot de passe</h3>
-            <p className="text-gray-700 mb-6">
+            <h3 className="text-xl font-semibold text-foreground mb-4">Confirmer la réinitialisation du mot de passe</h3>
+            <p className="text-foreground/80 mb-6">
               Voulez-vous vraiment envoyer un lien de réinitialisation de mot de passe à l'utilisateur{' '}
               <span className="font-medium text-purple-600">{user.name}</span> (
               <span className="font-medium text-purple-600">{user.email}</span>) ?

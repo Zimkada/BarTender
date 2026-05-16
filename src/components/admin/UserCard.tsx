@@ -24,8 +24,8 @@ export function UserCard({
       <CardHeader className="bg-gradient-to-br from-purple-50 to-indigo-50 p-4 border-b border-purple-100">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-bold text-gray-900 truncate">{user.name}</h3>
-            <p className="text-xs text-gray-600 truncate mt-0.5">{user.email}</p>
+            <h3 className="text-base font-bold text-foreground truncate">{user.name}</h3>
+            <p className="text-xs text-foreground/70 truncate mt-0.5">{user.email}</p>
           </div>
           {/* Status Badge */}
           <Badge
@@ -43,7 +43,7 @@ export function UserCard({
       <CardContent className="p-4 space-y-3">
         {/* Rôles */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-1.5">Rôle(s)</p>
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">Rôle(s)</p>
           <div className="flex flex-wrap gap-1.5">
             {user.roles.map((role) => (
               <Badge key={role} variant="info" size="sm">
@@ -55,7 +55,7 @@ export function UserCard({
 
         {/* Bars */}
         <div>
-          <p className="text-xs font-medium text-gray-500 mb-1.5 flex items-center gap-1">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
             <Building2 className="w-3 h-3" />
             Bar(s)
           </p>
@@ -67,20 +67,20 @@ export function UserCard({
                 </Badge>
               ))
             ) : (
-              <span className="text-xs text-gray-400 italic">Aucun bar</span>
+              <span className="text-xs text-muted-foreground italic">Aucun bar</span>
             )}
           </div>
         </div>
 
         {/* Date d'inscription */}
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Calendar className="w-3 h-3" />
           <span>Inscrit le {new Date(user.createdAt).toLocaleDateString('fr-FR')}</span>
         </div>
       </CardContent>
 
       {/* Footer avec actions */}
-      <CardFooter className="bg-gray-50 p-3 gap-2 flex-col border-t border-gray-100">
+      <CardFooter className="bg-muted p-3 gap-2 flex-col border-t border-border">
         {/* Ligne 1: Actions principales (toujours présentes) */}
         <div className="flex gap-2 w-full">
           <button

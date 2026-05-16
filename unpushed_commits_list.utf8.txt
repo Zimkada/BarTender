@@ -1,0 +1,22 @@
+﻿042a5fb fix: show zero-stock products as disabled on home page instead of hiding them
+399a9e2 fix(review): corrections post-revue avant push
+7023ea4 fix(safety): retirer retry sur addSupply/createExpense (pas d'idempotence serveur)
+cfee92f fix(resilience): retry intelligent sur addSupply et createExpense
+fbfb879 fix(network): useSalesMutations isNetworkError ÔÇö navigator.onLine vers networkManager
+8f86cb3 fix(network): homogeneiser shouldShowBanner vers shouldBlock dans sales.service et AuthContext
+83cc756 fix(network): useRobustOperation ÔÇö remplacer navigator.onLine par networkManager
+cc62a25 fix(resilience): AuthContext utilise networkManager au lieu de navigator.onLine
+f21b08c fix(resilience): sales.service.ts aligne les checks reseau sur networkManager
+6bbade4 fix(resilience): Cart.tsx utilise networkManager au lieu de navigator.onLine
+0b7b7a5 fix(resilience): cleanup TTL 48h des id_translations dans IndexedDB
+4f04173 fix(resilience): ajouter pattern connection errors dans shouldRetryError
+e25ed64 fix(resilience): classer HTTP 408 Request Timeout comme retryable
+92dcde5 fix(resilience): shouldRetryError reconnait les codes Supabase et status HTTP
+49960d7 fix(resilience): affiner invalidation avec key factories et barId
+affadbd fix(resilience): invalider par cles metier au lieu du cache entier au retour reseau
+dd946ef fix(resilience): compl├®ter le garde-fou offline de VersionCheckService
+a09aad1 fix(resilience): couche 1 ÔÇö correctifs sans risque pour connectivit├® d├®grad├®e
+2612d6b chore: add vite-supabase-starter template
+edfc5ed fix(monitoring): activate Sentry in production
+fadbd3d fix(settings): complete operatingMode fallback to 'full' (line 189 missed in 07ccf41)
+07ccf41 fix(security): enforce simplified mode rules at DB level + harden auth on RPCs

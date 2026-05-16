@@ -85,15 +85,15 @@ export const RedirectStep: React.FC<RedirectStepProps> = ({
 
     return (
         <div className="w-full max-w-2xl mx-auto px-4">
-            <div className="bg-white rounded-lg shadow-md p-8">
+            <div className="bg-card rounded-lg shadow-md p-8">
                 {/* Header */}
                 {/* Header */}
                 <div className="mb-8 text-center">
                     {config.icon && (
                         <div className="text-5xl mb-4">{config.icon}</div>
                     )}
-                    <h1 className="text-3xl font-bold text-gray-900">{config.title}</h1>
-                    <p className="mt-2 text-gray-600">{config.description}</p>
+                    <h1 className="text-3xl font-bold text-foreground">{config.title}</h1>
+                    <p className="mt-2 text-foreground/70">{config.description}</p>
                 </div>
 
                 {/* Status */}

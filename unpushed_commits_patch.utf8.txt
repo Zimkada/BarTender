@@ -1,0 +1,3446 @@
+﻿commit 042a5fb4164195da9c3440d4128ffbba379a7655
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 10:01:41 2026 +0100
+
+    fix: show zero-stock products as disabled on home page instead of hiding them
+
+diff --git a/src/pages/HomePage.tsx b/src/pages/HomePage.tsx
+index fe659d1..58baa2c 100644
+--- a/src/pages/HomePage.tsx
++++ b/src/pages/HomePage.tsx
+@@ -52,7 +52,7 @@ export default function HomePage() {
+     products: productsWithAvailableStock,
+     searchQuery,
+     selectedCategory,
+-    onlyInStock: true
++    onlyInStock: false
+   });
+ 
+   // 2. Le retour anticip├® est plac├® apr├¿s tous les hooks
+
+commit 399a9e29ac6053be87e9ff759e04c7996996c769
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 09:58:03 2026 +0100
+
+    fix(review): corrections post-revue avant push
+    
+    4 corrections issues de la revue de code :
+    
+    1. returns.service.ts: shouldShowBanner -> shouldBlock (L22) et
+       navigator.onLine -> networkManager.shouldBlock (L50) pour
+       coherence avec le flux Magic Swap et les autres services
+    
+    2. sales.service.test.ts: mocks retournent shouldBlock en plus
+       de shouldShowBanner pour correspondre au code production
+    
+    3. useStockMutations.ts + useExpensesMutations.ts: suppression
+       imports orphelins mutationRetryFn (vestige du revert 4B)
+    
+    4. ProductModal.tsx: suppression du double onClose() apres onSave
+       (deja gere par RootLayout.closeModal) + refactor async/await
+       avec error handling (remplace le setTimeout synchrone)
+    
+    Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+diff --git a/src/components/ProductModal.tsx b/src/components/ProductModal.tsx
+index 7bf60f3..b651778 100644
+--- a/src/components/ProductModal.tsx
++++ b/src/components/ProductModal.tsx
+@@ -16,7 +16,7 @@ import { BackButton } from './ui/BackButton';
+ interface ProductModalProps {
+   isOpen: boolean;
+   onClose: () => void;
+-  onSave: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => void;
++  onSave: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Promise<void> | void;
+   categories: Category[];
+   product?: Product;
+   inline?: boolean;
+@@ -130,12 +130,12 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false
+   }
+ 
+ 
+-  const handleSubmit = (e: React.FormEvent) => {
++  const handleSubmit = async (e: React.FormEvent) => {
+     e.preventDefault();
+     setIsSubmitting(true);
+ 
+-    setTimeout(() => {
+-      onSave({
++    try {
++      const productData = {
+         name: formData.name,
+         volume: formData.volume,
+         price: parseFloat(formData.price),
+@@ -145,10 +145,17 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false
+         alertThreshold: parseInt(formData.alertThreshold) || 10,
+         globalProductId: product?.globalProductId || (mode === 'global' ? selectedGlobalId || undefined : undefined),
+         isCustomProduct: mode === 'custom' && !selectedGlobalId && !product?.globalProductId,
+-      } as Omit<Product, 'id' | 'createdAt' | 'barId'>);
++      } as Omit<Product, 'id' | 'createdAt' | 'barId'>;
++
++      // Ô£à Attendre le r├®sultat r├®el de onSave avant de fermer
++      // Note: la fermeture est g├®r├®e par le parent (RootLayout.closeModal) apr├¿s succ├¿s
++      await Promise.resolve(onSave(productData));
+       setIsSubmitting(false);
+-      onClose();
+-    }, 500);
++    } catch (error) {
++      // ÔØî Si onSave ├®choue, garder la fen├¬tre ouverte et afficher l'erreur
++      setIsSubmitting(false);
++      console.error('Erreur lors de la sauvegarde du produit:', error);
++    }
+   };
+ 
+   const handleInputChange = (field: string, value: string) => {
+diff --git a/src/hooks/mutations/useExpensesMutations.ts b/src/hooks/mutations/useExpensesMutations.ts
+index 0951077..fa10488 100644
+--- a/src/hooks/mutations/useExpensesMutations.ts
++++ b/src/hooks/mutations/useExpensesMutations.ts
+@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
+ import { ExpensesService } from '../../services/supabase/expenses.service';
+ import { expenseKeys } from '../queries/useExpensesQueries';
+ import { AnalyticsService } from '../../services/supabase/analytics.service';
+-import { mutationRetryFn } from '../../utils/errorHandler';
+ 
+ export const useExpensesMutations = (barId: string) => {
+     const queryClient = useQueryClient();
+diff --git a/src/hooks/mutations/useStockMutations.ts b/src/hooks/mutations/useStockMutations.ts
+index 961d4b9..5d671c0 100644
+--- a/src/hooks/mutations/useStockMutations.ts
++++ b/src/hooks/mutations/useStockMutations.ts
+@@ -6,7 +6,7 @@ import { stockKeys } from '../queries/useStockQueries';
+ import { useAuth } from '../../context/AuthContext';
+ import { useBarContext } from '../../context/BarContext';
+ import { broadcastService } from '../../services/broadcast/BroadcastService';
+-import { getErrorMessage, mutationRetryFn } from '../../utils/errorHandler';
++import { getErrorMessage } from '../../utils/errorHandler';
+ import type { AdjustmentReason } from '../../types';
+ 
+ // Map legacy/unknown reason strings to valid RPC enum values
+diff --git a/src/services/supabase/returns.service.ts b/src/services/supabase/returns.service.ts
+index c62b5a7..d7c7a79 100644
+--- a/src/services/supabase/returns.service.ts
++++ b/src/services/supabase/returns.service.ts
+@@ -19,7 +19,7 @@ export class ReturnsService {
+      * Cr├®er un retour
+      */
+     static async createReturn(data: ReturnInsert): Promise<DBReturn> {
+-        const { shouldShowBanner: isOffline } = networkManager.getDecision();
++        const { shouldBlock: isOffline } = networkManager.getDecision();
+         const finalId = data.id || generateUUID();
+         const returnWithId = { ...data, id: finalId };
+ 
+@@ -47,7 +47,7 @@ export class ReturnsService {
+             if (error) {
+                 console.error('[ReturnsService] Supabase error creating return:', error);
+                 // Si erreur r├®seau masqu├®e par Supabase, on fallback quand m├¬me
+-                if (error.message === 'Failed to fetch' || !navigator.onLine) {
++                if (error.message === 'Failed to fetch' || networkManager.getDecision().shouldBlock) {
+                     await offlineQueue.addOperation('CREATE_RETURN', returnWithId, data.bar_id, data.returned_by || '');
+                     return returnWithId as DBReturn;
+                 }
+diff --git a/src/services/supabase/sales.service.test.ts b/src/services/supabase/sales.service.test.ts
+index c2570ae..118cc86 100644
+--- a/src/services/supabase/sales.service.test.ts
++++ b/src/services/supabase/sales.service.test.ts
+@@ -60,7 +60,7 @@ describe('SalesService', () => {
+     describe('createSale', () => {
+         it('should call RPC when online', async () => {
+             // Setup Online
+-            (networkManager.getDecision as any).mockReturnValue({ shouldShowBanner: false });
++            (networkManager.getDecision as any).mockReturnValue({ shouldBlock: false, shouldShowBanner: false });
+ 
+             // Mock RPC Success
+             (supabase.rpc as any).mockReturnValue({
+@@ -84,7 +84,7 @@ describe('SalesService', () => {
+ 
+         it('should fallback to offline queue when network manager validation fails', async () => {
+             // Setup Offline
+-            (networkManager.getDecision as any).mockReturnValue({ shouldShowBanner: true });
++            (networkManager.getDecision as any).mockReturnValue({ shouldBlock: true, shouldShowBanner: true });
+ 
+             // Mock Queue Success
+             (offlineQueue.addOperation as any).mockResolvedValue({ id: 'temp-123' });
+@@ -103,7 +103,7 @@ describe('SalesService', () => {
+ 
+         it('should try online first, then fallback to offline on network error', async () => {
+             // Setup Online initially
+-            (networkManager.getDecision as any).mockReturnValue({ shouldShowBanner: false });
++            (networkManager.getDecision as any).mockReturnValue({ shouldBlock: false, shouldShowBanner: false });
+ 
+             // Mock RPC Failure (Network Error)
+             (supabase.rpc as any).mockReturnValue({
+
+commit 7023ea4b764644162c97ba93fc907ab50eab59aa
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 09:23:10 2026 +0100
+
+    fix(safety): retirer retry sur addSupply/createExpense (pas d'idempotence serveur)
+    
+    Le retry automatique sur des mutations sans idempotency_key cote serveur
+    risque de creer des doublons en cas de reponse perdue : double
+    approvisionnement (stock + CUMP fausses) ou double depense.
+    
+    - addSupply: retry: false avec commentaire explicatif
+    - createExpense: retry: false avec commentaire explicatif
+    - mutationRetryFn: ajout AbortError + QUOTA/RATE_LIMIT manquants
+      pour alignement complet avec SyncManager.shouldRetryError()
+    
+    La fonction mutationRetryFn reste disponible pour quand l'idempotence
+    backend sera implementee (Layer 4C).
+
+diff --git a/src/hooks/mutations/useExpensesMutations.ts b/src/hooks/mutations/useExpensesMutations.ts
+index 642b3e7..0951077 100644
+--- a/src/hooks/mutations/useExpensesMutations.ts
++++ b/src/hooks/mutations/useExpensesMutations.ts
+@@ -8,8 +8,10 @@ export const useExpensesMutations = (barId: string) => {
+     const queryClient = useQueryClient();
+ 
+     const createExpense = useMutation({
+-        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
+-        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
++        // ÔÜá´©Å PAS de retry automatique : createExpense n'a pas d'idempotency_key c├┤t├® serveur.
++        // Un retry sur r├®ponse perdue cr├®erait une double d├®pense en comptabilit├®.
++        // R├®activer quand l'idempotence backend sera en place (Layer 4C).
++        retry: false,
+         mutationFn: async (data: any) => {
+             // Mapping App -> DB
+             const expenseData = {
+diff --git a/src/hooks/mutations/useStockMutations.ts b/src/hooks/mutations/useStockMutations.ts
+index dd68697..961d4b9 100644
+--- a/src/hooks/mutations/useStockMutations.ts
++++ b/src/hooks/mutations/useStockMutations.ts
+@@ -46,6 +46,7 @@ export const useStockMutations = (barId?: string) => {
+     // --- PRODUCTS ---
+ 
+     const createProduct = useMutation({
++        meta: { suppressGlobalError: true }, // ­ƒøí´©Å onError local g├¿re le toast ÔÇö ├®vite le double toast de MutationCache
+         mutationFn: async (productData: any) => {
+             const barId = currentBar?.id;
+             if (!barId) throw new Error("No bar selected");
+diff --git a/src/utils/errorHandler.ts b/src/utils/errorHandler.ts
+index cc1a3f0..239815e 100644
+--- a/src/utils/errorHandler.ts
++++ b/src/utils/errorHandler.ts
+@@ -125,7 +125,7 @@ export function shouldRetryError(error: unknown): boolean {
+ 
+ /**
+  * Classification d'erreur Supabase pour retry de mutations React Query.
+- * Coh├®rente avec SyncManager.shouldRetryError() ÔÇö m├¬me logique de classification.
++ * Align├®e sur SyncManager.shouldRetryError() (m├¬mes codes/patterns).
+  *
+  * Erreurs permanentes (ne PAS retry) :
+  * - PGRST116 (no rows), 23xxx (PG constraints), 4xx sauf 408/429
+@@ -156,8 +156,10 @@ export function mutationRetryFn(failureCount: number, error: unknown, maxRetries
+   if (errorStatus >= 500) return true;
+   if (errorStatus === 429 || errorStatus === 408) return true;
+   if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) return true;
++  if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) return true;
+   if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
+   if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
++  if (errorMessage.includes('AbortError') || errorMessage.includes('aborted')) return true;
+   if (/\bconnection\b/i.test(errorMessage) && !errorMessage.includes('disconnect')) return true;
+ 
+   return false;
+
+commit cfee92f3396128bc05ea484399d2b9e3e521c6d3
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 09:13:04 2026 +0100
+
+    fix(resilience): retry intelligent sur addSupply et createExpense
+    
+    Ajoute mutationRetryFn() dans errorHandler.ts ÔÇö classification
+    d'erreur coherente avec SyncManager.shouldRetryError() :
+    - Permanentes (pas de retry) : PGRST116, 23xxx, 4xx sauf 408/429
+    - Transitoires (retry) : PGRST000, 5xx, 429, 408, network/timeout
+    
+    Applique retry (max 2, backoff exponentiel 1s/2s/5s) sur :
+    - addSupply (useStockMutations) : approvisionnement critique
+    - createExpense (useExpensesMutations) : depense comptable
+    
+    Layer 4B ÔÇö Retry + classification d'erreur sur mutations critiques.
+
+diff --git a/src/hooks/mutations/useExpensesMutations.ts b/src/hooks/mutations/useExpensesMutations.ts
+index 9cd6e1d..642b3e7 100644
+--- a/src/hooks/mutations/useExpensesMutations.ts
++++ b/src/hooks/mutations/useExpensesMutations.ts
+@@ -2,11 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
+ import { ExpensesService } from '../../services/supabase/expenses.service';
+ import { expenseKeys } from '../queries/useExpensesQueries';
+ import { AnalyticsService } from '../../services/supabase/analytics.service';
++import { mutationRetryFn } from '../../utils/errorHandler';
+ 
+ export const useExpensesMutations = (barId: string) => {
+     const queryClient = useQueryClient();
+ 
+     const createExpense = useMutation({
++        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
++        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+         mutationFn: async (data: any) => {
+             // Mapping App -> DB
+             const expenseData = {
+diff --git a/src/hooks/mutations/useStockMutations.ts b/src/hooks/mutations/useStockMutations.ts
+index dc33bc4..dd68697 100644
+--- a/src/hooks/mutations/useStockMutations.ts
++++ b/src/hooks/mutations/useStockMutations.ts
+@@ -6,7 +6,7 @@ import { stockKeys } from '../queries/useStockQueries';
+ import { useAuth } from '../../context/AuthContext';
+ import { useBarContext } from '../../context/BarContext';
+ import { broadcastService } from '../../services/broadcast/BroadcastService';
+-import { getErrorMessage } from '../../utils/errorHandler';
++import { getErrorMessage, mutationRetryFn } from '../../utils/errorHandler';
+ import type { AdjustmentReason } from '../../types';
+ 
+ // Map legacy/unknown reason strings to valid RPC enum values
+@@ -168,6 +168,8 @@ export const useStockMutations = (barId?: string) => {
+     // --- SUPPLIES (Complex Flow) ---
+ 
+     const addSupply = useMutation({
++        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
++        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+         mutationFn: async (data: {
+             bar_id: string;
+             product_id: string;
+diff --git a/src/utils/errorHandler.ts b/src/utils/errorHandler.ts
+index 0ea58e2..cc1a3f0 100644
+--- a/src/utils/errorHandler.ts
++++ b/src/utils/errorHandler.ts
+@@ -122,3 +122,43 @@ export function shouldRetryError(error: unknown): boolean {
+     message.includes('connection reset')
+   );
+ }
++
++/**
++ * Classification d'erreur Supabase pour retry de mutations React Query.
++ * Coh├®rente avec SyncManager.shouldRetryError() ÔÇö m├¬me logique de classification.
++ *
++ * Erreurs permanentes (ne PAS retry) :
++ * - PGRST116 (no rows), 23xxx (PG constraints), 4xx sauf 408/429
++ *
++ * Erreurs transitoires (retry) :
++ * - PGRST000, 5xx, 429, 408, network/timeout/fetch errors
++ *
++ * @param maxRetries Nombre max de tentatives (d├®faut: 2)
++ */
++export function mutationRetryFn(failureCount: number, error: unknown, maxRetries = 2): boolean {
++  if (failureCount >= maxRetries) return false;
++
++  const errorCode = typeof error === 'object' && error !== null && 'code' in error
++    ? String((error as { code: unknown }).code)
++    : '';
++  const errorStatus = typeof error === 'object' && error !== null && 'status' in error
++    ? Number((error as { status: unknown }).status)
++    : 0;
++  const errorMessage = getErrorMessage(error);
++
++  // --- Erreurs permanentes (ne PAS retry) ---
++  if (errorCode === 'PGRST116') return false;
++  if (errorCode.startsWith('23')) return false;
++  if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 408 && errorStatus !== 429) return false;
++
++  // --- Erreurs transitoires (retry) ---
++  if (errorCode === 'PGRST000') return true;
++  if (errorStatus >= 500) return true;
++  if (errorStatus === 429 || errorStatus === 408) return true;
++  if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) return true;
++  if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
++  if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
++  if (/\bconnection\b/i.test(errorMessage) && !errorMessage.includes('disconnect')) return true;
++
++  return false;
++}
+
+commit fbfb879b14bc3174c2847c84d7b42e6aa8979042
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 09:07:01 2026 +0100
+
+    fix(network): useSalesMutations isNetworkError ÔÇö navigator.onLine vers networkManager
+    
+    Centralise la detection reseau dans isNetworkError() pour respecter
+    la grace period 12s du NetworkManager. Evite les faux-positifs qui
+    declenchaient le chemin onError au lieu du fallback offline.
+    
+    Deux occurrences remplacees (L118, L126) par un appel unique
+    networkManager.getDecision().shouldBlock en debut de fonction.
+    
+    Layer 4A ÔÇö Centralisation detection reseau dans hooks mutations
+
+diff --git a/src/hooks/mutations/useSalesMutations.ts b/src/hooks/mutations/useSalesMutations.ts
+index cda764f..cddd880 100644
+--- a/src/hooks/mutations/useSalesMutations.ts
++++ b/src/hooks/mutations/useSalesMutations.ts
+@@ -13,6 +13,7 @@ import { Database } from '../../lib/database.types';
+ import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
+ import { SaleItem } from '../../types';
+ import { useCanWorkOffline } from '../../hooks/useCanWorkOffline';
++import { networkManager } from '../../services/NetworkManager';
+ import toast from 'react-hot-toast';
+ import { z } from 'zod';
+ import { SaleItemSchema } from '../../utils/revenueSchemas';
+@@ -115,7 +116,8 @@ export const useSalesMutations = (barId: string) => {
+     const canWorkOffline = useCanWorkOffline();
+ 
+     const isNetworkError = (error: unknown): boolean => {
+-        if (!(error instanceof Error)) return !navigator.onLine;
++        const isOffline = networkManager.getDecision().shouldBlock;
++        if (!(error instanceof Error)) return isOffline;
+ 
+         // Ô£à Type-safe error code extraction
+         const errorCode = typeof error === 'object' && error !== null && 'code' in error
+@@ -123,7 +125,7 @@ export const useSalesMutations = (barId: string) => {
+             : '';
+ 
+         return (
+-            !navigator.onLine ||
++            isOffline ||
+             error.message === 'Failed to fetch' ||
+             error.message.includes('NetworkError') ||
+             error.message.includes('connection') ||
+
+commit 8f86cb3f87bd917064f9ba842c02664333759f4d
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 06:21:11 2026 +0100
+
+    fix(network): homogeneiser shouldShowBanner vers shouldBlock dans sales.service et AuthContext
+    
+    Trois occurrences de shouldShowBanner utilisees comme decision de blocage
+    metier (fallback offline, conservation session) alignees sur shouldBlock
+    pour coherence semantique.
+    
+    - sales.service.ts L169,175: log + decision fallback offline
+    - AuthContext.tsx L167: conservation session sur token expire
+    
+    Aujourd'hui shouldShowBanner === shouldBlock, mais si NetworkManager
+    les differencie a l'avenir, ces chemins critiques doivent suivre
+    shouldBlock (decision de blocage), pas shouldShowBanner (UI).
+
+diff --git a/src/context/AuthContext.tsx b/src/context/AuthContext.tsx
+index 4779733..eb22a8c 100644
+--- a/src/context/AuthContext.tsx
++++ b/src/context/AuthContext.tsx
+@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
+     const handleTokenExpired = async () => {
+       // Ô¡É R├ëSILIENCE OFFLINE: Si on est hors-ligne, on ne d├®connecte PAS.
+       // On garde la session en m├®moire pour permettre le travail local (Optimisme R├®silient).
+-      if (networkManager.getDecision().shouldShowBanner) {
++      if (networkManager.getDecision().shouldBlock) {
+         console.warn('[AuthContext] Token expir├® mais conserv├® (Mode Offline)');
+         return;
+       }
+diff --git a/src/services/supabase/sales.service.ts b/src/services/supabase/sales.service.ts
+index 91c3527..f362ecb 100644
+--- a/src/services/supabase/sales.service.ts
++++ b/src/services/supabase/sales.service.ts
+@@ -166,13 +166,13 @@ export class SalesService {
+     }
+   ): Promise<Sale | OfflineSale> {
+     console.log('[SalesService] entering createSale', {
+-      isOffline: networkManager.getDecision().shouldShowBanner,
++      isOffline: networkManager.getDecision().shouldBlock,
+       canWorkOffline: options?.canWorkOffline,
+       data_sold_by: data.sold_by
+     });
+ 
+     const status = data.status || 'pending';
+-    const { shouldShowBanner: isOffline } = networkManager.getDecision();
++    const { shouldBlock: isOffline } = networkManager.getDecision();
+ 
+     const idempotencyKey = data.idempotency_key ?? generateUUID();
+ 
+
+commit 83cc756b0272c6f141fec9f154adeddbb9a7542d
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 06:17:35 2026 +0100
+
+    fix(network): useRobustOperation ÔÇö remplacer navigator.onLine par networkManager
+    
+    Centralise la detection reseau dans useRobustOperation pour respecter
+    la grace period 12s du NetworkManager (evite les faux-positifs offline
+    sur connexions 2G/3G instables).
+    
+    Deux occurrences remplacees :
+    - executeAsync: garde offline avant operation
+    - isOnline: propriete exposee aux composants
+    
+    Layer 3 (4/4) ÔÇö Centralisation navigator.onLine terminee.
+
+diff --git a/src/hooks/useRobustOperation.ts b/src/hooks/useRobustOperation.ts
+index 42bc304..e82bbb8 100644
+--- a/src/hooks/useRobustOperation.ts
++++ b/src/hooks/useRobustOperation.ts
+@@ -1,4 +1,5 @@
+ import { useState, useCallback, useRef } from 'react';
++import { networkManager } from '../services/NetworkManager';
+ 
+ interface UseRobustOperationOptions {
+   timeoutMs?: number;
+@@ -63,8 +64,8 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
+   // Ex├®cuter une op├®ration avec timeout et retry
+   const executeAsync = useCallback(
+     async <T,>(operation: () => Promise<T>): Promise<T | null> => {
+-      // V├®rifier la connexion r├®seau
+-      if (!navigator.onLine) {
++      // V├®rifier la connexion r├®seau (respecte la grace period 12s du NetworkManager)
++      if (networkManager.getDecision().shouldBlock) {
+         const offlineMsg = 'Vous ├¬tes hors ligne. V├®rifiez votre connexion.';
+         setState(prev => ({ ...prev, error: offlineMsg }));
+         onOffline?.();
+@@ -181,6 +182,6 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
+     executeAsync,
+     retryAsync,
+     reset,
+-    isOnline: navigator.onLine,
++    isOnline: !networkManager.getDecision().shouldBlock,
+   };
+ }
+
+commit cc62a251fca78eb685a2a2b23f787dcd79a3c412
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 06:13:23 2026 +0100
+
+    fix(resilience): AuthContext utilise networkManager au lieu de navigator.onLine
+    
+    Remplace les 2 usages de navigator.onLine (L85 init session, L203 login)
+    par networkManager.getDecision().shouldBlock. Corrige le cas ou un etat
+    "unstable" (grace period active) bloquait le login a tort.
+    networkManager etait deja importe et utilise dans le meme fichier.
+
+diff --git a/src/context/AuthContext.tsx b/src/context/AuthContext.tsx
+index 55db054..4779733 100644
+--- a/src/context/AuthContext.tsx
++++ b/src/context/AuthContext.tsx
+@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
+       console.error('[AuthContext] Failed to initialize Supabase session:', err);
+ 
+       // ­ƒîÉ MODE HORS LIGNE: Garder la session en cache si elle existe
+-      if (!navigator.onLine) {
++      if (networkManager.getDecision().shouldBlock) {
+         console.log('[AuthContext] ­ƒôÁ Mode hors ligne d├®tect├® - conservation de la session en cache');
+         // Ne pas effacer la session existante en mode hors ligne
+       } else {
+@@ -199,8 +199,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
+ 
+   // ­ƒöÉ Login avec Supabase Auth (email + password)
+   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
+-    // ­ƒîÉ V├®rifier la connexion internet
+-    if (!navigator.onLine) {
++    // ­ƒîÉ V├®rifier la connexion internet (respecte la grace period ÔÇö "unstable" ne bloque pas)
++    if (networkManager.getDecision().shouldBlock) {
+       console.warn('[AuthContext] ­ƒôÁ Tentative de connexion en mode hors ligne');
+       return {
+         error: 'Connexion internet requise pour se connecter. Veuillez v├®rifier votre connexion et r├®essayer.'
+
+commit f21b08cc5e906d02bc7b7ab629f097bb3f837d3d
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 06:11:37 2026 +0100
+
+    fix(resilience): sales.service.ts aligne les checks reseau sur networkManager
+    
+    Remplace !navigator.onLine (L216, L234) par networkManager.getDecision().shouldBlock
+    dans la boucle de retry et le fallback offline. Le fichier utilisait deja
+    networkManager en L175 pour la decision initiale -- les checks dans le
+    error handler sont maintenant coherents.
+
+diff --git a/src/services/supabase/sales.service.ts b/src/services/supabase/sales.service.ts
+index 9f308c0..91c3527 100644
+--- a/src/services/supabase/sales.service.ts
++++ b/src/services/supabase/sales.service.ts
+@@ -83,7 +83,80 @@ export class SalesService {
+   }
+ 
+   /**
+-   * Cr├®er une nouvelle vente avec strat├®gie de r├®silience offline/online
++   * ­ƒøí´©Å Retry configuration for RPC calls on slow networks (2G/3G AOF)
++   * - MAX_RPC_ATTEMPTS: 1 initial + 1 retry = 2 attempts total
++   * - RETRY_DELAY_MS: pause between attempts to let transient issues resolve
++   * - TIMEOUT_FIRST / TIMEOUT_RETRY: progressive timeout (shorter first, longer retry)
++   */
++  private static readonly MAX_RPC_ATTEMPTS = 2;
++  private static readonly RETRY_DELAY_MS = 1000;
++  private static readonly TIMEOUT_FIRST_MS = 8000;   // 8s: covers 2G AOF (5-8s)
++  private static readonly TIMEOUT_RETRY_MS = 12000;  // 12s: generous retry for degraded networks
++
++  /**
++   * Attempt a single RPC call to create_sale_idempotent with timeout.
++   * Returns the sale row on success, throws on failure.
++   */
++  private static async attemptRpcSale(
++    data: CreateSaleData,
++    status: string,
++    idempotencyKey: string,
++    timeoutMs: number
++  ): Promise<Sale> {
++    let timeoutId: ReturnType<typeof setTimeout> | undefined;
++
++    const rpcPromise = supabase.rpc(
++      'create_sale_idempotent',
++      {
++        p_bar_id: data.bar_id,
++        p_items: toSupabaseJson(data.items),
++        p_payment_method: data.payment_method,
++        p_sold_by: data.sold_by,
++        p_idempotency_key: idempotencyKey,
++        p_server_id: data.server_id ?? undefined,
++        p_status: status,
++        p_customer_name: data.customer_name ?? undefined,
++        p_customer_phone: data.customer_phone ?? undefined,
++        p_notes: data.notes ?? undefined,
++        p_business_date: data.business_date ?? undefined,
++        p_ticket_id: data.ticket_id ?? undefined,
++        p_source_return_id: data.source_return_id ?? undefined
++      }
++    ).single();
++
++    const timeoutPromise = new Promise<never>((_, reject) => {
++      timeoutId = setTimeout(() => {
++        reject(new Error('TIMEOUT_EXCEEDED'));
++      }, timeoutMs);
++    });
++
++    try {
++      const result = await Promise.race([rpcPromise, timeoutPromise]);
++
++      if (timeoutId !== undefined) clearTimeout(timeoutId);
++
++      // Type guard pour v├®rifier la structure du r├®sultat Supabase
++      if (result && typeof result === 'object' && 'error' in result && result.error) {
++        console.error('[SalesService] RPC error detail:', result.error);
++        throw result.error;
++      }
++
++      // Extraction type-safe de data (Supabase renvoie { data, error })
++      if (result && typeof result === 'object' && 'data' in result) {
++        return result.data as Sale;
++      }
++
++      return result as Sale;
++    } catch (err) {
++      if (timeoutId !== undefined) clearTimeout(timeoutId);
++      throw err;
++    }
++  }
++
++  /**
++   * Cr├®er une nouvelle vente avec strat├®gie de r├®silience offline/online.
++   * Utilise un retry transparent (idempotent via idempotency_key) pour
++   * absorber les micro-coupures r├®seau fr├®quentes en 2G/3G AOF.
+    */
+   static async createSale(
+     data: CreateSaleData & { status?: 'pending' | 'validated' },
+@@ -109,75 +182,63 @@ export class SalesService {
+         return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+       }
+ 
+-      console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
+-
+-      // Ô£à Timeout avec cleanup pour ├®viter les memory leaks
+-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+-
+-      const rpcPromise = supabase.rpc(
+-        'create_sale_idempotent',
+-        {
+-          p_bar_id: data.bar_id,
+-          p_items: toSupabaseJson(data.items),
+-          p_payment_method: data.payment_method,
+-          p_sold_by: data.sold_by,
+-          p_idempotency_key: idempotencyKey,
+-          p_server_id: data.server_id ?? undefined,
+-          p_status: status,
+-          p_customer_name: data.customer_name ?? undefined,
+-          p_customer_phone: data.customer_phone ?? undefined,
+-          p_notes: data.notes ?? undefined,
+-          p_business_date: data.business_date ?? undefined,
+-          p_ticket_id: data.ticket_id ?? undefined,
+-          p_source_return_id: data.source_return_id ?? undefined
+-        }
+-      ).single();
+-
+-      const timeoutPromise = new Promise((_, reject) => {
+-        timeoutId = setTimeout(() => {
+-          reject(new Error('TIMEOUT_EXCEEDED'));
+-        }, 8000); // 8s: covers 2G AOF latency (5-8s) + RPC processing time
+-      });
+-
+-      try {
+-        const result = await Promise.race([rpcPromise, timeoutPromise]);
+-        console.log('[SalesService] Race result received');
+-
+-        // Ô£à Cleanup du timeout si la requ├¬te r├®ussit
+-        if (timeoutId !== undefined) {
+-          clearTimeout(timeoutId);
++      // ­ƒøí´©Å Retry loop: attempt RPC with progressive timeout
++      // Safe thanks to idempotency_key ÔÇö if 1st attempt succeeded server-side
++      // but response was lost, the 2nd attempt returns the existing sale.
++      let lastError: unknown = null;
++      const timeouts = [this.TIMEOUT_FIRST_MS, this.TIMEOUT_RETRY_MS];
++
++      for (let attempt = 0; attempt < this.MAX_RPC_ATTEMPTS; attempt++) {
++        const timeoutMs = timeouts[attempt];
++        const isRetry = attempt > 0;
++
++        if (isRetry) {
++          console.log(`[SalesService] Retry ${attempt}/${this.MAX_RPC_ATTEMPTS - 1} after ${this.RETRY_DELAY_MS}ms pause (timeout: ${timeoutMs}ms)`);
++          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY_MS));
++        } else {
++          console.log(`[SalesService] Attempt ${attempt + 1}/${this.MAX_RPC_ATTEMPTS} (timeout: ${timeoutMs}ms)`);
+         }
+ 
+-        // Type guard pour v├®rifier la structure du r├®sultat Supabase
+-        if (result && typeof result === 'object' && 'error' in result && result.error) {
+-          console.error('[SalesService] RPC error detail:', result.error);
+-          throw result.error;
+-        }
+-
+-        // Extraction type-safe de data (Supabase renvoie { data, error })
+-        if (result && typeof result === 'object' && 'data' in result) {
+-          return result.data as Sale;
++        try {
++          const sale = await this.attemptRpcSale(data, status, idempotencyKey, timeoutMs);
++          console.log('[SalesService] RPC success on attempt', attempt + 1);
++          return sale;
++        } catch (err) {
++          lastError = err;
++          const errorMessage = err instanceof Error ? err.message : String(err);
++          console.warn(`[SalesService] Attempt ${attempt + 1} failed:`, errorMessage);
++
++          // Only retry on transient errors (timeout or network)
++          const isTransient =
++            errorMessage === 'TIMEOUT_EXCEEDED' ||
++            errorMessage === 'Failed to fetch' ||
++            errorMessage.includes('AbortError') ||
++            networkManager.getDecision().shouldBlock;
++
++          if (!isTransient) {
++            // Non-transient error (e.g. Access denied, validation error) ÔåÆ fail immediately
++            console.error('[SalesService] Non-transient error, skipping retry');
++            break;
++          }
+         }
++      }
+ 
+-        return result as Sale;
+-
+-      } catch (err) {
+-        // Ô£à Cleanup du timeout en cas d'erreur
+-        if (timeoutId !== undefined) {
+-          clearTimeout(timeoutId);
+-        }
++      // All attempts exhausted ÔÇö try offline fallback
++      const lastErrorMessage = lastError instanceof Error ? lastError.message : String(lastError);
++      console.warn('[SalesService] All attempts exhausted. Last error:', lastErrorMessage);
+ 
+-        const errorMessage = err instanceof Error ? err.message : String(err);
+-        console.warn('[SalesService] Online failure:', errorMessage);
++      const isNetworkRelated =
++        lastErrorMessage === 'TIMEOUT_EXCEEDED' ||
++        lastErrorMessage === 'Failed to fetch' ||
++        lastErrorMessage.includes('AbortError') ||
++        networkManager.getDecision().shouldBlock;
+ 
+-        if (errorMessage === 'TIMEOUT_EXCEEDED' || errorMessage === 'Failed to fetch' || !navigator.onLine) {
+-          if (options?.canWorkOffline) {
+-            console.log('[SalesService] Failing OVER to offline queue');
+-            return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+-          }
+-        }
+-        throw err;
++      if (isNetworkRelated && options?.canWorkOffline) {
++        console.log('[SalesService] Failing OVER to offline queue after retry exhaustion');
++        return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+       }
++
++      throw lastError;
+     } catch (error) {
+       console.error('[SalesService] Global failure in createSale:', error);
+       throw new Error(handleSupabaseError(error));
+
+commit 6bbade464a9dc13bc04f26fb5448af4fa3a6b260
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 06:08:55 2026 +0100
+
+    fix(resilience): Cart.tsx utilise networkManager au lieu de navigator.onLine
+    
+    Remplace !window.navigator.onLine par networkManager.getDecision().shouldBlock
+    pour le check offline des serveurs au checkout. Respecte la grace period:
+    un etat "unstable" (connexion degradee temporaire) ne bloque plus le
+    checkout a tort.
+
+diff --git a/src/components/Cart.tsx b/src/components/Cart.tsx
+index 15af028..e5257ac 100644
+--- a/src/components/Cart.tsx
++++ b/src/components/Cart.tsx
+@@ -13,6 +13,7 @@ import { CartDrawer } from './cart/CartDrawer';
+ import { useTickets } from '../hooks/queries/useTickets';
+ import { TicketsService } from '../services/supabase/tickets.service';
+ import { useStock } from '../context/hooks/useStock';
++import { networkManager } from '../services/NetworkManager';
+ 
+ interface CartProps {
+   isOpen: boolean;
+@@ -76,7 +77,8 @@ export function Cart({
+     let serverId: string | undefined;
+ 
+     // ­ƒö┤ BLOCKING LOGIC : SERVER OFFLINE MODE
+-    const isOffline = !window.navigator.onLine;
++    // Utilise networkManager pour respecter la grace period (├®tat "unstable" != offline)
++    const isOffline = networkManager.getDecision().shouldBlock;
+     const isServer = currentSession?.role === 'serveur';
+ 
+     if (isOffline && isServer) {
+
+commit 0b7b7a5f1582447f3dcb70c722608b92e57645a4
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 06:05:02 2026 +0100
+
+    fix(resilience): cleanup TTL 48h des id_translations dans IndexedDB
+    
+    cleanupOldTranslations() supprime les traductions temp_id -> realId
+    plus vieilles que 48h. Appele a chaque fin de cycle sync, aux cotes
+    de cleanupTransitionalSyncs(). Empeche l'accumulation infinie qui
+    contribuait a la pression quota IndexedDB sur le long terme.
+
+diff --git a/src/services/SyncManager.ts b/src/services/SyncManager.ts
+index 593ddf2..138034d 100644
+--- a/src/services/SyncManager.ts
++++ b/src/services/SyncManager.ts
+@@ -384,6 +384,7 @@ class SyncManagerService {
+       this.isSyncing = false;
+       // Nettoyage p├®riodique (Elite sweeper)
+       offlineQueue.cleanupTransitionalSyncs(SyncManagerService.SYNC_KEYS_TTL_MS);
++      offlineQueue.cleanupOldTranslations(); // TTL 48h par d├®faut
+     }
+   }
+ 
+diff --git a/src/services/offlineQueue.ts b/src/services/offlineQueue.ts
+index 3f66209..865682c 100644
+--- a/src/services/offlineQueue.ts
++++ b/src/services/offlineQueue.ts
+@@ -435,6 +435,40 @@ class OfflineQueue {
+     });
+   }
+ 
++  /**
++   * Supprime les traductions d'IDs plus vieilles que le TTL donn├®.
++   * Emp├¬che l'accumulation infinie dans IndexedDB.
++   */
++  async cleanupOldTranslations(ttlMs: number = 48 * 60 * 60 * 1000): Promise<number> {
++    const db = await this.ensureDB();
++    return new Promise((resolve, reject) => {
++      const cutoff = Date.now() - ttlMs;
++      const transaction = db.transaction([TRANSLATIONS_STORE], 'readwrite');
++      const store = transaction.objectStore(TRANSLATIONS_STORE);
++      const request = store.getAll();
++      let deletedCount = 0;
++
++      request.onsuccess = () => {
++        const results = request.result as Array<{ tempId: string; realId: string; timestamp?: number }>;
++        const toDelete = results.filter(item => !item.timestamp || item.timestamp < cutoff);
++        deletedCount = toDelete.length;
++
++        for (const item of toDelete) {
++          store.delete(item.tempId);
++        }
++
++        transaction.oncomplete = () => {
++          if (deletedCount > 0) {
++            console.log(`[OfflineQueue] Cleaned up ${deletedCount} old ID translations (TTL: ${ttlMs / 3600000}h)`);
++          }
++          resolve(deletedCount);
++        };
++        transaction.onerror = () => reject(transaction.error);
++      };
++      request.onerror = () => reject(request.error);
++    });
++  }
++
+   // --- TRANSITIONAL SYNCS (Hardening Pillar 4) ---
+ 
+   /**
+
+commit 4f041731ed6d2ad5e646242d877e9b1b5e6f58a8
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:49:34 2026 +0100
+
+    fix(resilience): ajouter pattern connection errors dans shouldRetryError
+    
+    Restaure la detection des erreurs de connexion (connection refused/reset/
+    closed) avec un regex word-boundary qui exclut "disconnect" pour eviter
+    les faux positifs.
+
+diff --git a/src/services/SyncManager.ts b/src/services/SyncManager.ts
+index 3c21cfe..593ddf2 100644
+--- a/src/services/SyncManager.ts
++++ b/src/services/SyncManager.ts
+@@ -1167,6 +1167,8 @@ class SyncManagerService {
+     if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
+     if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
+     if (errorMessage.includes('AbortError') || errorMessage.includes('aborted')) return true;
++    // Erreurs de connexion (connection refused/reset/closed, mais pas "disconnect" qui est une action user)
++    if (/\bconnection\b/i.test(errorMessage) && !errorMessage.includes('disconnect')) return true;
+ 
+     // Par d├®faut, ne pas retry (erreur inconnue trait├®e comme permanente)
+     return false;
+
+commit e25ed6432ce1c73b502949654a75683159464890
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:42:48 2026 +0100
+
+    fix(resilience): classer HTTP 408 Request Timeout comme retryable
+    
+    408 est dans la plage 4xx mais transitoire par nature.
+    L'exclure du filtre 4xx-permanent aux cotes de 429.
+
+diff --git a/src/services/SyncManager.ts b/src/services/SyncManager.ts
+index ff915f5..3c21cfe 100644
+--- a/src/services/SyncManager.ts
++++ b/src/services/SyncManager.ts
+@@ -1148,8 +1148,8 @@ class SyncManagerService {
+     if (errorCode === 'PGRST116') return false; // Query returned no rows
+     // PostgreSQL: violations de contrainte (23xxx = integrity_constraint_violation)
+     if (errorCode.startsWith('23')) return false;
+-    // HTTP 4xx client errors (sauf 429 rate limit)
+-    if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 429) return false;
++    // HTTP 4xx client errors (sauf 408 Request Timeout et 429 Rate Limit)
++    if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 408 && errorStatus !== 429) return false;
+ 
+     // --- Erreurs transitoires (retry) ---
+ 
+
+commit 92dcde5cab2475d5b998c15bf010bc231ea785b5
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:39:38 2026 +0100
+
+    fix(resilience): shouldRetryError reconnait les codes Supabase et status HTTP
+    
+    Avant: seuls des patterns generiques (NETWORK, timeout, connection) etaient
+    reconnus. Les erreurs Supabase (PGRST000, 5xx) etaient classees permanentes
+    a tort, et les violations de contrainte (23xxx) pouvaient etre retryees.
+    
+    Apres:
+    - Permanent (pas retry): PGRST116, 23xxx, HTTP 4xx (sauf 429)
+    - Transitoire (retry): PGRST000, HTTP 5xx, 429, Failed to fetch,
+      NetworkError, AbortError, timeout
+    - Retire le pattern trop large 'connect' qui matchait des faux positifs
+
+diff --git a/src/services/SyncManager.ts b/src/services/SyncManager.ts
+index 5f9fd9a..ff915f5 100644
+--- a/src/services/SyncManager.ts
++++ b/src/services/SyncManager.ts
+@@ -1133,33 +1133,42 @@ class SyncManagerService {
+    * D├®termine si une erreur est temporaire et m├®rite un retry
+    */
+   private shouldRetryError(error: unknown): boolean {
+-    // Extraction type-safe du code et message d'erreur
++    // Extraction type-safe du code, message et status HTTP
+     const errorCode = typeof error === 'object' && error !== null && 'code' in error
+-      ? String(error.code)
++      ? String((error as { code: unknown }).code)
+       : '';
++    const errorStatus = typeof error === 'object' && error !== null && 'status' in error
++      ? Number((error as { status: unknown }).status)
++      : 0;
+     const errorMessage = getErrorMessage(error);
+ 
+-    // Erreurs r├®seau temporaires
+-    if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) {
+-      return true;
+-    }
+-
+-    // Erreurs de timeout
+-    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+-      return true;
+-    }
+-
+-    // Erreurs de connexion
+-    if (errorMessage.includes('connection') || errorMessage.includes('connect')) {
+-      return true;
+-    }
+-
+-    // Erreurs de quota/rate limiting (temporaires)
+-    if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) {
+-      return true;
+-    }
+-
+-    // Par d├®faut, ne pas retry (erreur permanente comme violation de contrainte)
++    // --- Erreurs permanentes (ne PAS retry) ---
++
++    // Supabase PostgREST: no rows found, validation
++    if (errorCode === 'PGRST116') return false; // Query returned no rows
++    // PostgreSQL: violations de contrainte (23xxx = integrity_constraint_violation)
++    if (errorCode.startsWith('23')) return false;
++    // HTTP 4xx client errors (sauf 429 rate limit)
++    if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 429) return false;
++
++    // --- Erreurs transitoires (retry) ---
++
++    // Supabase PostgREST: erreur g├®n├®rique (souvent connexion/r├®seau)
++    if (errorCode === 'PGRST000') return true;
++    // HTTP 5xx server errors
++    if (errorStatus >= 500) return true;
++    // HTTP 429 rate limiting
++    if (errorStatus === 429) return true;
++    // Codes g├®n├®riques r├®seau/timeout
++    if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) return true;
++    // Quota/rate limiting par code
++    if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) return true;
++    // Messages r├®seau/timeout
++    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
++    if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
++    if (errorMessage.includes('AbortError') || errorMessage.includes('aborted')) return true;
++
++    // Par d├®faut, ne pas retry (erreur inconnue trait├®e comme permanente)
+     return false;
+   }
+ 
+
+commit 49960d74338eb2f26fa03e6de6c04f1e53d53d04
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:36:54 2026 +0100
+
+    fix(resilience): affiner invalidation avec key factories et barId
+    
+    Corrige le recouvrement: stockKeys.all touchait categories, expenseKeys.all
+    touchait expense categories. Utilise maintenant les key factories
+    (stockKeys.products, stockKeys.supplies, expenseKeys.list, etc.) avec
+    barId pour exclure les donnees quasi-statiques (categories, settings).
+    
+    Ajoute currentBar?.id aux deps du useEffect pour closure correcte.
+
+diff --git a/src/layouts/RootLayout.tsx b/src/layouts/RootLayout.tsx
+index 78865e4..c90120f 100644
+--- a/src/layouts/RootLayout.tsx
++++ b/src/layouts/RootLayout.tsx
+@@ -14,6 +14,13 @@ import { supabase } from '../lib/supabase';
+ import { VersionCheckService } from '../services/versionCheck.service';
+ import { useRoutePreload } from '../hooks/useRoutePreload';
+ import { networkManager } from '../services/NetworkManager';
++import { salesKeys } from '../hooks/queries/useSalesQueries';
++import { stockKeys } from '../hooks/queries/useStockQueries';
++import { statsKeys } from '../hooks/queries/useStatsQueries';
++import { returnKeys } from '../hooks/queries/useReturnsQueries';
++import { expenseKeys } from '../hooks/queries/useExpensesQueries';
++import { ticketKeys } from '../hooks/queries/useTickets';
++import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
+ 
+ import { Header } from '../components/Header';
+ import { MobileNavigation } from '../components/MobileNavigation';
+@@ -132,22 +139,39 @@ function RootLayoutContent() {
+   }, []);
+ 
+   // ­ƒöä Vision Rayons X: Rafra├«chir les donn├®es au retour du r├®seau ou fin de synchro
+-  // Invalidation cibl├®e pour ├®viter un burst de refetch sur une connexion fragile
++  // Invalidation cibl├®e m├®tier ÔÇö exclut volontairement :
++  //   - offline-only queries (offline-sales-list, offline-returns-list, etc.)
++  //   - quasi-statique (categories, settings, feature-flags)
++  // Note: sync-completed ne porte pas de payload de types sync├®s,
++  //   donc on invalide le m├¬me sous-ensemble m├®tier dans les deux cas.
+   useEffect(() => {
+     const invalidateBusinessData = () => {
+-      // Donn├®es m├®tier susceptibles d'avoir chang├® pendant la p├®riode offline
+-      queryClient.invalidateQueries({ queryKey: ['sales'] });
+-      queryClient.invalidateQueries({ queryKey: ['stock'] });
+-      queryClient.invalidateQueries({ queryKey: ['stats'] });
+-      queryClient.invalidateQueries({ queryKey: ['returns'] });
+-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+-      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
++      const barId = currentBar?.id;
++      if (!barId) return; // Pas de bar actif ÔåÆ rien ├á invalider
++
++      // Ventes & stats
++      queryClient.invalidateQueries({ queryKey: salesKeys.all });
++      queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
++
++      // Stock serveur (products, supplies, consignments ÔÇö PAS categories)
++      queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
++      queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
++      queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
++
++      // Retours, d├®penses (list ÔÇö PAS categories), tickets
++      queryClient.invalidateQueries({ queryKey: returnKeys.all });
++      queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
++      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
++
++      // Analytics & d├®riv├®s
++      queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+       queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
+       queryClient.invalidateQueries({ queryKey: ['topProducts'] });
+       queryClient.invalidateQueries({ queryKey: ['barMembers'] });
+-      queryClient.invalidateQueries({ queryKey: ['stale-pending-sales'] });
+-      queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock'] });
++
++      // Cl├®s ad hoc li├®es au stock/ventes
++      queryClient.invalidateQueries({ queryKey: ['stale-pending-sales', barId] });
++      queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
+       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
+     };
+ 
+@@ -171,7 +195,7 @@ function RootLayoutContent() {
+       unsubscribeNetwork();
+       window.removeEventListener('sync-completed', handleSyncCompleted);
+     };
+-  }, [queryClient]);
++  }, [queryClient, currentBar?.id]);
+ 
+   if (!isAuthenticated) {
+     return <Navigate to="/auth/login" replace />;
+
+commit affadbdb200e03b97405145efd71677775ed42af
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:30:43 2026 +0100
+
+    fix(resilience): invalider par cles metier au lieu du cache entier au retour reseau
+    
+    Remplace invalidateQueries() sans filtre par des invalidations ciblees sur les query keys metier (sales, stock, stats, returns, expenses, tickets, analytics, barMembers, etc). Evite un burst de refetch sur une connexion 2G fragile.
+    
+    Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+diff --git a/src/layouts/RootLayout.tsx b/src/layouts/RootLayout.tsx
+index 7583926..78865e4 100644
+--- a/src/layouts/RootLayout.tsx
++++ b/src/layouts/RootLayout.tsx
+@@ -132,19 +132,37 @@ function RootLayoutContent() {
+   }, []);
+ 
+   // ­ƒöä Vision Rayons X: Rafra├«chir les donn├®es au retour du r├®seau ou fin de synchro
++  // Invalidation cibl├®e pour ├®viter un burst de refetch sur une connexion fragile
+   useEffect(() => {
+-    // 1. ├ëcouter le retour du r├®seau (Pour d├®clencher le refetch imm├®diat et voir les donn├®es merg├®es)
++    const invalidateBusinessData = () => {
++      // Donn├®es m├®tier susceptibles d'avoir chang├® pendant la p├®riode offline
++      queryClient.invalidateQueries({ queryKey: ['sales'] });
++      queryClient.invalidateQueries({ queryKey: ['stock'] });
++      queryClient.invalidateQueries({ queryKey: ['stats'] });
++      queryClient.invalidateQueries({ queryKey: ['returns'] });
++      queryClient.invalidateQueries({ queryKey: ['expenses'] });
++      queryClient.invalidateQueries({ queryKey: ['tickets'] });
++      queryClient.invalidateQueries({ queryKey: ['analytics'] });
++      queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
++      queryClient.invalidateQueries({ queryKey: ['topProducts'] });
++      queryClient.invalidateQueries({ queryKey: ['barMembers'] });
++      queryClient.invalidateQueries({ queryKey: ['stale-pending-sales'] });
++      queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock'] });
++      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
++    };
++
++    // 1. ├ëcouter le retour du r├®seau
+     const unsubscribeNetwork = networkManager.subscribe((status) => {
+       if (status === 'online') {
+-        console.log('[RootLayout] Network restored, invalidating to fetch fresh data...');
+-        queryClient.invalidateQueries();
++        console.log('[RootLayout] Network restored, invalidating business data...');
++        invalidateBusinessData();
+       }
+     });
+ 
+-    // 2. ├ëcouter la fin de la synchro (Pour nettoyer la queue locale et avoir les donn├®es d├®finitives)
++    // 2. ├ëcouter la fin de la synchro
+     const handleSyncCompleted = () => {
+-      console.log('[RootLayout] Sync completed, invalidating query cache...');
+-      queryClient.invalidateQueries();
++      console.log('[RootLayout] Sync completed, invalidating business data...');
++      invalidateBusinessData();
+     };
+ 
+     window.addEventListener('sync-completed', handleSyncCompleted);
+
+commit dd946ef904a16b9e44599b9629484c900e5bfb5e
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:20:24 2026 +0100
+
+    fix(resilience): compl├®ter le garde-fou offline de VersionCheckService
+    
+    - Gater initialize() pour skip le fetch initial si offline
+    - Gater checkNow() pour ne pas bypass le garde-fou p├®riodique
+    - Le polling p├®riodique (d├®j├á corrig├®) + ces 2 chemins couvrent
+      maintenant tous les points d'entr├®e r├®seau du service
+
+diff --git a/src/services/versionCheck.service.ts b/src/services/versionCheck.service.ts
+index a5e6c23..957864e 100644
+--- a/src/services/versionCheck.service.ts
++++ b/src/services/versionCheck.service.ts
+@@ -18,9 +18,13 @@ export class VersionCheckService {
+   static async initialize(): Promise<void> {
+     console.log('[VersionCheckService] Initialisation');
+ 
+-    // Charger la version actuelle
+-    this.currentVersion = await this.getCurrentVersion();
+-    console.log('[VersionCheckService] Version actuelle:', this.currentVersion);
++    // Charger la version actuelle (skip si offline ÔÇö sera r├®cup├®r├®e au premier check p├®riodique)
++    if (!networkManager.getDecision().shouldBlock) {
++      this.currentVersion = await this.getCurrentVersion();
++      console.log('[VersionCheckService] Version actuelle:', this.currentVersion);
++    } else {
++      console.log('[VersionCheckService] Offline ÔÇö initialisation diff├®r├®e');
++    }
+ 
+     // D├®marrer la v├®rification p├®riodique
+     this.startPeriodicCheck();
+@@ -135,6 +139,10 @@ export class VersionCheckService {
+    * V├®rifier imm├®diatement (pour testing)
+    */
+   static async checkNow(): Promise<void> {
++    if (networkManager.getDecision().shouldBlock) {
++      console.log('[VersionCheckService] V├®rification imm├®diate skipp├®e (offline)');
++      return;
++    }
+     console.log('[VersionCheckService] V├®rification imm├®diate');
+     await this.checkForUpdates();
+   }
+
+commit a09aad1fb50e8578bb801dca836a5426cebb7c00
+Author: Zimkada <zimkada@gmail.com>
+Date:   Fri Mar 20 05:17:42 2026 +0100
+
+    fix(resilience): couche 1 ÔÇö correctifs sans risque pour connectivit├® d├®grad├®e
+    
+    - Wrapper les modales lazy-loaded (ProductModal, CategoryModal, QuickSaleFlow,
+      SupplyModal) dans LazyLoadErrorBoundary pour retry au lieu de crash app
+    - Gater VersionCheckService avec networkManager pour ├®viter les fetch offline
+    - Supprimer le code h├®rit├® cass├® (syncService.ts, useOfflineStatus.ts,
+      OfflineIndicator.tsx) qui appelait offlineQueue.getAll() inexistant
+    - Nettoyer les ├®v├®nements IDB orphelins (idb-blocked, idb-version-changed)
+      dispatch├®s sans aucun listener dans le codebase
+    
+    Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+
+diff --git a/src/components/OfflineIndicator.tsx b/src/components/OfflineIndicator.tsx
+deleted file mode 100644
+index a9eb3cf..0000000
+--- a/src/components/OfflineIndicator.tsx
++++ /dev/null
+@@ -1,49 +0,0 @@
+-import { WifiOff, Wifi, Clock } from 'lucide-react';
+-import { useOfflineStatus } from '../hooks/useOfflineStatus';
+-import { motion } from 'framer-motion';
+-
+-export function OfflineIndicator() {
+-  const { isOnline, pendingOperations, lastSyncTime } = useOfflineStatus();
+-
+-  return (
+-    <motion.div
+-      initial={{ opacity: 0, y: -10 }}
+-      animate={{ opacity: 1, y: 0 }}
+-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
+-        isOnline 
+-          ? 'bg-green-100 text-green-700' 
+-          : 'bg-red-100 text-red-700'
+-      }`}
+-    >
+-      {isOnline ? (
+-        <>
+-          <Wifi size={16} />
+-          <span>En ligne</span>
+-        </>
+-      ) : (
+-        <>
+-          <WifiOff size={16} />
+-          <span>Hors ligne</span>
+-        </>
+-      )}
+-      
+-      {pendingOperations > 0 && (
+-        <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+-          isOnline ? 'bg-green-200' : 'bg-red-200'
+-        }`}>
+-          {pendingOperations} en attente
+-        </span>
+-      )}
+-
+-      {isOnline && lastSyncTime && (
+-        <span className="text-xs opacity-75 ml-1">
+-          <Clock size={12} className="inline mr-1" />
+-          {new Date(lastSyncTime).toLocaleTimeString('fr-FR', { 
+-            hour: '2-digit', 
+-            minute: '2-digit' 
+-          })}
+-        </span>
+-      )}
+-    </motion.div>
+-  );
+-}
+\ No newline at end of file
+diff --git a/src/hooks/useOfflineStatus.ts b/src/hooks/useOfflineStatus.ts
+deleted file mode 100644
+index 89596ce..0000000
+--- a/src/hooks/useOfflineStatus.ts
++++ /dev/null
+@@ -1,96 +0,0 @@
+-import { useState, useEffect, useCallback } from 'react';
+-import { useNotifications } from '../components/Notifications';
+-import { offlineQueue } from '../services/offlineQueue';
+-
+-interface OfflineStatus {
+-  isOnline: boolean;
+-  pendingOperations: number;
+-  lastSyncTime: Date | null;
+-}
+-
+-export function useOfflineStatus() {
+-  const { showNotification } = useNotifications();
+-  const [status, setStatus] = useState<OfflineStatus>({
+-    isOnline: navigator.onLine,
+-    pendingOperations: 0,
+-    lastSyncTime: null
+-  });
+-
+-  // Mettre ├á jour le nombre d'op├®rations en attente
+-  const updatePendingCount = useCallback((count: number) => {
+-    setStatus(prev => ({ ...prev, pendingOperations: count }));
+-  }, []);
+-
+-  // Mettre ├á jour l'heure de derni├¿re sync
+-  const updateLastSync = useCallback(() => {
+-    setStatus(prev => ({ ...prev, lastSyncTime: new Date() }));
+-  }, []);
+-
+-
+-  // Charger les op├®rations en attente depuis localStorage
+-  useEffect(() => {
+-    const operations = offlineQueue.getAll();
+-    setStatus(prev => ({ ...prev, pendingOperations: operations.length }));
+-
+-    // ├ëcouter les changements de queue
+-    const handleQueueUpdate = (event: CustomEvent) => {
+-        setStatus(prev => ({ ...prev, pendingOperations: event.detail.count }));
+-    };
+-
+-    window.addEventListener('queue-updated', handleQueueUpdate as EventListener);
+-    
+-    return () => {
+-        window.removeEventListener('queue-updated', handleQueueUpdate as EventListener);
+-    };
+-    }, []);
+-
+-  // ├ëcouter les changements de connexion
+-  useEffect(() => {
+-    const handleOnline = () => {
+-        setStatus(prev => ({ ...prev, isOnline: true }));
+-        showNotification('success', 'Ô£à Connexion r├®tablie');
+-        // D├®clencher la synchronisation
+-        window.dispatchEvent(new Event('sync-required'));
+-        };
+-
+-    const handleOffline = () => {
+-      setStatus(prev => ({ ...prev, isOnline: false }));
+-      showNotification('info', '­ƒôÁ Mode hors-ligne activ├®');
+-    };
+-
+-    window.addEventListener('online', handleOnline);
+-    window.addEventListener('offline', handleOffline);
+-
+-    return () => {
+-      window.removeEventListener('online', handleOnline);
+-      window.removeEventListener('offline', handleOffline);
+-    };
+-  }, [showNotification]);
+-
+-    // ├ëcouter les ├®v├®nements de synchronisation
+-    useEffect(() => {
+-        const handleSyncCompleted = () => {
+-            updateLastSync();
+-            showNotification('success', 'Ô£à Donn├®es synchronis├®es');
+-        };
+-
+-        const handleSyncFailed = (event: CustomEvent) => {
+-            showNotification('error', `ÔØî ├ëchec de synchronisation: ${event.detail.operation.type}`);
+-        };
+-
+-        window.addEventListener('sync-completed', handleSyncCompleted);
+-        window.addEventListener('sync-failed', handleSyncFailed as EventListener);
+-
+-        return () => {
+-            window.removeEventListener('sync-completed', handleSyncCompleted);
+-            window.removeEventListener('sync-failed', handleSyncFailed as EventListener);
+-        };
+-        }, [updateLastSync, showNotification]);
+-
+-  
+-  return {
+-    ...status,
+-    updatePendingCount,
+-    updateLastSync
+-  };
+-}
+\ No newline at end of file
+diff --git a/src/layouts/RootLayout.tsx b/src/layouts/RootLayout.tsx
+index 9467229..7583926 100644
+--- a/src/layouts/RootLayout.tsx
++++ b/src/layouts/RootLayout.tsx
+@@ -206,19 +206,28 @@ function RootLayoutContent() {
+         currentMenu={''} // Placeholder
+       />
+ 
++      <LazyLoadErrorBoundary maxRetries={3}>
+       <Suspense fallback={<LoadingFallback />}>
+         {modalState.type === 'PRODUCT' && (
+           <LazyProductModal
+             isOpen={true}
+             onClose={closeModal}
+-            onSave={(productData) => {
++            onSave={async (productData) => {
+               if (!currentBar) {
+                 showNotification('error', 'Aucun bar s├®lectionn├®');
+                 return;
+               }
+-              createProduct.mutate({ ...productData, barId: currentBar.id });
+-              closeModal();
+-              showNotification('success', `Produit "${productData.name}" ajout├®`);
++              try {
++                // Ô£à Attendre le r├®sultat de la mutation avant de fermer
++                await createProduct.mutateAsync({ ...productData, barId: currentBar.id });
++                // Ô£à Fermer APR├êS succ├¿s
++                closeModal();
++                // ­ƒøí´©Å Pas de toast manuel ÔÇö useStockMutations g├¿re le succ├¿s
++              } catch (error) {
++                // ­ƒøí´©Å Pas de toast manuel ÔÇö useStockMutations g├¿re l'erreur
++                // Le formulaire reste ouvert pour que l'utilisateur corrige
++                throw error; // Relancer pour que ProductModal sache que c'est ├®chou├®
++              }
+             }}
+             categories={categories}
+             product={modalState.props.product}
+@@ -270,6 +279,7 @@ function RootLayoutContent() {
+           />
+         )}
+       </Suspense>
++      </LazyLoadErrorBoundary>
+     </div>
+   );
+ }
+diff --git a/src/services/offlineQueue.ts b/src/services/offlineQueue.ts
+index 7a2bd45..3f66209 100644
+--- a/src/services/offlineQueue.ts
++++ b/src/services/offlineQueue.ts
+@@ -63,14 +63,7 @@ class OfflineQueue {
+             'Please close other tabs or this app will timeout.'
+           );
+ 
+-          // Notifier l'UI via ├®v├®nement global
+-          window.dispatchEvent(new CustomEvent('idb-blocked', {
+-            detail: {
+-              database: DB_NAME,
+-              version: DB_VERSION,
+-              message: 'Veuillez fermer les autres onglets pour continuer'
+-            }
+-          }));
++          // TODO: Afficher une notification UI si n├®cessaire (aucun listener actif aujourd'hui)
+         };
+ 
+         request.onerror = () => {
+@@ -97,10 +90,7 @@ class OfflineQueue {
+             }
+             this.initPromise = null;
+ 
+-            // Informer l'utilisateur qu'un rechargement est n├®cessaire
+-            window.dispatchEvent(new CustomEvent('idb-version-changed', {
+-              detail: { message: 'Mise ├á jour de la base de donn├®es d├®tect├®e' }
+-            }));
++            // TODO: Afficher une notification de rechargement si n├®cessaire (aucun listener actif aujourd'hui)
+           };
+ 
+           console.log('[OfflineQueue] Database initialized');
+diff --git a/src/services/syncService.ts b/src/services/syncService.ts
+deleted file mode 100644
+index b284494..0000000
+--- a/src/services/syncService.ts
++++ /dev/null
+@@ -1,72 +0,0 @@
+-import { offlineQueue, QueuedOperation } from './offlineQueue';
+-
+-
+-class SyncService {
+-  private isSyncing = false;
+-  private syncInterval: number | null = null;
+-
+-  // D├®marrer la synchronisation automatique
+-  startAutoSync() {
+-    // V├®rifier toutes les 30 secondes si en ligne
+-    this.syncInterval = window.setInterval(() => {
+-      if (navigator.onLine && !this.isSyncing) {
+-        this.syncPendingOperations();
+-      }
+-    }, 30000);
+-
+-    // Sync imm├®diate si en ligne
+-    if (navigator.onLine) {
+-      this.syncPendingOperations();
+-    }
+-  }
+-
+-  // Arr├¬ter la synchronisation
+-  stopAutoSync() {
+-    if (this.syncInterval) {
+-      clearInterval(this.syncInterval);
+-      this.syncInterval = null;
+-    }
+-  }
+-
+-  // Synchroniser les op├®rations en attente
+-  async syncPendingOperations() {
+-    if (this.isSyncing) return;
+-
+-    const operations = offlineQueue.getAll();
+-    if (operations.length === 0) return;
+-
+-    this.isSyncing = true;
+-    console.log(`Synchronisation de ${operations.length} op├®rations...`);
+-
+-    for (const operation of operations) {
+-      try {
+-        await this.processOperation(operation);
+-        offlineQueue.remove(operation.id);
+-      } catch (error) {
+-        console.error('Erreur sync:', error);
+-        
+-        // Si max retries atteint, supprimer
+-        if (!offlineQueue.incrementRetries(operation.id)) {
+-          offlineQueue.remove(operation.id);
+-          window.dispatchEvent(new CustomEvent('sync-failed', { 
+-            detail: { operation, error } 
+-          }));
+-        }
+-      }
+-    }
+-
+-    this.isSyncing = false;
+-    window.dispatchEvent(new Event('sync-completed'));
+-  }
+-
+-  // Traiter une op├®ration
+-  private async processOperation(operation: QueuedOperation): Promise<void> {
+-    // Pour l'instant, on simule juste un d├®lai
+-    // Plus tard, ce sera l'appel ├á Supabase
+-    await new Promise(resolve => setTimeout(resolve, 500));
+-    
+-    console.log('Op├®ration synchronis├®e:', operation.type);
+-  }
+-}
+-
+-export const syncService = new SyncService();
+\ No newline at end of file
+diff --git a/src/services/versionCheck.service.ts b/src/services/versionCheck.service.ts
+index 0a3c24d..a5e6c23 100644
+--- a/src/services/versionCheck.service.ts
++++ b/src/services/versionCheck.service.ts
+@@ -3,6 +3,8 @@
+  * D├®tecte les nouvelles versions d├®ploy├®es sur Vercel et force le rechargement
+  */
+ 
++import { networkManager } from './NetworkManager';
++
+ export class VersionCheckService {
+   private static readonly CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+   private static readonly VERSION_FILE = '/version.json';
+@@ -63,6 +65,8 @@ export class VersionCheckService {
+     console.log('[VersionCheckService] V├®rification p├®riodique d├®marr├®e (toutes les 5 min)');
+ 
+     this.checkIntervalId = setInterval(async () => {
++      // Ne pas v├®rifier si hors-ligne (├®vite des fetch inutiles)
++      if (networkManager.getDecision().shouldBlock) return;
+       await this.checkForUpdates();
+     }, this.CHECK_INTERVAL);
+   }
+
+commit 2612d6bed3babae22d6f0f823b569ea181e23607
+Author: Zimkada <zimkada@gmail.com>
+Date:   Thu Mar 5 04:12:08 2026 +0100
+
+    chore: add vite-supabase-starter template
+    
+    Production-ready SaaS starter template for new projects using:
+    - React 18 + TypeScript (strict)
+    - Supabase (PostgreSQL + Auth + Realtime)
+    - Vite + Tailwind + Radix UI
+    - React Query (advanced: retry, cache-strategy, persist)
+    - Sentry (monitoring wrapper)
+    
+    3 Production Guards:
+    1. package.json ÔÇö Clean scripts + aligned dependencies
+    2. src/lib/env.ts ÔÇö Zod validation (fail-fast at runtime)
+    3. .github/workflows/ci.yml ÔÇö CI pipeline (typecheck + lint + build)
+    
+    Use cases:
+    - Clone for new project: `gh repo create my-app --template <user>/bartender-starter`
+    - Reference patterns: monitoring.ts, react-query.ts, lazyWithRetry.ts
+    - Bootstrap: customize .env.production + adapt ÔÜá´©Å markers
+    
+    See starter-template/README.md for detailed setup.
+
+diff --git a/starter-template/.env.production.example b/starter-template/.env.production.example
+new file mode 100644
+index 0000000..64c661d
+--- /dev/null
++++ b/starter-template/.env.production.example
+@@ -0,0 +1,26 @@
++# ============================================================
++# Configuration Production ÔÇö Template
++# ============================================================
++# Copier ce fichier en .env.production et remplir les valeurs.
++# Ce fichier PEUT ├¬tre commit├® (pas de secrets ÔÇö anon key publique).
++# ============================================================
++
++# ÔöÇÔöÇ Application ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++VITE_APP_URL=https://your-domain.com
++
++# ÔöÇÔöÇ Supabase (cl├®s publiques ÔÇö safe to commit) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++VITE_SUPABASE_URL=https://xxxxx.supabase.co
++VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
++
++# ÔöÇÔöÇ Sentry Error Tracking ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++# DSN public ÔÇö safe to commit
++VITE_SENTRY_DSN=https://xxxx@oxxxx.ingest.sentry.io/xxxx
++
++# ÔöÇÔöÇ Feature Flags ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++# VITE_ENABLE_XXX=true
++
++# ============================================================
++# Variables ├á d├®finir dans Vercel Dashboard uniquement (secrets)
++# Ne JAMAIS commiter dans ce fichier :
++#   SENTRY_AUTH_TOKEN  ÔåÆ Vercel Dashboard ÔåÆ Settings ÔåÆ Env Vars
++# ============================================================
+diff --git a/starter-template/.github/workflows/ci.yml b/starter-template/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..9fe4db7
+--- /dev/null
++++ b/starter-template/.github/workflows/ci.yml
+@@ -0,0 +1,46 @@
++name: CI
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++jobs:
++  ci:
++    name: Typecheck ┬À Lint ┬À Build
++    runs-on: ubuntu-latest
++
++    steps:
++      - name: Checkout
++        uses: actions/checkout@v4
++
++      - name: Setup Node.js 20
++        uses: actions/setup-node@v4
++        with:
++          node-version: 20
++          cache: npm
++
++      - name: Install dependencies
++        run: npm ci
++
++      # ÔöÇÔöÇ TypeScript strict ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++      - name: Typecheck
++        run: npm run typecheck
++
++      # ÔöÇÔöÇ ESLint ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++      - name: Lint
++        run: npm run lint
++
++      # ÔöÇÔöÇ Build de production ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++      # Les variables CI sont des placeholders valides au format attendu.
++      # La validation Zod (env.ts) s'ex├®cute au runtime navigateur, pas au build.
++      # SENTRY_AUTH_TOKEN absent ÔåÆ upload source maps skipp├® automatiquement.
++      - name: Build
++        run: npm run build
++        env:
++          VITE_SUPABASE_URL:      https://placeholder-ci.supabase.co
++          VITE_SUPABASE_ANON_KEY: placeholder-anon-key-minimum-length-ok-ci
++          VITE_APP_URL:           https://placeholder-ci.example.com
++          # VITE_SENTRY_DSN: non d├®fini ÔåÆ Sentry d├®sactiv├® (comportement normal)
++          # SENTRY_AUTH_TOKEN: non d├®fini ÔåÆ upload source maps skipp├®
+diff --git a/starter-template/.gitignore b/starter-template/.gitignore
+new file mode 100644
+index 0000000..6a12444
+--- /dev/null
++++ b/starter-template/.gitignore
+@@ -0,0 +1,43 @@
++# Dependencies
++node_modules/
++.pnp
++.pnp.js
++
++# Build outputs
++dist/
++dist-ssr/
++dev-dist/
++*.local
++
++# Environment files
++.env
++.env.local
++.env.development.local
++.env.test.local
++.env.production.local
++# .env.production est commit├® intentionnellement (cl├®s publiques uniquement)
++# Secrets (ex: SENTRY_AUTH_TOKEN) ÔåÆ Vercel Dashboard uniquement
++
++# Logs
++logs/
++*.log
++npm-debug.log*
++
++# Editor
++.vscode/
++.idea/
++*.suo
++*.ntvs*
++*.njsproj
++*.sln
++*.sw?
++
++# OS
++.DS_Store
++Thumbs.db
++
++# Storybook
++storybook-static/
++
++# Test coverage
++coverage/
+diff --git a/starter-template/CLAUDE.md b/starter-template/CLAUDE.md
+new file mode 100644
+index 0000000..68b3637
+--- /dev/null
++++ b/starter-template/CLAUDE.md
+@@ -0,0 +1,154 @@
++# [Nom du projet] ÔÇö Instructions pour Claude
++
++## Pr├®sentation
++
++[D├®crire le projet en 2-3 lignes : type d'app, domaine, stack.]
++
++---
++
++## Stack
++
++| Couche         | Technologie                                      |
++|----------------|--------------------------------------------------|
++| Frontend       | React 18+, TypeScript strict, Vite               |
++| State serveur  | TanStack React Query 5                           |
++| State client   | React Context API                                |
++| Backend        | Supabase (PostgreSQL + Auth + Realtime)          |
++| UI             | Tailwind CSS + Radix UI                          |
++| Monitoring     | Sentry (via `src/lib/monitoring.ts`)             |
++| D├®ploiement    | Vercel                                           |
++
++---
++
++## Commandes
++
++```bash
++npm run dev           # Dev server
++npm run build         # Build production
++npm run lint          # ESLint
++npm test              # Tests watch mode
++npx supabase db push  # Push schema
++```
++
++---
++
++## Architecture
++
++### Providers (main.tsx)
++
++```
++QueryClientProvider
++  ÔööÔöÇ Toaster
++      ÔööÔöÇ [AuthProvider]
++          ÔööÔöÇ [ThemeProvider]
++              ÔööÔöÇ ErrorBoundary
++                  ÔööÔöÇ RouterProvider
++```
++
++### Routing (src/routes/)
++
++```
++/auth/*   ÔåÆ AuthLayout    (public)
++/*        ÔåÆ RootLayout    (authentifi├®)
++/admin/*  ÔåÆ AdminLayout   (admin uniquement)
++```
++
++### Dossiers
++
++```
++src/
++Ôö£ÔöÇÔöÇ components/
++Ôöé   Ôö£ÔöÇÔöÇ ui/          # Design system (Button, Input, etc.)
++Ôöé   ÔööÔöÇÔöÇ common/      # ErrorFallback, etc.
++Ôö£ÔöÇÔöÇ context/         # Providers React
++Ôö£ÔöÇÔöÇ hooks/           # Custom hooks
++Ôö£ÔöÇÔöÇ layouts/         # RootLayout, AuthLayout, etc.
++Ôö£ÔöÇÔöÇ lib/             # supabase.ts, react-query.ts, monitoring.ts
++Ôö£ÔöÇÔöÇ pages/           # Pages
++Ôö£ÔöÇÔöÇ routes/          # createBrowserRouter
++Ôö£ÔöÇÔöÇ services/        # Appels DB Supabase
++Ôö£ÔöÇÔöÇ types/           # Types globaux
++ÔööÔöÇÔöÇ utils/           # cn.ts, lazyWithRetry.ts, errorHandler.ts
++```
++
++---
++
++## R├¿gles projet
++
++### Donn├®es vs Actions
++
++```typescript
++// Ô£à Donn├®es via hooks/queries d├®di├®s
++const { data: items } = useItems(tenantId);
++
++// Ô£à Actions via Context
++const { addItem } = useAppContext();
++
++// ÔØî Ne pas stocker les donn├®es dans le Context
++const { items } = useAppContext(); // anti-pattern
++```
++
++### Lazy loading ÔÇö toujours lazyWithRetry
++
++```typescript
++// Ô£à Avec retry automatique
++const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
++
++// ÔØî Sans retry
++const Dashboard = lazy(() => import('./pages/Dashboard'));
++```
++
++### Erreurs ÔÇö toujours getErrorMessage
++
++```typescript
++// Ô£à
++catch (error) {
++  const msg = getErrorMessage(error);
++}
++
++// ÔØî
++catch (error: any) {
++  console.error(error.message);
++}
++```
++
++### Monitoring ÔÇö jamais Sentry directement
++
++```typescript
++// Ô£à
++import { captureError } from '@/lib/monitoring';
++captureError(error, { context: 'foo' });
++
++// ÔØî
++import * as Sentry from '@sentry/react';
++Sentry.captureException(error);
++```
++
++---
++
++## RBAC
++
++[D├®crire les r├┤les et permissions du projet.]
++
++---
++
++## Supabase
++
++### Isolation multi-tenant
++
++Toujours filtrer par `tenant_id` (ou `bar_id`, `org_id`, etc.) ÔÇö jamais de query cross-tenant.
++
++### RLS
++
++Toutes les tables ont RLS activ├®. V├®rifier avec `/review-rls` avant d├®ploiement.
++
++---
++
++## D├®ploiement ÔÇö Checklist
++
++- [ ] `npm run build` sans erreur
++- [ ] `npm run lint` sans warning
++- [ ] Variables d'env ├á jour sur Vercel
++- [ ] `SENTRY_AUTH_TOKEN` configur├® sur Vercel
++- [ ] Migrations DB appliqu├®es (`npx supabase db push`)
++- [ ] Si d├®velopp├® sur Windows ÔåÆ supprimer `package-lock.json` avant push
+diff --git a/starter-template/README.md b/starter-template/README.md
+new file mode 100644
+index 0000000..e69021a
+--- /dev/null
++++ b/starter-template/README.md
+@@ -0,0 +1,72 @@
++# vite-supabase-starter
++
++Template React + TypeScript + Supabase + Sentry ÔÇö pr├¬t pour la production.
++
++## Contenu
++
++| Fichier | Description |
++|---------|-------------|
++| `src/lib/monitoring.ts` | Wrapper Sentry ÔÇö jamais d'appel direct ├á Sentry |
++| `src/lib/react-query.ts` | QueryClient configur├® (retry, toast, persistance) |
++| `src/lib/cache-strategy.ts` | `CACHE_STRATEGY` + `QUERY_KEYS` hi├®rarchiques |
++| `src/lib/supabase.ts` | Client Supabase avec timeout 10s |
++| `src/utils/cn.ts` | `cn()` = clsx + tailwind-merge |
++| `src/utils/lazyWithRetry.ts` | `lazy()` avec retry expo (1s ÔåÆ 3s ÔåÆ 10s) |
++| `src/utils/errorHandler.ts` | `getErrorMessage()` type-safe |
++| `src/components/common/ErrorFallback.tsx` | Fallback ErrorBoundary |
++| `src/main.tsx` | Bootstrap avec monitoring + handlers globaux |
++| `vite.config.ts` | Sentry plugin + chunking + terser |
++| `scripts/generate-version.cjs` | G├®n├¿re `public/version.json` au build |
++| `.env.production.example` | Template variables d'environnement |
++| `CLAUDE.md` | Instructions projet pour Claude |
++
++## D├®marrage
++
++```bash
++# 1. Cr├®er le projet depuis ce template
++gh repo create mon-projet --template <ton-user>/vite-supabase-starter --private
++# ou
++git clone https://github.com/<ton-user>/vite-supabase-starter mon-projet
++cd mon-projet && rm -rf .git && git init
++
++# 2. Installer les d├®pendances
++npm install
++
++# 3. Configurer l'environnement
++cp .env.production.example .env.production
++# Remplir les valeurs : Supabase URL, Anon Key, Sentry DSN
++
++# 4. Adapter les ÔÜá´©Å dans les fichiers
++grep -r "ÔÜá´©Å" src/ vite.config.ts
++
++# 5. D├®marrer
++npm run dev
++```
++
++## D├®pendances requises
++
++```bash
++npm install @sentry/react @sentry/vite-plugin
++npm install @tanstack/react-query @tanstack/query-persist-client-core @tanstack/query-async-storage-persister
++npm install @supabase/supabase-js
++npm install react-router-dom
++npm install react-hot-toast
++npm install react-error-boundary
++npm install clsx tailwind-merge
++npm install lucide-react
++```
++
++## Variables d'environnement
++
++Voir `.env.production.example`.
++
++`SENTRY_AUTH_TOKEN` ÔåÆ Vercel Dashboard uniquement (jamais dans les fichiers).
++
++## Checklist avant premier d├®ploiement
++
++- [ ] Adapter `allowUrls` dans `monitoring.ts`
++- [ ] Adapter `org` et `project` Sentry dans `vite.config.ts`
++- [ ] Adapter `x-application-name` dans `supabase.ts`
++- [ ] Remplir `.env.production` avec les vraies valeurs
++- [ ] Configurer `SENTRY_AUTH_TOKEN` sur Vercel
++- [ ] Remplir `CLAUDE.md` avec la description du projet
+diff --git a/starter-template/eslint.config.js b/starter-template/eslint.config.js
+new file mode 100644
+index 0000000..df22586
+--- /dev/null
++++ b/starter-template/eslint.config.js
+@@ -0,0 +1,27 @@
++import js from '@eslint/js';
++import globals from 'globals';
++import reactHooks from 'eslint-plugin-react-hooks';
++import reactRefresh from 'eslint-plugin-react-refresh';
++import tseslint from 'typescript-eslint';
++
++export default tseslint.config(
++  { ignores: ['dist', 'dev-dist', 'node_modules'] },
++  {
++    extends: [js.configs.recommended, ...tseslint.configs.recommended],
++    files: ['**/*.{ts,tsx}'],
++    languageOptions: {
++      ecmaVersion: 2020,
++      globals: globals.browser,
++    },
++    plugins: {
++      'react-hooks':    reactHooks,
++      'react-refresh':  reactRefresh,
++    },
++    rules: {
++      ...reactHooks.configs.recommended.rules,
++      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
++      '@typescript-eslint/no-explicit-any': 'error',
++      '@typescript-eslint/no-unused-vars':  ['error', { argsIgnorePattern: '^_' }],
++    },
++  },
++);
+diff --git a/starter-template/index.html b/starter-template/index.html
+new file mode 100644
+index 0000000..7b2783f
+--- /dev/null
++++ b/starter-template/index.html
+@@ -0,0 +1,14 @@
++<!doctype html>
++<html lang="fr">
++  <head>
++    <meta charset="UTF-8" />
++    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <!-- ÔÜá´©Å ├Ç adapter : titre de l'application -->
++    <title>App</title>
++  </head>
++  <body>
++    <div id="root"></div>
++    <script type="module" src="/src/main.tsx"></script>
++  </body>
++</html>
+diff --git a/starter-template/package.json b/starter-template/package.json
+new file mode 100644
+index 0000000..56e2cbd
+--- /dev/null
++++ b/starter-template/package.json
+@@ -0,0 +1,49 @@
++{
++  "name": "vite-supabase-starter",
++  "private": true,
++  "version": "0.1.0",
++  "type": "module",
++  "scripts": {
++    "dev": "vite",
++    "prebuild": "node scripts/generate-version.cjs",
++    "build": "vite build",
++    "preview": "vite preview",
++    "typecheck": "tsc --noEmit",
++    "lint": "eslint ."
++  },
++  "dependencies": {
++    "@sentry/react": "^8.45.0",
++    "@supabase/supabase-js": "^2.47.0",
++    "@tanstack/query-async-storage-persister": "^5.62.0",
++    "@tanstack/query-persist-client-core": "^5.62.0",
++    "@tanstack/react-query": "^5.62.0",
++    "@tanstack/react-query-devtools": "^5.62.0",
++    "clsx": "^2.1.1",
++    "lucide-react": "^0.460.0",
++    "react": "^18.3.1",
++    "react-dom": "^18.3.1",
++    "react-error-boundary": "^5.0.0",
++    "react-hot-toast": "^2.4.1",
++    "react-router-dom": "^6.28.0",
++    "tailwind-merge": "^2.5.5",
++    "zod": "^3.23.8"
++  },
++  "devDependencies": {
++    "@eslint/js": "^9.15.0",
++    "@sentry/vite-plugin": "^3.1.2",
++    "@types/node": "^22.9.0",
++    "@types/react": "^18.3.12",
++    "@types/react-dom": "^18.3.1",
++    "@vitejs/plugin-react": "^4.3.4",
++    "autoprefixer": "^10.4.20",
++    "eslint": "^9.15.0",
++    "eslint-plugin-react-hooks": "^5.0.0",
++    "eslint-plugin-react-refresh": "^0.4.14",
++    "globals": "^15.12.0",
++    "postcss": "^8.4.49",
++    "tailwindcss": "^3.4.15",
++    "typescript": "^5.6.3",
++    "typescript-eslint": "^8.15.0",
++    "vite": "^6.0.3"
++  }
++}
+diff --git a/starter-template/postcss.config.js b/starter-template/postcss.config.js
+new file mode 100644
+index 0000000..71a98eb
+--- /dev/null
++++ b/starter-template/postcss.config.js
+@@ -0,0 +1,6 @@
++export default {
++  plugins: {
++    tailwindcss:  {},
++    autoprefixer: {},
++  },
++};
+diff --git a/starter-template/scripts/generate-version.cjs b/starter-template/scripts/generate-version.cjs
+new file mode 100644
+index 0000000..7ee6dcb
+--- /dev/null
++++ b/starter-template/scripts/generate-version.cjs
+@@ -0,0 +1,24 @@
++/**
++ * generate-version.cjs
++ *
++ * G├®n├¿re public/version.json ├á chaque build.
++ * Utilis├® par le service de v├®rification de version (PWA update prompt).
++ *
++ * Ex├®cut├® en prebuild :  "prebuild": "node scripts/generate-version.cjs"
++ */
++
++const fs            = require('fs');
++const path          = require('path');
++const packageJson   = require('../package.json');
++
++const versionData = {
++  version:     packageJson.version,
++  buildTime:   new Date().toISOString(),
++  buildNumber: process.env.GITHUB_RUN_NUMBER ?? 'local',
++  gitCommit:   process.env.GITHUB_SHA        ?? 'unknown',
++};
++
++const outputPath = path.join(__dirname, '../public/version.json');
++fs.writeFileSync(outputPath, JSON.stringify(versionData, null, 2));
++
++console.log('[generate-version] version.json g├®n├®r├® :', versionData);
+diff --git a/starter-template/src/components/common/ErrorFallback.tsx b/starter-template/src/components/common/ErrorFallback.tsx
+new file mode 100644
+index 0000000..55cb770
+--- /dev/null
++++ b/starter-template/src/components/common/ErrorFallback.tsx
+@@ -0,0 +1,41 @@
++import React from 'react';
++import { FallbackProps } from 'react-error-boundary';
++
++/**
++ * Fallback affich├® par ErrorBoundary en cas d'erreur de rendu.
++ *
++ * Usage :
++ *   <ErrorBoundary FallbackComponent={ErrorFallback} onError={captureError}>
++ *     <App />
++ *   </ErrorBoundary>
++ */
++export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
++  const message =
++    error instanceof Error
++      ? error.message
++      : typeof error === 'string'
++      ? error
++      : JSON.stringify(error);
++
++  return (
++    <div className="flex flex-col items-center justify-center min-h-screen bg-red-50 text-red-800 p-8 text-center">
++      <div className="text-6xl mb-4">ÔÜá´©Å</div>
++      <h2 className="text-2xl font-bold mb-2">Une erreur est survenue</h2>
++      <p className="text-base mb-4 text-red-600">
++        L'application a rencontr├® un probl├¿me inattendu.
++      </p>
++      <pre className="bg-red-100 border border-red-200 p-4 rounded-lg text-sm text-left max-w-lg w-full overflow-auto mb-6">
++        {message}
++      </pre>
++      <button
++        onClick={resetErrorBoundary}
++        className="px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
++      >
++        R├®essayer
++      </button>
++      <p className="mt-4 text-sm text-red-500">
++        Si le probl├¿me persiste, contactez le support.
++      </p>
++    </div>
++  );
++}
+diff --git a/starter-template/src/index.css b/starter-template/src/index.css
+new file mode 100644
+index 0000000..b5c61c9
+--- /dev/null
++++ b/starter-template/src/index.css
+@@ -0,0 +1,3 @@
++@tailwind base;
++@tailwind components;
++@tailwind utilities;
+diff --git a/starter-template/src/lib/cache-strategy.ts b/starter-template/src/lib/cache-strategy.ts
+new file mode 100644
+index 0000000..e4652ca
+--- /dev/null
++++ b/starter-template/src/lib/cache-strategy.ts
+@@ -0,0 +1,66 @@
++/**
++ * Strat├®gie de Cache ÔÇö React Query
++ *
++ * Centralise les dur├®es de vie du cache par type de donn├®e.
++ * Utiliser ces constantes dans tous les useQuery() au lieu de valeurs hardcod├®es.
++ *
++ * Usage :
++ *   const { data } = useQuery({
++ *     queryKey: QUERY_KEYS.products.list(barId),
++ *     queryFn: () => getProducts(barId),
++ *     ...CACHE_STRATEGY.products,
++ *   });
++ */
++
++const ONE_MINUTE = 60 * 1000;
++const ONE_HOUR   = 60 * ONE_MINUTE;
++const ONE_DAY    = 24 * ONE_HOUR;
++
++export const CACHE_STRATEGY = {
++  /** Donn├®es temps r├®el : ventes, stock. Invalidation explicite post-mutation requise. */
++  realtime: {
++    staleTime: 5 * ONE_MINUTE,
++    gcTime: ONE_DAY,
++  },
++
++  /** Stats dashboard : l├®ger d├®lai acceptable (2 min). */
++  stats: {
++    staleTime: 2 * ONE_MINUTE,
++    gcTime: ONE_DAY,
++  },
++
++  /** Catalogue produits : change rarement. */
++  products: {
++    staleTime: 30 * ONE_MINUTE,
++    gcTime: ONE_DAY,
++  },
++
++  /** Donn├®es quasi-statiques : cat├®gories, settings, r├┤les. */
++  static: {
++    staleTime: ONE_DAY,
++    gcTime: 7 * ONE_DAY,
++  },
++} as const;
++
++/**
++ * Cl├®s de cache structur├®es pour cibler les invalidations.
++ *
++ * Pattern hi├®rarchique : ['entity', 'scope', id]
++ * Permet d'invalider tout un groupe : queryClient.invalidateQueries({ queryKey: ['products'] })
++ * Ou une query sp├®cifique : queryClient.invalidateQueries({ queryKey: QUERY_KEYS.products.list(barId) })
++ *
++ * ÔÜá´©Å ├Ç enrichir avec les entit├®s de ton projet.
++ */
++export const QUERY_KEYS = {
++  // Exemple : remplacer par les entit├®s de ton domaine
++  items: {
++    all:    ['items']                                    as const,
++    list:   (tenantId: string) => ['items', 'list', tenantId]   as const,
++    detail: (id: string)       => ['items', 'detail', id]       as const,
++  },
++  users: {
++    all:    ['users']                                    as const,
++    list:   (tenantId: string) => ['users', 'list', tenantId]   as const,
++    detail: (id: string)       => ['users', 'detail', id]       as const,
++  },
++} as const;
+diff --git a/starter-template/src/lib/env.ts b/starter-template/src/lib/env.ts
+new file mode 100644
+index 0000000..d5924f2
+--- /dev/null
++++ b/starter-template/src/lib/env.ts
+@@ -0,0 +1,62 @@
++/**
++ * Validation des variables d'environnement ÔÇö Fail-fast
++ *
++ * Centralise et valide toutes les variables VITE_* au d├®marrage.
++ * En dev   : warning non-bloquant (console.warn) pour ne pas bloquer le travail local.
++ * En prod  : throw imm├®diat si une variable requise est absente ou invalide.
++ *
++ * Usage dans les autres modules :
++ *   import { env } from './env';
++ *   const client = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
++ *
++ * D├®pendance : zod (d├®j├á dans package.json)
++ */
++
++import { z } from 'zod';
++
++// ÔöÇÔöÇÔöÇ Sch├®ma de validation ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++
++const envSchema = z.object({
++  // Supabase ÔÇö requis (l'app est inutilisable sans)
++  VITE_SUPABASE_URL:      z.string().url('Doit ├¬tre une URL valide (ex: https://xxx.supabase.co)'),
++  VITE_SUPABASE_ANON_KEY: z.string().min(20, 'Cl├® anon Supabase manquante ou trop courte'),
++
++  // URL de l'app ÔÇö requis en production (liens emails, redirections OAuth)
++  VITE_APP_URL: z.string().url('Doit ├¬tre une URL valide (ex: https://mon-app.com)').optional(),
++
++  // Sentry ÔÇö optionnel (monitoring d├®sactiv├® si absent, pas d'erreur)
++  VITE_SENTRY_DSN: z.string().url('Doit ├¬tre une URL Sentry valide').optional(),
++});
++
++// ÔöÇÔöÇÔöÇ Type export├® ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++
++export type Env = z.infer<typeof envSchema>;
++
++// ÔöÇÔöÇÔöÇ Validation ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++
++function validateEnv(): Env {
++  const result = envSchema.safeParse(import.meta.env);
++
++  if (!result.success) {
++    const issues = result.error.issues
++      .map(i => `  Ô£ù ${String(i.path[0])}: ${i.message}`)
++      .join('\n');
++
++    const message =
++      `[env] Variables d'environnement invalides :\n${issues}\n\n` +
++      `ÔåÆ V├®rifier .env.production et les variables Vercel Dashboard.`;
++
++    if (import.meta.env.DEV) {
++      // Dev : warning non-bloquant pour ne pas casser le HMR
++      console.warn(message);
++      return import.meta.env as unknown as Env;
++    }
++
++    // Production : crash imm├®diat avec message clair
++    throw new Error(message);
++  }
++
++  return result.data;
++}
++
++export const env = validateEnv();
+diff --git a/starter-template/src/lib/monitoring.ts b/starter-template/src/lib/monitoring.ts
+new file mode 100644
+index 0000000..a5f8858
+--- /dev/null
++++ b/starter-template/src/lib/monitoring.ts
+@@ -0,0 +1,113 @@
++/**
++ * Monitoring & Error Tracking ÔÇö Sentry Integration
++ *
++ * Wrapper centralis├® pour Sentry.
++ * Ne jamais utiliser Sentry directement dans l'app ÔÇö toujours passer par ce module.
++ * Actif uniquement en production si VITE_SENTRY_DSN est d├®fini.
++ */
++
++import * as Sentry from '@sentry/react';
++import { env } from './env';
++
++const IS_PRODUCTION = import.meta.env.PROD;
++
++/**
++ * Initialise Sentry. ├Ç appeler une seule fois dans main.tsx, avant le rendu.
++ */
++export function initMonitoring(): void {
++  if (!IS_PRODUCTION || !env.VITE_SENTRY_DSN) {
++    console.log('[Monitoring] Sentry d├®sactiv├® (dev ou DSN manquant)');
++    return;
++  }
++
++  Sentry.init({
++    dsn: env.VITE_SENTRY_DSN,
++    environment: 'production',
++
++    // 10% des transactions (navigation, page loads)
++    tracesSampleRate: 0.1,
++    // 100% des erreurs
++    sampleRate: 1.0,
++
++    // D├®sactiver Session Replay (donn├®es sensibles)
++    integrations: [],
++    replaysSessionSampleRate: 0,
++    replaysOnErrorSampleRate: 0,
++
++    beforeSend(event, hint) {
++      // Ignorer les erreurs client 4xx (bruit de dev, non-actionnable)
++      const exception = hint.originalException;
++      if (exception instanceof Error) {
++        if (/\b40[134]\b/.test(exception.message)) return null;
++      }
++      return event;
++    },
++
++    // ÔÜá´©Å ├Ç adapter : URLs de production autoris├®es
++    allowUrls: [
++      /^https:\/\/your-domain\.com/,
++      /^https:\/\/your-project\.vercel\.app/,
++    ],
++  });
++
++  console.log('[Monitoring] Sentry initialis├®');
++}
++
++/**
++ * Capture une erreur. Remplace console.error pour les erreurs ├á tracker.
++ */
++export function captureError(error: unknown, context?: Record<string, unknown>): void {
++  if (!IS_PRODUCTION || !env.VITE_SENTRY_DSN) {
++    console.error('[Error]', error, context);
++    return;
++  }
++
++  if (error instanceof Error) {
++    Sentry.captureException(error, {
++      contexts: context ? { app: context } : undefined,
++    });
++  } else {
++    Sentry.captureMessage(String(error), {
++      level: 'error',
++      contexts: context ? { app: context } : undefined,
++    });
++  }
++}
++
++/**
++ * Capture un message (warning, info, etc.)
++ */
++export function captureMessage(
++  message: string,
++  level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info'
++): void {
++  if (!IS_PRODUCTION || !env.VITE_SENTRY_DSN) {
++    console.log(`[${level.toUpperCase()}]`, message);
++    return;
++  }
++  Sentry.captureMessage(message, { level });
++}
++
++/**
++ * Associe un utilisateur aux futures erreurs. ├Ç appeler apr├¿s login.
++ */
++export function setUserContext(userId: string, email?: string): void {
++  if (!IS_PRODUCTION || !env.VITE_SENTRY_DSN) return;
++  Sentry.setUser({ id: userId, email });
++}
++
++/**
++ * Efface le contexte utilisateur. ├Ç appeler ├á la d├®connexion.
++ */
++export function clearUserContext(): void {
++  if (!IS_PRODUCTION || !env.VITE_SENTRY_DSN) return;
++  Sentry.setUser(null);
++}
++
++/**
++ * Ajoute un fil d'Ariane pour enrichir le contexte des erreurs.
++ */
++export function addBreadcrumb(message: string, data?: Record<string, unknown>): void {
++  if (!IS_PRODUCTION || !env.VITE_SENTRY_DSN) return;
++  Sentry.addBreadcrumb({ message, data, level: 'info', timestamp: Date.now() / 1000 });
++}
+diff --git a/starter-template/src/lib/react-query.ts b/starter-template/src/lib/react-query.ts
+new file mode 100644
+index 0000000..5969de3
+--- /dev/null
++++ b/starter-template/src/lib/react-query.ts
+@@ -0,0 +1,92 @@
++/**
++ * QueryClient ÔÇö Configuration Expert React Query
++ *
++ * Optimis├® pour :
++ * 1. Stabilit├® r├®seau  ÔÇö retry intelligent (skip 401/403/404/AbortError)
++ * 2. UX               ÔÇö toast global sur erreur de mutation
++ * 3. Performance      ÔÇö staleTime agressif, pas de refetch inutile
++ * 4. Offline-first    ÔÇö persistance localStorage des queries critiques
++ */
++
++import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
++import { persistQueryClient } from '@tanstack/query-persist-client-core';
++import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
++import { CACHE_STRATEGY } from './cache-strategy';
++
++// ÔöÇÔöÇÔöÇ Retry intelligent ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++const retryFn = (failureCount: number, error: unknown): boolean => {
++  const err = error as { status?: number; name?: string; message?: string };
++
++  // Ne pas retry sur erreurs statiques (auth, not found)
++  if ([401, 403, 404].includes(err?.status ?? 0)) return false;
++  // Ne pas retry sur annulation volontaire
++  if (err?.name === 'AbortError' || err?.message?.includes('aborted')) return false;
++  // Max 2 tentatives
++  return failureCount < 2;
++};
++
++// ÔöÇÔöÇÔöÇ Gestionnaire d'erreur global ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++const handleQueryError = (error: unknown): void => {
++  console.error('[React Query]', error);
++  const err = error as { status?: number; message?: string; name?: string };
++
++  if (err?.name === 'AbortError' || err?.message?.includes('aborted')) return;
++  if (err?.status === 401 || err?.status === 403) return; // g├®r├® par auth interceptor
++
++  const message = err?.message ?? 'Une erreur est survenue lors de la r├®cup├®ration des donn├®es';
++  import('react-hot-toast').then(({ default: toast }) => {
++    toast.error(message, { id: 'query-error' });
++  });
++};
++
++// ÔöÇÔöÇÔöÇ QueryClient ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++export const queryClient = new QueryClient({
++  defaultOptions: {
++    queries: {
++      staleTime:          CACHE_STRATEGY.realtime.staleTime,
++      gcTime:             CACHE_STRATEGY.realtime.gcTime,
++      retry:              retryFn,
++      retryDelay:         (i) => Math.min(500 * 2 ** i, 2000),
++      refetchOnWindowFocus: false,
++    },
++    mutations: {
++      retry: false,
++    },
++  },
++  // Toast automatique sur toute erreur de mutation
++  mutationCache: new MutationCache({
++    onError: (error: unknown) => {
++      const err = error as { message?: string; name?: string };
++      if (err?.name === 'AbortError' || err?.message?.includes('aborted')) return;
++
++      const message = err?.message ?? 'Une erreur est survenue lors de l\'op├®ration';
++      import('react-hot-toast').then(({ default: toast }) => {
++        toast.error(message);
++      });
++    },
++  }),
++  queryCache: new QueryCache({ onError: handleQueryError }),
++});
++
++// ÔöÇÔöÇÔöÇ Persistance offline (localStorage) ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++const persister = createAsyncStoragePersister({
++  storage: {
++    getItem:    async (key) => window.localStorage.getItem(key),
++    setItem:    async (key, value) => window.localStorage.setItem(key, value),
++    removeItem: async (key) => window.localStorage.removeItem(key),
++  },
++  throttleTime: 1000,
++});
++
++persistQueryClient({
++  queryClient: queryClient as Parameters<typeof persistQueryClient>[0]['queryClient'],
++  persister,
++  maxAge: CACHE_STRATEGY.realtime.gcTime,
++  dehydrateOptions: {
++    shouldDehydrateQuery: (query) => {
++      // ÔÜá´©Å ├Ç adapter : persister uniquement les queries critiques pour l'offline
++      const key = query.queryKey[0] as string;
++      return key?.includes('items') || key?.includes('products');
++    },
++  },
++});
+diff --git a/starter-template/src/lib/supabase.ts b/starter-template/src/lib/supabase.ts
+new file mode 100644
+index 0000000..832cfd5
+--- /dev/null
++++ b/starter-template/src/lib/supabase.ts
+@@ -0,0 +1,40 @@
++/**
++ * Supabase Client ÔÇö Singleton
++ *
++ * Timeout de 10s sur toutes les requ├¬tes pour ├®viter d'attendre 30s+
++ * si un RPC c├┤t├® serveur timeout.
++ */
++
++import { createClient } from '@supabase/supabase-js';
++// import type { Database } from './database.types'; // D├®commenter apr├¿s `npx supabase gen types typescript`
++import { env } from './env';
++
++export const supabase = createClient(
++  // Si Database g├®n├®r├® : createClient<Database>(...)
++  env.VITE_SUPABASE_URL,
++  env.VITE_SUPABASE_ANON_KEY,
++  {
++    auth: {
++      persistSession:     true,
++      autoRefreshToken:   true,
++      detectSessionInUrl: true,
++      storage:            window.localStorage,
++    },
++    db: {
++      schema: 'public',
++    },
++    global: {
++      headers: {
++        // ÔÜá´©Å ├Ç adapter : nom de l'application
++        'x-application-name': 'my-app',
++      },
++      fetch: (url, options = {}) => {
++        const controller = new AbortController();
++        const timeoutId  = setTimeout(() => controller.abort(), 10_000);
++
++        return fetch(url, { ...options, signal: controller.signal })
++          .finally(() => clearTimeout(timeoutId));
++      },
++    },
++  }
++);
+diff --git a/starter-template/src/main.tsx b/starter-template/src/main.tsx
+new file mode 100644
+index 0000000..d6c7957
+--- /dev/null
++++ b/starter-template/src/main.tsx
+@@ -0,0 +1,48 @@
++import { StrictMode } from 'react';
++import { createRoot } from 'react-dom/client';
++import { QueryClientProvider } from '@tanstack/react-query';
++import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
++import { RouterProvider } from 'react-router-dom';
++import { ErrorBoundary } from 'react-error-boundary';
++import { Toaster } from 'react-hot-toast';
++
++import { initMonitoring, captureError } from './lib/monitoring';
++import { queryClient } from './lib/react-query';
++import { router } from './routes';
++import { ErrorFallback } from './components/common/ErrorFallback';
++// import { AuthProvider } from './context/AuthContext'; // ├Ç d├®commenter
++import './index.css';
++
++// ÔöÇÔöÇÔöÇ Initialisation monitoring ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++initMonitoring();
++
++// Erreurs runtime non catch├®es
++window.addEventListener('error', (event: ErrorEvent) => {
++  captureError(event.error, {
++    filename: event.filename,
++    lineno: event.lineno,
++    colno: event.colno,
++  });
++});
++
++// Promesses rejet├®es non g├®r├®es
++window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
++  captureError(event.reason, { type: 'unhandledPromiseRejection' });
++});
++
++// ÔöÇÔöÇÔöÇ Rendu ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
++createRoot(document.getElementById('root')!).render(
++  <StrictMode>
++    <QueryClientProvider client={queryClient}>
++      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
++      {/* ÔÜá´©Å Ajouter ici les Providers de l'app (Auth, Theme, etc.) */}
++      <ErrorBoundary
++        FallbackComponent={ErrorFallback}
++        onError={(error, info) => captureError(error, { componentStack: info.componentStack })}
++      >
++        <RouterProvider router={router} />
++      </ErrorBoundary>
++      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}
++    </QueryClientProvider>
++  </StrictMode>
++);
+diff --git a/starter-template/src/routes/index.tsx b/starter-template/src/routes/index.tsx
+new file mode 100644
+index 0000000..fe120b3
+--- /dev/null
++++ b/starter-template/src/routes/index.tsx
+@@ -0,0 +1,23 @@
++import { createBrowserRouter } from 'react-router-dom';
++
++/**
++ * Routing de l'application.
++ *
++ * ÔÜá´©Å ├Ç compl├®ter avec les pages et layouts du projet.
++ *
++ * Mod├¿le recommand├® :
++ *   /auth/*   ÔåÆ AuthLayout   (public)
++ *   /*        ÔåÆ RootLayout   (authentifi├®)
++ *   /admin/*  ÔåÆ AdminLayout  (admin uniquement)
++ */
++export const router = createBrowserRouter([
++  {
++    path: '/',
++    element: (
++      <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
++        <h1>vite-supabase-starter</h1>
++        <p>Template pr├¬t. Remplacer cette page par l'application.</p>
++      </div>
++    ),
++  },
++]);
+diff --git a/starter-template/src/utils/cn.ts b/starter-template/src/utils/cn.ts
+new file mode 100644
+index 0000000..6469155
+--- /dev/null
++++ b/starter-template/src/utils/cn.ts
+@@ -0,0 +1,17 @@
++/**
++ * cn() ÔÇö Fusion de classes Tailwind
++ *
++ * Combine clsx (logique conditionnelle) + tailwind-merge (d├®duplication Tailwind).
++ *
++ * Usage :
++ *   cn('px-4 py-2', isActive && 'bg-blue-500', 'px-6') ÔåÆ 'py-2 bg-blue-500 px-6'
++ *
++ * D├®pendances : `npm install clsx tailwind-merge`
++ */
++
++import { clsx, type ClassValue } from 'clsx';
++import { twMerge } from 'tailwind-merge';
++
++export function cn(...inputs: ClassValue[]): string {
++  return twMerge(clsx(inputs));
++}
+diff --git a/starter-template/src/utils/errorHandler.ts b/starter-template/src/utils/errorHandler.ts
+new file mode 100644
+index 0000000..4555d06
+--- /dev/null
++++ b/starter-template/src/utils/errorHandler.ts
+@@ -0,0 +1,99 @@
++/**
++ * Gestion d'erreurs type-safe
++ *
++ * R├¿gle : toujours utiliser getErrorMessage() dans les blocs catch.
++ * Ne jamais faire `(error as any).message`.
++ */
++
++// ÔÜá´©Å ├Ç enrichir avec les messages d'erreur de ton domaine
++const ERROR_TRANSLATIONS: Record<string, string> = {
++  'unauthorized':                'Acc├¿s non autoris├®',
++  'invalid login credentials':   'Email ou mot de passe incorrect',
++  'email not confirmed':         'Veuillez confirmer votre adresse email',
++  'user already exists':         'Cet utilisateur existe d├®j├á',
++  'network error':               'Erreur r├®seau, v├®rifiez votre connexion',
++  'fetch error':                 'Impossible de contacter le serveur',
++  'user not found':              'Utilisateur introuvable',
++  'invalid refresh token':       'Session expir├®e, veuillez vous reconnecter',
++  'refresh token not found':     'Session expir├®e, veuillez vous reconnecter',
++  'database error':              'Erreur de base de donn├®es',
++  'permission denied':           'Permission refus├®e',
++};
++
++function translateError(message: string): string {
++  if (!message) return message;
++  const lower = message.toLowerCase().trim();
++
++  if (ERROR_TRANSLATIONS[lower]) return ERROR_TRANSLATIONS[lower];
++
++  for (const [key, translation] of Object.entries(ERROR_TRANSLATIONS)) {
++    if (lower.includes(key)) return translation;
++  }
++
++  return message;
++}
++
++/**
++ * Extrait un message lisible depuis une erreur de type inconnu.
++ */
++export function getErrorMessage(error: unknown): string {
++  let message = 'Une erreur inattendue s\'est produite';
++
++  if (error instanceof Error) {
++    message = error.message;
++  } else if (typeof error === 'object' && error !== null) {
++    if ('message' in error && typeof (error as Record<string, unknown>).message === 'string') {
++      message = (error as Record<string, unknown>).message as string;
++    } else if ('error' in error && typeof (error as Record<string, unknown>).error === 'string') {
++      message = (error as Record<string, unknown>).error as string;
++    }
++  } else if (typeof error === 'string') {
++    message = error;
++  }
++
++  return translateError(message);
++}
++
++/**
++ * Extrait les d├®tails structur├®s d'une erreur Supabase.
++ */
++export interface SupabaseError {
++  message: string;
++  code?:    string;
++  details?: string;
++  hint?:    string;
++}
++
++export function getSupabaseError(error: unknown): SupabaseError {
++  const message = getErrorMessage(error);
++
++  if (typeof error === 'object' && error !== null) {
++    return {
++      message,
++      code:    'code'    in error ? String((error as Record<string, unknown>).code)    : undefined,
++      details: 'details' in error ? String((error as Record<string, unknown>).details) : undefined,
++      hint:    'hint'    in error ? String((error as Record<string, unknown>).hint)    : undefined,
++    };
++  }
++
++  return { message };
++}
++
++/**
++ * V├®rifie si l'erreur est une erreur r├®seau temporaire (candidat pour retry).
++ */
++export function isNetworkError(error: unknown): boolean {
++  const message = getErrorMessage(error).toLowerCase();
++  const code    = typeof error === 'object' && error !== null && 'code' in error
++    ? String((error as Record<string, unknown>).code)
++    : '';
++
++  return (
++    message.includes('network')     ||
++    message.includes('timeout')     ||
++    message.includes('fetch')       ||
++    code.includes('NETWORK')        ||
++    code.includes('TIMEOUT')        ||
++    code.includes('ECONNREFUSED')
++  );
++}
+diff --git a/starter-template/src/utils/lazyWithRetry.ts b/starter-template/src/utils/lazyWithRetry.ts
+new file mode 100644
+index 0000000..93c92e3
+--- /dev/null
++++ b/starter-template/src/utils/lazyWithRetry.ts
+@@ -0,0 +1,53 @@
++import { ComponentType, lazy } from 'react';
++
++interface RetryOptions {
++  maxRetries?: number;
++  retryDelay?: number;
++}
++
++/**
++ * Wrapper React.lazy() avec retry automatique sur connexion instable.
++ * Backoff exponentiel : 1s ÔåÆ 3s ÔåÆ 10s
++ *
++ * Usage :
++ *   const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
++ *
++ * Toujours pr├®f├®rer lazyWithRetry ├á lazy() pour les pages.
++ */
++export function lazyWithRetry<T extends ComponentType<unknown>>(
++  importFunc: () => Promise<{ default: T }>,
++  options: RetryOptions = {}
++): React.LazyExoticComponent<T> {
++  const { maxRetries = 3, retryDelay = 1000 } = options;
++
++  return lazy(() => new Promise<{ default: T }>((resolve, reject) => {
++    let retryCount = 0;
++
++    const attempt = () => {
++      importFunc().then(resolve).catch((error) => {
++        const isChunkError =
++          error?.message?.includes('Failed to fetch dynamically imported module') ||
++          error?.message?.includes('Importing a module script failed')             ||
++          error?.message?.includes('error loading dynamically imported module')    ||
++          error?.message?.includes('ERR_CONNECTION_TIMED_OUT')                    ||
++          error?.name === 'ChunkLoadError';
++
++        if (!isChunkError) { reject(error); return; }
++
++        retryCount++;
++
++        if (retryCount <= maxRetries) {
++          const delays = [1000, 3000, 10_000];
++          const delay  = delays[retryCount - 1] ?? retryDelay;
++          console.log(`[lazyWithRetry] Retry ${retryCount}/${maxRetries} dans ${delay}ms`);
++          setTimeout(attempt, delay);
++        } else {
++          console.error(`[lazyWithRetry] ├ëchec apr├¿s ${maxRetries} tentatives`);
++          reject(error);
++        }
++      });
++    };
++
++    attempt();
++  }));
++}
+diff --git a/starter-template/src/vite-env.d.ts b/starter-template/src/vite-env.d.ts
+new file mode 100644
+index 0000000..11f02fe
+--- /dev/null
++++ b/starter-template/src/vite-env.d.ts
+@@ -0,0 +1 @@
++/// <reference types="vite/client" />
+diff --git a/starter-template/tailwind.config.ts b/starter-template/tailwind.config.ts
+new file mode 100644
+index 0000000..8577008
+--- /dev/null
++++ b/starter-template/tailwind.config.ts
+@@ -0,0 +1,14 @@
++import type { Config } from 'tailwindcss';
++
++export default {
++  content: [
++    './index.html',
++    './src/**/*.{ts,tsx}',
++  ],
++  theme: {
++    extend: {
++      // ÔÜá´©Å Ajouter ici les couleurs de marque, polices, etc.
++    },
++  },
++  plugins: [],
++} satisfies Config;
+diff --git a/starter-template/tsconfig.app.json b/starter-template/tsconfig.app.json
+new file mode 100644
+index 0000000..5a42cc8
+--- /dev/null
++++ b/starter-template/tsconfig.app.json
+@@ -0,0 +1,32 @@
++{
++  "compilerOptions": {
++    "target": "ES2020",
++    "useDefineForClassFields": true,
++    "lib": ["ES2020", "DOM", "DOM.Iterable"],
++    "module": "ESNext",
++    "skipLibCheck": true,
++
++    /* Bundler mode */
++    "moduleResolution": "bundler",
++    "allowImportingTsExtensions": true,
++    "isolatedModules": true,
++    "moduleDetection": "force",
++    "noEmit": true,
++
++    /* JSX */
++    "jsx": "react-jsx",
++
++    /* Strict mode */
++    "strict": true,
++    "noUnusedLocals": true,
++    "noUnusedParameters": true,
++    "noFallthroughCasesInSwitch": true,
++
++    /* Path aliases */
++    "baseUrl": ".",
++    "paths": {
++      "@/*": ["./src/*"]
++    }
++  },
++  "include": ["src"]
++}
+diff --git a/starter-template/tsconfig.json b/starter-template/tsconfig.json
+new file mode 100644
+index 0000000..1ffef60
+--- /dev/null
++++ b/starter-template/tsconfig.json
+@@ -0,0 +1,7 @@
++{
++  "files": [],
++  "references": [
++    { "path": "./tsconfig.app.json" },
++    { "path": "./tsconfig.node.json" }
++  ]
++}
+diff --git a/starter-template/tsconfig.node.json b/starter-template/tsconfig.node.json
+new file mode 100644
+index 0000000..59e73c8
+--- /dev/null
++++ b/starter-template/tsconfig.node.json
+@@ -0,0 +1,15 @@
++{
++  "compilerOptions": {
++    "target": "ES2022",
++    "lib": ["ES2023"],
++    "module": "ESNext",
++    "skipLibCheck": true,
++    "moduleResolution": "bundler",
++    "allowImportingTsExtensions": true,
++    "isolatedModules": true,
++    "moduleDetection": "force",
++    "noEmit": true,
++    "strict": true
++  },
++  "include": ["vite.config.ts"]
++}
+diff --git a/starter-template/vite.config.ts b/starter-template/vite.config.ts
+new file mode 100644
+index 0000000..ead8d98
+--- /dev/null
++++ b/starter-template/vite.config.ts
+@@ -0,0 +1,85 @@
++import { defineConfig } from 'vite';
++import react from '@vitejs/plugin-react';
++import { sentryVitePlugin } from '@sentry/vite-plugin';
++import path from 'path';
++
++/**
++ * Vite Config ÔÇö Template production-ready
++ *
++ * Inclus :
++ * - Alias @ ÔåÆ src/
++ * - Source maps hidden pour Sentry
++ * - Upload source maps Sentry (auth token via env)
++ * - Chunking manuel des vendors
++ * - Terser avec suppression console.log en prod
++ *
++ * Optionnel (d├®commenter si besoin) :
++ * - VitePWA : support offline / installable
++ * - visualizer : analyse du bundle
++ */
++
++export default defineConfig({
++  resolve: {
++    alias: {
++      '@': path.resolve(__dirname, './src'),
++    },
++  },
++
++  plugins: [
++    react(),
++
++    // ÔÜá´©Å ├Ç adapter : org et project Sentry
++    sentryVitePlugin({
++      org:       process.env.SENTRY_ORG       ?? 'your-org',
++      project:   process.env.SENTRY_PROJECT   ?? 'your-project',
++      authToken: process.env.SENTRY_AUTH_TOKEN,
++      telemetry: false,
++      debug:     false,
++      release: {
++        name: `app@${new Date().toISOString().split('T')[0]}`,
++      },
++    }),
++
++    // D├®commenter pour analyse du bundle :
++    // visualizer({ filename: './dist/stats.html', open: false, gzipSize: true }),
++  ],
++
++  build: {
++    // Source maps g├®n├®r├®s mais non expos├®s dans le bundle (pour Sentry)
++    sourcemap: 'hidden',
++
++    minify: 'terser',
++    terserOptions: {
++      compress: {
++        drop_console:  true,
++        drop_debugger: true,
++        pure_funcs:    ['console.info', 'console.debug'],
++      },
++      mangle: {
++        safari10: true,
++      },
++    },
++
++    rollupOptions: {
++      output: {
++        // Chunking manuel : s├®parer les vendors lourds du code app
++        manualChunks: {
++          'vendor-react':       ['react', 'react-dom'],
++          'vendor-router':      ['react-router-dom'],
++          'vendor-query':       ['@tanstack/react-query'],
++          'vendor-supabase':    ['@supabase/supabase-js'],
++          // 'vendor-motion':   ['framer-motion'],  // si utilis├®
++          // 'vendor-date':     ['date-fns'],        // si utilis├®
++        },
++      },
++    },
++
++    cssMinify:              true,
++    chunkSizeWarningLimit:  600,
++  },
++
++  optimizeDeps: {
++    // Ajouter les packages qui causent des probl├¿mes de pre-bundling
++    exclude: [],
++  },
++});
+
+commit edfc5ed7b97f09fe9d556ba32026ee48bffd882b
+Author: Zimkada <zimkada@gmail.com>
+Date:   Wed Mar 4 05:04:47 2026 +0100
+
+    fix(monitoring): activate Sentry in production
+    
+    - Add VITE_SENTRY_DSN to .env.production (was gitignored in .env only)
+    - Fix allowUrls patterns to match actual production domain (bartenderpro-africa.com)
+    - Fix captureMessage signature for Sentry SDK v10 (level moved into options object)
+    
+    Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+
+diff --git a/.env.production b/.env.production
+index c412b21..2afac86 100644
+--- a/.env.production
++++ b/.env.production
+@@ -19,5 +19,8 @@ VITE_SYNC_MAX_RETRIES=5
+ # ÔØî D├®sactiver logs debug en production
+ VITE_SYNC_DEBUG=false
+ 
++# ­ƒöì Sentry Error Tracking
++VITE_SENTRY_DSN="https://6d4ec3eb9ec29abda6dc656d615aee9e@o4510952283176960.ingest.de.sentry.io/4510952304148560"
++
+ # ­ƒÄ¿ Activer le theming dynamique
+ VITE_ENABLE_THEMING=true
+diff --git a/src/lib/monitoring.ts b/src/lib/monitoring.ts
+index a138223..23d5c98 100644
+--- a/src/lib/monitoring.ts
++++ b/src/lib/monitoring.ts
+@@ -61,7 +61,10 @@ export function initMonitoring(): void {
+       return event;
+     },
+ 
+-    allowUrls: [/^https:\/\/zimkada/, /^https:\/\/.*bartendera/], // Only capture errors from your domain
++    allowUrls: [
++      /^https:\/\/bartenderpro-africa\.com/,   // Custom domain (production)
++      /^https:\/\/bar-tender-ten\.vercel\.app/, // Vercel URL (fallback)
++    ],
+   });
+ 
+   console.log('[Monitoring] Sentry initialized for error tracking');
+@@ -83,7 +86,8 @@ export function captureError(error: unknown, context?: Record<string, unknown>):
+       contexts: context ? { app: context } : undefined,
+     });
+   } else {
+-    Sentry.captureMessage(String(error), 'error', {
++    Sentry.captureMessage(String(error), {
++      level: 'error',
+       contexts: context ? { app: context } : undefined,
+     });
+   }
+
+commit fadbd3d2f96e38f5355cd4631db891f721abd101
+Author: zimkada <zimkada@users.noreply.github.com>
+Date:   Wed Mar 4 05:03:41 2026 +0100
+
+    fix(settings): complete operatingMode fallback to 'full' (line 189 missed in 07ccf41)
+    
+    useEffect sync on bar change was still defaulting to 'simplified' for legacy bars.
+    Now both useState init and useEffect sync use ?? 'full', consistent with BarContext.>
+
+diff --git a/src/pages/SettingsPage.tsx b/src/pages/SettingsPage.tsx
+index 597d71d..e1a83d2 100644
+--- a/src/pages/SettingsPage.tsx
++++ b/src/pages/SettingsPage.tsx
+@@ -186,7 +186,7 @@ export default function SettingsPage() {
+             setTempCloseHour(currentBar.closingHour ?? 6);
+             setTempConsignmentExpirationDays(currentBar.settings?.consignmentExpirationDays ?? 7);
+             setTempSupplyFrequency(currentBar.settings?.supplyFrequency ?? 7);
+-            setTempOperatingMode(currentBar.settings?.operatingMode ?? 'simplified');
++            setTempOperatingMode(currentBar.settings?.operatingMode ?? 'full');
+         }
+     }, [currentBar?.id]); // ÔÜí Retir├® currentBar?.settings?.operatingMode des d├®pendances pour ├®viter le revert permanent
+ 
+
+commit 07ccf41437a26abcad7f23856b7ae3a7516226ff
+Author: zimkada <zimkada@users.noreply.github.com>
+Date:   Wed Mar 4 04:50:30 2026 +0100
+
+    fix(security): enforce simplified mode rules at DB level + harden auth on RPCs
+    
+    SQL ÔÇö create_ticket (migration 20260303, not yet applied):
+    - Add auth guard: bar membership check + p_created_by = auth.uid() coherence
+    - service_role bypass preserved for SyncManager and migrations
+    
+    SQL ÔÇö create_sale_idempotent (new migration 20260304):
+    - Replace simple EXISTS check with role-fetching SELECT to get caller role
+    - Fetch bar operating_mode from settings->>'operatingMode'
+    - Block serveur role when mode = 'simplified' (defense in depth ÔÇö UI already hides cart)
+    - NULL mode (legacy bars) safely skips the check
+    
+    TypeScript ÔÇö Cart.tsx:
+    - handleCheckout now returns Promise<boolean> with explicit return values
+    - All early exits return false, success returns true
+    
+    TypeScript ÔÇö CartDrawer.tsx:
+    - onCheckout prop type narrowed from Promise<boolean | void> to Promise<boolean>
+    
+    TypeScript ÔÇö SettingsPage.tsx:
+    - operatingMode fallback changed from 'simplified' to 'full'
+    - Aligns with BarContext default (|| 'full'), prevents silent mode change on legacy bars
+    
+    TypeScript ÔÇö useTickets.ts:
+    - Replace `op.payload as any` with typed CreateTicketPayload interface
+    - Interface mirrors TicketsService.createTicket offline queue payload>
+
+diff --git a/src/components/Cart.tsx b/src/components/Cart.tsx
+index 7eeff39..15af028 100644
+--- a/src/components/Cart.tsx
++++ b/src/components/Cart.tsx
+@@ -70,8 +70,8 @@ export function Cart({
+   };
+ 
+   // --- CHECKOUT WRAPPER ---
+-  const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string) => {
+-    if (items.length === 0) return;
++  const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string): Promise<boolean> => {
++    if (items.length === 0) return false;
+ 
+     let serverId: string | undefined;
+ 
+@@ -84,7 +84,7 @@ export function Cart({
+         "MODE HORS LIGNE RESTREINT\n\nV├®rifiez d'abord votre connexion internet.\n\nSi le probl├¿me persiste, demandez au G├®rant de passer en MODE SIMPLIFI├ë.",
+         { duration: 6000, icon: '­ƒÜ½' }
+       );
+-      return;
++      return false;
+     }
+ 
+     if (isSimplifiedMode && assignedTo && currentBar?.id) {
+@@ -100,12 +100,12 @@ export function Cart({
+ 
+           if (!serverId) {
+             alert(`Serveur inconnu: "${assignedTo}". Veuillez v├®rifier le mapping.`);
+-            return;
++            return false;
+           }
+         } catch (error) {
+           console.error(error);
+           alert('Erreur lors de la r├®solution du serveur.');
+-          return;
++          return false;
+         }
+       }
+     }
+@@ -133,8 +133,10 @@ export function Cart({
+       });
+       showSuccess('­ƒÄë Vente valid├®e !', 1000);
+       onToggle();
++      return true;
+     } catch (e) {
+       console.error(e); // Error handled by mutation
++      return false;
+     } finally {
+       setLoading('checkout', false);
+     }
+diff --git a/src/components/cart/CartDrawer.tsx b/src/components/cart/CartDrawer.tsx
+index 22e5bff..2b8d77a 100644
+--- a/src/components/cart/CartDrawer.tsx
++++ b/src/components/cart/CartDrawer.tsx
+@@ -23,7 +23,7 @@ interface CartDrawerProps {
+     onUpdateQuantity: (productId: string, quantity: number) => void;
+     onRemoveItem: (productId: string) => void;
+     onClear: () => void;
+-    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<boolean | void>;
++    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<boolean>;
+     isSimplifiedMode?: boolean;
+     serverNames?: string[];
+     currentServerName?: string;
+diff --git a/src/hooks/queries/useTickets.ts b/src/hooks/queries/useTickets.ts
+index d6c3fee..beea3ac 100644
+--- a/src/hooks/queries/useTickets.ts
++++ b/src/hooks/queries/useTickets.ts
+@@ -13,6 +13,19 @@ import { useUnifiedReturns } from '../pivots/useUnifiedReturns';
+ 
+ // ===== Type-Safe Declarations =====
+ 
++/** Payload stock├® dans la queue offline pour CREATE_TICKET ÔÇö doit rester en sync avec TicketsService.createTicket */
++interface CreateTicketPayload {
++    bar_id: string;
++    created_by: string;
++    notes: string | null;
++    server_id: string | null;
++    closing_hour: number;
++    table_number: number | null;
++    customer_name: string | null;
++    idempotency_key: string;
++    temp_id: string;
++}
++
+ /**
+  * Ô£à TicketRow enrichi avec flag optimiste pour tickets cr├®├®s offline
+  * Les tickets optimistes (pending sync) ont isOptimistic = true
+@@ -110,7 +123,7 @@ export function useTickets(barId: string | undefined) {
+                     (op.status === 'pending' || op.status === 'syncing' || op.status === 'error')
+                 )
+                 .map(op => {
+-                    const payload = op.payload as any;
++                    const payload = op.payload as CreateTicketPayload;
+                     return {
+                         id: payload.temp_id,
+                         bar_id: op.barId,
+diff --git a/src/pages/SettingsPage.tsx b/src/pages/SettingsPage.tsx
+index b755173..597d71d 100644
+--- a/src/pages/SettingsPage.tsx
++++ b/src/pages/SettingsPage.tsx
+@@ -173,7 +173,7 @@ export default function SettingsPage() {
+     const [tempCloseHour, setTempCloseHour] = useState(currentBar?.closingHour ?? 6);
+     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
+     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
+-    const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'simplified');
++    const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'full');
+ 
+     // BUG #3 FIX (Ajust├®) : Synchronisation UNIQUEMENT lors du changement de BarId
+     // On ├®vite de synchroniser operatingMode ici car cela ├®crase les choix de l'utilisateur lors de refreshBars()
+diff --git a/supabase/migrations/20260303000000_add_idempotency_to_create_ticket.sql b/supabase/migrations/20260303000000_add_idempotency_to_create_ticket.sql
+index c92d628..8ce9518 100644
+--- a/supabase/migrations/20260303000000_add_idempotency_to_create_ticket.sql
++++ b/supabase/migrations/20260303000000_add_idempotency_to_create_ticket.sql
+@@ -52,6 +52,23 @@ BEGIN
+         RAISE EXCEPTION 'bar_id et created_by sont requis';
+     END IF;
+ 
++    -- ­ƒøí´©Å Auth guard : membership check + coh├®rence p_created_by
++    -- Bypass pour service_role (SyncManager, migrations, tests)
++    IF auth.role() <> 'service_role' THEN
++        IF NOT EXISTS (
++            SELECT 1 FROM public.bar_members
++            WHERE user_id = auth.uid()
++              AND bar_id = p_bar_id
++              AND is_active = true
++        ) THEN
++            RAISE EXCEPTION 'Access denied: not an active member of this bar';
++        END IF;
++
++        IF auth.uid() IS DISTINCT FROM p_created_by THEN
++            RAISE EXCEPTION 'Access denied: p_created_by must match authenticated user';
++        END IF;
++    END IF;
++
+     -- A. Calculate Closing Interval & Business Cutoff
+     v_closing_interval := (p_closing_hour || ' hours')::INTERVAL;
+ 
+@@ -103,5 +120,5 @@ $$;
+ -- Message de confirmation
+ DO $$
+ BEGIN
+-  RAISE NOTICE 'Ô£à create_ticket mis ├á jour : index composite (bar_id, idempotency_key) + check apr├¿s verrou';
++  RAISE NOTICE 'Ô£à create_ticket mis ├á jour : index composite (bar_id, idempotency_key) + check apr├¿s verrou + auth guard';
+ END $$;
+diff --git a/supabase/migrations/20260304000001_add_role_mode_check_to_create_sale.sql b/supabase/migrations/20260304000001_add_role_mode_check_to_create_sale.sql
+new file mode 100644
+index 0000000..3859a30
+--- /dev/null
++++ b/supabase/migrations/20260304000001_add_role_mode_check_to_create_sale.sql
+@@ -0,0 +1,180 @@
++-- =====================================================
++-- Migration: Ajouter contr├┤le r├┤le + mode op├®rationnel ├á create_sale_idempotent
++-- Date: 2026-03-04
++-- Description:
++--   En mode simplifi├®, un serveur ne peut pas cr├®er une vente directement.
++--   La r├¿gle m├®tier ├®tait garantie uniquement c├┤t├® UI (Cart masqu├®).
++--   Cette migration l'applique aussi c├┤t├® DB (defense in depth).
++--
++--   Changements par rapport ├á 20260210130000_fix_create_sale_security_check.sql :
++--   1. Le check membership r├®cup├¿re aussi le r├┤le du caller (v_caller_role)
++--      au lieu d'un simple EXISTS.
++--   2. Apr├¿s le membership check, on r├®cup├¿re le mode du bar (settings->>'operatingMode').
++--   3. Si mode = 'simplified' ET caller = 'serveur' ÔåÆ EXCEPTION.
++--   4. NULL mode (bars legacy) ÔåÆ check ignor├® (comportement s├╗r).
++--
++--   Bypass service_role conserv├® pour : SyncManager, migrations, tests.
++-- =====================================================
++
++CREATE OR REPLACE FUNCTION public.create_sale_idempotent(
++    p_bar_id UUID,
++    p_items JSONB,
++    p_payment_method TEXT,
++    p_sold_by UUID,
++    p_idempotency_key TEXT,
++    p_server_id UUID DEFAULT NULL,
++    p_status TEXT DEFAULT 'validated',
++    p_customer_name TEXT DEFAULT NULL,
++    p_customer_phone TEXT DEFAULT NULL,
++    p_notes TEXT DEFAULT NULL,
++    p_business_date DATE DEFAULT NULL,
++    p_ticket_id UUID DEFAULT NULL,
++    p_source_return_id UUID DEFAULT NULL
++)
++RETURNS sales
++LANGUAGE plpgsql
++SECURITY DEFINER
++AS $$
++DECLARE
++    v_existing_sale     sales;
++    v_sale              sales;
++    v_item              JSONB;
++    v_product_id        UUID;
++    v_quantity          INT;
++    v_unit_price        NUMERIC;
++    v_total_price       NUMERIC;
++    v_total_amount      NUMERIC := 0;
++    v_business_date     DATE;
++    v_promotion_id      UUID;
++    v_discount_amount   NUMERIC;
++    v_original_unit_price NUMERIC;
++    v_applied_promotions JSONB := '[]'::JSONB;
++    v_caller_role       TEXT;   -- r├┤le du caller dans ce bar
++    v_operating_mode    TEXT;   -- mode op├®rationnel du bar
++BEGIN
++    -- Configuration timeouts
++    SET LOCAL lock_timeout = '2s';
++    SET LOCAL statement_timeout = '30s';
++
++    -- Validation de base
++    IF p_bar_id IS NULL OR p_items IS NULL OR p_sold_by IS NULL THEN
++        RAISE EXCEPTION 'bar_id, items, and sold_by are required';
++    END IF;
++
++    -- ­ƒøí´©Å SECURITY CHECK ÔÇö membership + contr├┤le r├┤le/mode
++    -- Bypass pour service_role (SyncManager, migrations, tests)
++    IF auth.role() <> 'service_role' THEN
++        -- 1. V├®rifier l'appartenance active au bar et r├®cup├®rer le r├┤le
++        SELECT bm.role INTO v_caller_role
++        FROM public.bar_members bm
++        WHERE bm.user_id = auth.uid()
++          AND bm.bar_id = p_bar_id
++          AND bm.is_active = true;
++
++        IF v_caller_role IS NULL THEN
++            RAISE EXCEPTION 'Access denied: not an active member of this bar';
++        END IF;
++
++        -- 2. En mode simplifi├®, un serveur ne peut pas cr├®er de vente directement
++        --    NULL ÔåÆ bar legacy sans mode configur├® ÔåÆ on laisse passer (comportement s├╗r)
++        SELECT b.settings->>'operatingMode' INTO v_operating_mode
++        FROM public.bars b
++        WHERE b.id = p_bar_id;
++
++        IF v_operating_mode = 'simplified' AND v_caller_role = 'serveur' THEN
++            RAISE EXCEPTION 'Access denied: serveur role cannot create sales in simplified mode';
++        END IF;
++    END IF;
++
++    IF p_idempotency_key IS NULL OR p_idempotency_key = '' THEN
++        RAISE EXCEPTION 'idempotency_key is required';
++    END IF;
++
++    -- Ô¡É CHECK IDEMPOTENCY
++    SELECT * INTO v_existing_sale
++    FROM public.sales
++    WHERE bar_id = p_bar_id
++      AND idempotency_key = p_idempotency_key
++    LIMIT 1;
++
++    IF FOUND THEN
++        RETURN v_existing_sale;
++    END IF;
++
++    -- Calculer business_date
++    v_business_date := COALESCE(
++        p_business_date,
++        (CURRENT_DATE - CASE WHEN EXTRACT(HOUR FROM CURRENT_TIMESTAMP) < 6 THEN 1 ELSE 0 END)
++    );
++
++    -- Calculer le total
++    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
++    LOOP
++        v_total_amount := v_total_amount + COALESCE((v_item->>'total_price')::NUMERIC, 0);
++    END LOOP;
++
++    -- Ins├®rer la vente
++    INSERT INTO public.sales (
++        bar_id, items, subtotal, discount_total, total,
++        payment_method, status, sold_by, validated_by, validated_at,
++        applied_promotions, server_id, created_by,
++        customer_name, customer_phone, notes, business_date, created_at,
++        idempotency_key, ticket_id, source_return_id
++    ) VALUES (
++        p_bar_id, p_items, v_total_amount, 0, v_total_amount,
++        p_payment_method, p_status, p_sold_by,
++        CASE WHEN p_status = 'validated' THEN p_sold_by ELSE NULL END,
++        CASE WHEN p_status = 'validated' THEN CURRENT_TIMESTAMP ELSE NULL END,
++        '[]'::JSONB, p_server_id, p_sold_by,
++        p_customer_name, p_customer_phone, p_notes, v_business_date, CURRENT_TIMESTAMP,
++        p_idempotency_key, p_ticket_id, p_source_return_id
++    )
++    RETURNING * INTO v_sale;
++
++    -- Ô£¿ Si c'est un ├®change, on lie aussi le retour ├á cette vente
++    IF p_source_return_id IS NOT NULL THEN
++        UPDATE public.returns
++        SET linked_sale_id = v_sale.id
++        WHERE id = p_source_return_id;
++    END IF;
++
++    -- D├®cr├®menter stock et g├®rer promos
++    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
++    LOOP
++        v_product_id := (v_item->>'product_id')::UUID;
++        v_quantity := (v_item->>'quantity')::INT;
++        v_promotion_id := (v_item->>'promotion_id')::UUID;
++        v_discount_amount := COALESCE((v_item->>'discount_amount')::NUMERIC, 0);
++        v_original_unit_price := COALESCE((v_item->>'original_unit_price')::NUMERIC, (v_item->>'unit_price')::NUMERIC);
++        v_unit_price := (v_item->>'unit_price')::NUMERIC;
++
++        IF v_promotion_id IS NOT NULL AND v_discount_amount > 0 THEN
++            INSERT INTO public.promotion_applications (
++                bar_id, promotion_id, sale_id, product_id,
++                quantity_sold, original_price, discounted_price, discount_amount,
++                applied_at, applied_by, business_date
++            ) VALUES (
++                p_bar_id, v_promotion_id, v_sale.id, v_product_id,
++                v_quantity, v_original_unit_price, v_unit_price, v_discount_amount,
++                CURRENT_TIMESTAMP, p_sold_by, v_business_date
++            );
++        END IF;
++
++        IF p_status = 'validated' THEN
++            UPDATE public.bar_products
++            SET stock = stock - v_quantity
++            WHERE id = v_product_id AND bar_id = p_bar_id;
++        END IF;
++    END LOOP;
++
++    RETURN v_sale;
++END;
++$$;
++
++COMMENT ON FUNCTION public.create_sale_idempotent IS
++  'Cr├®e une vente de mani├¿re idempotente. Support Magic Swap via p_source_return_id. En mode simplifi├®, bloque les serveurs directs (defense in depth).';
++
++DO $$
++BEGIN
++  RAISE NOTICE 'Ô£à create_sale_idempotent mis ├á jour : contr├┤le r├┤le + mode op├®rationnel (simplified ÔåÆ serveur bloqu├®)';
++END $$;

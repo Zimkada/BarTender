@@ -60,7 +60,7 @@ export function RefreshButton() {
     <motion.button
       onClick={handleRefresh}
       disabled={isRefreshing}
-      className="flex items-center justify-center p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors disabled:opacity-50"
+      className="flex items-center justify-center p-2 rounded-full bg-card/10 hover:bg-card/20 text-white transition-colors disabled:opacity-50"
       whileTap={{ scale: 0.9 }}
       title="Actualiser les données"
     >

@@ -130,7 +130,7 @@ export default function UsersManagementPage() {
             </div>
             <button
               onClick={() => setShowPromotersForm(true)}
-              className="px-3 sm:px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-xs sm:text-sm"
+              className="px-3 sm:px-4 py-2 bg-card text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-xs sm:text-sm"
             >
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Ajouter Promoteur</span>
@@ -140,23 +140,23 @@ export default function UsersManagementPage() {
         </div>
 
         {/* Filters */}
-        <div className="px-2 py-4 md:p-6 border-b bg-white">
+        <div className="px-2 py-4 md:p-6 border-b bg-card">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2 min-w-0">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Rechercher par nom, email, téléphone, nom du bar..." // Updated placeholder
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-w-0"
+                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:ring-2 focus:ring-purple-500 min-w-0"
                 />
               </div>
             </div>
             <div>
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground z-10" />
                 <Select
                   options={[
                     { value: 'all', label: 'Tous les rôles' },
@@ -176,7 +176,7 @@ export default function UsersManagementPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 border-b bg-white">
+          <div className="p-4 border-b bg-card">
             <Alert variant="destructive" title="Erreur de chargement">
               <div className="flex items-center justify-between">
                 <span>{error}</span>
@@ -192,7 +192,7 @@ export default function UsersManagementPage() {
         )}
 
         {/* Users List - Cards View (Mobile & Tablet < 1280px) */}
-        <div className="xl:hidden bg-gray-50 p-4">
+        <div className="xl:hidden bg-muted p-4">
           {loading && users.length === 0 ? (
             <AdminPanelSkeleton count={5} type="table" />
           ) : users.length === 0 ? (
@@ -222,7 +222,7 @@ export default function UsersManagementPage() {
         </div>
 
         {/* Users List - Table View (Desktop >= 1280px) */}
-        <div className="hidden xl:block bg-gray-50 overflow-x-auto scrollbar-bottom max-w-none">
+        <div className="hidden xl:block bg-muted overflow-x-auto scrollbar-bottom max-w-none">
           {loading && users.length === 0 ? (
             <AdminPanelSkeleton count={5} type="table" />
           ) : users.length === 0 ? (
@@ -231,21 +231,21 @@ export default function UsersManagementPage() {
             </div>
           ) : (
             <table className="w-full min-w-max divide-y divide-gray-200">
-              <thead className="bg-white">
+              <thead className="bg-card">
                 <tr>
-                  <th scope="col" className="px-1 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-1 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Nom
                   </th>
-                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden sm:table-cell">
                     Rôle(s)
                   </th>
-                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
                     Bar(s)
                   </th>
-                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
                     Statut
                   </th>
-                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider hidden md:table-cell">
                     Date d'inscription
                   </th>
                   <th scope="col" className="relative px-1 sm:px-4 md:px-6 py-3 w-auto md:w-28 whitespace-nowrap">
@@ -253,15 +253,15 @@ export default function UsersManagementPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-gray-200">
                 {users.map(user => (
                   <tr key={user.id}>
                     <td className="px-1 sm:px-4 md:px-6 py-4">
                       <div className="flex flex-col gap-1">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-foreground">
                           {user.name}
                         </div>
-                        <div className="text-xs text-gray-500 md:hidden">
+                        <div className="text-xs text-muted-foreground md:hidden">
                           {user.bars && user.bars.length > 0
                             ? user.bars.map((bar: { name: string }, idx: number) => (
                               <span key={bar.name}>
@@ -270,7 +270,7 @@ export default function UsersManagementPage() {
                             ))
                             : 'Aucun bar'}
                         </div>
-                        <div className="text-sm text-gray-500 hidden md:inline">({user.email})</div>
+                        <div className="text-sm text-muted-foreground hidden md:inline">({user.email})</div>
                       </div>
                     </td>
                     <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
@@ -297,7 +297,7 @@ export default function UsersManagementPage() {
                             </span>
                           ))
                         ) : (
-                          <span className="text-xs text-gray-500">Aucun bar</span>
+                          <span className="text-xs text-muted-foreground">Aucun bar</span>
                         )}
                       </div>
                     </td>
@@ -309,7 +309,7 @@ export default function UsersManagementPage() {
                         {user.isActive ? 'Actif' : 'Suspendu'}
                       </span>
                     </td>
-                    <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                    <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-sm text-muted-foreground hidden md:table-cell">
                       {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                     </td>
                     <td className="px-1 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-40">
@@ -359,8 +359,8 @@ export default function UsersManagementPage() {
 
 
         {/* Pagination */}
-        <div className="px-2 py-3 sm:p-4 border-t flex-shrink-0 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">
-          <p className="text-xs sm:text-sm text-gray-600">
+        <div className="px-2 py-3 sm:p-4 border-t flex-shrink-0 bg-card flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">
+          <p className="text-xs sm:text-sm text-foreground/70">
             Page <span className="font-semibold">{currentPage}</span> sur{' '}
             <span className="font-semibold">{totalPages}</span> ({totalCount} utilisateurs)
           </p>
@@ -368,14 +368,14 @@ export default function UsersManagementPage() {
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              className="px-3 py-2 bg-card border border-border rounded-lg text-sm disabled:opacity-50 hover:bg-muted transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages || totalPages === 0}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors"
+              className="px-3 py-2 bg-card border border-border rounded-lg text-sm disabled:opacity-50 hover:bg-muted transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

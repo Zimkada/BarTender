@@ -20,13 +20,19 @@
 
 ### Limites Free Tier vs Besoins Production (10+ bars)
 
-| Métrique | Free Limit | Besoins (10 bars) | Statut |
-|----------|------------|-------------------|--------|
+| Métrique | Free Limit | Besoins (3 bars actuel) | Statut |
+|----------|------------|--------------------------|--------|
 | **Database size** | 500 MB | ~200-300 MB | ⚠️ Croissance rapide |
-| **Bandwidth** | 5 GB/mois | ~3-4 GB/mois | ⚠️ Limite proche |
+| **Bandwidth** | 5 GB/mois | **~12 GB/mois** (mesuré) | 🔴 **DÉPASSÉ ×2.4** |
 | **Queries** | 500k/mois | ~180k/mois (optimisé) | ✅ OK grâce Phase 3 |
 | **pg_cron** | ❌ Non disponible | **CRITIQUE** pour 1000+ ventes/jour | 🔴 **BLOQUANT** |
 | **Refresh MV** | Manuel (2-3x/jour) | Auto (toutes les 5min) | 🔴 **ESSENTIEL** |
+
+> **📊 Egress mesuré en production (mars 2026, 3 bars)** :
+> - 25 mars : ~350 MB · 26 mars : ~570 MB (pic) · 27 mars : ~350 MB
+> - Moyenne : **~400 MB/jour → ~12 GB/mois**
+> - **Cause principale** : Realtime subscription → `invalidateQueries()` → HTTP GET complet sur chaque appareil connecté
+> - **Après optimisations** (7-day window, LIMIT 500) : réduction de 86% vs pic (3.3 GB/jour → 400 MB/jour)
 
 ### ROI du passage Pro
 
@@ -393,15 +399,29 @@ WHERE status = 'active'
 | **Maintenance** | 5-10min/jour | 0min (autopilote) |
 | **Scalabilité** | ❌ Bloquante > 10 bars | ✅ Jusqu'à 100+ bars |
 | **Database size** | 500 MB max | 8 GB |
-| **Bandwidth** | 5 GB/mois | 250 GB/mois |
+| **Bandwidth** | 5 GB/mois (**dépassé à 3 bars**) | 250 GB/mois |
 | **Support** | Community | Email support |
+
+### Projection egress par nombre de bars (mesuré)
+
+| Bars | Egress/mois estimé | Pro (250 GB) | Statut |
+|------|-------------------|--------------|--------|
+| 3 (actuel) | ~12 GB | 4.8% | ✅ Confortable |
+| 10 | ~40 GB | 16% | ✅ |
+| 30 | ~120 GB | 48% | ✅ |
+| 50 | ~200 GB | 80% | ⚠️ Surveiller |
+| 62 | ~250 GB | 100% | 🔴 Limite Pro |
+
+> **Note** : Ces projections supposent ~400 MB/jour/bar (mesuré avec l'architecture actuelle).
+> Avec l'optimisation "throttle d'invalidations" (~-50%), la limite Pro tient jusqu'à ~120 bars.
 
 ---
 
 ## 🎯 **Recommandations**
 
 ### **Passer à Pro IMMÉDIATEMENT si** :
-- ✅ **> 7 bars actifs** (proche limite scalabilité)
+- ✅ **> 3 bars actifs** — l'egress dépasse déjà 12 GB/mois (2.4× la limite Free)
+- ✅ **Bandwidth dépassée** — mesuré en production mars 2026
 - ✅ **> 500 ventes/jour** (données temps réel critiques)
 - ✅ **DB > 400 MB** (proche limite Free)
 - ✅ **Besoin refresh < 10min** (exigence business)
@@ -466,6 +486,35 @@ ORDER BY day DESC, view_name;
 - [Supabase Pro Pricing](https://supabase.com/pricing)
 - [Materialized Views Performance](https://www.postgresql.org/docs/current/rules-materializedviews.html)
 - [MIGRATION_OPTIMISATION_LOG.md](./MIGRATION_OPTIMISATION_LOG.md) - Documentation complète Phase 3
+
+---
+
+---
+
+## ⚡ Optimisations Egress Post-Pro (si > 50 bars)
+
+Ces optimisations ne sont **pas nécessaires avant 50 bars**. À implémenter uniquement si l'egress approche 200 GB/mois.
+
+### Priorité 1 — Throttle des invalidations (sûr, 0 risque UX)
+
+Limiter les refetches React Query à 1 par 30 secondes par query key, même si Realtime reçoit plusieurs événements rapides.
+
+**Gain estimé : -50% d'egress**
+
+### Priorité 2 — Projections SELECT réduites
+
+La requête sales retourne `*` (items JSONB inclus). Pour la liste, ne sélectionner que les colonnes nécessaires :
+`id, total, status, business_date, sold_by, payment_method, created_at`
+
+**Gain estimé : -60% sur les requêtes sales**
+
+### Priorité 3 — Vues matérialisées dashboard (déjà en place)
+
+`daily_sales_summary_mat` + pg_cron → le dashboard lit des agrégats (quelques KB) plutôt que les ventes brutes.
+
+**Déjà implémenté avec pg_cron Pro.**
+
+> ⚠️ **Ne pas implémenter "cache patching"** (mise à jour directe du cache React Query depuis le payload Realtime) — risque élevé de désynchronisation sur les données financières (noms manquants, totaux faux, conflit offline queue).
 
 ---
 

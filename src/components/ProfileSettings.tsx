@@ -166,7 +166,7 @@ export function ProfileSettings() {
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
-      <p className="text-body-sm text-gray-500">Chargement de votre profil...</p>
+      <p className="text-body-sm text-muted-foreground">Chargement de votre profil...</p>
     </div>
   );
 
@@ -197,7 +197,7 @@ export function ProfileSettings() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm"
+              className="bg-card rounded-2xl p-6 md:p-8 border border-border shadow-sm"
             >
               {successMessage && (
                 <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-800">
@@ -217,51 +217,51 @@ export function ProfileSettings() {
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-caption font-medium text-gray-500 ml-0.5">Nom complet</label>
+                      <label className="text-caption font-medium text-muted-foreground ml-0.5">Nom complet</label>
                       <Input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="Sandra KOFFI"
-                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                        className="h-11 bg-muted border-border focus:bg-card transition-colors"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-caption font-medium text-gray-500 ml-0.5">Email</label>
+                      <label className="text-caption font-medium text-muted-foreground ml-0.5">Email</label>
                       <Input
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         placeholder="sandra.koffi@bartender.app"
-                        leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
+                        leftIcon={<Mail className="w-4 h-4 text-muted-foreground" />}
                         disabled={true}
-                        className="h-11 bg-gray-100 border-gray-200 cursor-not-allowed opacity-60"
+                        className="h-11 bg-muted border-border cursor-not-allowed opacity-60"
                       />
-                      <p className="text-caption text-gray-400 ml-0.5">
+                      <p className="text-caption text-muted-foreground ml-0.5">
                         Contactez un administrateur pour modifier votre email.
                       </p>
                     </div>
                     <div className="space-y-1.5 col-span-1 md:col-span-2">
-                      <label className="text-caption font-medium text-gray-500 ml-0.5">Téléphone</label>
+                      <label className="text-caption font-medium text-muted-foreground ml-0.5">Téléphone</label>
                       <Input
                         type="tel"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
                         placeholder="01 02 03 04 05"
-                        leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
-                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                        leftIcon={<Phone className="w-4 h-4 text-muted-foreground" />}
+                        className="h-11 bg-muted border-border focus:bg-card transition-colors"
                       />
                     </div>
                   </div>
 
                   {/* Apparence — choix du mode d'affichage (préférence locale, par device) */}
-                  <div className="space-y-2 pt-4 border-t border-gray-100">
+                  <div className="space-y-2 pt-4 border-t border-border">
                     <div>
-                      <p className="text-body-sm font-semibold text-gray-900">Apparence</p>
-                      <p className="text-caption text-gray-500">Choix du mode d'affichage, enregistré sur cet appareil.</p>
+                      <p className="text-body-sm font-semibold text-foreground">Apparence</p>
+                      <p className="text-caption text-muted-foreground">Choix du mode d'affichage, enregistré sur cet appareil.</p>
                     </div>
                     <div
-                      className="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-xl border border-gray-200"
+                      className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-xl border border-border"
                       role="radiogroup"
                       aria-label="Mode d'affichage"
                     >
@@ -280,8 +280,8 @@ export function ProfileSettings() {
                             onClick={() => setColorMode(value)}
                             className={`flex items-center justify-center gap-1.5 h-9 rounded-lg text-caption font-medium transition-colors ${
                               active
-                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
-                                : 'text-gray-500 hover:text-gray-700'
+                                ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                                : 'text-muted-foreground hover:text-foreground/80'
                             }`}
                           >
                             <Icon size={14} />
@@ -306,60 +306,60 @@ export function ProfileSettings() {
               ) : activeTab === 'password' ? (
                 <div className="space-y-6">
                   <div className="space-y-1.5">
-                    <label className="text-caption font-medium text-gray-500 ml-0.5">Mot de passe actuel</label>
+                    <label className="text-caption font-medium text-muted-foreground ml-0.5">Mot de passe actuel</label>
                     <Input
                       type={showCurrentPassword ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={e => setCurrentPassword(e.target.value)}
                       placeholder="••••••••"
                       rightIcon={
-                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="text-muted-foreground hover:text-foreground/70 transition-colors">
                           {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       }
-                      className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                      className="h-11 bg-muted border-border focus:bg-card"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="space-y-1.5">
-                      <label className="text-caption font-medium text-gray-500 ml-0.5">Nouveau mot de passe</label>
+                      <label className="text-caption font-medium text-muted-foreground ml-0.5">Nouveau mot de passe</label>
                       <Input
                         type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={e => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         rightIcon={
-                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="text-muted-foreground hover:text-foreground/70 transition-colors">
                             {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         }
-                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                        className="h-11 bg-muted border-border focus:bg-card"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-caption font-medium text-gray-500 ml-0.5">Confirmer le mot de passe</label>
+                      <label className="text-caption font-medium text-muted-foreground ml-0.5">Confirmer le mot de passe</label>
                       <Input
                         type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
                         rightIcon={
-                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-muted-foreground hover:text-foreground/70 transition-colors">
                             {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         }
-                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
+                        className="h-11 bg-muted border-border focus:bg-card"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <p className="text-caption font-semibold text-gray-700 mb-2.5 flex items-center gap-1.5">
+                  <div className="bg-muted p-4 rounded-xl border border-border">
+                    <p className="text-caption font-semibold text-foreground/80 mb-2.5 flex items-center gap-1.5">
                       <Shield size={13} className="text-brand-primary" />
                       Conseils de sécurité
                     </p>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-caption text-gray-500">
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-caption text-muted-foreground">
                       <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Min. 8 caractères</li>
                       <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Majuscules & minuscules</li>
                       <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Chiffres & symboles</li>
@@ -389,8 +389,8 @@ export function ProfileSettings() {
         <div className="lg:col-span-1">
           <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 text-white relative overflow-hidden border border-slate-700/50 shadow-xl flex flex-col min-h-[460px]">
             {/* Ticket cutouts */}
-            <div className="absolute top-1/2 -left-5 w-10 h-10 bg-gray-50 rounded-full -translate-y-1/2" />
-            <div className="absolute top-1/2 -right-5 w-10 h-10 bg-gray-50 rounded-full -translate-y-1/2" />
+            <div className="absolute top-1/2 -left-5 w-10 h-10 bg-muted rounded-full -translate-y-1/2" />
+            <div className="absolute top-1/2 -right-5 w-10 h-10 bg-muted rounded-full -translate-y-1/2" />
 
             {/* Avatar */}
             <div className="text-center mb-8 relative z-10">
@@ -418,7 +418,7 @@ export function ProfileSettings() {
 
               <div className="grid grid-cols-1 gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-card/5 flex items-center justify-center border border-white/10 flex-shrink-0">
                     <Calendar size={16} className="text-slate-400" />
                   </div>
                   <div>
@@ -428,7 +428,7 @@ export function ProfileSettings() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 flex-shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-card/5 flex items-center justify-center border border-white/10 flex-shrink-0">
                     <Zap size={16} className="text-slate-400" />
                   </div>
                   <div>
@@ -440,7 +440,7 @@ export function ProfileSettings() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${currentUser?.hasCompletedOnboarding ? 'bg-emerald-500/15 border-emerald-500/25' : 'bg-white/5 border-white/10'}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${currentUser?.hasCompletedOnboarding ? 'bg-emerald-500/15 border-emerald-500/25' : 'bg-card/5 border-white/10'}`}>
                     <GraduationCap size={16} className={currentUser?.hasCompletedOnboarding ? 'text-emerald-400' : 'text-slate-400'} />
                   </div>
                   <div>

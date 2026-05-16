@@ -1,0 +1,420 @@
+[93m[4mUnused files[24m[39m (186)
+analyze-lh.js                                                       
+analyze.js                                                          
+extract-metrics.cjs                                                 
+extract-scores.cjs                                                  
+generate-screenshots.mjs                                            
+resize-icons.mjs                                                    
+vite.config.ts.timestamp-1765153078120-eeff539a35563.mjs            
+vite.config.ts.timestamp-1771612932200-36c87a9c92a1d.mjs            
+vitest.shims.d.ts                                                   
+dev-dist/sw.js                                                      
+dev-dist/workbox-5533595e.js                                        
+scripts/analyze-lighthouse-issues.cjs                               
+scripts/audit-pwa.js                                                
+scripts/check-console-errors.cjs                                    
+scripts/convert-png-to-icons.cjs                                    
+scripts/create-super-admin.ts                                       
+scripts/generate-icons-from-jpg.cjs                                 
+scripts/generate-icons.js                                           
+scripts/generate-modern-icon.cjs                                    
+scripts/generate-png-icons.cjs                                      
+scripts/lighthouse-audit.cjs                                        
+scripts/lighthouse-production.cjs                                   
+scripts/production-performance-check.cjs                            
+scripts/remove-bg.cjs                                               
+scripts/remove-bg.js                                                
+src/critical.css                                                    
+src/sw.ts                                                           
+starter-template/eslint.config.js                                   
+starter-template/postcss.config.js                                  
+starter-template/tailwind.config.ts                                 
+starter-template/vite.config.ts                                     
+api/cron/refresh-views.ts                                           
+src/components/AdminNotificationsPanel.tsx                          
+src/components/Animations.tsx                                       
+src/components/AuditLogsPanel.tsx                                   
+src/components/BarsManagementPanel.tsx                              
+src/components/BarStatsModal.tsx                                    
+src/components/FeedbackButton.tsx                                   
+src/components/GlobalCatalogPanel.tsx                               
+src/components/NetworkIndicator.tsx                                 
+src/components/OfflineIndicator.tsx                                 
+src/components/PendingOrders.tsx                                    
+src/components/ProgressFeedback.tsx                                 
+src/components/RoleBasedComponent.tsx                               
+src/components/RoleSelector.tsx                                     
+src/components/SalaryManager.tsx                                    
+src/components/SplashScreen.tsx                                     
+src/config/sync.config.ts                                           
+src/hooks/useAdminNotifications.ts                                  
+src/hooks/useForceUpdate.ts                                         
+src/hooks/useFramerMotion.ts                                        
+src/hooks/useLazyPagination.ts                                      
+src/hooks/useListPerformanceMetrics.ts                              
+src/hooks/useLocalStorage.ts                                        
+src/hooks/useModalState.ts                                          
+src/hooks/useNetworkBannerHeight.ts                                 
+src/hooks/useNetworkOptimization.ts                                 
+src/hooks/useNotifications.ts                                       
+src/hooks/useOfflineStatus.ts                                       
+src/hooks/useOnboardingGuard.ts                                     
+src/hooks/usePaginatedProducts.ts                                   
+src/hooks/usePaginatedSales.ts                                      
+src/hooks/usePermissions.ts                                         
+src/hooks/useRealtimeSales.ts                                       
+src/hooks/useRealTimeSync.ts                                        
+src/pages/AdminNotificationsPage.tsx                                
+src/pages/BarStatsPage.tsx                                          
+src/services/syncService.ts                                         
+src/styles/colorSystem.ts                                           
+src/types/database.types.ts                                         
+src/utils/migrateInitialBalancesToSupabase.ts                       
+src/utils/validation.ts                                             
+starter-template/scripts/generate-version.cjs                       
+starter-template/src/index.css                                      
+starter-template/src/main.tsx                                       
+starter-template/src/vite-env.d.ts                                  
+.history/src/components/AddBarModal_20251217165155.tsx              
+.history/src/components/AddBarModal_20260121002454.tsx              
+.history/src/components/AdminNotificationsPanel_20260102020348.tsx  
+.history/src/components/AdminNotificationsPanel_20260121002528.tsx  
+.history/src/components/AdminSetPasswordModal_20260102020348.tsx    
+.history/src/components/AdminSetPasswordModal_20260121002634.tsx    
+.history/src/components/AuditLogsPanel_20260102020349.tsx           
+.history/src/components/AuditLogsPanel_20260121002807.tsx           
+.history/src/components/BarActionButtons_20260112192257.tsx         
+.history/src/components/BarActionButtons_20260121002828.tsx         
+.history/src/components/BarCard_20260112075006.tsx                  
+.history/src/components/BarCard_20260121002851.tsx                  
+.history/src/components/BarSelector_20260118180449.tsx              
+.history/src/components/BarSelector_20260121003959.tsx              
+.history/src/components/BarStatsModal_20260121005551.tsx            
+.history/src/components/CategoryModal_20251209073511.tsx            
+.history/src/components/CategoryModal_20260121005916.tsx            
+.history/src/components/DailyDashboard_20251208035016.tsx           
+.history/src/components/DailyDashboard_20251208035412.tsx           
+.history/src/components/DailyDashboard_20251208035605.tsx           
+.history/src/components/ForecastingSystem_20251208035437.tsx        
+.history/src/components/ForecastingSystem_20251208035514.tsx        
+.history/src/components/GlobalCategoriesTab_20251216102407.tsx      
+.history/src/components/GlobalCategoriesTab_20260121010509.tsx      
+.history/src/components/GlobalProductsTab_20260102020351.tsx        
+.history/src/components/GlobalProductsTab_20260121010505.tsx        
+.history/src/components/Header_20260112075346.tsx                   
+.history/src/components/Header_20260121010502.tsx                   
+.history/src/components/ProductModal_20251209071206.tsx             
+.history/src/components/ProductModal_20251209071730.tsx             
+.history/src/components/ProductModal_20251209071839.tsx             
+.history/src/components/restore_saleshistory_20251201210705.tsx     
+.history/src/components/restore_saleshistory_20251201210710.tsx     
+.history/src/components/SalesHistory_20251201202257.tsx             
+.history/src/components/SalesHistory_20251201210534.tsx             
+.history/src/components/SalesHistory_20251206175314.tsx             
+.history/src/components/SalesHistory_20251206180641.tsx             
+.history/src/components/SalesHistory_20251206181952.tsx             
+.history/src/components/SalesHistory_20251206182703.tsx             
+.history/src/components/SalesHistory_20251206182705.tsx             
+.history/src/pages/ConsignmentPage_20251208031110.tsx               
+.history/src/pages/ConsignmentPage_20251208033933.tsx               
+.history/src/pages/ConsignmentPage_20251208092617.tsx               
+.history/src/pages/SalesHistoryPage_20251208033800.tsx              
+.history/src/pages/SalesHistoryPage_20251208040201.tsx              
+.history/src/types/index_20260118185423.ts                          
+.history/src/types/index_20260121005205.ts                          
+src/components/charts/LazyAnalyticsCharts.tsx                       
+src/components/common/CollapsibleSection.tsx                        
+src/components/examples/index.ts                                    
+src/components/examples/PaginatedProductsListExample.tsx            
+src/components/examples/PaginatedSalesListExample.tsx               
+src/components/examples/PaginatedVirtualizedProductsExample.tsx     
+src/components/examples/PaginatedVirtualizedSalesExample.tsx        
+src/components/onboarding/index.ts                                  
+src/components/pagination/EndOfList.tsx                             
+src/components/pagination/index.ts                                  
+src/components/pagination/LoadMoreButton.tsx                        
+src/components/pagination/PaginationControls.tsx                    
+src/components/pagination/PaginationIndicator.tsx                   
+src/components/performance/index.ts                                 
+src/components/performance/PerformanceDashboard.tsx                 
+src/components/performance/PerformanceTestPage.tsx                  
+src/components/products/CatalogContributionBadge.tsx                
+src/components/ui/DropdownMenu.tsx                                  
+src/components/virtualization/index.ts                              
+src/components/virtualization/PaginatedVirtualizedGrid.tsx          
+src/components/virtualization/PaginatedVirtualizedList.tsx          
+src/components/virtualization/VirtualizedList.tsx                   
+src/components/virtualization/VirtualizedProductsGrid.tsx           
+src/components/virtualization/VirtualizedSalesList.tsx              
+src/context/hooks/index.ts                                          
+src/context/hooks/useStockBridge.ts                                 
+src/hooks/queries/useTopProductsQuery.ts                            
+src/services/supabase/audit.service.ts                              
+src/services/supabase/events.service.ts                             
+src/services/supabase/feedback.service.ts                           
+src/services/supabase/index.ts                                      
+src/tests/mocks/supabase.mock.ts                                    
+starter-template/src/lib/cache-strategy.ts                          
+starter-template/src/lib/env.ts                                     
+starter-template/src/lib/monitoring.ts                              
+starter-template/src/lib/react-query.ts                             
+starter-template/src/lib/supabase.ts                                
+starter-template/src/routes/index.tsx                               
+starter-template/src/utils/cn.ts                                    
+starter-template/src/utils/errorHandler.ts                          
+starter-template/src/utils/lazyWithRetry.ts                         
+supabase/functions/admin-update-password/index.ts                   
+supabase/functions/create-bar-member/index.ts                       
+supabase/functions/send-refresh-alerts/index.ts                     
+supabase/functions/sign-impersonate-token/index.ts                  
+.history/src/data/guides/owner-guides_20260114185032.ts             
+.history/src/data/guides/owner-guides_20260114185245.ts             
+.history/src/data/guides/owner-guides_20260114185958.ts             
+.history/src/data/guides/owner-guides_20260114190802.ts             
+.history/src/data/guides/owner-guides_20260114190955.ts             
+.history/src/data/guides/owner-guides_20260115014632.ts             
+.history/src/data/guides/owner-guides_20260115081214.ts             
+.history/src/data/guides/owner-guides_20260115081936.ts             
+.history/src/data/guides/owner-guides_20260119195407.ts             
+.history/src/data/guides/owner-guides_20260119195952.ts             
+.history/src/pages/admin/UsersManagementPage_20251214154822.tsx     
+.history/src/pages/admin/UsersManagementPage_20251215183008.tsx     
+.history/src/pages/admin/UsersManagementPage_20251215193609.tsx     
+src/components/common/PageHeader/index.ts                           
+src/components/inventory/operations/ProductSelector.tsx             
+starter-template/src/components/common/ErrorFallback.tsx            
+src/components/common/PageHeader/patterns/SimplePageHeader.tsx      
+src/components/common/PageHeader/patterns/ViewSwitcherPageHeader.tsx
+[93m[4mUnused dependencies[24m[39m (4)
+@types/react-router-dom  package.json:27:6
+@types/uuid              package.json:28:6
+react-loading-skeleton   package.json:39:6
+react-window             package.json:41:6
+[93m[4mUnused devDependencies[24m[39m (7)
+@testing-library/jest-dom    package.json:57:6
+@testing-library/user-event  package.json:59:6
+@vitest/coverage-v8          package.json:65:6
+chrome-launcher              package.json:68:6
+lighthouse                   package.json:76:6
+playwright                   package.json:77:6
+sharp                        package.json:80:6
+[93m[4mUnlisted dependencies[24m[39m (4)
+@chromatic-com/storybook     .storybook/main.ts
+@storybook/addon-vitest      .storybook/main.ts
+@storybook/addon-docs        .storybook/main.ts
+@storybook/addon-onboarding  .storybook/main.ts
+[93m[4mUnresolved imports[24m[39m (1)
+../utils/formatters  src/components/ExpenseManager.tsx:38:8
+[93m[4mUnused exports[24m[39m (113)
+captureMessage                 function  src/lib/monitoring.ts:99:17                                   
+addBreadcrumb                  function  src/lib/monitoring.ts:112:17                                  
+OnboardingContext                        src/context/OnboardingContext.tsx:109:14                      
+StockBridgeContext                       src/context/StockBridgeProvider.tsx:21:14                     
+BAR_TEMPLATE                             src/utils/devHelpers.ts:9:14                                  
+showBarCreationInstructions    function  src/utils/devHelpers.ts:29:17                                 
+createTestBar                  function  src/utils/devHelpers.ts:52:17                                 
+listBars                       function  src/utils/devHelpers.ts:81:17                                 
+deleteAllBars                  function  src/utils/devHelpers.ts:99:17                                 
+isValidCachedMapping           function  src/utils/offlineStorage.ts:22:17                             
+ROLE_PERMISSIONS                         src/types/index.ts:602:14                                     
+ThemeConfigSchema                        src/services/theme.service.ts:6:14                            
+filterSalesByBusinessDay       function  src/utils/businessDay.ts:53:17                                
+getBusinessDayDateString       function  src/utils/businessDay.ts:69:17                                
+productNormalizationTests                src/utils/productNormalization.ts:150:14                      
+calculateRevenueStatsPure                src/utils/revenueCalculator.ts:104:14                         
+badgeVariants                            src/components/ui/Badge.tsx:58:17                             
+cardVariants                             src/components/ui/Card.tsx:113:3                              
+buttonVariants                           src/components/ui/Button.tsx:54:18                            
+inputVariants                            src/components/ui/Input.tsx:115:17                            
+selectVariants                           src/components/ui/Select.tsx:144:18                           
+spinnerVariants                          src/components/ui/Spinner.tsx:77:19                           
+MockServiceWorkerRegistration  class     src/tests/mocks/serviceWorker.mock.ts:14:14                   
+useDataStoreRead               function  src/hooks/useDataStore.ts:75:17                               
+getSupabaseError               function  src/utils/errorHandler.ts:74:17                               
+isNetworkError                 function  src/utils/errorHandler.ts:92:17                               
+shouldRetryError               function  src/utils/errorHandler.ts:110:17                              
+mutationRetryFn                function  src/utils/errorHandler.ts:138:17                              
+getContrastRatio               function  src/utils/colorUtils.ts:63:17                                 
+RealtimeService                class     src/services/realtime/RealtimeService.ts:46:14                
+BroadcastService               class     src/services/broadcast/BroadcastService.ts:36:14              
+NOTIFICATION_MESSAGES                    src/config/notifications.ts:12:14                             
+QUERY_KEYS                               src/lib/cache-strategy.ts:52:14                               
+SaleItemSchema                           src/types/schemas.ts:8:14                                     
+CreateSaleSchema                         src/types/schemas.ts:19:14                                    
+CreateTicketSchema                       src/types/schemas.ts:34:14                                    
+PayTicketSchema                          src/types/schemas.ts:46:14                                    
+UpdateBarSchema                          src/types/schemas.ts:53:14                                    
+CreateReturnSchema                       src/types/schemas.ts:58:14                                    
+UpdateReturnSchema                       src/types/schemas.ts:69:14                                    
+AddExpenseSchema                         src/types/schemas.ts:74:14                                    
+AddSalarySchema                          src/types/schemas.ts:83:14                                    
+AddSupplySchema                          src/types/schemas.ts:93:14                                    
+CreateProductSchema                      src/types/schemas.ts:103:14                                   
+UpdateProductSchema                      src/types/schemas.ts:110:14                                   
+DeleteProductSchema                      src/types/schemas.ts:115:14                                   
+CreateConsignmentSchema                  src/types/schemas.ts:119:14                                   
+UpdateConsignmentSchema                  src/types/schemas.ts:126:14                                   
+CreateServerMappingSchema                src/types/schemas.ts:132:14                                   
+CreateStockAdjustmentSchema              src/types/schemas.ts:138:14                                   
+APP_TIMEZONE                             src/config/constants.ts:28:14                                 
+CURRENCY                                 src/config/constants.ts:33:14                                 
+formatSaleDate                 function  src/utils/saleHelpers.ts:27:17                                
+formatSaleTime                 function  src/utils/saleHelpers.ts:44:17                                
+SaleSchema                               src/utils/revenueSchemas.ts:58:14                             
+DEFAULT_SYSCOHADA_PLAN                   src/services/accounting/syscohada.types.ts:41:14              
+isValidPaymentMethod           function  src/types/payment.ts:16:17                                    
+useLowStockProducts                      src/hooks/queries/useStockQueries.ts:287:14                   
+toFrontendProduct              function  src/utils/productMapper.ts:75:17                              
+default                        function  src/hooks/useRealtimeReturns.ts:104:16                        
+LocalStorageDataStore          class     src/services/DataStore.ts:48:14                               
+default                        function  src/hooks/useSmartSync.ts:197:16                              
+ProductCardSkeleton                      src/components/skeletons/index.ts:1:10                        
+DashboardSkeleton                        src/components/skeletons/index.ts:2:10                        
+DashboardStatsSkeleton                   src/components/skeletons/index.ts:2:29                        
+StatCardSkeleton                         src/components/skeletons/index.ts:2:53                        
+ChartSkeleton                            src/components/skeletons/index.ts:2:71                        
+isFeatureEnabled               function  src/config/features.ts:61:17                                  
+useIsMobile                    function  src/hooks/useViewport.ts:113:17                               
+usePriceInput                  function  src/hooks/useBeninCurrency.ts:125:17                          
+createMobileVariants           function  src/utils/disableAnimationsOnMobile.ts:19:17                  
+disableFramerMotionOnMobile    function  src/utils/disableAnimationsOnMobile.ts:65:17                  
+QUICK_FILTERS                            src/config/dateFilters.ts:117:14                              
+DataFreshnessIndicator         function  src/components/DataFreshnessIndicator.tsx:14:17               
+SaleCard                       function  src/features/Sales/SalesHistory/views/SalesCardsView.tsx:39:17
+BarAuditLogsViewer                       src/components/admin/BarAuditLogsViewer.tsx:22:14             
+default                        function  src/components/AdminSetPasswordModal.tsx:199:16               
+useApiQuery                    function  src/hooks/queries/useApiQuery.ts:24:17                        
+default                        function  src/hooks/useRealtimeSubscription.ts:133:16                   
+default                        function  src/hooks/useBroadcastSync.ts:102:16                          
+serverMappingsKeys                       src/hooks/useServerMappings.ts:4:14                           
+useNetworkStatus               function  src/hooks/useSyncStatus.ts:196:17                             
+useQueueStats                  function  src/hooks/useSyncStatus.ts:210:17                             
+useContextualGuides                      src/hooks/useGuideSuggestions.ts:87:14                        
+ProductCardSkeleton            function  src/components/skeletons/ProductCardSkeleton.tsx:5:17         
+StatCardSkeleton               function  src/components/skeletons/DashboardSkeleton.tsx:5:17           
+DashboardStatsSkeleton         function  src/components/skeletons/DashboardSkeleton.tsx:15:17          
+ChartSkeleton                  function  src/components/skeletons/DashboardSkeleton.tsx:25:17          
+DashboardSkeleton              function  src/components/skeletons/DashboardSkeleton.tsx:38:17          
+getCurrentBusinessDateString   function  src/utils/dateRangeCalculator.ts:15:17                        
+QuickActionButton                        src/components/EnhancedButton.tsx:259:14                      
+CartButton                               src/components/EnhancedButton.tsx:272:14                      
+FavoriteButton                           src/components/EnhancedButton.tsx:286:14                      
+PowerButton                              src/components/EnhancedButton.tsx:299:14                      
+ButtonShowcase                 function  src/components/EnhancedButton.tsx:314:17                      
+Label                                    src/components/charts/RechartsWrapper.tsx:17:5                
+RadarChart                               src/components/charts/RechartsWrapper.tsx:18:5                
+PolarGrid                                src/components/charts/RechartsWrapper.tsx:19:5                
+PolarAngleAxis                           src/components/charts/RechartsWrapper.tsx:20:5                
+PolarRadiusAxis                          src/components/charts/RechartsWrapper.tsx:21:5                
+Radar                                    src/components/charts/RechartsWrapper.tsx:22:5                
+getCategoryLabel                         src/hooks/useExpenses.ts:20:14                                
+getCategoryIcon                          src/hooks/useExpenses.ts:29:14                                
+getTotalExpenses                         src/hooks/useExpenses.ts:38:14                                
+getExpensesByCategory                    src/hooks/useExpenses.ts:48:14                                
+getWeekRange                   function  src/utils/accounting.ts:4:17                                  
+getMonthRange                  function  src/utils/accounting.ts:21:17                                 
+promotionsKeys                           src/hooks/queries/usePromotionsQueries.ts:12:14               
+useAllPromotions                         src/hooks/queries/usePromotionsQueries.ts:76:14               
+SALES_PROCESS_GUIDE                      src/data/guides/owner-guides.ts:21:14                         
+SERVEUR_SALES_PROCESS_GUIDE              src/data/guides/serveur-guides.ts:14:14                       
+debugCategorySuggestion        function  src/utils/categorySuggestion.ts:196:17                        
+useAutoGuide                             src/hooks/useGuideTrigger.ts:83:14                            
+[93m[4mUnused exported types[24m[39m (90)
+StepData                                  interface  src/context/OnboardingContext.tsx:41:18                 
+OnboardingState                           interface  src/context/OnboardingContext.tsx:58:18                 
+OnboardingContextType                     interface  src/context/OnboardingContext.tsx:77:18                 
+BarWithOwner                              interface  src/services/supabase/bars.service.ts:41:18             
+CreateBarData                             interface  src/services/supabase/bars.service.ts:47:18             
+NetworkDecision                           interface  src/services/NetworkManager.ts:14:18                    
+AdjustmentReasonConfig                    interface  src/types/index.ts:366:18                               
+ConsignmentStock                          interface  src/types/index.ts:532:18                               
+EventType                                 type       src/types/index.ts:965:13                               
+BarEvent                                  interface  src/types/index.ts:975:18                               
+BrandClassCategory                        type       src/theme/constants.ts:52:13                            
+BrandButtonClass                          type       src/theme/constants.ts:54:13                            
+BrandHeaderClass                          type       src/theme/constants.ts:55:13                            
+BrandTextClass                            type       src/theme/constants.ts:56:13                            
+BrandBgClass                              type       src/theme/constants.ts:57:13                            
+BrandBorderClass                          type       src/theme/constants.ts:58:13                            
+BrandShadowClass                          type       src/theme/constants.ts:59:13                            
+RecentlySyncedItem                        interface  src/utils/revenueCalculator.ts:12:18                    
+RevenueCalculatorOptions                  interface  src/utils/revenueCalculator.ts:18:18                    
+StrictRevenueCalculatorOptions            type       src/utils/revenueCalculator.ts:30:13                    
+CalculatedStats                           interface  src/utils/revenueCalculator.ts:36:18                    
+AlertProps                                interface  src/components/ui/Alert.tsx:48:18                       
+BadgeProps                                interface  src/components/ui/Badge.tsx:31:18                       
+CardProps                                 interface  src/components/ui/Card.tsx:26:18                        
+LabelProps                                interface  src/components/ui/Label.tsx:4:18                        
+InputProps                                interface  src/components/ui/Input.tsx:27:18                       
+ModalProps                                interface  src/components/ui/Modal.tsx:8:18                        
+ConfirmModalProps                         interface  src/components/ui/Modal.tsx:206:18                      
+SelectProps                               interface  src/components/ui/Select.tsx:34:18                      
+SpinnerProps                              interface  src/components/ui/Spinner.tsx:26:18                     
+LoadingOverlayProps                       interface  src/components/ui/Spinner.tsx:52:18                     
+TextareaProps                             interface  src/components/ui/Textarea.tsx:5:18                     
+Toast                                     interface  src/hooks/useToast.ts:4:18                              
+BeninCurrencyConfig                       interface  src/services/currency/BeninCurrencyService.ts:4:18      
+LoginCredentials                          interface  src/services/supabase/auth.service.ts:23:18             
+SignupData                                interface  src/services/supabase/auth.service.ts:28:18             
+CreateSaleData                            interface  src/services/supabase/sales.service.ts:31:18            
+UnifiedSale                               interface  src/hooks/pivots/useUnifiedSales.ts:22:18               
+UseUnifiedSalesOptions                    interface  src/hooks/pivots/useUnifiedSales.ts:34:18               
+CreateExpenseCallback                     type       src/hooks/pivots/useUnifiedStock.ts:21:13               
+UnifiedStockOptions                       interface  src/hooks/pivots/useUnifiedStock.ts:40:18               
+MockLockRequest                           interface  src/tests/mocks/webLocks.mock.ts:6:18                   
+LockInfo                                  interface  src/tests/mocks/webLocks.mock.ts:12:18                  
+MockServiceWorkerClient                   interface  src/tests/mocks/serviceWorker.mock.ts:6:18              
+RedirectStepConfig                        interface  src/components/onboarding/steps/RedirectStep.tsx:8:18   
+SupabaseError                             interface  src/utils/errorHandler.ts:67:18                         
+GuideProgressInput                        interface  src/types/guide.ts:111:18                               
+UseGuideReturn                            type       src/types/guide.ts:152:13                               
+GuideAnalyticsEvent                       interface  src/types/guide.ts:157:18                               
+BroadcastEventType                        type       src/services/broadcast/BroadcastService.ts:21:13        
+BroadcastMessage                          interface  src/services/broadcast/BroadcastService.ts:23:18        
+BusinessDayCloseHour                      type       src/constants/businessDay.ts:32:13                      
+ValidatedSale                             type       src/utils/revenueSchemas.ts:143:13                      
+SyscohadaAccountType                      type       src/services/accounting/syscohada.types.ts:5:13         
+SyscohadaAccount                          interface  src/services/accounting/syscohada.types.ts:7:18         
+CreateBarProductData                      interface  src/services/supabase/products.service.ts:20:18         
+ValidateSaleParams                        interface  src/lib/supabase-rpc.types.ts:72:18                     
+CreateStockAdjustmentParams               interface  src/lib/supabase-rpc.types.ts:80:18                     
+LastSupplyDefaults                        interface  src/hooks/queries/useStockQueries.ts:299:18             
+DataStore                                 interface  src/services/DataStore.ts:8:18                          
+DailySalesSummary                         interface  src/services/supabase/analytics.service.ts:12:18        
+ExpensesSummary                           interface  src/services/supabase/analytics.service.ts:53:18        
+SalariesSummary                           interface  src/services/supabase/analytics.service.ts:75:18        
+EnrichedBarCategory                       interface  src/services/supabase/categories.service.ts:15:18       
+CategoryWithGlobal                        interface  src/services/supabase/categories.service.ts:19:18       
+FeatureFlag                               type       src/config/features.ts:68:13                            
+PromotionPerformanceResult                interface  src/services/supabase/promotions.service.ts:46:18       
+GetPaginatedBarsParams                    interface  src/services/supabase/admin.service.ts:15:18            
+PaginatedBarsResult                       interface  src/services/supabase/admin.service.ts:24:18            
+GetPaginatedUsersParams                   interface  src/services/supabase/admin.service.ts:41:18            
+PaginatedUsersResult                      interface  src/services/supabase/admin.service.ts:62:18            
+GetPaginatedAuditLogsParams               interface  src/services/supabase/admin.service.ts:80:18            
+PaginatedAuditLogsResult                  interface  src/services/supabase/admin.service.ts:91:18            
+GetPaginatedGlobalCatalogAuditLogsParams  interface  src/services/supabase/admin.service.ts:96:18            
+PaginatedGlobalCatalogAuditLogsResult     interface  src/services/supabase/admin.service.ts:106:18           
+RLSViolation                              interface  src/services/supabase/security.service.ts:8:18          
+RefreshFailureAlert                       interface  src/services/supabase/security.service.ts:78:18         
+LoadingButtonProps                        interface  src/components/ui/LoadingButton.tsx:5:18                
+BackButtonProps                           interface  src/components/ui/BackButton.tsx:10:18                  
+DatabaseWithViews                         type       src/services/supabase/analytics.types.ts:127:13         
+IconButtonProps                           interface  src/components/ui/IconButton.tsx:5:18                   
+GuideSuggestion                           interface  src/hooks/useGuideSuggestions.ts:42:18                  
+PageHeaderProps                           interface  src/components/common/PageHeader/BasePageHeader.tsx:6:18
+CatalogEnrichmentAuditLog                 interface  src/types/catalogEnrichment.ts:96:18                    
+EnrichmentError                           interface  src/types/catalogEnrichment.ts:123:18                   
+HistoricalStockRecord                     type       src/hooks/useInventoryHistory.ts:17:15                  
+OrderDraftItem                            interface  src/hooks/useOrderDraft.ts:5:18                         
+OrderDraftState                           interface  src/hooks/useOrderDraft.ts:16:18                        
+OrderSuggestion                           interface  src/services/supabase/forecasting.service.ts:24:18      
+StaleSaleInfo                             interface  src/hooks/queries/useStalePendingSales.ts:7:18          
+[93m[4mDuplicate exports[24m[39m (6)
+useBarContext|useBar             src/context/BarContext.tsx              
+useRealtimeReturns|default       src/hooks/useRealtimeReturns.ts         
+useSmartSync|default             src/hooks/useSmartSync.ts               
+AdminSetPasswordModal|default    src/components/AdminSetPasswordModal.tsx
+useRealtimeSubscription|default  src/hooks/useRealtimeSubscription.ts    
+useBroadcastSync|default         src/hooks/useBroadcastSync.ts           
+[33m[4mConfiguration hints[24m (1)[39m

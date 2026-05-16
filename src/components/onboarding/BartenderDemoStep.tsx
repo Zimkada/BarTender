@@ -73,14 +73,14 @@ export const BartenderDemoStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden flex flex-col min-h-[600px]">
+      <div className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden flex flex-col min-h-[600px]">
         {/* Header */}
         <div className="p-8 text-center bg-brand-gradient text-white">
           <h1 className="text-h1 text-white mb-2">{title}</h1>
           <p className="text-body text-white/85 max-w-lg mx-auto">{subtitle}</p>
         </div>
 
-        <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center bg-gray-50">
+        <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center bg-muted">
           <AnimatePresence mode="wait">
             {phase === 'intro' && (
               <motion.div
@@ -95,8 +95,8 @@ export const BartenderDemoStep: React.FC = () => {
                   <Zap className="w-8 h-8" fill="currentColor" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-h2 text-gray-900">Vendez à la vitesse de l'éclair</h2>
-                  <p className="text-body-sm text-gray-600 leading-relaxed">
+                  <h2 className="text-h2 text-foreground">Vendez à la vitesse de l'éclair</h2>
+                  <p className="text-body-sm text-foreground/70 leading-relaxed">
                     Une application lente fait perdre des clients. BarTender est conçu pour la rapidité. On essaye ?
                   </p>
                 </div>
@@ -129,7 +129,7 @@ export const BartenderDemoStep: React.FC = () => {
                     {phase === 'payment' && <>Tout est prêt. <span className="font-semibold">Encaissez</span> la commande.</>}
                   </div>
 
-                  <h3 className="text-micro text-gray-400">Produits</h3>
+                  <h3 className="text-micro text-muted-foreground">Produits</h3>
 
                   <div className="grid grid-cols-2 gap-3">
                     {/* Heineken */}
@@ -140,15 +140,15 @@ export const BartenderDemoStep: React.FC = () => {
                       }}
                       className={`relative p-4 rounded-xl border text-left transition-all ${
                         phase === 'picking'
-                          ? 'bg-white border-brand-primary shadow-sm ring-2 ring-brand-primary/20'
-                          : 'bg-white border-gray-100 shadow-sm hover:border-brand-subtle'
+                          ? 'bg-card border-brand-primary shadow-sm ring-2 ring-brand-primary/20'
+                          : 'bg-card border-border shadow-sm hover:border-brand-subtle'
                       }`}
                     >
                       <div className="w-10 h-10 bg-brand-subtle rounded-lg flex items-center justify-center mb-3 text-brand-primary">
                         <Beer size={20} />
                       </div>
-                      <div className="text-body-sm font-semibold text-gray-900">Heineken</div>
-                      <div className="text-caption text-gray-500 tabular-nums">1 000 {currency}</div>
+                      <div className="text-body-sm font-semibold text-foreground">Heineken</div>
+                      <div className="text-caption text-muted-foreground tabular-nums">1 000 {currency}</div>
                       <div className="absolute top-3 right-3 text-brand-primary">
                         <Plus size={14} />
                       </div>
@@ -161,15 +161,15 @@ export const BartenderDemoStep: React.FC = () => {
                         setShowStockWarning(true);
                         addToCart('p2', 'Coca Cola', 600);
                       }}
-                      className={`relative p-4 rounded-xl border text-left transition-all bg-white shadow-sm ${
-                        phase === 'adjusting' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-gray-100 hover:border-brand-subtle'
+                      className={`relative p-4 rounded-xl border text-left transition-all bg-card shadow-sm ${
+                        phase === 'adjusting' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-border hover:border-brand-subtle'
                       }`}
                     >
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mb-3 text-gray-500 text-caption font-semibold">
+                      <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center mb-3 text-muted-foreground text-caption font-semibold">
                         Co
                       </div>
-                      <div className="text-body-sm font-semibold text-gray-900">Coca Cola</div>
-                      <div className="text-caption text-gray-500 tabular-nums">600 {currency}</div>
+                      <div className="text-body-sm font-semibold text-foreground">Coca Cola</div>
+                      <div className="text-caption text-muted-foreground tabular-nums">600 {currency}</div>
                       {phase === 'alert_stock' && (
                         <div className="absolute top-2 right-2 bg-amber-500 text-white text-micro font-semibold px-2 py-0.5 rounded-full">
                           Stock bas
@@ -210,9 +210,9 @@ export const BartenderDemoStep: React.FC = () => {
 
                 {/* Right: Cart */}
                 <div className="space-y-4">
-                  <h3 className="text-micro text-gray-400">Ticket rapide</h3>
+                  <h3 className="text-micro text-muted-foreground">Ticket rapide</h3>
 
-                  <div className="bg-white border border-gray-100 shadow-sm rounded-xl overflow-hidden flex flex-col min-h-[300px]">
+                  <div className="bg-card border border-border shadow-sm rounded-xl overflow-hidden flex flex-col min-h-[300px]">
                     <div className="p-3 bg-gray-900 text-white flex justify-between items-center">
                       <div className="flex items-center gap-2">
                         <ShoppingBag size={16} className="text-brand-primary" />
@@ -225,31 +225,31 @@ export const BartenderDemoStep: React.FC = () => {
 
                     <div className="flex-1 p-3 space-y-2">
                       {cart.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-300 py-10">
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground/60 py-10">
                           <ShoppingBag size={36} className="opacity-30 mb-2" />
-                          <p className="text-caption text-gray-400">Panier vide</p>
+                          <p className="text-caption text-muted-foreground">Panier vide</p>
                         </div>
                       ) : (
                         cart.map((item) => (
                           <div
                             key={item.id}
-                            className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-100"
+                            className="flex items-center justify-between bg-muted p-3 rounded-lg border border-border"
                           >
                             <div className="min-w-0">
-                              <div className="text-body-sm font-semibold text-gray-900 truncate">{item.name}</div>
-                              <div className="text-micro text-gray-400 tabular-nums">{item.price} {currency} / unité</div>
+                              <div className="text-body-sm font-semibold text-foreground truncate">{item.name}</div>
+                              <div className="text-micro text-muted-foreground tabular-nums">{item.price} {currency} / unité</div>
                             </div>
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => updateQty(item.id, -1)}
-                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-300 transition-colors"
+                                className="w-7 h-7 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-red-500 hover:border-red-300 transition-colors"
                               >
                                 <Minus size={12} />
                               </button>
-                              <span className="text-body-sm font-semibold text-gray-900 w-4 text-center tabular-nums">{item.qty}</span>
+                              <span className="text-body-sm font-semibold text-foreground w-4 text-center tabular-nums">{item.qty}</span>
                               <button
                                 onClick={() => updateQty(item.id, 1)}
-                                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-400 hover:text-brand-primary hover:border-brand-primary transition-colors"
+                                className="w-7 h-7 rounded-lg bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-brand-primary hover:border-brand-primary transition-colors"
                               >
                                 <Plus size={12} />
                               </button>
@@ -259,9 +259,9 @@ export const BartenderDemoStep: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="p-4 bg-gray-50 border-t border-gray-100 space-y-3">
+                    <div className="p-4 bg-muted border-t border-border space-y-3">
                       <div className="flex justify-between items-baseline">
-                        <span className="text-micro text-gray-400">Total net</span>
+                        <span className="text-micro text-muted-foreground">Total net</span>
                         <span className="text-h2 font-semibold text-brand-primary tabular-nums">{cartTotal.toLocaleString()} {currency}</span>
                       </div>
 
@@ -271,7 +271,7 @@ export const BartenderDemoStep: React.FC = () => {
                         className={`w-full h-11 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                           phase === 'payment'
                             ? 'btn-brand'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            : 'bg-gray-200 text-muted-foreground cursor-not-allowed'
                         }`}
                       >
                         <Banknote size={16} /> Encaisser la vente
@@ -295,8 +295,8 @@ export const BartenderDemoStep: React.FC = () => {
                   <CheckCircle2 size={40} className="text-green-500" />
                 </div>
                 <div className="space-y-2">
-                  <h2 className="text-h2 text-gray-900">C'est validé</h2>
-                  <p className="text-body-sm text-gray-600 max-w-sm mx-auto">
+                  <h2 className="text-h2 text-foreground">C'est validé</h2>
+                  <p className="text-body-sm text-foreground/70 max-w-sm mx-auto">
                     Vous avez maîtrisé le processus de vente BarTender. Prêt à servir vos clients ?
                   </p>
                 </div>
@@ -313,7 +313,7 @@ export const BartenderDemoStep: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="bg-gray-50 p-3 border-t border-gray-100 flex items-center justify-between text-micro text-gray-400 px-6">
+        <div className="bg-muted p-3 border-t border-border flex items-center justify-between text-micro text-muted-foreground px-6">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
             Académie serveur v2.0

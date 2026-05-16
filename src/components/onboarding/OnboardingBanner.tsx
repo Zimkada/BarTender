@@ -117,16 +117,16 @@ export const OnboardingBanner: React.FC = () => {
   return (
     <div className="fixed top-16 sm:top-20 md:top-24 left-0 right-0 z-40">
       <div className="mx-auto max-w-7xl px-3 md:px-4 py-2 md:py-3">
-        <div className="bg-white border border-brand-subtle border-l-4 border-l-brand-primary rounded-xl shadow-sm p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+        <div className="bg-card border border-brand-subtle border-l-4 border-l-brand-primary rounded-xl shadow-sm p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
           <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-4 h-4" />
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-body-sm font-semibold text-gray-900">
+            <h3 className="text-body-sm font-semibold text-foreground">
               {title}
             </h3>
-            <p className="text-caption text-gray-500 mt-0.5">
+            <p className="text-caption text-muted-foreground mt-0.5">
               {description}
             </p>
           </div>
@@ -134,7 +134,7 @@ export const OnboardingBanner: React.FC = () => {
           <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto">
             <button
               onClick={handleDeferSetup}
-              className="flex items-center justify-center gap-1.5 px-3 h-9 text-caption font-medium bg-white text-gray-700 rounded-lg hover:border-brand-primary hover:text-brand-primary transition-colors border border-gray-200 flex-1 md:flex-none"
+              className="flex items-center justify-center gap-1.5 px-3 h-9 text-caption font-medium bg-card text-foreground/80 rounded-lg hover:border-brand-primary hover:text-brand-primary transition-colors border border-border flex-1 md:flex-none"
               title="Me rappeler dans 24 heures"
             >
               <Clock className="w-3.5 h-3.5 flex-shrink-0" />

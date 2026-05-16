@@ -72,13 +72,13 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                    className="bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
                 >
                     {/* Header */}
                     <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 text-white relative">
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            className="absolute top-4 right-4 p-2 hover:bg-card/20 rounded-lg transition-colors"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -103,14 +103,14 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
 
                         {/* Name */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground/80 mb-1">
                                 Nom complet <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="Ex: Koffi KOUASSI"
                                 required
                             />
@@ -118,14 +118,14 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
 
                         {/* Phone */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground/80 mb-1">
                                 Téléphone <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="tel"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="Ex: +229 XX XX XX XX"
                                 required
                             />
@@ -133,23 +133,23 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
 
                         {/* Email */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground/80 mb-1">
                                 Email
                             </label>
                             <input
                                 type="email"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                                 placeholder="Ex: koffi@example.com"
                             />
                         </div>
 
                         {/* Status Toggle */}
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                             <div>
-                                <p className="text-sm font-medium text-gray-700">Statut du compte</p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-sm font-medium text-foreground/80">Statut du compte</p>
+                                <p className="text-xs text-muted-foreground">
                                     {formData.isActive ? 'Utilisateur actif' : 'Utilisateur suspendu'}
                                 </p>
                             </div>
@@ -160,7 +160,7 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
                                     }`}
                             >
                                 <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${formData.isActive ? 'translate-x-6' : 'translate-x-1'
                                         }`}
                                 />
                             </button>
@@ -171,7 +171,7 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                                className="flex-1 px-4 py-2 border border-border rounded-lg text-foreground/80 font-medium hover:bg-muted transition-colors"
                                 disabled={loading}
                             >
                                 Annuler

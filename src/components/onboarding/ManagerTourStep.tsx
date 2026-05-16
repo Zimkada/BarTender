@@ -62,33 +62,33 @@ export const ManagerTourStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-8">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
+      <div className="bg-card border border-border shadow-sm rounded-2xl overflow-hidden min-h-[600px] flex flex-col">
         {/* Header */}
         <div className="p-6 md:p-8 text-center bg-brand-gradient text-white">
           <h1 className="text-h1 text-white mb-2">{title}</h1>
           <p className="text-body text-white/85 max-w-lg mx-auto">{subtitle}</p>
         </div>
 
-        <div className="p-6 md:p-8 bg-gray-50 flex-1">
+        <div className="p-6 md:p-8 bg-muted flex-1">
           {/* Intro */}
           {phase === 'intro' && (
             <div className="flex flex-col items-center justify-center h-full space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
-                <div className="p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
+                <div className="p-6 bg-card border border-border rounded-xl shadow-sm">
                   <div className="w-10 h-10 bg-brand-subtle text-brand-primary rounded-lg flex items-center justify-center mb-3">
                     <ShoppingCart size={20} />
                   </div>
-                  <div className="text-h3 text-gray-900 mb-1">1. Mode simplifié</div>
-                  <p className="text-caption text-gray-600 leading-relaxed">
+                  <div className="text-h3 text-foreground mb-1">1. Mode simplifié</div>
+                  <p className="text-caption text-foreground/70 leading-relaxed">
                     Tout le monde utilise le même appareil (caisse centrale). Vous sélectionnez manuellement qui a vendu.
                   </p>
                 </div>
-                <div className="p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
+                <div className="p-6 bg-card border border-border rounded-xl shadow-sm">
                   <div className="w-10 h-10 bg-brand-subtle text-brand-primary rounded-lg flex items-center justify-center mb-3">
                     <ShieldCheck size={20} />
                   </div>
-                  <div className="text-h3 text-gray-900 mb-1">2. Mode complet</div>
-                  <p className="text-caption text-gray-600 leading-relaxed">
+                  <div className="text-h3 text-foreground mb-1">2. Mode complet</div>
+                  <p className="text-caption text-foreground/70 leading-relaxed">
                     Chaque serveur a son propre accès. Vous recevez, validez ou rejetez leurs commandes.
                   </p>
                 </div>
@@ -119,14 +119,14 @@ export const ManagerTourStep: React.FC = () => {
                       <ShoppingCart size={28} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-h2 text-gray-900">Le mode simplifié</h3>
-                      <p className="text-body-sm text-gray-600 leading-relaxed">
+                      <h3 className="text-h2 text-foreground">Le mode simplifié</h3>
+                      <p className="text-body-sm text-foreground/70 leading-relaxed">
                         Centralisez tout sur un seul appareil. Idéal si vos serveurs n'ont pas de smartphone ou pour un service rapide au comptoir.
                       </p>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 flex items-start gap-3 text-left">
+                    <div className="bg-card p-4 rounded-xl border border-border flex items-start gap-3 text-left">
                       <ShieldCheck className="text-brand-primary shrink-0 mt-0.5" size={18} />
-                      <p className="text-caption text-gray-700 leading-relaxed">
+                      <p className="text-caption text-foreground/80 leading-relaxed">
                         Le <span className="font-semibold">nom d'affichage</span> est le lien entre les noms sélectionnés au comptoir et les vrais comptes serveurs, pour un calcul de CA automatique.
                       </p>
                     </div>
@@ -148,8 +148,8 @@ export const ManagerTourStep: React.FC = () => {
                     transition={{ duration: 0.15 }}
                     className="space-y-5 max-w-md mx-auto text-center"
                   >
-                    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                      <h4 className="text-micro text-gray-400 flex items-center justify-center gap-2 mb-3">
+                    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
+                      <h4 className="text-micro text-muted-foreground flex items-center justify-center gap-2 mb-3">
                         <Zap size={12} className="text-brand-primary" /> Le nom d'affichage
                       </h4>
                       <div className="mb-5 p-2 bg-brand-subtle/50 border border-brand-subtle rounded-lg space-y-1">
@@ -161,16 +161,16 @@ export const ManagerTourStep: React.FC = () => {
                           { from: 'Afi', to: 'Afi KOFFI' },
                           { from: 'Rose', to: 'Rose BIAOU' },
                         ].map((m) => (
-                          <div key={m.from} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                            <span className="text-body-sm font-semibold text-gray-700">{m.from}</span>
-                            <ArrowRight size={14} className="text-gray-300" />
+                          <div key={m.from} className="flex items-center justify-between p-3 bg-muted rounded-xl border border-border">
+                            <span className="text-body-sm font-semibold text-foreground/80">{m.from}</span>
+                            <ArrowRight size={14} className="text-muted-foreground/60" />
                             <span className="text-caption bg-brand-subtle text-brand-primary font-semibold px-3 py-1 rounded-lg border border-brand-subtle">
                               {m.to}
                             </span>
                           </div>
                         ))}
                       </div>
-                      <p className="text-caption text-gray-500 mt-4 italic">
+                      <p className="text-caption text-muted-foreground mt-4 italic">
                         L'app reconnaît "Afi" comme "Afi KOFFI". Votre CA reste toujours juste.
                       </p>
                     </div>
@@ -192,9 +192,9 @@ export const ManagerTourStep: React.FC = () => {
                     transition={{ duration: 0.15 }}
                     className="w-full max-w-md mx-auto"
                   >
-                    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-                      <div className="bg-gray-50 p-3 border-b border-gray-100 flex justify-between items-center">
-                        <span className="text-body-sm font-semibold text-gray-900">Caisse pro</span>
+                    <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+                      <div className="bg-muted p-3 border-b border-border flex justify-between items-center">
+                        <span className="text-body-sm font-semibold text-foreground">Caisse pro</span>
                         <div className="flex gap-1">
                           <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
                           <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
@@ -210,23 +210,23 @@ export const ManagerTourStep: React.FC = () => {
                       <div className="p-5 space-y-4">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center text-body-sm">
-                            <span className="text-gray-600">2x Coca-Cola</span>
-                            <span className="font-semibold text-gray-900 tabular-nums">1 000 {currency}</span>
+                            <span className="text-foreground/70">2x Coca-Cola</span>
+                            <span className="font-semibold text-foreground tabular-nums">1 000 {currency}</span>
                           </div>
                           <div className="flex justify-between items-center text-body-sm">
-                            <span className="text-gray-600">1x Beaufort</span>
-                            <span className="font-semibold text-gray-900 tabular-nums">600 {currency}</span>
+                            <span className="text-foreground/70">1x Beaufort</span>
+                            <span className="font-semibold text-foreground tabular-nums">600 {currency}</span>
                           </div>
-                          <div className="pt-3 border-t border-dashed border-gray-200 flex justify-between items-baseline">
-                            <span className="text-body-sm font-semibold text-gray-900">Total</span>
+                          <div className="pt-3 border-t border-dashed border-border flex justify-between items-baseline">
+                            <span className="text-body-sm font-semibold text-foreground">Total</span>
                             <span className="text-h2 font-semibold text-brand-primary tabular-nums">1 600 {currency}</span>
                           </div>
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="text-micro text-gray-400 px-1">Vendeur responsable</label>
+                          <label className="text-micro text-muted-foreground px-1">Vendeur responsable</label>
                           <select
-                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-xl text-body-sm font-medium text-gray-800 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary focus:bg-white outline-none"
+                            className="w-full h-11 px-3 bg-muted border border-border rounded-xl text-body-sm font-medium text-foreground focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary focus:bg-card outline-none"
                             value={selectedServer}
                             onChange={(e) => setSelectedServer(e.target.value)}
                             disabled={phase === 'sim_success'}
@@ -238,9 +238,9 @@ export const ManagerTourStep: React.FC = () => {
                         </div>
 
                         <div className="space-y-1.5">
-                          <label className="text-micro text-gray-400 px-1">Mode de paiement</label>
+                          <label className="text-micro text-muted-foreground px-1">Mode de paiement</label>
                           <select
-                            className="w-full h-11 px-3 bg-gray-50 border border-gray-200 rounded-xl text-body-sm font-medium text-gray-800 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary focus:bg-white outline-none"
+                            className="w-full h-11 px-3 bg-muted border border-border rounded-xl text-body-sm font-medium text-foreground focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary focus:bg-card outline-none"
                             value={selectedPaymentMode}
                             onChange={(e) => setSelectedPaymentMode(e.target.value)}
                             disabled={phase === 'sim_success'}
@@ -257,7 +257,7 @@ export const ManagerTourStep: React.FC = () => {
                           onClick={() => setPhase('sim_success')}
                           className={`w-full h-12 rounded-xl text-body-sm font-semibold transition-all ${
                             !selectedServer || !selectedPaymentMode
-                              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                              ? 'bg-gray-200 text-muted-foreground cursor-not-allowed'
                               : phase === 'sim_success'
                               ? 'bg-green-500 text-white'
                               : 'btn-brand'
@@ -305,14 +305,14 @@ export const ManagerTourStep: React.FC = () => {
                       <ShieldCheck size={28} />
                     </div>
                     <div className="space-y-2">
-                      <h3 className="text-h2 text-gray-900">Le mode complet</h3>
-                      <p className="text-body-sm text-gray-600 leading-relaxed">
+                      <h3 className="text-h2 text-foreground">Le mode complet</h3>
+                      <p className="text-body-sm text-foreground/70 leading-relaxed">
                         Déléguez en toute sérénité. Vos serveurs ont l'appli, mais vous gardez le dernier mot sur le stock et les ventes.
                       </p>
                     </div>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 flex items-start gap-3 text-left">
+                    <div className="bg-card p-4 rounded-xl border border-border flex items-start gap-3 text-left">
                       <AlertCircle className="text-brand-primary shrink-0 mt-0.5" size={18} />
-                      <p className="text-caption text-gray-700 leading-relaxed">
+                      <p className="text-caption text-foreground/80 leading-relaxed">
                         Validez les commandes sérieuses, rejetez les erreurs. Simple et sécurisé.
                       </p>
                     </div>
@@ -334,7 +334,7 @@ export const ManagerTourStep: React.FC = () => {
                     transition={{ duration: 0.15 }}
                     className="w-full max-w-md mx-auto space-y-3"
                   >
-                    <div className="bg-white border border-dashed border-gray-200 p-2.5 rounded-xl flex items-center gap-2 text-micro text-gray-400">
+                    <div className="bg-card border border-dashed border-border p-2.5 rounded-xl flex items-center gap-2 text-micro text-muted-foreground">
                       <Zap size={11} /> Tableau de bord / Commandes
                     </div>
 
@@ -353,7 +353,7 @@ export const ManagerTourStep: React.FC = () => {
                         <motion.div
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.15 }}
-                          className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 border-l-4 ${
+                          className={`bg-card p-4 rounded-xl shadow-sm border border-border border-l-4 ${
                             phase === 'full_validate' ? 'border-l-brand-primary' : 'border-l-gray-200 opacity-50'
                           }`}
                         >
@@ -361,8 +361,8 @@ export const ManagerTourStep: React.FC = () => {
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 bg-brand-subtle rounded-full flex items-center justify-center font-semibold text-brand-primary">R</div>
                               <div className="text-left">
-                                <div className="text-body-sm font-semibold text-gray-900">Rose</div>
-                                <div className="text-caption text-gray-500 tabular-nums">2x Flag • 1 000 {currency}</div>
+                                <div className="text-body-sm font-semibold text-foreground">Rose</div>
+                                <div className="text-caption text-muted-foreground tabular-nums">2x Flag • 1 000 {currency}</div>
                               </div>
                             </div>
                             {phase === 'full_validate' && (
@@ -370,7 +370,7 @@ export const ManagerTourStep: React.FC = () => {
                             )}
                           </div>
                           <div className="flex gap-2">
-                            <button disabled className="flex-1 h-9 bg-gray-50 text-gray-300 rounded-lg text-caption font-medium">Rejeter</button>
+                            <button disabled className="flex-1 h-9 bg-muted text-muted-foreground/60 rounded-lg text-caption font-medium">Rejeter</button>
                             <button
                               disabled={phase !== 'full_validate'}
                               onClick={() => {
@@ -378,7 +378,7 @@ export const ManagerTourStep: React.FC = () => {
                                 setPhase('full_reject');
                               }}
                               className={`flex-1 h-9 rounded-lg text-caption font-semibold transition-all ${
-                                phase === 'full_validate' ? 'btn-brand' : 'bg-gray-100 text-gray-400'
+                                phase === 'full_validate' ? 'btn-brand' : 'bg-muted text-muted-foreground'
                               }`}
                             >
                               Valider
@@ -395,7 +395,7 @@ export const ManagerTourStep: React.FC = () => {
                           exit={{ opacity: 0 }}
                           transition={{ duration: 0.15 }}
                           key="order-afi"
-                          className={`bg-white p-4 rounded-xl shadow-sm border border-gray-100 border-l-4 ${
+                          className={`bg-card p-4 rounded-xl shadow-sm border border-border border-l-4 ${
                             phase === 'full_reject' ? 'border-l-red-500' : 'border-l-gray-200 opacity-50'
                           }`}
                         >
@@ -403,7 +403,7 @@ export const ManagerTourStep: React.FC = () => {
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 bg-red-50 rounded-full flex items-center justify-center font-semibold text-red-600">A</div>
                               <div className="text-left">
-                                <div className="text-body-sm font-semibold text-gray-900">Afi</div>
+                                <div className="text-body-sm font-semibold text-foreground">Afi</div>
                                 <div className="text-caption text-red-500 flex items-center gap-1">
                                   <AlertCircle size={11} /> Erreur signalée
                                 </div>
@@ -418,12 +418,12 @@ export const ManagerTourStep: React.FC = () => {
                                 setPhase('full_success');
                               }}
                               className={`flex-1 h-9 rounded-lg text-caption font-semibold transition-all ${
-                                phase === 'full_reject' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-100 text-gray-400'
+                                phase === 'full_reject' ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-muted text-muted-foreground'
                               }`}
                             >
                               Rejeter
                             </button>
-                            <button disabled className="flex-1 h-9 bg-gray-50 text-gray-300 rounded-lg text-caption font-medium">Valider</button>
+                            <button disabled className="flex-1 h-9 bg-muted text-muted-foreground/60 rounded-lg text-caption font-medium">Valider</button>
                           </div>
                         </motion.div>
                       )}
@@ -433,8 +433,8 @@ export const ManagerTourStep: React.FC = () => {
                       <div className="pt-8 space-y-5 text-center">
                         <div className="text-5xl">🏆</div>
                         <div className="space-y-1">
-                          <h2 className="text-h2 text-gray-900">Félicitations</h2>
-                          <p className="text-body-sm text-gray-600">
+                          <h2 className="text-h2 text-foreground">Félicitations</h2>
+                          <p className="text-body-sm text-foreground/70">
                             Vous avez complété votre formation. Votre bar est prêt pour l'excellence.
                           </p>
                         </div>
@@ -455,10 +455,10 @@ export const ManagerTourStep: React.FC = () => {
         </div>
 
         {/* Progress footer */}
-        <div className="px-6 py-3 bg-white border-t border-gray-100 flex justify-between items-center">
+        <div className="px-6 py-3 bg-card border-t border-border flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
-            <span className="text-micro text-gray-400">Formation gérant</span>
+            <span className="text-micro text-muted-foreground">Formation gérant</span>
           </div>
           <div className="flex gap-1.5">
             {[1, 2, 3].map((i) => {

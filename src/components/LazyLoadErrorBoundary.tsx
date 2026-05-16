@@ -149,13 +149,13 @@ export class LazyLoadErrorBoundary extends Component<Props, State> {
               <div className="flex justify-center">
                 <RefreshCw className="w-12 h-12 text-amber-500 animate-spin" />
               </div>
-              <h2 className="text-xl font-semibold text-gray-800">
+              <h2 className="text-xl font-semibold text-foreground">
                 Chargement lent, patientez...
               </h2>
-              <p className="text-gray-600">
+              <p className="text-foreground/70">
                 Tentative {retryCount + 1}/{maxRetries}
               </p>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 La connexion semble instable. Nous réessayons automatiquement.
               </p>
             </div>
@@ -172,10 +172,10 @@ export class LazyLoadErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl font-bold text-gray-800">
+              <h2 className="text-2xl font-bold text-foreground">
                 Impossible de charger la page
               </h2>
-              <p className="text-gray-600">
+              <p className="text-foreground/70">
                 La connexion réseau semble instable ou le serveur est temporairement indisponible.
               </p>
             </div>
@@ -220,8 +220,8 @@ export class LazyLoadErrorBoundary extends Component<Props, State> {
               </Button>
             </div>
 
-            <div className="pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-500">
+            <div className="pt-4 border-t border-border">
+              <p className="text-xs text-muted-foreground">
                 💡 Astuce : Vérifiez votre connexion internet et réessayez.
               </p>
             </div>

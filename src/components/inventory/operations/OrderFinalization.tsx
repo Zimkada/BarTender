@@ -160,12 +160,12 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
 
     if (items.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-gray-200">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                    <AlertCircle className="text-gray-400" />
+            <div className="flex flex-col items-center justify-center p-12 bg-card rounded-3xl border border-dashed border-border">
+                <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                    <AlertCircle className="text-muted-foreground" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 text-center">Aucun produit sélectionné</h3>
-                <p className="text-gray-500 text-sm text-center max-w-xs mt-2">
+                <h3 className="text-lg font-bold text-foreground text-center">Aucun produit sélectionné</h3>
+                <p className="text-muted-foreground text-sm text-center max-w-xs mt-2">
                     Retournez à l'onglet "Préparation" pour ajouter des produits à votre commande.
                 </p>
             </div>
@@ -175,15 +175,15 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
     return (
         <div className="space-y-4">
             {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card p-4 rounded-2xl border border-border shadow-sm">
                 <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <input
                         type="text"
                         placeholder="Filtrer..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all"
+                        className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all"
                     />
                 </div>
 
@@ -238,9 +238,9 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
 
             {/* Desktop View (Table) */}
             {!isMobile ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
                     <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                        <thead className="bg-muted text-muted-foreground font-bold uppercase text-xs">
                             <tr>
                                 <th className="px-6 py-4">Produit</th>
                                 <th className="px-4 py-4 w-32">Qté (Unités)</th>
@@ -253,10 +253,10 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                         </thead>
                         <tbody className="divide-y divide-gray-100">
                             {filteredItems.map(item => (
-                                <tr key={item.productId} className="hover:bg-gray-50/50 transition-colors">
+                                <tr key={item.productId} className="hover:bg-muted/50 transition-colors">
                                     <td className="px-6 py-4">
-                                        <div className="font-bold text-gray-900">{item.productName}</div>
-                                        <div className="text-xs text-gray-500">{item.productVolume}</div>
+                                        <div className="font-bold text-foreground">{item.productName}</div>
+                                        <div className="text-xs text-muted-foreground">{item.productVolume}</div>
                                     </td>
                                     <td className="px-4 py-4">
                                         <input
@@ -264,7 +264,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                             min="0"
                                             value={item.quantity}
                                             onChange={e => updateItem(item.productId, { quantity: parseInt(e.target.value) || 0 })}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-bold focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-center font-bold focus:ring-2 focus:ring-brand-primary/20 outline-none"
                                         />
                                     </td>
                                     <td className="px-4 py-4">
@@ -277,7 +277,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                 const num = val === '' ? 0 : parseInt(val);
                                                 updateItem(item.productId, { lotSize: isNaN(num) ? 0 : num });
                                             }}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-center text-gray-500 focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-center text-muted-foreground focus:ring-2 focus:ring-brand-primary/20 outline-none"
                                         />
                                     </td>
                                     <td className="px-4 py-4">
@@ -290,7 +290,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                 const num = val === '' ? 0 : parseFloat(val);
                                                 updateItem(item.productId, { lotPrice: isNaN(num) ? 0 : num });
                                             }}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-center text-gray-500 focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-center text-muted-foreground focus:ring-2 focus:ring-brand-primary/20 outline-none"
                                         />
                                     </td>
                                     <td className="px-4 py-4">
@@ -299,10 +299,10 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                             placeholder="Standard"
                                             value={item.supplier}
                                             onChange={e => updateItem(item.productId, { supplier: e.target.value })}
-                                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-500 focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-muted-foreground focus:ring-2 focus:ring-brand-primary/20 outline-none"
                                         />
                                     </td>
-                                    <td className="px-4 py-4 text-right font-bold text-gray-900">
+                                    <td className="px-4 py-4 text-right font-bold text-foreground">
                                         {(() => {
                                             const total = (item.lotPrice > 0 && item.lotSize > 0)
                                                 ? (item.quantity / item.lotSize) * item.lotPrice
@@ -322,7 +322,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                     <td className="px-4 py-4">
                                         <button
                                             onClick={() => removeItem(item.productId)}
-                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -330,9 +330,9 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                 </tr>
                             ))}
                         </tbody>
-                        <tfoot className="bg-gray-50">
+                        <tfoot className="bg-muted">
                             <tr>
-                                <td colSpan={5} className="px-6 py-4 text-right font-bold text-gray-500 uppercase text-xs tracking-wider">Total Estimé</td>
+                                <td colSpan={5} className="px-6 py-4 text-right font-bold text-muted-foreground uppercase text-xs tracking-wider">Total Estimé</td>
                                 <td className="px-4 py-4 text-right font-black text-lg text-brand-primary">
                                     {formatPrice(totals.totalCost)}
                                 </td>
@@ -355,14 +355,14 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                 key={item.productId}
                                 layout
                                 className={cn(
-                                    "bg-white rounded-xl border p-4 transition-all shadow-sm",
-                                    item.quantity > 0 ? "border-brand-primary/50 ring-1 ring-brand-primary/10" : "border-gray-200"
+                                    "bg-card rounded-xl border p-4 transition-all shadow-sm",
+                                    item.quantity > 0 ? "border-brand-primary/50 ring-1 ring-brand-primary/10" : "border-border"
                                 )}
                             >
                                 <div className="flex justify-between items-start gap-4 mb-3">
                                     <div>
-                                        <h4 className="font-bold text-gray-900">{item.productName}</h4>
-                                        <p className="text-xs text-gray-500">{item.productVolume}</p>
+                                        <h4 className="font-bold text-foreground">{item.productName}</h4>
+                                        <p className="text-xs text-muted-foreground">{item.productVolume}</p>
                                     </div>
                                     <div className="text-right">
                                         <div className="font-black text-brand-primary">{formatPrice(totalItemCost)}</div>
@@ -371,13 +371,13 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
 
                                 <div className="flex items-center gap-3">
                                     <div className="flex-1">
-                                        <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Qté à commander</label>
+                                        <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Qté à commander</label>
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="number"
                                                 value={item.quantity}
                                                 onChange={e => updateItem(item.productId, { quantity: parseInt(e.target.value) || 0 })}
-                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-lg text-center focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                                className="w-full px-4 py-3 bg-muted border border-border rounded-xl font-bold text-lg text-center focus:ring-2 focus:ring-brand-primary/20 outline-none"
                                             />
                                         </div>
                                     </div>
@@ -385,7 +385,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                         onClick={() => toggleExpand(item.productId)}
                                         className={cn(
                                             "p-3 rounded-xl border mt-5 transition-all",
-                                            isExpanded ? "bg-brand-subtle text-brand-primary border-brand-primary/20" : "bg-white border-gray-200 text-gray-400"
+                                            isExpanded ? "bg-brand-subtle text-brand-primary border-brand-primary/20" : "bg-card border-border text-muted-foreground"
                                         )}
                                     >
                                         {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
@@ -400,9 +400,9 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                             exit={{ height: 0, opacity: 0 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="pt-4 mt-4 border-t border-gray-100 grid grid-cols-2 gap-3">
+                                            <div className="pt-4 mt-4 border-t border-border grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Taille Lot</label>
+                                                    <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Taille Lot</label>
                                                     <input
                                                         type="number"
                                                         value={item.lotSize || ''}
@@ -412,11 +412,11 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                             const num = val === '' ? 0 : parseInt(val);
                                                             updateItem(item.productId, { lotSize: isNaN(num) ? 0 : num });
                                                         }}
-                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Prix / Lot</label>
+                                                    <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Prix / Lot</label>
                                                     <input
                                                         type="number"
                                                         value={item.lotPrice || ''}
@@ -425,17 +425,17 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                             const num = val === '' ? 0 : parseFloat(val);
                                                             updateItem(item.productId, { lotPrice: isNaN(num) ? 0 : num });
                                                         }}
-                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
                                                     />
                                                 </div>
                                                 <div className="col-span-2">
-                                                    <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Fournisseur</label>
+                                                    <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Fournisseur</label>
                                                     <input
                                                         type="text"
                                                         value={item.supplier}
                                                         onChange={e => updateItem(item.productId, { supplier: e.target.value })}
                                                         placeholder="Nom du fournisseur"
-                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
                                                     />
                                                 </div>
                                                 <div className="col-span-2 pt-2">
@@ -456,9 +456,9 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
 
             {/* Sticky Footer Mobile Summary */}
             {isMobile && filteredItems.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50 pb-safe">
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t border-border shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-50 pb-safe">
                     <div className="flex justify-between items-center mb-3">
-                        <span className="text-sm text-gray-500 font-medium">{totals.itemsCount} articles</span>
+                        <span className="text-sm text-muted-foreground font-medium">{totals.itemsCount} articles</span>
                         <span className="text-xl font-black text-brand-primary">{formatPrice(totals.totalCost)}</span>
                     </div>
                     {savedOrderId ? (

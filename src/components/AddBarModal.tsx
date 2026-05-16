@@ -94,14 +94,14 @@ export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModa
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
+          className="bg-card rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
         >
           {/* Header - Gradient Teal/Emerald pour bars */}
           <div className="bg-gradient-to-r from-teal-600 to-emerald-600 p-6 text-white relative">
             <button
               onClick={onClose}
               disabled={loading}
-              className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+              className="absolute top-4 right-4 p-2 hover:bg-card/20 rounded-lg transition-colors disabled:opacity-50"
             >
               <X className="w-6 h-6" />
             </button>
@@ -152,11 +152,11 @@ export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModa
 
           {/* Footer - Actions */}
           {!success && (
-            <div className="p-6 bg-gray-50 border-t flex justify-end gap-3">
+            <div className="p-6 bg-muted border-t flex justify-end gap-3">
               <button
                 onClick={onClose}
                 disabled={loading}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors font-medium"
+                className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 transition-colors font-medium"
               >
                 Annuler
               </button>

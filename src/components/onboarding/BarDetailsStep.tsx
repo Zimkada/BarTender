@@ -152,16 +152,16 @@ export const BarDetailsStep: React.FC = () => {
 
   const inputClass = (hasError: boolean) =>
     `w-full h-11 px-4 border rounded-xl text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary focus:outline-none transition-colors ${
-      hasError ? 'border-red-400 focus:ring-red-200' : 'border-gray-200 bg-gray-50 focus:bg-white'
+      hasError ? 'border-red-400 focus:ring-red-200' : 'border-border bg-muted focus:bg-card'
     }`;
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
+      <div className="bg-card rounded-2xl border border-border shadow-sm p-6 md:p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-h1 text-gray-900 mb-2">Configurons votre bar</h1>
-          <p className="text-body-sm text-gray-500">
+          <h1 className="text-h1 text-foreground mb-2">Configurons votre bar</h1>
+          <p className="text-body-sm text-muted-foreground">
             Vérifiez et ajustez les informations de votre bar. Les champs sont pré-remplis avec vos données existantes.
           </p>
         </div>
@@ -170,7 +170,7 @@ export const BarDetailsStep: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Bar Name */}
           <div className="space-y-1.5">
-            <label htmlFor="barName" className="block text-caption font-medium text-gray-500">
+            <label htmlFor="barName" className="block text-caption font-medium text-muted-foreground">
               Nom du bar
             </label>
             <input
@@ -189,8 +189,8 @@ export const BarDetailsStep: React.FC = () => {
 
           {/* Location */}
           <div className="space-y-1.5">
-            <label htmlFor="location" className="block text-caption font-medium text-gray-500">
-              Localisation <span className="text-gray-400">(optionnel)</span>
+            <label htmlFor="location" className="block text-caption font-medium text-muted-foreground">
+              Localisation <span className="text-muted-foreground">(optionnel)</span>
             </label>
             <input
               id="location"
@@ -208,7 +208,7 @@ export const BarDetailsStep: React.FC = () => {
 
           {/* Currency */}
           <div className="space-y-1.5">
-            <label htmlFor="currency" className="block text-caption font-medium text-gray-500">
+            <label htmlFor="currency" className="block text-caption font-medium text-muted-foreground">
               Devise *
             </label>
             <select
@@ -222,13 +222,13 @@ export const BarDetailsStep: React.FC = () => {
               <option value="EUR">Euro (€)</option>
               <option value="USD">Dollar ($)</option>
             </select>
-            <p className="text-caption text-gray-400">La devise utilisée pour vos rapports financiers.</p>
+            <p className="text-caption text-muted-foreground">La devise utilisée pour vos rapports financiers.</p>
           </div>
 
           {/* Contact Email */}
           <div className="space-y-1.5">
-            <label htmlFor="contact" className="block text-caption font-medium text-gray-500">
-              Email de contact <span className="text-gray-400">(optionnel)</span>
+            <label htmlFor="contact" className="block text-caption font-medium text-muted-foreground">
+              Email de contact <span className="text-muted-foreground">(optionnel)</span>
             </label>
             <input
               id="contact"
@@ -246,7 +246,7 @@ export const BarDetailsStep: React.FC = () => {
 
           {/* Closing Hour */}
           <div className="space-y-1.5">
-            <label htmlFor="closingHour" className="block text-caption font-medium text-gray-500">
+            <label htmlFor="closingHour" className="block text-caption font-medium text-muted-foreground">
               Heure de fermeture *
             </label>
             <select
@@ -262,7 +262,7 @@ export const BarDetailsStep: React.FC = () => {
                 </option>
               ))}
             </select>
-            <p className="text-caption text-gray-400">
+            <p className="text-caption text-muted-foreground">
               Les ventes avant cette heure sont comptées sur la journée précédente.
             </p>
             {errors.closingHour && (
@@ -272,7 +272,7 @@ export const BarDetailsStep: React.FC = () => {
 
           {/* Operating Mode */}
           <div className="space-y-1.5">
-            <label htmlFor="operatingMode" className="block text-caption font-medium text-gray-500">
+            <label htmlFor="operatingMode" className="block text-caption font-medium text-muted-foreground">
               Mode de fonctionnement *
             </label>
             <select
@@ -285,7 +285,7 @@ export const BarDetailsStep: React.FC = () => {
               <option value="simplifié">Simplifié (pas de comptes serveurs, noms seulement)</option>
               <option value="full">Complet (compte utilisateur par serveur)</option>
             </select>
-            <p className="text-caption text-gray-400">
+            <p className="text-caption text-muted-foreground">
               Vous pourrez modifier ce choix plus tard.
             </p>
           </div>
@@ -298,12 +298,12 @@ export const BarDetailsStep: React.FC = () => {
           )}
 
           {/* Footer */}
-          <div className="pt-6 border-t border-gray-100 space-y-3">
+          <div className="pt-6 border-t border-border space-y-3">
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => previousStep()}
-                className="flex-1 sm:flex-none h-11 px-5 text-body-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-xl hover:border-brand-primary hover:text-brand-primary transition-colors"
+                className="flex-1 sm:flex-none h-11 px-5 text-body-sm font-medium text-foreground/80 bg-card border border-border rounded-xl hover:border-brand-primary hover:text-brand-primary transition-colors"
               >
                 Retour
               </button>
@@ -357,7 +357,7 @@ export const BarDetailsStep: React.FC = () => {
                     setLoading(false);
                   }
                 }}
-                className="text-caption font-medium text-gray-400 hover:text-gray-600 px-3 py-2 transition-colors"
+                className="text-caption font-medium text-muted-foreground hover:text-foreground/70 px-3 py-2 transition-colors"
               >
                 Compléter plus tard
               </LoadingButton>

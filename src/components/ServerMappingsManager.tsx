@@ -194,7 +194,7 @@ export function ServerMappingsManager({
             <Zap className="text-brand-primary" size={20} />
             Noms d'affichage pour les ventes
           </h3>
-          <p className="text-sm text-gray-600 max-w-2xl leading-relaxed">
+          <p className="text-sm text-foreground/70 max-w-2xl leading-relaxed">
             Reliez les noms utilisés en <strong>Mode Simplifié</strong> (Noms de vente, Identifiants courts) aux comptes utilisateurs du <strong>Mode Complet</strong> pour garantir un suivi précis.
           </p>
         </div>
@@ -223,16 +223,16 @@ export function ServerMappingsManager({
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader size={32} className="animate-spin text-brand-primary" />
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-widest">Initialisation des configurations...</p>
+          <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Initialisation des configurations...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Main List */}
           <div className="lg:col-span-3 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-              <h4 className="font-bold text-gray-900 flex items-center gap-2">
+              <h4 className="font-bold text-foreground flex items-center gap-2">
                 Noms d'affichage actifs
-                <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full">{mappings.length}</span>
+                <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full">{mappings.length}</span>
               </h4>
               {mappings.length > 0 && (
                 <Button
@@ -258,7 +258,7 @@ export function ServerMappingsManager({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: index * 0.05 }}
-                      className="group flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-100 hover:border-brand-subtle hover:shadow-xl hover:shadow-brand-subtle/10 transition-all"
+                      className="group flex items-center justify-between bg-card rounded-2xl p-4 border border-border hover:border-brand-subtle hover:shadow-xl hover:shadow-brand-subtle/10 transition-all"
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-brand-gradient flex items-center justify-center text-white font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
@@ -266,10 +266,10 @@ export function ServerMappingsManager({
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h5 className="font-black text-gray-900 text-base">{mapping.serverName}</h5>
+                            <h5 className="font-black text-foreground text-base">{mapping.serverName}</h5>
                             <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                           </div>
-                          <div className="text-xs font-semibold text-gray-400 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1">
+                          <div className="text-xs font-semibold text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1">
                             <span className="flex items-center gap-1"><User size={10} /> Lié à :</span>
                             <span className="text-brand-primary truncate max-w-[100px] sm:max-w-none">{mapping.userName}</span>
                           </div>
@@ -278,7 +278,7 @@ export function ServerMappingsManager({
                       <button
                         onClick={() => handleRemoveMapping(mapping.serverName)}
                         disabled={saving}
-                        className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        className="p-3 text-muted-foreground/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                         title="Supprimer l'assignation"
                       >
                         <Trash2 size={18} />
@@ -289,13 +289,13 @@ export function ServerMappingsManager({
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-12 px-6 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 text-center"
+                    className="flex flex-col items-center justify-center py-12 px-6 bg-muted/50 rounded-3xl border-2 border-dashed border-border text-center"
                   >
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
-                      <MousePointerClick className="text-gray-300" size={32} />
+                    <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                      <MousePointerClick className="text-muted-foreground/60" size={32} />
                     </div>
-                    <h5 className="font-bold text-gray-900 mb-1">Aucun nom de vente configuré</h5>
-                    <p className="text-xs text-gray-500 max-w-xs mb-6">
+                    <h5 className="font-bold text-foreground mb-1">Aucun nom de vente configuré</h5>
+                    <p className="text-xs text-muted-foreground max-w-xs mb-6">
                       Commencez par utiliser l'auto-synchronisation ou ajoutez manuellement vos noms de vente.
                     </p>
                     <Button
@@ -314,11 +314,11 @@ export function ServerMappingsManager({
 
           {/* Sidebar: Add Form */}
           <div className="lg:col-span-2 space-y-4">
-            <h4 className="font-bold text-gray-900 mb-2 px-1 text-sm uppercase tracking-widest opacity-60">Nouvel Ajout</h4>
-            <div className="bg-white rounded-3xl p-4 sm:p-6 border-2 border-dashed border-brand-border relative overflow-hidden flex flex-col shadow-inner">
+            <h4 className="font-bold text-foreground mb-2 px-1 text-sm uppercase tracking-widest opacity-60">Nouvel Ajout</h4>
+            <div className="bg-card rounded-3xl p-4 sm:p-6 border-2 border-dashed border-brand-border relative overflow-hidden flex flex-col shadow-inner">
               {/* Ticket Cutouts */}
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full border-b border-gray-100" />
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full border-t border-gray-100" />
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-muted rounded-full border-b border-border" />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-muted rounded-full border-t border-border" />
 
               <div className="space-y-6 flex-1 py-2">
                 <div className="space-y-2">
@@ -328,7 +328,7 @@ export function ServerMappingsManager({
                     placeholder="ex: Ahmed ou Serveur 1"
                     value={newServerName}
                     onChange={(e) => setNewServerName(e.target.value)}
-                    className="h-12 bg-gray-50 border-gray-200 focus:bg-white rounded-xl text-sm font-bold"
+                    className="h-12 bg-muted border-border focus:bg-card rounded-xl text-sm font-bold"
                     disabled={saving}
                   />
                 </div>
@@ -339,7 +339,7 @@ export function ServerMappingsManager({
                     options={memberOptions}
                     value={newServerId}
                     onChange={(e) => setNewServerId(e.target.value)}
-                    className="h-12 bg-gray-50 border-gray-200 rounded-xl text-sm font-bold"
+                    className="h-12 bg-muted border-border rounded-xl text-sm font-bold"
                     disabled={saving}
                   />
                 </div>

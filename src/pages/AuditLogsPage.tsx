@@ -181,12 +181,12 @@ export default function AuditLogsPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b bg-white">
+        <div className="flex border-b bg-card">
           <button
             onClick={() => setActiveTab('system')}
             className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'system'
               ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              : 'border-transparent text-foreground/70 hover:text-foreground'
               }`}
           >
             <FileText className="w-4 h-4" />
@@ -196,7 +196,7 @@ export default function AuditLogsPage() {
             onClick={() => setActiveTab('catalog')}
             className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'catalog'
               ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              : 'border-transparent text-foreground/70 hover:text-foreground'
               }`}
           >
             <Package className="w-4 h-4" />
@@ -205,18 +205,18 @@ export default function AuditLogsPage() {
         </div>
 
         {/* Filtres */}
-        <div className="p-2 md:p-4 bg-gray-50 border-b">
+        <div className="p-2 md:p-4 bg-muted border-b">
           <div className="flex gap-2 md:gap-3 flex-wrap mb-2 md:mb-3">
             {/* Search */}
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
-                <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-gray-600" />
+                <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-foreground/70" />
                 <input
                   type="text"
                   placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-1.5 md:py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -227,7 +227,7 @@ export default function AuditLogsPage() {
                 <select
                   value={severityFilter}
                   onChange={e => setSeverityFilter(e.target.value as AuditLogSeverity | 'all')}
-                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">Toutes sévérités</option>
                   <option value="critical">🔴 Critiques</option>
@@ -239,7 +239,7 @@ export default function AuditLogsPage() {
                 <select
                   value={eventFilter}
                   onChange={e => setEventFilter(e.target.value as AuditLogEvent | 'all')}
-                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">Tous les événements</option>
                   <option value="LOGIN_FAILED">Échec Connexion</option>
@@ -254,7 +254,7 @@ export default function AuditLogsPage() {
                   <select
                     value={barFilter}
                     onChange={e => setBarFilter(e.target.value)}
-                    className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="all">Tous les bars</option>
                     <option value="system">Système</option>
@@ -270,7 +270,7 @@ export default function AuditLogsPage() {
                 <select
                   value={catalogActionFilter}
                   onChange={e => setCatalogActionFilter(e.target.value as 'all' | 'CREATE' | 'UPDATE' | 'DELETE')}
-                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">Toutes les actions</option>
                   <option value="CREATE">➕ Création</option>
@@ -282,7 +282,7 @@ export default function AuditLogsPage() {
                 <select
                   value={catalogEntityFilter}
                   onChange={e => setCatalogEntityFilter(e.target.value as 'all' | 'PRODUCT' | 'CATEGORY')}
-                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-border rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">Tous les types</option>
                   <option value="PRODUCT">📦 Produit</option>
@@ -311,23 +311,23 @@ export default function AuditLogsPage() {
           {/* Date Range + Export */}
           <div className={`${showAdvancedFilters ? 'flex' : 'hidden'} md:flex gap-3 flex-wrap items-center mt-2 md:mt-0`}>
             <div className="flex items-center gap-2 w-full md:w-auto">
-              <Calendar className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
+              <Calendar className="w-4 md:w-5 h-4 md:h-5 text-foreground/70" />
               <input
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 border border-border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
               />
             </div>
 
-            <span className="hidden md:inline text-gray-500 text-sm">au</span>
+            <span className="hidden md:inline text-muted-foreground text-sm">au</span>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
               <input
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 border border-border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
               />
             </div>
 
@@ -337,7 +337,7 @@ export default function AuditLogsPage() {
                   setStartDate('');
                   setEndDate('');
                 }}
-                className="px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm text-gray-600 hover:text-gray-800 underline w-full md:w-auto"
+                className="px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm text-foreground/70 hover:text-foreground underline w-full md:w-auto"
               >
                 Réinitialiser dates
               </button>
@@ -370,14 +370,14 @@ export default function AuditLogsPage() {
 
           </div>
 
-          <div className="mt-2 md:mt-3 text-xs md:text-sm text-gray-600">
+          <div className="mt-2 md:mt-3 text-xs md:text-sm text-foreground/70">
             <span className="font-semibold text-indigo-700">{activeTab === 'system' ? totalCount : catalogTotalCount}</span> log{activeTab === 'system' ? totalCount : catalogTotalCount > 1 ? 's' : ''} trouvé{activeTab === 'system' ? totalCount : catalogTotalCount > 1 ? 's' : ''}
           </div>
         </div>
 
         {/* Error Alert */}
         {error && (
-          <div className="p-4 border-b bg-white">
+          <div className="p-4 border-b bg-card">
             <Alert variant="destructive" title="Erreur de chargement">
               <div className="flex items-center justify-between">
                 <span>{error}</span>
@@ -393,14 +393,14 @@ export default function AuditLogsPage() {
         )}
 
         {/* Liste des logs */}
-        <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="flex-1 overflow-y-auto bg-muted">
           {activeTab === 'system' ? (
             <>
               {loading && logs.length === 0 ? (
                 <AdminPanelSkeleton count={5} type="table" />
               ) : logs.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 p-4">
-                  <Info className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <div className="text-center py-12 text-muted-foreground p-4">
+                  <Info className="w-12 h-12 mx-auto mb-3 text-foreground/70" />
                   <p className="font-medium">Aucun log trouvé</p>
                   <p className="text-sm">Essayez de modifier les filtres</p>
                 </div>
@@ -429,12 +429,12 @@ export default function AuditLogsPage() {
                                   <span className="font-mono text-xs font-semibold bg-black/10 px-2 py-0.5 rounded">
                                     {log.event}
                                   </span>
-                                  <span className="text-xs text-gray-600">
+                                  <span className="text-xs text-foreground/70">
                                     {formatDate(log.timestamp)}
                                   </span>
                                 </div>
                                 <p className="font-medium mt-1">{log.description}</p>
-                                <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                                <div className="flex items-center gap-3 mt-1 text-xs text-foreground/70">
                                   <span>👤 {log.user_name}</span>
                                   {log.bar_name && <span>🏢 {log.bar_name}</span>}
                                 </div>
@@ -461,8 +461,8 @@ export default function AuditLogsPage() {
               {catalogLoading && catalogLogs.length === 0 ? (
                 <AdminPanelSkeleton count={5} type="table" />
               ) : catalogLogs.length === 0 ? (
-                <div className="text-center py-12 text-gray-500 p-4">
-                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+                <div className="text-center py-12 text-muted-foreground p-4">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-foreground/70" />
                   <p className="font-medium">Aucun log du catalogue trouvé</p>
                   <p className="text-sm">Essayez de modifier les filtres</p>
                 </div>
@@ -496,12 +496,12 @@ export default function AuditLogsPage() {
                                   <span className="font-mono text-xs font-semibold bg-purple-300 text-purple-900 px-2 py-0.5 rounded">
                                     {log.action}
                                   </span>
-                                  <span className="text-xs text-gray-600">
+                                  <span className="text-xs text-foreground/70">
                                     {formatDate(log.createdAt)}
                                   </span>
                                 </div>
                                 <p className="font-medium mt-1">{log.entityName}</p>
-                                <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                                <div className="flex items-center gap-3 mt-1 text-xs text-foreground/70">
                                   <span>👤 {log.modifiedByName || log.modifiedBy}</span>
                                 </div>
                               </div>
@@ -516,7 +516,7 @@ export default function AuditLogsPage() {
                             </div>
 
                             {expandedCatalogLogId === log.id && (
-                              <div className="mt-3 pt-3 border-t border-purple-200 text-xs text-gray-700">
+                              <div className="mt-3 pt-3 border-t border-purple-200 text-xs text-foreground/80">
                                 <p><strong>ID:</strong> {log.entityId}</p>
                                 {log.oldValues && (
                                   <p className="mt-2"><strong>Anciennes valeurs:</strong> {JSON.stringify(log.oldValues)}</p>
@@ -540,20 +540,20 @@ export default function AuditLogsPage() {
         {/* Pagination */}
         {activeTab === 'system' ? (
           systemTotalPages > 1 && (
-            <div className="p-4 bg-white border-t flex items-center justify-between rounded-b-2xl">
-              <p className="text-sm text-gray-600">Page {currentPage} sur {systemTotalPages}</p>
+            <div className="p-4 bg-card border-t flex items-center justify-between rounded-b-2xl">
+              <p className="text-sm text-foreground/70">Page {currentPage} sur {systemTotalPages}</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Précédent
                 </button>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(systemTotalPages, p + 1))}
                   disabled={currentPage === systemTotalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Suivant
                 </button>
@@ -562,20 +562,20 @@ export default function AuditLogsPage() {
           )
         ) : (
           catalogTotalPages > 1 && (
-            <div className="p-4 bg-white border-t flex items-center justify-between rounded-b-2xl">
-              <p className="text-sm text-gray-600">Page {catalogCurrentPage} sur {catalogTotalPages}</p>
+            <div className="p-4 bg-card border-t flex items-center justify-between rounded-b-2xl">
+              <p className="text-sm text-foreground/70">Page {catalogCurrentPage} sur {catalogTotalPages}</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => setCatalogCurrentPage(p => Math.max(1, p - 1))}
                   disabled={catalogCurrentPage === 1}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Précédent
                 </button>
                 <button
                   onClick={() => setCatalogCurrentPage(p => Math.min(catalogTotalPages, p + 1))}
                   disabled={catalogCurrentPage === catalogTotalPages}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-border rounded-lg hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Suivant
                 </button>

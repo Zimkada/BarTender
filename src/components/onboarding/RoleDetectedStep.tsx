@@ -94,48 +94,48 @@ export const RoleDetectedStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4">
-      <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-6 md:p-10">
+      <div className="bg-card border border-border shadow-sm rounded-2xl p-6 md:p-10">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
             {roleInfo.icon}
           </div>
-          <h1 className="text-h1 text-gray-900 mb-2 leading-tight">
+          <h1 className="text-h1 text-foreground mb-2 leading-tight">
             Vous êtes <span className="text-brand-primary">{roleInfo.title}</span>
           </h1>
-          <p className="text-body text-gray-500 max-w-2xl mx-auto">
+          <p className="text-body text-muted-foreground max-w-2xl mx-auto">
             {roleInfo.description}
           </p>
         </div>
 
         {/* Responsibilities */}
         <div className="mb-8">
-          <h2 className="text-micro text-gray-400 mb-4 text-center">Vos responsabilités principales</h2>
+          <h2 className="text-micro text-muted-foreground mb-4 text-center">Vos responsabilités principales</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {roleInfo.responsibilities.map((responsibility, index) => (
-              <div key={index} className="flex items-center gap-3 p-3.5 bg-gray-50 border border-gray-100 rounded-xl">
+              <div key={index} className="flex items-center gap-3 p-3.5 bg-muted border border-border rounded-xl">
                 <div className="w-7 h-7 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center text-caption font-semibold tabular-nums flex-shrink-0">
                   {index + 1}
                 </div>
-                <span className="text-body-sm text-gray-700">{responsibility}</span>
+                <span className="text-body-sm text-foreground/80">{responsibility}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Info Box */}
-        <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl mb-6 flex items-start gap-3">
+        <div className="p-4 bg-muted border border-border rounded-xl mb-6 flex items-start gap-3">
           <span className="text-base mt-0.5">ℹ️</span>
-          <p className="text-caption text-gray-600 leading-relaxed">
-            <span className="font-semibold text-gray-900">Note :</span> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c'est incorrect, veuillez le contacter avant de commencer votre service.
+          <p className="text-caption text-foreground/70 leading-relaxed">
+            <span className="font-semibold text-foreground">Note :</span> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c'est incorrect, veuillez le contacter avant de commencer votre service.
           </p>
         </div>
 
         {/* Footer Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100 items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-border items-center justify-between">
           <button
             onClick={() => window.location.href = '/dashboard'}
-            className="text-caption text-gray-400 hover:text-gray-600 font-medium px-3 py-2 transition-colors order-2 sm:order-1"
+            className="text-caption text-muted-foreground hover:text-foreground/70 font-medium px-3 py-2 transition-colors order-2 sm:order-1"
           >
             Compléter plus tard
           </button>

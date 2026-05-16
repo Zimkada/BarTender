@@ -106,17 +106,17 @@ export function StockAdjustmentModal({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
+            className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-blue-50/50">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <div className="flex items-center justify-between p-6 border-b border-border bg-blue-50/50">
+              <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <BarChart3 size={20} className="text-blue-600" />
                 Ajuster le stock
               </h2>
               <button
                 onClick={onClose}
-                className="text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-foreground/70 hover:text-foreground transition-colors"
               >
                 <X size={24} />
               </button>
@@ -127,11 +127,11 @@ export function StockAdjustmentModal({
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-gray-50 rounded-xl p-4 border border-gray-200"
+                className="bg-muted rounded-xl p-4 border border-border"
               >
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">📦 PRODUIT</h3>
-                <p className="text-base font-semibold text-gray-800">{product.name}</p>
-                <p className="text-sm text-gray-600 mt-1">
+                <h3 className="text-sm font-semibold text-foreground/80 mb-3">📦 PRODUIT</h3>
+                <p className="text-base font-semibold text-foreground">{product.name}</p>
+                <p className="text-sm text-foreground/70 mt-1">
                   Volume: <span className="font-medium">{product.volume}</span> |
                   Catégorie: <span className="font-medium">{categoryName}</span>
                 </p>
@@ -159,7 +159,7 @@ export function StockAdjustmentModal({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-foreground/80 mb-2">
                   ➕ AJUSTEMENT (Augmenter ou diminuer)
                 </label>
                 <div className="relative">
@@ -168,7 +168,7 @@ export function StockAdjustmentModal({
                     required
                     value={formData.delta}
                     onChange={(e) => setFormData({ ...formData, delta: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border-2 border-blue-200 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg font-semibold"
+                    className="w-full px-4 py-3 bg-card border-2 border-blue-200 rounded-xl text-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg font-semibold"
                     placeholder="Ex: -50 ou +25"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
@@ -180,7 +180,7 @@ export function StockAdjustmentModal({
                     )}
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Valeurs négatives (-) = diminution | Valeurs positives (+) = augmentation
                 </p>
               </motion.div>
@@ -191,13 +191,13 @@ export function StockAdjustmentModal({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 }}
               >
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-foreground/80 mb-2">
                   🔍 RAISON
                 </label>
                 <select
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value as AdjustmentReason })}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full px-4 py-2.5 bg-card border-2 border-border rounded-xl text-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   {Object.entries(ADJUSTMENT_REASONS).map(([key, config]) => (
                     <option key={key} value={key}>
@@ -205,7 +205,7 @@ export function StockAdjustmentModal({
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-600 mt-2">
+                <p className="text-xs text-foreground/70 mt-2">
                   {reasonConfig?.description}
                 </p>
               </motion.div>
@@ -217,14 +217,14 @@ export function StockAdjustmentModal({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-foreground/80 mb-2">
                     📝 NOTES *
                   </label>
                   <textarea
                     required={formData.reason === 'other'}
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white border-2 border-blue-200 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                    className="w-full px-4 py-2.5 bg-card border-2 border-blue-200 rounded-xl text-foreground focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
                     rows={3}
                     placeholder="Expliquez la raison de cet ajustement..."
                   />
@@ -255,10 +255,10 @@ export function StockAdjustmentModal({
                     ⚠️ APERÇU DU NOUVEAU STOCK
                   </h4>
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-700">
-                      Ancien stock: <span className="font-semibold text-gray-800">{product.stock}</span>
+                    <p className="text-sm text-foreground/80">
+                      Ancien stock: <span className="font-semibold text-foreground">{product.stock}</span>
                     </p>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-foreground/80">
                       Ajustement: <span className={`font-semibold ${isDeltaPositive ? 'text-green-600' : 'text-red-600'}`}>
                         {isDeltaPositive ? '+' : ''}{delta}
                       </span>
@@ -296,12 +296,12 @@ export function StockAdjustmentModal({
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-3 pt-6 border-t border-gray-200">
+              <div className="flex gap-3 pt-6 border-t border-border">
                 <button
                   type="button"
                   onClick={onClose}
                   disabled={isSubmitting}
-                  className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 px-4 border border-border text-foreground/80 rounded-lg font-medium hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   Annuler
                 </button>

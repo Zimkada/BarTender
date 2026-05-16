@@ -35,7 +35,7 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
 }) => {
 
     return (
-        <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col gap-3">
+        <div className="mt-8 pt-6 border-t border-border flex flex-col gap-3">
             {/* Ligne 1 : Action Principale (Centre) */}
             {primaryAction && (
                 <div className="flex justify-center">
@@ -72,8 +72,8 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
                             onClick={secondaryAction.onClick}
                             disabled={secondaryAction.disabled}
                             className={`text-body-sm font-medium px-4 py-2 rounded-lg transition-colors ${secondaryAction.variant === 'outline'
-                                ? 'border border-gray-200 bg-white text-gray-700 hover:border-brand-primary hover:text-brand-primary'
-                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                ? 'border border-border bg-card text-foreground/80 hover:border-brand-primary hover:text-brand-primary'
+                                : 'text-foreground/70 hover:text-foreground hover:bg-muted'
                                 }`}
                         >
                             {secondaryAction.label}
@@ -88,7 +88,7 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
                     <button
                         type="button"
                         onClick={() => window.location.href = '/dashboard'}
-                        className="text-caption text-gray-400 hover:text-gray-600 px-3 py-1.5 flex items-center gap-1.5 transition-colors"
+                        className="text-caption text-muted-foreground hover:text-foreground/70 px-3 py-1.5 flex items-center gap-1.5 transition-colors"
                     >
                         <Clock className="w-3.5 h-3.5" />
                         Compléter plus tard

@@ -51,8 +51,8 @@ export function ThemeSelector() {
                     <Palette size={24} />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-gray-900">Thème de Couleur</h3>
-                    <p className="text-sm text-gray-500">Personnalisez l'apparence de votre interface BarTender</p>
+                    <h3 className="text-lg font-bold text-foreground">Thème de Couleur</h3>
+                    <p className="text-sm text-muted-foreground">Personnalisez l'apparence de votre interface BarTender</p>
                 </div>
             </div>
 
@@ -71,8 +71,8 @@ export function ThemeSelector() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handlePresetClick(preset)}
                                 className={`relative group flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary ${isActive
-                                    ? 'border-gray-900 bg-gray-50 shadow-md'
-                                    : 'border-gray-100 hover:border-gray-300 bg-white hover:shadow-sm'
+                                    ? 'border-gray-900 bg-muted shadow-md'
+                                    : 'border-border hover:border-border bg-card hover:shadow-sm'
                                     }`}
                             >
                                 {/* Aperçu des couleurs */}
@@ -92,7 +92,7 @@ export function ThemeSelector() {
                                 </div>
 
                                 {/* Label */}
-                                <span className={`text-sm font-medium ${isActive ? 'text-gray-900' : 'text-gray-600'}`}>
+                                <span className={`text-sm font-medium ${isActive ? 'text-foreground' : 'text-foreground/70'}`}>
                                     {PRESET_LABELS[preset]}
                                 </span>
 
@@ -122,11 +122,11 @@ export function ThemeSelector() {
                     >
                         {/* BANNER DYNAMIQUE : Fond dynamique, Icône dynamique, Texte sobre */}
                         <div className="bg-brand-subtle border border-brand-primary/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-                            <div className="flex items-center gap-3 text-gray-900">
+                            <div className="flex items-center gap-3 text-foreground">
                                 <Palette size={20} className="text-brand-primary" />
                                 <div>
                                     <p className="font-bold text-sm">Mode Aperçu Actif - {PRESET_LABELS[themeConfig.preset]}</p>
-                                    <p className="text-xs text-gray-600">Ces changements ne sont pas encore sauvegardés.</p>
+                                    <p className="text-xs text-foreground/70">Ces changements ne sont pas encore sauvegardés.</p>
                                 </div>
                             </div>
 
@@ -134,7 +134,7 @@ export function ThemeSelector() {
                                 <button
                                     onClick={handleCancel}
                                     disabled={isLoading}
-                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-border bg-card text-foreground/80 hover:bg-muted text-sm font-medium flex items-center justify-center gap-2 transition-colors"
                                 >
                                     <RotateCcw size={16} />
                                     Annuler

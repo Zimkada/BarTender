@@ -52,14 +52,14 @@ export const BarCard = React.memo<BarCardProps>(
 
         return (
             <div
-                className={`bg-white rounded-lg p-4 border-2 ${bar.isActive ? 'border-green-200' : 'border-red-200'
+                className={`bg-card rounded-lg p-4 border-2 ${bar.isActive ? 'border-green-200' : 'border-red-200'
                     } hover:shadow-lg transition-shadow`}
             >
                 {/* Header */}
                 <div className="flex justify-between items-start mb-2">
                     <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-base text-gray-900 truncate">{bar.name}</h4>
-                        <p className="text-xs text-gray-500 truncate">{bar.address || "Pas d'adresse"}</p>
+                        <h4 className="font-bold text-base text-foreground truncate">{bar.name}</h4>
+                        <p className="text-xs text-muted-foreground truncate">{bar.address || "Pas d'adresse"}</p>
                     </div>
                     <div
                         className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${bar.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -70,7 +70,7 @@ export const BarCard = React.memo<BarCardProps>(
                 </div>
 
                 {/* Info */}
-                <div className="space-y-1 text-xs mb-3 text-gray-600">
+                <div className="space-y-1 text-xs mb-3 text-foreground/70">
                     <p>
                         <span className="font-semibold">Promoteur:</span> {owner?.name || 'Inconnu'}
                     </p>
@@ -88,12 +88,12 @@ export const BarCard = React.memo<BarCardProps>(
 
                 {/* Plan selector */}
                 <div className="flex items-center gap-2 mb-3 text-xs">
-                    <span className="font-semibold text-gray-600">Plan :</span>
+                    <span className="font-semibold text-foreground/70">Plan :</span>
                     <select
                         value={currentPlan.id}
                         onChange={handlePlanChange}
                         disabled={changingPlan}
-                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:ring-1 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
+                        className="flex-1 px-2 py-1 border border-border rounded text-xs bg-card focus:ring-1 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
                     >
                         {PLAN_ORDER.map(planId => (
                             <option key={planId} value={planId}>

@@ -69,7 +69,7 @@ export function InventoryExportModal({
                     <Button
                         variant="ghost"
                         onClick={onClose}
-                        className="text-gray-600 hover:bg-gray-100"
+                        className="text-foreground/70 hover:bg-muted"
                     >
                         Annuler
                     </Button>
@@ -108,7 +108,7 @@ export function InventoryExportModal({
                             "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
                             mode === 'current'
                                 ? "bg-amber-50 border-amber-200 text-amber-700 shadow-sm"
-                                : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300"
+                                : "bg-card border-border text-muted-foreground hover:bg-muted hover:border-border"
                         )}
                     >
                         <Activity className="w-6 h-6" />
@@ -123,7 +123,7 @@ export function InventoryExportModal({
                                 "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
                                 mode === 'historical'
                                     ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
-                                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300"
+                                    : "bg-card border-border text-muted-foreground hover:bg-muted hover:border-border"
                             )}
                         >
                             <Calendar className="w-6 h-6" />
@@ -149,22 +149,22 @@ export function InventoryExportModal({
 
                         <div className="flex items-center gap-4">
                             <div className="flex-1 space-y-2">
-                                <label className="text-xs font-medium text-gray-600">Date Cible</label>
+                                <label className="text-xs font-medium text-foreground/70">Date Cible</label>
                                 <input
                                     type="date"
                                     max={getCurrentBusinessDateString(currentBar?.closingHour)}
                                     value={targetDate}
                                     onChange={(e) => setTargetDate(e.target.value)}
-                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                                 />
                             </div>
                             <div className="flex-1 space-y-2">
-                                <label className="text-xs font-medium text-gray-600">Heure (Début Jr.)</label>
+                                <label className="text-xs font-medium text-foreground/70">Heure (Début Jr.)</label>
                                 <input
                                     type="time"
                                     value={targetTime}
                                     onChange={(e) => setTargetTime(e.target.value)}
-                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                                 />
                             </div>
                         </div>

@@ -139,7 +139,7 @@ export function MobileSidebar({
                   {currentSession?.role === 'super_admin' ? 'BarTender Pro Administration' : 'Menu'}
                 </h2>
               </div>
-              <IconButton onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors" aria-label="Fermer le menu">
+              <IconButton onClick={onClose} className="text-white hover:bg-card/20 p-2 rounded-lg transition-colors" aria-label="Fermer le menu">
                 <X size={24} />
               </IconButton>
             </div>
@@ -171,11 +171,11 @@ export function MobileSidebar({
                         ? 'bg-purple-600 text-white shadow-md'
                         : 'bg-brand-primary text-white shadow-md'
                       : isDisabled
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                        : 'bg-white/60 text-gray-700 hover:bg-white hover:shadow-sm'
+                        ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
+                        : 'bg-card/60 text-foreground/80 hover:bg-card hover:shadow-sm'
                       }`}
                   >
-                    <span className={currentMenu === item.id ? 'text-white' : (isDisabled ? 'text-gray-300' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary'))}>
+                    <span className={currentMenu === item.id ? 'text-white' : (isDisabled ? 'text-muted-foreground/60' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary'))}>
                       {item.icon}
                     </span>
                     <span className="font-medium">{item.label}</span>

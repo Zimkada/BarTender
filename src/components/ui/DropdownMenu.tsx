@@ -56,9 +56,9 @@ export function DropdownMenu({
 
   const styles = {
     trigger:
-      'p-1.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors relative z-20',
-    menu: 'absolute right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 min-w-max',
-    item: 'px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer transition-colors flex items-center gap-2 whitespace-nowrap',
+      'p-1.5 text-foreground/70 hover:text-foreground hover:bg-muted rounded-lg transition-colors relative z-20',
+    menu: 'absolute right-0 mt-1 bg-card border border-border rounded-lg shadow-lg py-1 z-50 min-w-max',
+    item: 'px-4 py-2.5 text-sm font-medium text-foreground/80 hover:bg-muted cursor-pointer transition-colors flex items-center gap-2 whitespace-nowrap',
     itemDanger: 'px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 cursor-pointer transition-colors flex items-center gap-2 whitespace-nowrap',
   };
 

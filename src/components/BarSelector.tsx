@@ -48,7 +48,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
 
   const buttonClasses = variant === 'default'
     ? "flex items-center gap-2.5 px-3 py-2 glass-button-2026 rounded-xl transition-all active:scale-95 group"
-    : "flex items-center gap-2 px-1 py-1 rounded-xl transition-all active:scale-95 group hover:bg-white/10";
+    : "flex items-center gap-2 px-1 py-1 rounded-xl transition-all active:scale-95 group hover:bg-card/10";
 
   return (
     <div ref={dropdownRef} className="relative z-[110] h-full">
@@ -59,7 +59,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
         aria-expanded={hasMultipleBars ? isOpen : undefined}
       >
         <div
-          className={`${variant === 'default' ? 'w-8 h-8' : 'w-6 h-6'} rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors flex-shrink-0`}
+          className={`${variant === 'default' ? 'w-8 h-8' : 'w-6 h-6'} rounded-lg bg-card/20 flex items-center justify-center group-hover:bg-card/30 transition-colors flex-shrink-0`}
           aria-hidden="true"
         >
           <span className={`${variant === 'default' ? 'text-caption' : 'text-micro'} font-bold text-white`}>
@@ -87,10 +87,10 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute top-full mt-3 left-0 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl py-2 min-w-[280px] border border-brand-primary/20 overflow-hidden z-[120]"
+            className="absolute top-full mt-3 left-0 bg-card/90 backdrop-blur-xl rounded-2xl shadow-2xl py-2 min-w-[280px] border border-brand-primary/20 overflow-hidden z-[120]"
           >
-            <div className="px-4 py-2 border-b border-gray-100/50 mb-1">
-              <p className="text-micro text-gray-400">Passer à un autre bar</p>
+            <div className="px-4 py-2 border-b border-border/50 mb-1">
+              <p className="text-micro text-muted-foreground">Passer à un autre bar</p>
             </div>
 
             <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
@@ -105,7 +105,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
                     <div className={`w-1 h-8 rounded-full transition-colors ${isActive ? 'bg-brand-primary' : 'bg-transparent'}`} />
 
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-600'}`}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-brand-primary text-white' : 'bg-muted text-foreground/70'}`}
                       aria-hidden="true"
                     >
                       <span className="text-caption font-bold">{getInitials(bar.name, 'B')}</span>
@@ -113,7 +113,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <p className={`text-body-sm font-semibold truncate ${isActive ? 'text-brand-primary' : 'text-gray-900'}`}>
+                        <p className={`text-body-sm font-semibold truncate ${isActive ? 'text-brand-primary' : 'text-foreground'}`}>
                           {bar.name}
                         </p>
                         {bar.isSetupComplete && (
@@ -121,7 +121,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
                         )}
                       </div>
                       {bar.address && (
-                        <p className="text-caption text-gray-500 truncate mt-0.5">{bar.address}</p>
+                        <p className="text-caption text-muted-foreground truncate mt-0.5">{bar.address}</p>
                       )}
                     </div>
 
@@ -135,7 +135,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
 
             {hasPermission('canCreateBars') && onCreateNew && (
               <>
-                <div className="border-t border-gray-100/50 my-1" />
+                <div className="border-t border-border/50 my-1" />
                 <button
                   onClick={() => {
                     onCreateNew();

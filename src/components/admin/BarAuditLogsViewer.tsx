@@ -59,7 +59,7 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
       UPDATE: 'bg-blue-100 text-blue-700',
       SUSPEND: 'bg-red-100 text-red-700',
       ACTIVATE: 'bg-green-100 text-green-700',
-      DELETE: 'bg-gray-100 text-gray-700'
+      DELETE: 'bg-muted text-foreground/80'
     };
 
     const labels = {
@@ -106,11 +106,11 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
     if (changedKeys.length === 0) return null;
 
     return (
-      <div className="mt-3 p-3 bg-gray-50 rounded-lg text-xs space-y-2">
-        <div className="font-semibold text-gray-700">Modifications:</div>
+      <div className="mt-3 p-3 bg-muted rounded-lg text-xs space-y-2">
+        <div className="font-semibold text-foreground/80">Modifications:</div>
         {changedKeys.map(key => (
           <div key={key} className="flex items-start gap-2">
-            <span className="font-medium text-gray-600 min-w-[100px]">{key}:</span>
+            <span className="font-medium text-foreground/70 min-w-[100px]">{key}:</span>
             <div className="flex-1 space-y-1">
               {oldVals[key] !== undefined && (
                 <div className="text-red-600">
@@ -134,8 +134,8 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader className="w-6 h-6 animate-spin text-gray-400" />
-        <span className="ml-2 text-gray-500">Chargement des logs...</span>
+        <Loader className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Chargement des logs...</span>
       </div>
     );
   }
@@ -154,7 +154,7 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
 
   if (logs.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-muted-foreground">
         <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
         <p>Aucun log d'audit disponible</p>
       </div>
@@ -164,7 +164,7 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
           <History className="w-5 h-5" />
           Historique d'audit {barId ? 'du bar' : 'global'}
         </h3>
@@ -180,16 +180,16 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
         {logs.map((log) => (
           <div
             key={log.id}
-            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+            className="border border-border rounded-lg p-4 hover:bg-muted transition-colors"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   {getActionBadge(log.action)}
-                  <span className="font-semibold text-gray-800">{log.bar_name}</span>
+                  <span className="font-semibold text-foreground">{log.bar_name}</span>
                 </div>
 
-                <div className="text-sm text-gray-600 space-y-1">
+                <div className="text-sm text-foreground/70 space-y-1">
                   <div>
                     Par: <span className="font-medium">{log.modified_by_name || 'Système'}</span>
                   </div>
@@ -215,7 +215,7 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
       </div>
 
       {logs.length >= limit && (
-        <div className="text-center text-sm text-gray-500 pt-2">
+        <div className="text-center text-sm text-muted-foreground pt-2">
           Affichage limité aux {limit} dernières entrées
         </div>
       )}
@@ -232,15 +232,15 @@ interface BarAuditLogsModalProps {
 export const BarAuditLogsModal: React.FC<BarAuditLogsModalProps> = ({ barId, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+      <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
             <History className="w-6 h-6" />
             Historique d'audit des bars
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-muted-foreground hover:text-foreground/70 transition-colors"
           >
             <X className="w-6 h-6" />
           </button>

@@ -55,17 +55,17 @@ export function PWAUpdatePrompt() {
   // Prompt pour mise à jour disponible
   if (needRefresh) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-w-sm animate-slide-up">
+      <div className="fixed bottom-4 right-4 z-50 bg-card dark:bg-gray-800 rounded-lg shadow-xl border border-border dark:border-gray-700 max-w-sm animate-slide-up">
         <div className="p-4">
           <div className="flex items-start gap-3">
             <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
               <RefreshCw className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">
+              <h3 className="font-semibold text-foreground dark:text-gray-100 text-sm mb-1">
                 Mise à jour disponible
               </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-600 mb-3">
+              <p className="text-xs text-foreground/70 dark:text-foreground/70 mb-3">
                 Une nouvelle version de l'application est prête à être installée
               </p>
               <div className="flex gap-2">
@@ -77,7 +77,7 @@ export function PWAUpdatePrompt() {
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="text-gray-600 dark:text-gray-600 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="text-foreground/70 dark:text-foreground/70 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-muted dark:hover:bg-gray-700 transition-colors"
                 >
                   Plus tard
                 </button>
@@ -85,10 +85,10 @@ export function PWAUpdatePrompt() {
             </div>
             <button
               onClick={handleDismiss}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              className="p-1 hover:bg-muted dark:hover:bg-gray-700 rounded transition-colors"
               aria-label="Fermer"
             >
-              <X className="w-4 h-4 text-gray-500" />
+              <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -101,7 +101,7 @@ export function PWAUpdatePrompt() {
     return (
       <div className="fixed bottom-4 right-4 z-50 bg-green-600 text-white rounded-lg shadow-xl max-w-sm animate-slide-up">
         <div className="p-4 flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-lg">
+          <div className="bg-card/20 p-2 rounded-lg">
             <RefreshCw className="w-5 h-5" />
           </div>
           <div className="flex-1">
@@ -111,7 +111,7 @@ export function PWAUpdatePrompt() {
           </div>
           <button
             onClick={handleDismiss}
-            className="p-1 hover:bg-white/10 rounded transition-colors"
+            className="p-1 hover:bg-card/10 rounded transition-colors"
             aria-label="Fermer"
           >
             <X className="w-4 h-4" />

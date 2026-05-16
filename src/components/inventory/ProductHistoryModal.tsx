@@ -101,14 +101,14 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
             case 'consignment': return <Package size={16} className="text-purple-500" />;
             case 'adjustment': return <AlertTriangle size={16} className="text-orange-500" />;
             case 'return': return <RotateCcw size={16} className="text-purple-600" />;
-            default: return <History size={16} className="text-gray-500" />;
+            default: return <History size={16} className="text-muted-foreground" />;
         }
     };
 
     const getBadgeColor = (delta: number) => {
         if (delta > 0) return 'bg-green-100 text-green-700 border-green-200';
         if (delta < 0) return 'bg-red-50 text-red-700 border-red-100'; // Sales are negative stock
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+        return 'bg-muted text-foreground/80 border-border';
     };
 
     return (
@@ -122,23 +122,23 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
             headerClassName="bg-blue-50/50"
             size="lg"
         >
-            <div className="flex items-center gap-2 px-1 mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <div className="flex items-center gap-2 px-1 mb-4 bg-muted p-3 rounded-lg border border-border">
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Du</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Du</label>
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full text-sm border-border rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Au</label>
+                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Au</label>
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full text-sm border-border rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                 </div>
             </div>
@@ -147,7 +147,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-40 gap-3">
                         <Spinner size="lg" />
-                        <p className="text-sm text-gray-400">Reconstitution de l'enquête...</p>
+                        <p className="text-sm text-muted-foreground">Reconstitution de l'enquête...</p>
                     </div>
                 ) : error ? (
                     <div className="p-4 bg-red-50 text-red-600 rounded-lg text-center">
@@ -155,7 +155,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                         <button onClick={loadHistory} className="block mx-auto mt-2 text-sm underline">Réessayer</button>
                     </div>
                 ) : history.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400">
+                    <div className="text-center py-12 text-muted-foreground">
                         <History size={48} className="mx-auto mb-3 opacity-20" />
                         <p>Aucun mouvement récent enregistré.</p>
                     </div>
@@ -168,15 +168,15 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                     ${event.delta > 0 ? 'bg-green-500' : event.delta < 0 ? 'bg-red-400' : 'bg-gray-400'}`}
                                 />
 
-                                <div className="bg-white rounded-xl border border-gray-100 p-3 shadow-sm hover:shadow-md transition-shadow group-hover:border-blue-100">
+                                <div className="bg-card rounded-xl border border-border p-3 shadow-sm hover:shadow-md transition-shadow group-hover:border-blue-100">
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-2">
-                                            <span className={`p-1.5 rounded-lg bg-gray-50 border border-gray-100`}>
+                                            <span className={`p-1.5 rounded-lg bg-muted border border-border`}>
                                                 {getIcon(event.type)}
                                             </span>
                                             <div>
                                                 <div className="flex items-center gap-1.5">
-                                                    <h4 className="text-sm font-bold text-gray-900 capitalize">
+                                                    <h4 className="text-sm font-bold text-foreground capitalize">
                                                         {event.label}
                                                     </h4>
                                                     {(event as any).status === 'pending' && (
@@ -185,7 +185,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
                                                     <Calendar size={10} />
                                                     {format(event.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                                                 </p>
@@ -199,7 +199,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                     </div>
 
                                     <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-50">
-                                        <div className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                        <div className="flex items-center gap-1.5 text-foreground/70 bg-muted px-2 py-1 rounded">
                                             <User size={12} />
                                             <span className="font-medium">
                                                 {/* ✨ PRIVACY: Anonymiser pour les serveurs si ce n'est pas eux */}
@@ -216,13 +216,13 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                             </span>
                                         </div>
 
-                                        <div className="text-gray-500 font-mono">
+                                        <div className="text-muted-foreground font-mono">
                                             {event.details}
                                         </div>
                                     </div>
 
                                     {event.notes && (
-                                        <div className="mt-2 text-xs text-gray-400 italic pl-2 border-l-2 border-gray-100">
+                                        <div className="mt-2 text-xs text-muted-foreground italic pl-2 border-l-2 border-border">
                                             "{event.notes}"
                                         </div>
                                     )}
@@ -230,7 +230,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                     {event.type === 'supply' && canManageSupplies && (
                                         <div className="mt-2 flex justify-end">
                                             {event.supplyReversed ? (
-                                                <span className="text-[9px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-black uppercase tracking-wider">
+                                                <span className="text-[9px] bg-muted text-muted-foreground px-2 py-1 rounded-full font-black uppercase tracking-wider">
                                                     Annulé
                                                 </span>
                                             ) : (

@@ -44,12 +44,12 @@ export function OtherReasonDialog({
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
+          className="bg-card rounded-2xl w-full max-w-md shadow-2xl"
         >
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="text-amber-600" size={24} />
-              <h2 className="text-lg font-bold text-gray-800">
+              <h2 className="text-lg font-bold text-foreground">
                 Retour - Autre raison
               </h2>
             </div>
@@ -60,13 +60,13 @@ export function OtherReasonDialog({
                   type="checkbox"
                   checked={customRefund}
                   onChange={(e) => setCustomRefund(e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="w-5 h-5 rounded border-border text-blue-600 focus:ring-blue-500"
                 />
                 <div>
-                  <p className="font-medium text-gray-800">
+                  <p className="font-medium text-foreground">
                     Rembourser le client
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Le montant sera déduit du CA
                   </p>
                 </div>
@@ -77,11 +77,11 @@ export function OtherReasonDialog({
                   type="checkbox"
                   checked={customRestock}
                   onChange={(e) => setCustomRestock(e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                  className="w-5 h-5 rounded border-border text-green-600 focus:ring-green-500"
                 />
                 <div>
-                  <p className="font-medium text-gray-800">Remettre en stock</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-foreground">Remettre en stock</p>
+                  <p className="text-xs text-muted-foreground">
                     Le produit sera remis en inventaire
                   </p>
                 </div>
@@ -104,7 +104,7 @@ export function OtherReasonDialog({
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={onCancel}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
                 >
                   Annuler
                 </button>

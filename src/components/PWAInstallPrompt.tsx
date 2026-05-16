@@ -115,7 +115,7 @@ export function PWAInstallPrompt() {
         <div className="flex items-center justify-between gap-4">
           {/* Icône + Texte */}
           <div className="flex items-center gap-3 flex-1">
-            <div className="bg-white/20 p-2 rounded-lg">
+            <div className="bg-card/20 p-2 rounded-lg">
               <Download className="w-5 h-5" />
             </div>
             <div className="flex-1">
@@ -132,13 +132,13 @@ export function PWAInstallPrompt() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleInstallClick}
-              className="bg-white text-amber-800 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-amber-50 transition-colors"
+              className="bg-card text-amber-800 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-amber-50 transition-colors"
             >
               Installer
             </button>
             <button
               onClick={handleDismiss}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-card/10 rounded-lg transition-colors"
               aria-label="Fermer"
             >
               <X className="w-5 h-5" />

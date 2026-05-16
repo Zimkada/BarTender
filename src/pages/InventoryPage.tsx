@@ -258,7 +258,7 @@ export default function InventoryPage() {
                                             {anomalyCount > 0 && (
                                                 <span className={cn(
                                                     "ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums",
-                                                    showAnomalies ? "bg-white/25" : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400"
+                                                    showAnomalies ? "bg-card/25" : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400"
                                                 )}>
                                                     {anomalyCount}
                                                 </span>

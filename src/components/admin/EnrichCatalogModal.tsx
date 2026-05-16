@@ -247,19 +247,19 @@ export function EnrichCatalogModal({
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">Nom local:</span>
+                <span className="text-foreground/70">Nom local:</span>
                 <p className="font-medium">{sourceProduct.localName}</p>
               </div>
               <div>
-                <span className="text-gray-600">Bar:</span>
+                <span className="text-foreground/70">Bar:</span>
                 <p className="font-medium">{sourceProduct.barName}</p>
               </div>
               <div>
-                <span className="text-gray-600">Prix:</span>
+                <span className="text-foreground/70">Prix:</span>
                 <p className="font-medium">{sourceProduct.price} FCFA</p>
               </div>
               <div>
-                <span className="text-gray-600">Volume:</span>
+                <span className="text-foreground/70">Volume:</span>
                 <p className="font-medium">{sourceProduct.volume || 'N/A'}</p>
               </div>
             </div>
@@ -274,9 +274,9 @@ export function EnrichCatalogModal({
               <p className="font-semibold text-sm mb-2">Produits similaires détectés :</p>
               <div className="space-y-2">
                 {similarProducts.map(product => (
-                  <div key={product.id} className="text-xs bg-white p-2 rounded">
+                  <div key={product.id} className="text-xs bg-card p-2 rounded">
                     <p className="font-medium">{product.name}</p>
-                    <div className="flex justify-between text-gray-600 mt-1">
+                    <div className="flex justify-between text-foreground/70 mt-1">
                       <span>{product.volume}</span>
                       <span>{product.category}</span>
                     </div>
@@ -310,7 +310,7 @@ export function EnrichCatalogModal({
               <div>
                 <Label>Catégorie globale *</Label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-muted disabled:cursor-not-allowed"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
                   disabled={categoriesLoading}
@@ -333,7 +333,7 @@ export function EnrichCatalogModal({
                   <div className={`mt-2 p-2 rounded text-xs ${
                     categoryConfidence === 'high' ? 'bg-green-100 border border-green-300' :
                     categoryConfidence === 'medium' ? 'bg-blue-100 border border-blue-300' :
-                    'bg-gray-100 border border-gray-300'
+                    'bg-muted border border-border'
                   }`}>
                     <div className="flex items-start gap-1.5">
                       <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
@@ -341,7 +341,7 @@ export function EnrichCatalogModal({
                         <p className="font-medium">
                           💡 Suggestion : {suggestedCategory}
                         </p>
-                        <p className="text-gray-600 mt-0.5">{suggestCategoryReason}</p>
+                        <p className="text-foreground/70 mt-0.5">{suggestCategoryReason}</p>
                         <button
                           type="button"
                           onClick={() => {
@@ -351,7 +351,7 @@ export function EnrichCatalogModal({
                           className={`mt-1.5 px-2 py-1 rounded text-xs font-medium transition ${
                             categoryConfidence === 'high' ? 'bg-green-200 hover:bg-green-300 text-green-900' :
                             categoryConfidence === 'medium' ? 'bg-blue-200 hover:bg-blue-300 text-blue-900' :
-                            'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                            'bg-gray-200 hover:bg-gray-300 text-foreground'
                           }`}
                         >
                           Appliquer
@@ -365,7 +365,7 @@ export function EnrichCatalogModal({
               <div>
                 <Label>Volume standardisé *</Label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={volume}
                   onChange={e => setVolume(e.target.value)}
                 >
@@ -418,9 +418,9 @@ export function EnrichCatalogModal({
                   </Button>
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center">
-                  <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600">Utiliser l'image du produit source</p>
+                <div className="border-2 border-dashed border-border rounded-md p-4 text-center">
+                  <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-foreground/70">Utiliser l'image du produit source</p>
                 </div>
               )}
             </div>
@@ -444,7 +444,7 @@ export function EnrichCatalogModal({
                   placeholder="ex: 6000"
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Calculé automatiquement : {priceMin} - {priceMax} FCFA (±20% du prix local)
               </p>
             </div>
@@ -494,7 +494,7 @@ export function EnrichCatalogModal({
               />
               <label className="text-sm cursor-pointer">
                 <span className="font-medium">🔗 Lier automatiquement</span>
-                <p className="text-xs text-gray-600 mt-0.5">
+                <p className="text-xs text-foreground/70 mt-0.5">
                   Le produit du bar source sera lié au nouveau produit global
                 </p>
               </label>

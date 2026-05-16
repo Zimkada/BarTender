@@ -46,13 +46,13 @@ export function CategoryContextMenu({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.8 }}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-48"
+          className="fixed z-[9999] bg-card rounded-xl shadow-2xl border border-border p-2 w-48"
           style={{ top: contextMenu.y + 10, left: contextMenu.x }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Titre du menu - nom de la catégorie */}
-          <div className="px-3 py-2 border-b border-gray-100">
-            <p className="text-sm font-semibold truncate text-gray-800">
+          <div className="px-3 py-2 border-b border-border">
+            <p className="text-sm font-semibold truncate text-foreground">
               {contextMenu.category.name}
             </p>
           </div>
@@ -64,7 +64,7 @@ export function CategoryContextMenu({
                 onClick={() => onEdit(contextMenu.category)}
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start gap-3 text-gray-700 hover:text-amber-700"
+                className="w-full justify-start gap-3 text-foreground/80 hover:text-amber-700"
               >
                 <Edit size={16} />
                 Modifier

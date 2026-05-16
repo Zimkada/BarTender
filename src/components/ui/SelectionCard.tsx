@@ -41,8 +41,8 @@ export function SelectionCard({
     const isClickable = status === 'default';
 
     const containerClasses = {
-        default: "border-brand-primary/10 bg-white hover:border-brand-primary/60 shadow-md hover:shadow-brand-subtle/20",
-        disabled: "border-gray-100 bg-gray-50/30 opacity-60 cursor-not-allowed",
+        default: "border-brand-primary/10 bg-card hover:border-brand-primary/60 shadow-md hover:shadow-brand-subtle/20",
+        disabled: "border-border bg-muted/30 opacity-60 cursor-not-allowed",
         error: "border-red-100 bg-red-50/50 opacity-90 cursor-not-allowed"
     };
 
@@ -74,7 +74,7 @@ export function SelectionCard({
                             {!isClickable && statusText && (
                                 <div className={`
                                     flex items-center gap-1 text-[9px] font-black uppercase tracking-tighter italic whitespace-nowrap
-                                    ${status === 'error' ? 'text-red-500' : 'text-gray-400'}
+                                    ${status === 'error' ? 'text-red-500' : 'text-muted-foreground'}
                                 `}>
                                     {status === 'error' && <AlertTriangle size={10} />}
                                     {statusText}
@@ -89,11 +89,11 @@ export function SelectionCard({
                                     w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-transform
                                     ${isClickable
                                         ? 'shadow-brand-primary/20 group-hover:translate-x-1'
-                                        : 'bg-gray-100 shadow-none text-gray-300'}
+                                        : 'bg-muted shadow-none text-muted-foreground/60'}
                                 `}
                                 style={isClickable ? { background: 'var(--brand-gradient)' } : {}}
                             >
-                                <ChevronRight size={18} className={isClickable ? 'text-white' : 'text-gray-300'} />
+                                <ChevronRight size={18} className={isClickable ? 'text-white' : 'text-muted-foreground/60'} />
                             </div>
                         )}
                     </div>

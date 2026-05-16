@@ -13,7 +13,7 @@ export function LoadingFallback() {
     >
       <div className="text-center">
         <div className="w-16 h-16 border-4 border-brand-subtle border-t-brand-primary rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-gray-600 font-medium">Chargement...</p>
+        <p className="text-foreground/70 font-medium">Chargement...</p>
       </div>
     </motion.div>
   );
@@ -31,26 +31,26 @@ export function RouteLoadingFallback({ label = 'Chargement...' }: RouteLoadingFa
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl border-4 border-brand-subtle border-t-brand-primary animate-spin flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-gray-700">{label}</p>
-            <p className="text-xs text-gray-500">Les donnees arrivent, l'interface reste disponible.</p>
+            <p className="text-sm font-semibold text-foreground/80">{label}</p>
+            <p className="text-xs text-muted-foreground">Les donnees arrivent, l'interface reste disponible.</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-24 rounded-lg border border-gray-200 bg-white p-4 animate-pulse">
+            <div key={index} className="h-24 rounded-lg border border-border bg-card p-4 animate-pulse">
               <div className="h-3 w-1/3 rounded bg-gray-200 mb-4" />
               <div className="h-7 w-2/3 rounded bg-gray-200 mb-2" />
-              <div className="h-3 w-1/2 rounded bg-gray-100" />
+              <div className="h-3 w-1/2 rounded bg-muted" />
             </div>
           ))}
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 animate-pulse">
+        <div className="rounded-lg border border-border bg-card p-4 animate-pulse">
           <div className="h-4 w-48 rounded bg-gray-200 mb-4" />
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="h-10 rounded bg-gray-100" />
+              <div key={index} className="h-10 rounded bg-muted" />
             ))}
           </div>
         </div>

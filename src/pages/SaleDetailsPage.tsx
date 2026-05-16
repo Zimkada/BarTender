@@ -33,8 +33,8 @@ export default function SaleDetailsPage() {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center">
         <Alert variant="destructive" show={true}>
-          <h1 className="text-xl font-semibold text-gray-800 mb-2">Vente introuvable</h1>
-          <p className="text-gray-600 mb-4">La vente #{saleId} n'existe pas ou a été supprimée.</p>
+          <h1 className="text-xl font-semibold text-foreground mb-2">Vente introuvable</h1>
+          <p className="text-foreground/70 mb-4">La vente #{saleId} n'existe pas ou a été supprimée.</p>
           <Button
             onClick={() => navigate('/sales')}
             className="mt-4"
@@ -78,15 +78,15 @@ export default function SaleDetailsPage() {
           variant="ghost"
           size="icon"
           onClick={() => navigate('/sales')}
-          className="rounded-lg transition-colors hover:bg-gray-100"
+          className="rounded-lg transition-colors hover:bg-muted"
         >
-          <ArrowLeft size={24} className="text-gray-600" />
+          <ArrowLeft size={24} className="text-foreground/70" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-bold text-foreground">
             Vente #{sale.id.slice(-6).toUpperCase()}
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-foreground/70 text-sm">
             {new Date(sale.created_at).toLocaleDateString('fr-FR', {
               weekday: 'long',
               year: 'numeric',
@@ -102,20 +102,20 @@ export default function SaleDetailsPage() {
 
       {/* Info Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <User size={16} />
             Vendeur
           </div>
-          <p className="font-semibold text-gray-800">{sale.seller_name}</p>
+          <p className="font-semibold text-foreground">{sale.seller_name}</p>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <CreditCard size={16} />
             Paiement
           </div>
-          <p className="font-semibold text-gray-800 capitalize">
+          <p className="font-semibold text-foreground capitalize">
             {sale.payment_method === 'cash' ? 'Espèces' :
              sale.payment_method === 'mobile_money' ? 'Mobile Money' :
              sale.payment_method === 'card' ? 'Carte' :
@@ -123,12 +123,12 @@ export default function SaleDetailsPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+        <div className="bg-card rounded-xl p-4 shadow-sm border border-border">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
             <Package size={16} />
             Articles
           </div>
-          <p className="font-semibold text-gray-800">{sale.items_count} produit(s)</p>
+          <p className="font-semibold text-foreground">{sale.items_count} produit(s)</p>
         </div>
 
         <div className="bg-amber-50 rounded-xl p-4 shadow-sm border border-amber-200">
@@ -141,21 +141,21 @@ export default function SaleDetailsPage() {
       </div>
 
       {/* Items List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-800">Détail des articles</h2>
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+        <div className="px-4 py-3 bg-muted border-b border-border">
+          <h2 className="font-semibold text-foreground">Détail des articles</h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-border">
           {(sale.items as any[]).map((item, index) => (
             <div key={index} className="px-4 py-3 flex items-center justify-between">
               <div className="flex-1">
-                <p className="font-medium text-gray-800">{item.product_name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-medium text-foreground">{item.product_name}</p>
+                <p className="text-sm text-muted-foreground">
                   {item.quantity} × {formatPrice(item.unit_price)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-gray-800">{formatPrice(item.total_price)}</p>
+                <p className="font-semibold text-foreground">{formatPrice(item.total_price)}</p>
                 {item.discount_amount > 0 && (
                   <p className="text-xs text-green-600">-{formatPrice(item.discount_amount)} promo</p>
                 )}
@@ -164,38 +164,38 @@ export default function SaleDetailsPage() {
           ))}
         </div>
         <div className="px-4 py-3 bg-amber-50 border-t border-amber-200 flex justify-between items-center">
-          <span className="font-semibold text-gray-700">Total</span>
+          <span className="font-semibold text-foreground/80">Total</span>
           <span className="font-bold text-amber-700 text-xl">{formatPrice(sale.total)}</span>
         </div>
       </div>
 
       {/* Customer Info (if available) */}
       {(sale.customer_name || sale.customer_phone || sale.notes) && (
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <h2 className="font-semibold text-gray-800 mb-3">Informations client</h2>
+        <div className="mt-6 bg-card rounded-xl shadow-sm border border-border p-4">
+          <h2 className="font-semibold text-foreground mb-3">Informations client</h2>
           {sale.customer_name && (
-            <p className="text-gray-600"><span className="font-medium">Nom:</span> {sale.customer_name}</p>
+            <p className="text-foreground/70"><span className="font-medium">Nom:</span> {sale.customer_name}</p>
           )}
           {sale.customer_phone && (
-            <p className="text-gray-600"><span className="font-medium">Téléphone:</span> {sale.customer_phone}</p>
+            <p className="text-foreground/70"><span className="font-medium">Téléphone:</span> {sale.customer_phone}</p>
           )}
           {sale.notes && (
-            <p className="text-gray-600 mt-2"><span className="font-medium">Notes:</span> {sale.notes}</p>
+            <p className="text-foreground/70 mt-2"><span className="font-medium">Notes:</span> {sale.notes}</p>
           )}
         </div>
       )}
 
       {/* Validation Info (if validated/rejected) */}
       {sale.validator_name && (
-        <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <h2 className="font-semibold text-gray-800 mb-3">
+        <div className="mt-6 bg-card rounded-xl shadow-sm border border-border p-4">
+          <h2 className="font-semibold text-foreground mb-3">
             {sale.status === 'validated' ? 'Validation' : 'Rejet'}
           </h2>
-          <p className="text-gray-600">
+          <p className="text-foreground/70">
             <span className="font-medium">Par:</span> {sale.validator_name}
           </p>
           {sale.validated_at && (
-            <p className="text-gray-600">
+            <p className="text-foreground/70">
               <span className="font-medium">Le:</span>{' '}
               {new Date(sale.validated_at).toLocaleDateString('fr-FR', {
                 day: 'numeric',

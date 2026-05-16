@@ -1,0 +1,430 @@
+\src\components\AdminNotificationsPanel.tsx:63 - default
+\src\components\AdminSetPasswordModal.tsx:199 - default
+\src\components\Animations.tsx:6 - containerVariants
+\src\components\Animations.tsx:25 - itemVariants
+\src\components\Animations.tsx:36 - modalVariants
+\src\components\Animations.tsx:47 - PageTransition
+\src\components\Animations.tsx:69 - AnimatedButton
+\src\components\Animations.tsx:81 - AnimatedList
+\src\components\Animations.tsx:84 - AnimatedItem
+\src\components\Animations.tsx:87 - AnimatedGrid
+\src\components\Animations.tsx:90 - FeedbackMessage
+\src\components\AuditLogsPanel.tsx:19 - default
+\src\components\BarsManagementPanel.tsx:23 - default
+\src\components\DataFreshnessIndicator.tsx:14 - DataFreshnessIndicator
+\src\components\EnhancedButton.tsx:314 - ButtonShowcase
+\src\components\EnhancedButton.tsx:259 - QuickActionButton (used in module)
+\src\components\EnhancedButton.tsx:272 - CartButton (used in module)
+\src\components\EnhancedButton.tsx:286 - FavoriteButton (used in module)
+\src\components\EnhancedButton.tsx:299 - PowerButton (used in module)
+\src\components\FeedbackButton.tsx:16 - FeedbackButton
+\src\components\GlobalCatalogPanel.tsx:12 - default
+\src\components\NetworkIndicator.tsx:5 - NetworkIndicator
+\src\components\NetworkIndicator.tsx:99 - NetworkStats
+\src\components\OfflineIndicator.tsx:5 - OfflineIndicator
+\src\components\PendingOrders.tsx:46 - PendingOrders
+\src\components\ProgressFeedback.tsx:11 - ProgressFeedback
+\src\components\RoleBasedComponent.tsx:13 - RoleBasedComponent
+\src\components\RoleSelector.tsx:8 - RoleSelector
+\src\components\SalaryManager.tsx:32 - SalaryManager
+\src\components\SplashScreen.tsx:10 - SplashScreen
+\src\config\constants.ts:28 - APP_TIMEZONE
+\src\config\constants.ts:33 - CURRENCY
+\src\config\dateFilters.ts:117 - QUICK_FILTERS
+\src\config\features.ts:61 - isFeatureEnabled
+\src\config\features.ts:68 - FeatureFlag
+\src\config\notifications.ts:12 - NOTIFICATION_MESSAGES
+\src\config\sync.config.ts:51 - isSupabaseEnabled (used in module)
+\src\config\sync.config.ts:8 - SYNC_CONFIG (used in module)
+\src\constants\businessDay.ts:32 - BusinessDayCloseHour
+\src\context\OnboardingContext.tsx:41 - StepData (used in module)
+\src\context\OnboardingContext.tsx:58 - OnboardingState (used in module)
+\src\context\OnboardingContext.tsx:77 - OnboardingContextType (used in module)
+\src\context\OnboardingContext.tsx:109 - OnboardingContext (used in module)
+\src\hooks\useBeninCurrency.ts:125 - usePriceInput
+\src\hooks\useBroadcastSync.ts:102 - default
+\src\hooks\useDataStore.ts:75 - useDataStoreRead
+\src\hooks\useExpenses.ts:20 - getCategoryLabel (used in module)
+\src\hooks\useExpenses.ts:29 - getCategoryIcon (used in module)
+\src\hooks\useExpenses.ts:38 - getTotalExpenses
+\src\hooks\useExpenses.ts:48 - getExpensesByCategory
+\src\hooks\useForceUpdate.ts:4 - useForceUpdate
+\src\hooks\useFramerMotion.ts:13 - useFramerMotion
+\src\hooks\useGuideSuggestions.ts:42 - GuideSuggestion (used in module)
+\src\hooks\useGuideSuggestions.ts:87 - useContextualGuides
+\src\hooks\useGuideTrigger.ts:83 - useAutoGuide
+\src\hooks\useInventoryHistory.ts:17 - HistoricalStockRecord (used in module)
+\src\hooks\useInventoryHistory.types.ts:52 - MovementsByProduct (used in module)
+\src\hooks\useLazyPagination.ts:12 - PaginationOptions (used in module)
+\src\hooks\useListPerformanceMetrics.ts:173 - useItemRenderTime
+\src\hooks\useListPerformanceMetrics.ts:14 - UseListPerformanceMetricsOptions (used in module)
+\src\hooks\useModalState.ts:35 - useModalState
+\src\hooks\useNetworkBannerHeight.ts:10 - useNetworkBannerHeight
+\src\hooks\useNetworkOptimization.ts:278 - useOptimizedImages
+\src\hooks\useNetworkStatus.ts:37 - NetworkStatus (used in module)
+\src\hooks\useNotifications.ts:6 - useNotifications
+\src\hooks\useOnboardingGuard.ts:14 - useOnboardingGuard
+\src\hooks\useOnboardingGuard.ts:45 - useCanCreateSale
+\src\hooks\useOnboardingGuard.ts:54 - useManagerAccessLevel
+\src\hooks\useOrderDraft.ts:5 - OrderDraftItem (used in module)
+\src\hooks\useOrderDraft.ts:16 - OrderDraftState (used in module)
+\src\hooks\usePaginatedProducts.ts:6 - UsePaginatedProductsOptions (used in module)
+\src\hooks\usePaginatedSales.ts:10 - UsePaginatedSalesOptions (used in module)
+\src\hooks\usePermissions.ts:4 - usePermissions
+\src\hooks\useRealtimeReturns.ts:104 - default
+\src\hooks\useRealtimeSales.ts:38 - useRealtimeSales (used in module)
+\src\hooks\useRealtimeSales.ts:106 - default
+\src\hooks\useRealtimeSubscription.ts:133 - default
+\src\hooks\useRealTimeSync.ts:5 - useRealTimeSync
+\src\hooks\useServerMappings.ts:4 - serverMappingsKeys (used in module)
+\src\hooks\useSmartSync.ts:197 - default
+\src\hooks\useSyncStatus.ts:196 - useNetworkStatus
+\src\hooks\useSyncStatus.ts:210 - useQueueStats
+\src\hooks\useToast.ts:4 - Toast (used in module)
+\src\hooks\useViewport.ts:113 - useIsMobile
+\src\lib\cache-strategy.ts:52 - QUERY_KEYS
+\src\lib\monitoring.ts:99 - captureMessage (used in module)
+\src\lib\monitoring.ts:112 - addBreadcrumb (used in module)
+\src\lib\supabase-rpc.types.ts:30 - CreateSaleIdempotentParams (used in module)
+\src\lib\supabase-rpc.types.ts:72 - ValidateSaleParams
+\src\lib\supabase-rpc.types.ts:80 - CreateStockAdjustmentParams
+\src\pages\AdminNotificationsPage.tsx:53 - default
+\src\pages\BarStatsPage.tsx:9 - default
+\src\routes\index.tsx:53 - router
+\src\services\DataStore.ts:8 - DataStore (used in module)
+\src\services\DataStore.ts:48 - LocalStorageDataStore (used in module)
+\src\services\NetworkManager.ts:14 - NetworkDecision (used in module)
+\src\services\syncService.ts:72 - syncService
+\src\services\theme.service.ts:6 - ThemeConfigSchema (used in module)
+\src\styles\colorSystem.ts:17 - COLORS (used in module)
+\src\styles\colorSystem.ts:93 - COMPONENTS (used in module)
+\src\styles\colorSystem.ts:128 - WIDGETS
+\src\styles\colorSystem.ts:162 - RETURN_REASONS
+\src\styles\colorSystem.ts:196 - STATUS
+\src\styles\colorSystem.ts:232 - getGradient
+\src\styles\colorSystem.ts:243 - getTextColor
+\src\styles\colorSystem.ts:254 - ColorContext
+\src\styles\colorSystem.ts:255 - GradientLevel
+\src\styles\colorSystem.ts:256 - TextLevel
+\src\theme\constants.ts:52 - BrandClassCategory
+\src\theme\constants.ts:54 - BrandButtonClass
+\src\theme\constants.ts:55 - BrandHeaderClass
+\src\theme\constants.ts:56 - BrandTextClass
+\src\theme\constants.ts:57 - BrandBgClass
+\src\theme\constants.ts:58 - BrandBorderClass
+\src\theme\constants.ts:59 - BrandShadowClass
+\src\types\catalogEnrichment.ts:96 - CatalogEnrichmentAuditLog
+\src\types\catalogEnrichment.ts:123 - EnrichmentError
+\src\types\guide.ts:8 - GuideDifficulty (used in module)
+\src\types\guide.ts:10 - StepPosition (used in module)
+\src\types\guide.ts:12 - TriggerType (used in module)
+\src\types\guide.ts:14 - MediaType (used in module)
+\src\types\guide.ts:45 - GuideMedia (used in module)
+\src\types\guide.ts:111 - GuideProgressInput
+\src\types\guide.ts:152 - UseGuideReturn
+\src\types\guide.ts:157 - GuideAnalyticsEvent
+\src\types\index.ts:4 - UserRole (used in module)
+\src\types\index.ts:6 - User (used in module)
+\src\types\index.ts:24 - UserSession (used in module)
+\src\types\index.ts:38 - Bar
+\src\types\index.ts:53 - BarSettings (used in module)
+\src\types\index.ts:76 - BarMember
+\src\types\index.ts:88 - Category
+\src\types\index.ts:96 - Product (used in module)
+\src\types\index.ts:112 - Supply
+\src\types\index.ts:157 - GlobalCatalogAuditAction (used in module)
+\src\types\index.ts:158 - GlobalCatalogAuditEntityType (used in module)
+\src\types\index.ts:160 - GlobalCatalogAuditLog
+\src\types\index.ts:174 - TransactionType (used in module)
+\src\types\index.ts:183 - ExpenseCategory (used in module)
+\src\types\index.ts:191 - ExpenseCategoryCustom
+\src\types\index.ts:200 - Expense
+\src\types\index.ts:214 - Salary
+\src\types\index.ts:227 - InitialBalance
+\src\types\index.ts:239 - CapitalSource (used in module)
+\src\types\index.ts:242 - CapitalContribution
+\src\types\index.ts:254 - AccountingTransaction
+\src\types\index.ts:272 - CartItem
+\src\types\index.ts:282 - SaleItem (used in module)
+\src\types\index.ts:296 - Sale
+\src\types\index.ts:341 - Ticket
+\src\types\index.ts:358 - AdjustmentReason (used in module)
+\src\types\index.ts:366 - AdjustmentReasonConfig (used in module)
+\src\types\index.ts:374 - ADJUSTMENT_REASONS
+\src\types\index.ts:419 - StockAdjustment
+\src\types\index.ts:434 - ReturnReason (used in module)
+\src\types\index.ts:436 - ReturnReasonConfig
+\src\types\index.ts:445 - Return
+\src\types\index.ts:488 - ConsignmentStatus (used in module)
+\src\types\index.ts:494 - Consignment
+\src\types\index.ts:532 - ConsignmentStock
+\src\types\index.ts:540 - ProductStockInfo
+\src\types\index.ts:548 - RolePermissions (used in module)
+\src\types\index.ts:602 - ROLE_PERMISSIONS (used in module)
+\src\types\index.ts:724 - AppSettings
+\src\types\index.ts:732 - getPermissionsByRole
+\src\types\index.ts:737 - NotificationType (used in module)
+\src\types\index.ts:756 - NotificationPriority (used in module)
+\src\types\index.ts:758 - AdminNotification
+\src\types\index.ts:774 - AuditLogEvent (used in module)
+\src\types\index.ts:822 - AuditLogSeverity (used in module)
+\src\types\index.ts:824 - AuditLog
+\src\types\index.ts:847 - PromotionType (used in module)
+\src\types\index.ts:864 - PromotionStatus (used in module)
+\src\types\index.ts:875 - PromotionTargetType (used in module)
+\src\types\index.ts:883 - Promotion (used in module)
+\src\types\index.ts:936 - PromotionApplication
+\src\types\index.ts:953 - PromotionPriceResult
+\src\types\index.ts:965 - EventType (used in module)
+\src\types\index.ts:975 - BarEvent
+\src\types\index.ts:11 - TimeRange
+\src\types\index.ts:31 - TimeRangeConfig
+\src\types\index.ts:44 - DateRangePeriod
+\src\types\index.ts:53 - DateRangeFilterOptions
+\src\types\index.ts:63 - PeriodComparison
+\src\types\index.ts:73 - AccountingPeriodProps
+\src\types\payment.ts:16 - isValidPaymentMethod
+\src\types\schemas.ts:8 - SaleItemSchema (used in module)
+\src\types\schemas.ts:19 - CreateSaleSchema (used in module)
+\src\types\schemas.ts:34 - CreateTicketSchema (used in module)
+\src\types\schemas.ts:46 - PayTicketSchema (used in module)
+\src\types\schemas.ts:53 - UpdateBarSchema (used in module)
+\src\types\schemas.ts:58 - CreateReturnSchema (used in module)
+\src\types\schemas.ts:69 - UpdateReturnSchema (used in module)
+\src\types\schemas.ts:74 - AddExpenseSchema (used in module)
+\src\types\schemas.ts:83 - AddSalarySchema (used in module)
+\src\types\schemas.ts:93 - AddSupplySchema (used in module)
+\src\types\schemas.ts:103 - CreateProductSchema (used in module)
+\src\types\schemas.ts:110 - UpdateProductSchema (used in module)
+\src\types\schemas.ts:115 - DeleteProductSchema (used in module)
+\src\types\schemas.ts:119 - CreateConsignmentSchema (used in module)
+\src\types\schemas.ts:126 - UpdateConsignmentSchema (used in module)
+\src\types\schemas.ts:132 - CreateServerMappingSchema (used in module)
+\src\types\schemas.ts:138 - CreateStockAdjustmentSchema (used in module)
+\src\types\sync.ts:51 - CreateSalePayload (used in module)
+\src\types\sync.ts:70 - CreateReturnPayload (used in module)
+\src\types\sync.ts:71 - UpdateReturnPayload (used in module)
+\src\types\sync.ts:72 - CreateConsignmentPayload (used in module)
+\src\types\sync.ts:73 - UpdateConsignmentPayload (used in module)
+\src\types\sync.ts:74 - AddExpensePayload (used in module)
+\src\types\sync.ts:76 - AddSupplyPayload (used in module)
+\src\types\sync.ts:77 - UpdateProductPayload (used in module)
+\src\types\sync.ts:78 - CreateProductPayload (used in module)
+\src\types\sync.ts:80 - UpdateBarPayload (used in module)
+\src\types\sync.ts:85 - CreateServerMappingPayload (used in module)
+\src\types\sync.ts:91 - CreateTicketPayload (used in module)
+\src\types\sync.ts:103 - PayTicketPayload (used in module)
+\src\types\sync.ts:129 - SyncOperationCreateServerMapping (used in module)
+\src\types\sync.ts:133 - SyncOperationUpdateReturn (used in module)
+\src\types\sync.ts:134 - SyncOperationCreateConsignment (used in module)
+\src\types\sync.ts:135 - SyncOperationUpdateConsignment (used in module)
+\src\types\sync.ts:136 - SyncOperationAddExpense (used in module)
+\src\types\sync.ts:138 - SyncOperationAddSupply (used in module)
+\src\types\sync.ts:139 - SyncOperationUpdateProduct (used in module)
+\src\types\sync.ts:140 - SyncOperationCreateProduct (used in module)
+\src\types\sync.ts:141 - SyncOperationDeleteProduct (used in module)
+\src\types\theme.ts:3 - ThemeColors (used in module)
+\src\utils\accounting.ts:4 - getWeekRange
+\src\utils\accounting.ts:21 - getMonthRange
+\src\utils\anomalyDetection.ts:9 - AnomalySeverity (used in module)
+\src\utils\businessDay.ts:53 - filterSalesByBusinessDay
+\src\utils\businessDay.ts:69 - getBusinessDayDateString
+\src\utils\categorySuggestion.ts:196 - debugCategorySuggestion
+\src\utils\categorySuggestion.ts:7 - CategorySuggestion (used in module)
+\src\utils\colorUtils.ts:63 - getContrastRatio (used in module)
+\src\utils\dateRangeCalculator.ts:15 - getCurrentBusinessDateString (used in module)
+\src\utils\disableAnimationsOnMobile.ts:19 - createMobileVariants
+\src\utils\disableAnimationsOnMobile.ts:65 - disableFramerMotionOnMobile
+\src\utils\errorHandler.ts:74 - getSupabaseError
+\src\utils\errorHandler.ts:92 - isNetworkError (used in module)
+\src\utils\errorHandler.ts:110 - shouldRetryError
+\src\utils\errorHandler.ts:138 - mutationRetryFn
+\src\utils\errorHandler.ts:67 - SupabaseError (used in module)
+\src\utils\migrateInitialBalancesToSupabase.ts:12 - migrateInitialBalancesToSupabase
+\src\utils\migrateInitialBalancesToSupabase.ts:91 - clearInitialBalancesFromLocalStorage
+\src\utils\offlineStorage.ts:22 - isValidCachedMapping (used in module)
+\src\utils\productMapper.ts:75 - toFrontendProduct
+\src\utils\productNormalization.ts:150 - productNormalizationTests
+\src\utils\revenueCalculator.ts:12 - RecentlySyncedItem (used in module)
+\src\utils\revenueCalculator.ts:18 - RevenueCalculatorOptions (used in module)
+\src\utils\revenueCalculator.ts:30 - StrictRevenueCalculatorOptions (used in module)
+\src\utils\revenueCalculator.ts:36 - CalculatedStats (used in module)
+\src\utils\revenueCalculator.ts:104 - calculateRevenueStatsPure (used in module)
+\src\utils\revenueSchemas.ts:58 - SaleSchema (used in module)
+\src\utils\revenueSchemas.ts:143 - ValidatedSale
+\src\utils\saleHelpers.ts:27 - formatSaleDate
+\src\utils\saleHelpers.ts:44 - formatSaleTime
+\src\utils\validation.ts:12 - validateUser
+\src\utils\validation.ts:87 - validateBar
+\src\utils\validation.ts:135 - validateProduct
+\src\utils\validation.ts:207 - validateSale
+\src\utils\validation.ts:245 - validateConsignment
+\src\utils\validation.ts:294 - validateDateRange
+\src\utils\validation.ts:323 - sanitizePhone
+\src\utils\validation.ts:330 - formatCurrency
+\src\utils\validation.ts:337 - parseCurrency
+\src\utils\validation.ts:344 - validatePagination
+\src\utils\validation.ts:368 - validateSearch
+\src\utils\validation.ts:386 - generateSecurePassword
+\src\utils\validation.ts:408 - generateUsernameFromEmail
+\src\utils\validation.ts:415 - isValidUUID
+\src\utils\validation.ts:423 - generateId
+\src\utils\validation.ts:4 - ValidationResult (used in module)
+\src\components\admin\BarAuditLogsViewer.tsx:22 - BarAuditLogsViewer (used in module)
+\src\components\charts\LazyAnalyticsCharts.tsx:12 - LazyAnalyticsCharts
+\src\components\charts\RechartsWrapper.tsx:17 - Label
+\src\components\charts\RechartsWrapper.tsx:18 - RadarChart
+\src\components\charts\RechartsWrapper.tsx:19 - PolarGrid
+\src\components\charts\RechartsWrapper.tsx:20 - PolarAngleAxis
+\src\components\charts\RechartsWrapper.tsx:21 - PolarRadiusAxis
+\src\components\charts\RechartsWrapper.tsx:22 - Radar
+\src\components\common\CollapsibleSection.tsx:40 - CollapsibleSection
+\src\components\examples\index.ts:1 - PaginatedSalesListExample
+\src\components\examples\index.ts:1 - PaginatedSalesListExampleProps
+\src\components\examples\index.ts:2 - PaginatedProductsListExample
+\src\components\examples\index.ts:2 - PaginatedProductsListExampleProps
+\src\components\examples\index.ts:3 - PaginatedVirtualizedSalesExample
+\src\components\examples\index.ts:3 - PaginatedVirtualizedSalesExampleProps
+\src\components\examples\index.ts:4 - PaginatedVirtualizedProductsExample
+\src\components\examples\index.ts:4 - PaginatedVirtualizedProductsExampleProps
+\src\components\onboarding\index.ts:2 - OnboardingFlow
+\src\components\onboarding\index.ts:5 - BarDetailsStep
+\src\components\onboarding\index.ts:6 - ReviewStep
+\src\components\onboarding\index.ts:11 - ManagerRoleConfirmStep
+\src\components\onboarding\index.ts:12 - ManagerCheckStaffStep
+\src\components\onboarding\index.ts:13 - ManagerTourStep
+\src\components\onboarding\index.ts:16 - BartenderIntroStep
+\src\components\onboarding\index.ts:17 - BartenderDemoStep
+\src\components\onboarding\index.ts:18 - BartenderTestSaleStep
+\src\components\pagination\index.ts:1 - LoadMoreButton
+\src\components\pagination\index.ts:1 - LoadMoreButtonProps
+\src\components\pagination\index.ts:3 - PaginationIndicator
+\src\components\pagination\index.ts:4 - PaginationIndicatorProps
+\src\components\pagination\index.ts:6 - EndOfList
+\src\components\pagination\index.ts:6 - EndOfListProps
+\src\components\pagination\index.ts:8 - PaginationControls
+\src\components\pagination\index.ts:9 - PaginationControlsProps
+\src\components\performance\index.ts:1 - PerformanceDashboard
+\src\components\performance\index.ts:1 - PerformanceDashboardProps
+\src\components\performance\index.ts:2 - PerformanceTestPage
+\src\components\performance\index.ts:2 - PerformanceTestPageProps
+\src\components\products\CatalogContributionBadge.tsx:16 - CatalogContributionBadge
+\src\components\products\CatalogContributionBadge.tsx:55 - CatalogContributionBadgeTooltip
+\src\components\skeletons\index.ts:1 - ProductCardSkeleton
+\src\components\skeletons\index.ts:1 - ProductGridSkeleton
+\src\components\skeletons\index.ts:2 - DashboardSkeleton
+\src\components\skeletons\index.ts:2 - DashboardStatsSkeleton
+\src\components\skeletons\index.ts:2 - StatCardSkeleton
+\src\components\skeletons\index.ts:2 - ChartSkeleton
+\src\components\skeletons\index.ts:3 - PromotionsAnalyticsSkeleton
+\src\components\ui\Alert.tsx:48 - AlertProps (used in module)
+\src\components\ui\BackButton.tsx:10 - BackButtonProps (used in module)
+\src\components\ui\Badge.tsx:31 - BadgeProps (used in module)
+\src\components\ui\Badge.tsx:58 - badgeVariants (used in module)
+\src\components\ui\Button.tsx:54 - buttonVariants (used in module)
+\src\components\ui\Card.tsx:26 - CardProps (used in module)
+\src\components\ui\Card.tsx:113 - cardVariants (used in module)
+\src\components\ui\DropdownMenu.tsx:23 - DropdownMenu
+\src\components\ui\DropdownMenu.tsx:4 - DropdownMenuItemProps (used in module)
+\src\components\ui\IconButton.tsx:5 - IconButtonProps (used in module)
+\src\components\ui\Input.tsx:27 - InputProps (used in module)
+\src\components\ui\Input.tsx:115 - inputVariants (used in module)
+\src\components\ui\Label.tsx:4 - LabelProps (used in module)
+\src\components\ui\LoadingButton.tsx:5 - LoadingButtonProps (used in module)
+\src\components\ui\Modal.tsx:8 - ModalProps (used in module)
+\src\components\ui\Modal.tsx:206 - ConfirmModalProps (used in module)
+\src\components\ui\Select.tsx:34 - SelectProps (used in module)
+\src\components\ui\Select.tsx:144 - selectVariants (used in module)
+\src\components\ui\Spinner.tsx:26 - SpinnerProps (used in module)
+\src\components\ui\Spinner.tsx:52 - LoadingOverlayProps (used in module)
+\src\components\ui\Spinner.tsx:77 - spinnerVariants (used in module)
+\src\components\ui\Textarea.tsx:5 - TextareaProps (used in module)
+\src\components\virtualization\index.ts:1 - VirtualizedList
+\src\components\virtualization\index.ts:1 - VirtualizedListProps
+\src\components\virtualization\index.ts:2 - VirtualizedSalesList
+\src\components\virtualization\index.ts:2 - VirtualizedSalesListProps
+\src\components\virtualization\index.ts:3 - VirtualizedProductsGrid
+\src\components\virtualization\index.ts:3 - VirtualizedProductsGridProps
+\src\components\virtualization\index.ts:4 - PaginatedVirtualizedList
+\src\components\virtualization\index.ts:4 - PaginatedVirtualizedListProps
+\src\components\virtualization\index.ts:5 - PaginatedVirtualizedGrid
+\src\components\virtualization\index.ts:5 - PaginatedVirtualizedGridProps
+\src\context\hooks\index.ts:7 - useStock
+\src\context\hooks\index.ts:8 - useStockBridge
+\src\data\guides\owner-guides.ts:21 - SALES_PROCESS_GUIDE (used in module)
+\src\data\guides\serveur-guides.ts:14 - SERVEUR_SALES_PROCESS_GUIDE (used in module)
+\src\hooks\pivots\useUnifiedSales.ts:22 - UnifiedSale (used in module)
+\src\hooks\pivots\useUnifiedSales.ts:34 - UseUnifiedSalesOptions (used in module)
+\src\hooks\pivots\useUnifiedStock.ts:21 - CreateExpenseCallback (used in module)
+\src\hooks\pivots\useUnifiedStock.ts:40 - UnifiedStockOptions (used in module)
+\src\hooks\queries\useApiQuery.ts:24 - useApiQuery
+\src\hooks\queries\usePromotionsQueries.ts:12 - promotionsKeys (used in module)
+\src\hooks\queries\usePromotionsQueries.ts:76 - useAllPromotions
+\src\hooks\queries\useStalePendingSales.ts:7 - StaleSaleInfo (used in module)
+\src\hooks\queries\useStockQueries.ts:287 - useLowStockProducts
+\src\hooks\queries\useStockQueries.ts:299 - LastSupplyDefaults (used in module)
+\src\hooks\queries\useTopProductsQuery.ts:6 - topProductsKeys (used in module)
+\src\hooks\queries\useTopProductsQuery.ts:28 - useTopProducts
+\src\services\accounting\syscohada.types.ts:5 - SyscohadaAccountType (used in module)
+\src\services\accounting\syscohada.types.ts:7 - SyscohadaAccount (used in module)
+\src\services\accounting\syscohada.types.ts:13 - JournalCode (used in module)
+\src\services\accounting\syscohada.types.ts:41 - DEFAULT_SYSCOHADA_PLAN
+\src\services\broadcast\BroadcastService.ts:21 - BroadcastEventType (used in module)
+\src\services\broadcast\BroadcastService.ts:23 - BroadcastMessage (used in module)
+\src\services\broadcast\BroadcastService.ts:36 - BroadcastService (used in module)
+\src\services\currency\BeninCurrencyService.ts:4 - BeninCurrencyConfig (used in module)
+\src\services\realtime\RealtimeService.ts:46 - RealtimeService (used in module)
+\src\services\supabase\admin.service.ts:15 - GetPaginatedBarsParams (used in module)
+\src\services\supabase\admin.service.ts:24 - PaginatedBarsResult (used in module)
+\src\services\supabase\admin.service.ts:41 - GetPaginatedUsersParams (used in module)
+\src\services\supabase\admin.service.ts:62 - PaginatedUsersResult (used in module)
+\src\services\supabase\admin.service.ts:80 - GetPaginatedAuditLogsParams (used in module)
+\src\services\supabase\admin.service.ts:91 - PaginatedAuditLogsResult (used in module)
+\src\services\supabase\admin.service.ts:96 - GetPaginatedGlobalCatalogAuditLogsParams (used in module)
+\src\services\supabase\admin.service.ts:106 - PaginatedGlobalCatalogAuditLogsResult (used in module)
+\src\services\supabase\analytics.service.ts:12 - DailySalesSummary (used in module)
+\src\services\supabase\analytics.service.ts:53 - ExpensesSummary (used in module)
+\src\services\supabase\analytics.service.ts:75 - SalariesSummary (used in module)
+\src\services\supabase\analytics.types.ts:127 - DatabaseWithViews
+\src\services\supabase\audit.service.ts:20 - AuditService
+\src\services\supabase\categories.service.ts:15 - EnrichedBarCategory (used in module)
+\src\services\supabase\categories.service.ts:19 - CategoryWithGlobal (used in module)
+\src\services\supabase\events.service.ts:54 - EventsService
+\src\services\supabase\feedback.service.ts:3 - FeedbackData (used in module)
+\src\services\supabase\forecasting.service.ts:24 - OrderSuggestion (used in module)
+\src\services\supabase\index.ts:10 - AuthService
+\src\services\supabase\index.ts:11 - BarsService
+\src\services\supabase\index.ts:12 - ProductsService
+\src\services\supabase\index.ts:13 - SalesService
+\src\services\supabase\index.ts:16 - AuthUser
+\src\services\supabase\index.ts:16 - LoginCredentials
+\src\services\supabase\index.ts:16 - SignupData
+\src\services\supabase\index.ts:17 - BarWithOwner
+\src\services\supabase\index.ts:17 - CreateBarData
+\src\services\supabase\index.ts:19 - BarProductWithDetails
+\src\services\supabase\index.ts:20 - CreateBarProductData
+\src\services\supabase\index.ts:22 - SaleItem
+\src\services\supabase\index.ts:22 - CreateSaleData
+\src\services\supabase\index.ts:22 - SaleWithDetails
+\src\services\supabase\promotions.service.ts:46 - PromotionPerformanceResult (used in module)
+\src\services\supabase\security.service.ts:8 - RLSViolation (used in module)
+\src\services\supabase\security.service.ts:78 - RefreshFailureAlert (used in module)
+\src\tests\mocks\serviceWorker.mock.ts:6 - MockServiceWorkerClient
+\src\tests\mocks\serviceWorker.mock.ts:14 - MockServiceWorkerRegistration (used in module)
+\src\tests\mocks\supabase.mock.ts:6 - mockSupabaseResponse (used in module)
+\src\tests\mocks\supabase.mock.ts:11 - createMockSupabaseClient
+\src\tests\mocks\webLocks.mock.ts:6 - MockLockRequest (used in module)
+\src\tests\mocks\webLocks.mock.ts:12 - LockInfo (used in module)
+\src\components\common\PageHeader\index.ts:2 - default
+\src\components\common\PageHeader\index.ts:6 - PageHeaderProps
+\src\components\common\PageHeader\index.ts:122 - PageHeader
+\src\components\common\PageHeader\index.ts:16 - SimplePageHeader
+\src\components\common\PageHeader\index.ts:4 - SimplePageHeaderProps
+\src\components\common\PageHeader\index.ts:25 - TabbedPageHeader
+\src\components\common\PageHeader\index.ts:5 - TabItem
+\src\components\common\PageHeader\index.ts:11 - TabbedPageHeaderProps
+\src\components\common\PageHeader\index.ts:17 - ViewSwitcherPageHeader
+\src\components\common\PageHeader\index.ts:6 - ViewSwitcherPageHeaderProps
+\src\components\inventory\operations\ProductSelector.tsx:16 - ProductSelector
+\src\components\onboarding\steps\RedirectStep.tsx:8 - RedirectStepConfig (used in module)
+\src\features\Sales\SalesHistory\views\SalesCardsView.tsx:39 - SaleCard (used in module)

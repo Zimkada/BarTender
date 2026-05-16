@@ -105,7 +105,7 @@ export function TabbedPageHeader({
                                             badgeVariant === 'alert'
                                                 ? 'bg-red-500 text-white'
                                                 : isActive
-                                                    ? 'bg-white/30 text-white'
+                                                    ? 'bg-card/30 text-white'
                                                     : 'bg-brand-primary text-white'
                                         }`}
                                         aria-label={`${tab.badge} élément${tab.badge! > 1 ? 's' : ''}`}

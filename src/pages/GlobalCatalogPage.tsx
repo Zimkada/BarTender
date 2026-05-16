@@ -26,7 +26,7 @@ export default function GlobalCatalogPage() {
             <button
               onClick={() => setActiveTab('categories')}
               className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${activeTab === 'categories'
-                ? 'bg-white text-violet-600'
+                ? 'bg-card text-violet-600'
                 : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                 }`}
             >
@@ -37,7 +37,7 @@ export default function GlobalCatalogPage() {
             <button
               onClick={() => setActiveTab('products')}
               className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${activeTab === 'products'
-                ? 'bg-white text-violet-600'
+                ? 'bg-card text-violet-600'
                 : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                 }`}
             >
@@ -47,7 +47,7 @@ export default function GlobalCatalogPage() {
             <button
               onClick={() => setActiveTab('local-enrichment')}
               className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${activeTab === 'local-enrichment'
-                ? 'bg-white text-violet-600'
+                ? 'bg-card text-violet-600'
                 : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                 }`}
             >
@@ -59,7 +59,7 @@ export default function GlobalCatalogPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden bg-gray-50 rounded-b-2xl">
+        <div className="flex-1 overflow-hidden bg-muted rounded-b-2xl">
           {activeTab === 'categories' ? (
             <GlobalCategoriesTab />
           ) : activeTab === 'products' ? (

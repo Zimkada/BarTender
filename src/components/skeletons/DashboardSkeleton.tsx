@@ -4,10 +4,10 @@
  */
 export function StatCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
-      <div className="h-8 bg-gray-200 rounded w-1/2 mb-2" />
-      <div className="h-3 bg-gray-200 rounded w-1/4" />
+    <div className="bg-card rounded-lg border border-border p-4 animate-pulse">
+      <div className="h-4 bg-muted rounded w-1/3 mb-3" />
+      <div className="h-8 bg-muted rounded w-1/2 mb-2" />
+      <div className="h-3 bg-muted rounded w-1/4" />
     </div>
   );
 }
@@ -24,11 +24,11 @@ export function DashboardStatsSkeleton() {
 
 export function ChartSkeleton() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 h-80 animate-pulse">
-      <div className="h-4 bg-gray-200 rounded w-1/3 mb-4" />
+    <div className="bg-card rounded-lg border border-border p-4 h-80 animate-pulse">
+      <div className="h-4 bg-muted rounded w-1/3 mb-4" />
       <div className="space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-12 bg-gray-200 rounded" />
+          <div key={i} className="h-12 bg-muted rounded" />
         ))}
       </div>
     </div>

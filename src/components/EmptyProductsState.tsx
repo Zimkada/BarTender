@@ -28,7 +28,7 @@ export function EmptyProductsState({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`bg-white/60 backdrop-blur-sm rounded-2xl p-12 shadow-sm border border-amber-100 text-center ${className}`}
+        className={`bg-card/60 backdrop-blur-sm rounded-2xl p-12 shadow-sm border border-amber-100 text-center ${className}`}
       >
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
@@ -39,10 +39,10 @@ export function EmptyProductsState({
           </div>
 
           <div>
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               Chargement en cours...
             </h3>
-            <p className="text-gray-600 text-sm">
+            <p className="text-foreground/70 text-sm">
               Veuillez patienter un instant
             </p>
           </div>
@@ -61,18 +61,18 @@ export function EmptyProductsState({
       <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
         <div className="relative">
           <div className="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full" />
-          <div className="relative bg-white p-6 rounded-full shadow-lg">
+          <div className="relative bg-card p-6 rounded-full shadow-lg">
             <Icon className="w-16 h-16 text-amber-600" />
           </div>
         </div>
 
         <div>
           {title && (
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            <h3 className="text-2xl font-bold text-foreground mb-2">
               {title}
             </h3>
           )}
-          <p className="text-gray-600">
+          <p className="text-foreground/70">
             {message}
           </p>
         </div>

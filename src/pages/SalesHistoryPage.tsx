@@ -316,13 +316,13 @@ export default function SalesHistoryPage() {
                                 <div
                                     role="radiogroup"
                                     aria-label="Format d'export"
-                                    className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                                    className="flex p-0.5 bg-muted rounded-full border border-border"
                                 >
                                     <button
                                         role="radio"
                                         aria-checked={exportFormat === 'excel'}
                                         onClick={() => setExportFormat('excel')}
-                                        className={`px-3 py-1.5 rounded-full text-caption transition-all ${exportFormat === 'excel' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
+                                        className={`px-3 py-1.5 rounded-full text-caption transition-all ${exportFormat === 'excel' ? 'bg-card text-brand-primary shadow-sm font-semibold' : 'text-foreground/70 hover:text-foreground font-medium'}`}
                                     >
                                         Excel
                                     </button>
@@ -330,7 +330,7 @@ export default function SalesHistoryPage() {
                                         role="radio"
                                         aria-checked={exportFormat === 'csv'}
                                         onClick={() => setExportFormat('csv')}
-                                        className={`px-3 py-1.5 rounded-full text-caption transition-all ${exportFormat === 'csv' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
+                                        className={`px-3 py-1.5 rounded-full text-caption transition-all ${exportFormat === 'csv' ? 'bg-card text-brand-primary shadow-sm font-semibold' : 'text-foreground/70 hover:text-foreground font-medium'}`}
                                     >
                                         CSV
                                     </button>
@@ -518,7 +518,7 @@ export default function SalesHistoryPage() {
                                         <div className="flex justify-center pt-2 pb-4">
                                             <button
                                                 onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                                                className="flex items-center gap-2 px-5 py-2 bg-white border border-gray-200 rounded-full text-body-sm font-medium text-gray-700 hover:border-brand-primary/40 hover:bg-brand-subtle hover:text-brand-primary transition-colors"
+                                                className="flex items-center gap-2 px-5 py-2 bg-card border border-border rounded-full text-body-sm font-medium text-foreground/80 hover:border-brand-primary/40 hover:bg-brand-subtle hover:text-brand-primary transition-colors"
                                             >
                                                 <ChevronDown size={16} />
                                                 Voir plus <span className="tabular-nums">({filteredSales.length - visibleCount} restantes)</span>
@@ -527,7 +527,7 @@ export default function SalesHistoryPage() {
                                     )}
                                 </div>
                             ) : viewMode === 'list' ? (
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
                                     <SalesListView
                                         sales={paginatedSales}
                                         formatPrice={formatPrice}
@@ -536,10 +536,10 @@ export default function SalesHistoryPage() {
                                         users={safeUsers}
                                     />
                                     {hasMore && (
-                                        <div className="flex justify-center py-4 border-t border-gray-100">
+                                        <div className="flex justify-center py-4 border-t border-border">
                                             <button
                                                 onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                                                className="flex items-center gap-2 px-5 py-2 bg-white border border-gray-200 rounded-full text-body-sm font-medium text-gray-700 hover:border-brand-primary/40 hover:bg-brand-subtle hover:text-brand-primary transition-colors"
+                                                className="flex items-center gap-2 px-5 py-2 bg-card border border-border rounded-full text-body-sm font-medium text-foreground/80 hover:border-brand-primary/40 hover:bg-brand-subtle hover:text-brand-primary transition-colors"
                                             >
                                                 <ChevronDown size={16} />
                                                 Voir plus <span className="tabular-nums">({filteredSales.length - visibleCount} restantes)</span>

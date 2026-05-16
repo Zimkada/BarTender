@@ -107,9 +107,9 @@ export const TrainingFlow: React.FC = () => {
                         <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-brand-subtle text-brand-primary flex items-center justify-center text-3xl">
                             🎓
                         </div>
-                        <div className="bg-white border border-gray-100 shadow-sm rounded-2xl p-8 md:p-10 w-full">
-                            <h2 className="text-h1 text-gray-900 mb-2">Formation terminée</h2>
-                            <p className="text-body text-gray-500 mb-8">Vous maîtrisez maintenant les bases.</p>
+                        <div className="bg-card border border-border shadow-sm rounded-2xl p-8 md:p-10 w-full">
+                            <h2 className="text-h1 text-foreground mb-2">Formation terminée</h2>
+                            <p className="text-body text-muted-foreground mb-8">Vous maîtrisez maintenant les bases.</p>
                             <button
                                 onClick={async () => {
                                     try {
@@ -133,7 +133,7 @@ export const TrainingFlow: React.FC = () => {
                 console.warn(`TrainingFlow: Unhandled step ${currentStep} for role ${userRole}`);
                 return (
                     <div className="text-center py-10">
-                        <p className="text-body-sm text-gray-500 mb-4">Étape de formation introuvable : {currentStep}</p>
+                        <p className="text-body-sm text-muted-foreground mb-4">Étape de formation introuvable : {currentStep}</p>
                         <button
                             onClick={() => navigate('/dashboard')}
                             className="btn-brand h-10 rounded-xl px-5 text-body-sm font-semibold"
@@ -146,7 +146,7 @@ export const TrainingFlow: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col items-center py-8 relative">
+        <div className="min-h-screen bg-muted flex flex-col items-center py-8 relative">
             {/* Academy Header */}
             <div className="w-full max-w-4xl px-4 mb-5 flex justify-between items-center">
                 <div className="flex items-center gap-3">
@@ -154,13 +154,13 @@ export const TrainingFlow: React.FC = () => {
                         🎓
                     </div>
                     <div>
-                        <h1 className="text-h3 text-gray-900 leading-tight">Académie BarTender</h1>
-                        <p className="text-micro text-gray-400">Formation interactive</p>
+                        <h1 className="text-h3 text-foreground leading-tight">Académie BarTender</h1>
+                        <p className="text-micro text-muted-foreground">Formation interactive</p>
                     </div>
                 </div>
                 <button
                     onClick={() => navigate('/dashboard')}
-                    className="text-caption font-medium text-gray-500 hover:text-gray-900 transition-colors px-3 py-1.5 rounded-lg hover:bg-gray-100"
+                    className="text-caption font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted"
                 >
                     Quitter
                 </button>

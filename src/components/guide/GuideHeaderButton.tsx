@@ -53,15 +53,15 @@ export const GuideHeaderButton: React.FC<GuideHeaderButtonProps> = ({
   const popover = showAllGuides && isPopoverOpen && (
     <AnimatePresence>
       <motion.div
-        className="absolute top-full right-0 mt-2 w-72 md:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col max-h-96"
+        className="absolute top-full right-0 mt-2 w-72 md:w-80 bg-card rounded-lg shadow-xl border border-border z-50 flex flex-col max-h-96"
         initial={{ opacity: 0, scale: 0.95, y: -10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -10 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0">
-          <h3 className="font-semibold text-gray-900">Tous les Guides</h3>
-          <p className="text-xs text-gray-600 mt-1">Choisissez un guide</p>
+        <div className="px-4 py-3 border-b border-border flex-shrink-0">
+          <h3 className="font-semibold text-foreground">Tous les Guides</h3>
+          <p className="text-xs text-foreground/70 mt-1">Choisissez un guide</p>
         </div>
         <div className="flex-1 overflow-y-auto min-h-0">
           {allSuggestions.length > 0 ? (
@@ -74,14 +74,14 @@ export const GuideHeaderButton: React.FC<GuideHeaderButtonProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     {suggestion.emoji && <span className="text-lg">{suggestion.emoji}</span>}
-                    <p className="text-sm font-medium text-gray-900">{suggestion.title}</p>
+                    <p className="text-sm font-medium text-foreground">{suggestion.title}</p>
                   </div>
                 </button>
               ))}
             </div>
           ) : (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm text-gray-600">Aucun guide disponible</p>
+              <p className="text-sm text-foreground/70">Aucun guide disponible</p>
             </div>
           )}
         </div>

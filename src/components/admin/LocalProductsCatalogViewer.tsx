@@ -106,7 +106,7 @@ export function LocalProductsCatalogViewer({
       {/* En-tête */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">📦 Produits Locaux</h2>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-foreground/70">
           {filteredProducts.length} produit{filteredProducts.length !== 1 ? 's' : ''}
         </div>
       </div>
@@ -136,7 +136,7 @@ export function LocalProductsCatalogViewer({
 
         {/* Filtre bar */}
         <select
-          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={filterBar}
           onChange={e => setFilterBar(e.target.value)}
         >
@@ -152,8 +152,8 @@ export function LocalProductsCatalogViewer({
       {/* Liste des produits */}
       {filteredProducts.length === 0 ? (
         <Card className="p-8 text-center">
-          <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-          <p className="text-gray-600">Aucun produit local trouvé</p>
+          <Package className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+          <p className="text-foreground/70">Aucun produit local trouvé</p>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -169,7 +169,7 @@ export function LocalProductsCatalogViewer({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <Package className="h-12 w-12 text-gray-400" />
+                    <Package className="h-12 w-12 text-muted-foreground" />
                   </div>
                 )}
               </div>
@@ -178,7 +178,7 @@ export function LocalProductsCatalogViewer({
               <div className="p-4 space-y-3">
                 {/* Nom */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 line-clamp-2">
+                  <h3 className="font-semibold text-foreground line-clamp-2">
                     {product.localName}
                   </h3>
                   <Badge variant="outline" className="mt-1">
@@ -189,19 +189,19 @@ export function LocalProductsCatalogViewer({
                 {/* Détails */}
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <span className="text-gray-600">Volume:</span>
+                    <span className="text-foreground/70">Volume:</span>
                     <p className="font-medium">{product.volume || 'N/A'}</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Prix:</span>
+                    <span className="text-foreground/70">Prix:</span>
                     <p className="font-medium">{product.price} FCFA</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Catégorie:</span>
+                    <span className="text-foreground/70">Catégorie:</span>
                     <p className="font-medium text-xs">{product.localCategoryName}</p>
                   </div>
                   <div>
-                    <span className="text-gray-600">Stock:</span>
+                    <span className="text-foreground/70">Stock:</span>
                     <p className="font-medium">{product.stock}</p>
                   </div>
                 </div>

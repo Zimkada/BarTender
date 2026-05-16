@@ -28,7 +28,7 @@ export function ViewSwitcherPageHeader({
 }: ViewSwitcherPageHeaderProps) {
 
     const ViewToggle = (
-        <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-xl w-full sm:w-auto border border-amber-400/20">
+        <div className="flex bg-card/50 backdrop-blur-sm p-1 rounded-xl w-full sm:w-auto border border-amber-400/20">
             <Button
                 onClick={() => onViewChange('list')}
                 variant="ghost"
