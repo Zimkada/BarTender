@@ -190,7 +190,7 @@ export function ServerMappingsManager({
       <div className="bg-brand-bg-subtle border border-brand-border rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute -right-8 -top-8 w-32 h-32 bg-brand-primary/5 rounded-full blur-3xl" />
         <div className="relative z-10">
-          <h3 className="text-xl font-bold text-brand-text mb-2 flex items-center gap-2">
+          <h3 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
             <Zap className="text-brand-primary" size={20} />
             Noms d'affichage pour les ventes
           </h3>
@@ -357,7 +357,7 @@ export function ServerMappingsManager({
 
                 <div className="mt-6 flex items-start gap-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
                   <AlertCircle size={16} className="text-brand-primary mt-0.5 shrink-0" />
-                  <p className="text-[10px] font-medium text-brand-text leading-relaxed">
+                  <p className="text-[10px] font-medium text-foreground/80 leading-relaxed">
                     <strong>Note :</strong> Lors du changement de mode, le système utilisera ces mappings pour attribuer automatiquement les ventes aux bons membres de l'équipe.
                   </p>
                 </div>

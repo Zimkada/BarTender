@@ -9,6 +9,7 @@ import {
     ResponsiveContainer,
     Cell
 } from '../charts/RechartsWrapper';
+import { ChartTooltipShell } from '../charts/ChartTooltip';
 import { UserPerformanceStat } from '../../hooks/useTeamPerformance';
 
 interface TeamPerformanceChartProps {
@@ -36,8 +37,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
         if (active && payload && payload.length) {
             const dataPoint = payload[0].payload;
             return (
-                <div className="bg-card p-3 border border-border rounded-xl shadow-lg">
-                    <p className="font-bold text-foreground mb-1">{dataPoint.name}</p>
+                <ChartTooltipShell title={dataPoint.name}>
                     <p className="text-sm text-brand-primary font-bold">
                         {formatPrice(dataPoint.revenue)}
                     </p>
@@ -46,7 +46,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                         <span>Articles: {dataPoint.items}</span>
                     </div>
                     <p className="text-xs text-brand-primary mt-1 capitalize">{dataPoint.role}</p>
-                </div>
+                </ChartTooltipShell>
             );
         }
         return null;
@@ -64,10 +64,10 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                         margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
                         barSize={40} // Consistent bar width
                     >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--brand-bg-subtle)" opacity={0.5} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.55} />
                         <XAxis
                             dataKey="name"
-                            tick={{ fill: '#4b5563', fontSize: 11 }}
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                             axisLine={false}
                             tickLine={false}
                             interval={0}
@@ -76,12 +76,12 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                             height={60}
                         />
                         <YAxis
-                            tick={{ fill: '#9ca3af', fontSize: 11 }}
+                            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                             axisLine={false}
                             tickLine={false}
                             tickFormatter={(value: any) => `${value}`} // Simplify axis labels, keep detail in tooltip
                         />
-                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--brand-bg-subtle)' }} />
+                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.35 }} />
                         <Bar
                             dataKey="revenue"
                             radius={[4, 4, 0, 0]}

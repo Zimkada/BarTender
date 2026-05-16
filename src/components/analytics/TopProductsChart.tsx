@@ -9,6 +9,7 @@ import {
   Bar,
   ResponsiveContainer,
 } from '../charts/RechartsWrapper';
+import { ChartTooltip } from '../charts/ChartTooltip';
 
 interface TopProductData {
   displayName: string;
@@ -154,21 +155,23 @@ export function TopProductsChart({
         <div style={needsScroll ? { minWidth: `${minChartWidth}px` } : { width: '100%' }}>
           <ResponsiveContainer width="100%" height={isMobile ? 300 : 250} minWidth={0} debounce={50}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--brand-bg-subtle)" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.55} />
               <XAxis
                 dataKey="displayName"
-                tick={{ fill: '#9ca3af', fontSize: isMobile ? 11 : 10 }}
+                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 11 : 10 }}
                 angle={isMobile ? -35 : -45}
                 textAnchor="end"
                 height={isMobile ? 100 : 80}
               />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip formatter={(value: any) => {
-                if (metric === 'units') {
-                  return Number(value).toString();
+              <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: isMobile ? 10 : 12 }} />
+              <Tooltip
+                content={
+                  <ChartTooltip
+                    valueFormatter={(value) => metric === 'units' ? value.toLocaleString('fr-FR') : formatPrice(value)}
+                  />
                 }
-                return formatPrice(Number(value));
-              }} />
+                cursor={{ fill: 'hsl(var(--muted))', opacity: 0.35 }}
+              />
               <Bar dataKey={metric} fill="var(--brand-primary)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>

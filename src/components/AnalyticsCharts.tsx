@@ -17,6 +17,7 @@ import {
   ResponsiveContainer,
 } from './charts/RechartsWrapper';
 
+import { ChartTooltip } from './charts/ChartTooltip';
 import { useViewport } from '../hooks/useViewport';
 
 interface AnalyticsChartsProps {
@@ -24,43 +25,15 @@ interface AnalyticsChartsProps {
   expensesByCategory: any;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-card/90 backdrop-blur-md p-3 rounded-xl border border-border shadow-[0_4px_20px_rgb(0,0,0,0.08)]">
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">{label}</p>
-        <div className="space-y-1">
-          {payload.map((entry: any, index: number) => {
-            let rawValue = entry.value;
-            if (Array.isArray(rawValue)) {
-              rawValue = rawValue[1] - rawValue[0];
-            }
-            if (rawValue === undefined || rawValue === null) {
-              rawValue = entry.payload?.[entry.dataKey];
-            }
-            const numVal = Number(rawValue) || 0;
-
-            return (
-              <div key={index} className="flex items-center gap-2">
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: entry.color || entry.fill }}
-                />
-                <span className="text-sm font-medium text-foreground/80">{entry.name}:</span>
-                <span className="text-sm font-bold text-foreground">
-                  {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(numVal)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(value);
 
 const RADIAN = Math.PI / 180;
+const chartAxisTick = { fill: 'hsl(var(--muted-foreground))', fontSize: 12 };
+const chartGridStroke = 'hsl(var(--border))';
+const chartCursorStroke = 'hsl(var(--border))';
+const chartCursorFill = 'hsl(var(--muted))';
+
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 0.45; // Put slightly inside center
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -139,10 +112,10 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                   <stop offset="95%" stopColor={brandAccent} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,0,0,0.05)', strokeWidth: 2 }} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridStroke} opacity={0.55} />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={chartAxisTick} dy={10} />
+              <YAxis axisLine={false} tickLine={false} tick={chartAxisTick} />
+              <Tooltip content={<ChartTooltip valueFormatter={formatCurrency} />} cursor={{ stroke: chartCursorStroke, strokeWidth: 2 }} />
               <Legend
                 iconType="circle"
                 verticalAlign="bottom"
@@ -186,7 +159,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
               <PieChart>
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                <Tooltip content={<ChartTooltip valueFormatter={formatCurrency} />} cursor={{ fill: chartCursorFill, opacity: 0.35 }} />
                 <Pie
                   data={expenseData}
                   cx="50%"
@@ -204,7 +177,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                     <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<ChartTooltip valueFormatter={formatCurrency} />} />
                 <Legend
                   iconType="circle"
                   layout="horizontal"
@@ -227,10 +200,10 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
               <BarChart data={filteredData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }} barSize={16}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chartGridStroke} opacity={0.55} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={chartAxisTick} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={chartAxisTick} />
+                <Tooltip content={<ChartTooltip valueFormatter={formatCurrency} />} cursor={{ fill: chartCursorFill, opacity: 0.35 }} />
                 <Legend
                   iconType="circle"
                   verticalAlign="bottom"

@@ -91,14 +91,14 @@ export function CartFooter({
     // Helper: Générer une couleur de fond stable à partir du nom
     const getAvatarColor = (name: string) => {
         const colors = [
-            'bg-blue-100 text-blue-600',
-            'bg-green-100 text-green-600',
-            'bg-purple-100 text-purple-600',
-            'bg-orange-100 text-orange-600',
-            'bg-pink-100 text-pink-600',
-            'bg-teal-100 text-teal-600',
-            'bg-indigo-100 text-indigo-600',
-            'bg-rose-100 text-rose-600',
+            'bg-blue-100 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300',
+            'bg-green-100 dark:bg-green-950/40 text-green-600 dark:text-green-300',
+            'bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300',
+            'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-300',
+            'bg-pink-100 dark:bg-pink-950/40 text-pink-600 dark:text-pink-300',
+            'bg-teal-100 dark:bg-teal-950/40 text-teal-600 dark:text-teal-300',
+            'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300',
+            'bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300',
         ];
         let hash = 0;
         for (let i = 0; i < name.length; i++) {
@@ -117,7 +117,7 @@ export function CartFooter({
                     <button
                         onClick={() => setShowServerSelection(true)}
                         className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedServer
-                            ? 'bg-card border-border shadow-sm shadow-gray-100/50'
+                            ? 'bg-card border-border shadow-sm dark:shadow-none'
                             : 'bg-brand-primary/5 border-brand-primary/30 shadow-sm shadow-brand-primary/5'
                             }`}
                     >
@@ -136,7 +136,7 @@ export function CartFooter({
                                 )}
                             </div>
                         </div>
-                        <ChevronDown size={14} className={selectedServer ? 'text-gray-300' : 'text-brand-primary/50'} />
+                        <ChevronDown size={14} className={selectedServer ? 'text-muted-foreground' : 'text-brand-primary/50'} />
                     </button>
                 </div>
             )}
@@ -151,7 +151,7 @@ export function CartFooter({
                                 <Receipt size={16} strokeWidth={2.5} />
                             </div>
                             <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-black text-brand-dark uppercase truncate leading-tight">
+                                <span className="text-xs font-black text-brand-primary uppercase truncate leading-tight">
                                     {selectedBonLabel || 'Bon sélectionné'}
                                 </span>
                                 <span className="text-[9px] text-brand-primary font-bold uppercase tracking-wider">
@@ -161,7 +161,7 @@ export function CartFooter({
                         </div>
                         <button
                             onClick={() => onBonChange?.('')}
-                            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full transition-colors"
                         >
                             <X size={18} />
                         </button>
@@ -211,7 +211,7 @@ export function CartFooter({
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-black text-foreground uppercase tracking-wide">Qui prend cette commande ?</h3>
-                                <button onClick={() => setShowServerSelection(false)} className="p-2 bg-muted rounded-full hover:bg-gray-200 transition-colors">
+                                <button onClick={() => setShowServerSelection(false)} className="p-2 bg-muted rounded-full hover:bg-accent transition-colors">
                                     <X size={16} />
                                 </button>
                             </div>
@@ -301,7 +301,7 @@ export function CartFooter({
                                                     onChange={(e) => setTableNumber(e.target.value)}
                                                     placeholder="Ex: 5"
                                                     onKeyDown={(e) => e.key === 'Enter' && handleConfirmCreateBon()}
-                                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
                                                 />
                                             </div>
 
@@ -316,7 +316,7 @@ export function CartFooter({
                                                     onChange={(e) => setCustomerName(e.target.value)}
                                                     placeholder="Ex: Jean"
                                                     onKeyDown={(e) => e.key === 'Enter' && handleConfirmCreateBon()}
-                                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary uppercase placeholder:normal-case"
+                                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary uppercase placeholder:normal-case"
                                                 />
                                             </div>
                                         </div>
@@ -360,7 +360,7 @@ export function CartFooter({
                                             }}
                                         >
                                             <span className="font-black text-foreground text-xs">{opt.label}</span>
-                                            <ArrowRight size={14} className="text-gray-300" />
+                                            <ArrowRight size={14} className="text-muted-foreground" />
                                         </button>
                                     );
                                 })}
@@ -465,7 +465,7 @@ export function CartFooter({
                 <button
                     onClick={onClear}
                     disabled={!hasItems}
-                    className="w-12 h-12 flex items-center justify-center bg-card border border-red-50 text-red-300 hover:text-red-500 rounded-xl hover:bg-red-50 active:scale-95 disabled:opacity-20 transition-all"
+                    className="w-12 h-12 flex items-center justify-center bg-card border border-red-100 dark:border-red-900/40 text-red-300 dark:text-red-400 hover:text-red-500 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 active:scale-95 disabled:opacity-20 transition-all"
                 >
                     <Trash2 size={16} />
                 </button>

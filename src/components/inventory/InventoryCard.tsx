@@ -62,10 +62,10 @@ export function InventoryCard({
                                             setShowAnomalyDetail(!showAnomalyDetail);
                                         }}
                                         className={cn(
-                                            "transition-transform active:scale-90 p-1 -m-1 rounded-full hover:bg-black/5",
-                                            anomaly.severity === 'red' ? "text-red-600" :
-                                                anomaly.severity === 'orange' ? "text-orange-600" :
-                                                    "text-amber-600"
+                                            "transition-transform active:scale-90 p-1 -m-1 rounded-full hover:bg-muted",
+                                            anomaly.severity === 'red' ? "text-red-600 dark:text-red-400" :
+                                                anomaly.severity === 'orange' ? "text-orange-600 dark:text-orange-400" :
+                                                    "text-amber-600 dark:text-amber-400"
                                         )}
                                     >
                                         {anomaly.severity === 'red' ? <ShieldAlert className="w-4 h-4" /> :
@@ -157,7 +157,7 @@ export function InventoryCard({
                         onClick={() => onAdjust(product)}
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 text-foreground disabled:bg-muted disabled:text-muted-foreground"
                     >
                         <BarChart3 size={14} className="mr-1.5" />
                         Ajuster

@@ -310,7 +310,7 @@ export function CreateReturnForm({
                       placeholder={isMobile ? "Rechercher vente ou produit" : "Rechercher une vente ou un produit…"}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 h-11 border border-border rounded-xl bg-muted focus:bg-card text-body-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary transition-colors outline-none"
+                      className="input-token w-full pl-9 pr-3 h-11 border border-border rounded-xl bg-muted focus:bg-card text-body-sm"
                     />
                   </div>
 
@@ -326,7 +326,7 @@ export function CreateReturnForm({
                         ]}
                         value={filterSeller}
                         onChange={(e) => setFilterSeller(e.target.value)}
-                        className="bg-muted border-border h-11 rounded-xl text-body-sm"
+                        className="bg-muted border-border h-11 rounded-xl text-body-sm text-foreground"
                       />
                     </div>
                   )}
@@ -475,7 +475,7 @@ export function CreateReturnForm({
                             <div className="flex items-center gap-2 text-caption">
                               <span className="text-muted-foreground">Disponible</span>
                               <span className="font-semibold text-brand-primary tabular-nums">{available}</span>
-                              <span className="text-gray-300">·</span>
+                              <span className="text-muted-foreground/50">·</span>
                               <span className="text-muted-foreground">Vendu <span className="font-medium text-foreground/70 tabular-nums">{item.quantity}</span></span>
                             </div>
                           </div>
@@ -586,7 +586,7 @@ export function CreateReturnForm({
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
                           rows={3}
-                          className="rounded-xl border-border focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-body-sm bg-muted focus:bg-card transition-colors resize-none outline-none"
+                          className="rounded-xl border-border focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-body-sm text-foreground placeholder:text-muted-foreground bg-muted focus:bg-card transition-colors resize-none outline-none"
                           placeholder="Ex : bouteille cassée, erreur de saisie…"
                         />
                       </div>
@@ -694,8 +694,8 @@ export function CreateReturnForm({
                       <div>
                         <p className="text-micro text-muted-foreground mb-2">Impact inventaire</p>
                         <div className={`flex items-center gap-3 p-3 rounded-xl border ${reason === 'defective' || reason === 'expired'
-                          ? "bg-red-50 text-red-700 border-red-100"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                          ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-100 dark:border-red-900/50"
+                          : "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900/50"
                           }`}>
                           <span className="text-base">
                             {reason === 'defective' || reason === 'expired' ? "⚠️" : "🔄"}

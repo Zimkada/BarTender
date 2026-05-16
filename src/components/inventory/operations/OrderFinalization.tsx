@@ -183,7 +183,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                         placeholder="Filtrer..."
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-sm focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all"
+                        className="input-token w-full pl-9 pr-4 py-2 bg-muted border border-border rounded-xl text-sm"
                     />
                 </div>
 
@@ -228,7 +228,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                         </Button>
                     )}
                     {savedOrderId && (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-bold">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/40 rounded-lg text-green-700 dark:text-green-400 text-sm font-bold">
                             <CheckCircle2 className="w-4 h-4" />
                             Commande sauvegardée
                         </div>
@@ -251,7 +251,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                 <th className="px-4 py-4 w-12"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-border">
                             {filteredItems.map(item => (
                                 <tr key={item.productId} className="hover:bg-muted/50 transition-colors">
                                     <td className="px-6 py-4">
@@ -264,7 +264,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                             min="0"
                                             value={item.quantity}
                                             onChange={e => updateItem(item.productId, { quantity: parseInt(e.target.value) || 0 })}
-                                            className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-center font-bold focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="input-token w-full px-3 py-2 bg-muted border border-border rounded-lg text-center font-bold"
                                         />
                                     </td>
                                     <td className="px-4 py-4">
@@ -277,7 +277,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                 const num = val === '' ? 0 : parseInt(val);
                                                 updateItem(item.productId, { lotSize: isNaN(num) ? 0 : num });
                                             }}
-                                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-center text-muted-foreground focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="input-token w-full px-3 py-2 bg-card border border-border rounded-lg text-center"
                                         />
                                     </td>
                                     <td className="px-4 py-4">
@@ -290,7 +290,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                 const num = val === '' ? 0 : parseFloat(val);
                                                 updateItem(item.productId, { lotPrice: isNaN(num) ? 0 : num });
                                             }}
-                                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-center text-muted-foreground focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="input-token w-full px-3 py-2 bg-card border border-border rounded-lg text-center"
                                         />
                                     </td>
                                     <td className="px-4 py-4">
@@ -299,7 +299,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                             placeholder="Standard"
                                             value={item.supplier}
                                             onChange={e => updateItem(item.productId, { supplier: e.target.value })}
-                                            className="w-full px-3 py-2 bg-card border border-border rounded-lg text-muted-foreground focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                            className="input-token w-full px-3 py-2 bg-card border border-border rounded-lg"
                                         />
                                     </td>
                                     <td className="px-4 py-4 text-right font-bold text-foreground">
@@ -322,7 +322,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                     <td className="px-4 py-4">
                                         <button
                                             onClick={() => removeItem(item.productId)}
-                                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                            className="p-2 text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-all"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -377,7 +377,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                 type="number"
                                                 value={item.quantity}
                                                 onChange={e => updateItem(item.productId, { quantity: parseInt(e.target.value) || 0 })}
-                                                className="w-full px-4 py-3 bg-muted border border-border rounded-xl font-bold text-lg text-center focus:ring-2 focus:ring-brand-primary/20 outline-none"
+                                                className="input-token w-full px-4 py-3 bg-muted border border-border rounded-xl font-bold text-lg text-center"
                                             />
                                         </div>
                                     </div>
@@ -412,7 +412,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                             const num = val === '' ? 0 : parseInt(val);
                                                             updateItem(item.productId, { lotSize: isNaN(num) ? 0 : num });
                                                         }}
-                                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
+                                                        className="input-token w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
                                                     />
                                                 </div>
                                                 <div>
@@ -425,7 +425,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                             const num = val === '' ? 0 : parseFloat(val);
                                                             updateItem(item.productId, { lotPrice: isNaN(num) ? 0 : num });
                                                         }}
-                                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
+                                                        className="input-token w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
                                                     />
                                                 </div>
                                                 <div className="col-span-2">
@@ -435,11 +435,11 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                                         value={item.supplier}
                                                         onChange={e => updateItem(item.productId, { supplier: e.target.value })}
                                                         placeholder="Nom du fournisseur"
-                                                        className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
+                                                        className="input-token w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm"
                                                     />
                                                 </div>
                                                 <div className="col-span-2 pt-2">
-                                                    <Button variant="ghost" size="sm" onClick={() => removeItem(item.productId)} className="w-full text-red-500 hover:bg-red-50 hover:text-red-600">
+                                                    <Button variant="ghost" size="sm" onClick={() => removeItem(item.productId)} className="w-full text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-300">
                                                         <Trash2 className="w-4 h-4 mr-2" />
                                                         Retirer de la commande
                                                     </Button>
@@ -462,7 +462,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                         <span className="text-xl font-black text-brand-primary">{formatPrice(totals.totalCost)}</span>
                     </div>
                     {savedOrderId ? (
-                        <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-bold">
+                        <div className="flex items-center justify-center gap-2 py-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900/40 rounded-xl text-green-700 dark:text-green-400 text-sm font-bold">
                             <CheckCircle2 className="w-4 h-4" />
                             Commande sauvegardée
                         </div>

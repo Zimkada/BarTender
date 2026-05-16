@@ -87,3 +87,30 @@
 .accent-brand {
     accent-color: var(--brand-primary);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Inputs tokenisés — base réutilisable pour <input>/<textarea>/<select>
+   Couvre : couleur de texte, placeholder, ring focus brand, outline.
+   N'impose PAS la taille (padding/height/rounded) ni le background :
+   à fournir dans className utilisateur pour rester compositionnel.
+   ──────────────────────────────────────────────────────────────────────────── */
+.input-token {
+    color: hsl(var(--foreground));
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.input-token::placeholder {
+    color: hsl(var(--muted-foreground));
+}
+
+.input-token:focus,
+.input-token:focus-visible {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.input-token:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

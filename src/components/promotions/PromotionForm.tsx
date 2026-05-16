@@ -194,7 +194,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                 {/* Header (Mobile-Friendly) */}
                 <div className="md:hidden bg-card border-b border-border p-4 flex items-center justify-between">
                     <BackButton onClick={onClose} className="mr-2" />
-                    <h2 className="font-bold text-gray-800">Promotion Studio</h2>
+                    <h2 className="font-bold text-foreground">Promotion Studio</h2>
                     <Button onClick={() => handleSubmit()} size="sm" className="btn-brand font-bold">
                         OK
                     </Button>
@@ -208,7 +208,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             <div className="flex items-center gap-4">
                                 <BackButton onClick={onClose} />
                                 <div>
-                                    <h1 className="text-3xl font-black text-foreground uppercase tracking-tight flex items-center gap-3">
+                                    <h1 className="text-3xl font-bold text-foreground uppercase tracking-tight flex items-center gap-3">
                                         Promotion Studio
                                         <Wand2 className="text-brand-primary" />
                                     </h1>
@@ -220,30 +220,30 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 1: Basics */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">L'Identité</h2>
+                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">L'Identité</h2>
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="promoName" className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 block">Nom de la promotion</Label>
+                                    <Label htmlFor="promoName" className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">Nom de la promotion</Label>
                                     <Input
                                         id="promoName"
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="ex: HAPPY HOUR CHILL..."
-                                        className="h-14 text-lg font-bold bg-slate-50 border-transparent focus:bg-card focus:border-brand-primary transition-all rounded-2xl"
+                                        className="h-14 text-lg font-semibold bg-muted border-border focus:bg-card focus:border-brand-primary transition-all rounded-2xl"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="description" className="text-xs font-black text-muted-foreground uppercase tracking-widest mb-2 block">Accroche Marketing</Label>
+                                    <Label htmlFor="description" className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">Accroche Marketing</Label>
                                     <Textarea
                                         id="description"
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder="Décrivez l'avantage client..."
                                         rows={2}
-                                        className="bg-slate-50 border-transparent focus:bg-card focus:border-brand-primary transition-all rounded-2xl p-4"
+                                        className="bg-muted border-border focus:bg-card focus:border-brand-primary transition-all rounded-2xl p-4"
                                     />
                                 </div>
                             </div>
@@ -252,7 +252,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 2: Type Selection */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">Le Mécanisme</h2>
+                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">Le Mécanisme</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                 {promotionTypes.map((t) => (
@@ -262,13 +262,13 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         onClick={() => setType(t.id as PromotionType)}
                                         className={`p-4 rounded-2xl border-2 text-left transition-all group ${type === t.id
                                             ? 'border-brand-primary bg-brand-subtle shadow-lg shadow-brand-subtle/40'
-                                            : 'border-border hover:border-brand-subtle bg-slate-50/50'
+                                            : 'border-border hover:border-brand-subtle bg-muted/70'
                                             }`}
                                     >
                                         <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-all ${type === t.id ? 'btn-brand shadow-lg' : 'bg-card text-muted-foreground'}`}>
                                             {t.icon}
                                         </div>
-                                        <div className={`font-bold text-sm ${type === t.id ? 'text-brand-dark' : 'text-foreground/80'}`}>{t.label}</div>
+                                        <div className={`font-bold text-sm ${type === t.id ? 'text-brand-primary' : 'text-foreground/80'}`}>{t.label}</div>
                                         <div className="text-[10px] text-muted-foreground font-medium truncate italic">{t.description}</div>
                                     </button>
                                 ))}
@@ -283,7 +283,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     <Tag size={32} />
                                 </div>
                                 <div className="flex-1 w-full space-y-2">
-                                    <div className="text-xs font-black text-brand-primary opacity-40 uppercase tracking-[0.15em]">Valeur de la remise</div>
+                                    <div className="text-xs font-bold text-brand-primary opacity-60 uppercase tracking-[0.15em]">Valeur de la remise</div>
 
                                     {(type === 'pourcentage' || type === 'percentage') && (
                                         <div className="flex items-center gap-4">
@@ -293,9 +293,9 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 max="100"
                                                 value={discountPercentage}
                                                 onChange={(e) => setDiscountPercentage(Number(e.target.value))}
-                                                className="w-full bg-transparent text-4xl font-black text-brand-primary outline-none"
+                                                className="w-full bg-transparent text-4xl font-bold text-brand-primary outline-none"
                                             />
-                                            <span className="text-4xl font-black text-brand-primary opacity-20">%</span>
+                                            <span className="text-4xl font-bold text-brand-primary opacity-30">%</span>
                                         </div>
                                     )}
 
@@ -306,9 +306,9 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 min="0"
                                                 value={discountAmount}
                                                 onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                                                className="w-full bg-transparent text-4xl font-black text-brand-primary outline-none"
+                                                className="w-full bg-transparent text-4xl font-bold text-brand-primary outline-none"
                                             />
-                                            <span className="text-2xl font-black text-brand-primary opacity-20">FCFA</span>
+                                            <span className="text-2xl font-bold text-brand-primary opacity-30">FCFA</span>
                                         </div>
                                     )}
 
@@ -319,9 +319,9 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 min="0"
                                                 value={specialPrice}
                                                 onChange={(e) => setSpecialPrice(Number(e.target.value))}
-                                                className="w-full bg-transparent text-4xl font-black text-brand-primary outline-none"
+                                                className="w-full bg-transparent text-4xl font-bold text-brand-primary outline-none"
                                             />
-                                            <span className="text-2xl font-black text-brand-primary opacity-20">FCFA</span>
+                                            <span className="text-2xl font-bold text-brand-primary opacity-30">FCFA</span>
                                         </div>
                                     )}
 
@@ -332,7 +332,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 min="2"
                                                 value={bundleQuantity}
                                                 onChange={(e) => setBundleQuantity(Number(e.target.value))}
-                                                className="w-16 bg-card rounded-xl p-2 text-2xl font-black text-brand-primary text-center shadow-sm"
+                                                className="w-16 bg-card rounded-xl p-2 text-2xl font-bold text-brand-primary text-center shadow-sm"
                                             />
                                             <span className="font-bold text-brand-primary opacity-40 uppercase">Articles pour</span>
                                             <div className="flex items-center gap-2">
@@ -341,9 +341,9 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                     min="0"
                                                     value={bundlePrice}
                                                     onChange={(e) => setBundlePrice(Number(e.target.value))}
-                                                    className="w-32 bg-transparent text-2xl font-black text-brand-primary outline-none"
+                                                    className="w-32 bg-transparent text-2xl font-bold text-brand-primary outline-none"
                                                 />
-                                                <span className="text-lg font-black text-brand-primary opacity-20">FCFA</span>
+                                                <span className="text-lg font-bold text-brand-primary opacity-30">FCFA</span>
                                             </div>
                                         </div>
                                     )}
@@ -354,7 +354,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 3: Targeting */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">Le Ciblage</h2>
+                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">Le Ciblage</h2>
                             </div>
 
                             <RadioGroup
@@ -371,14 +371,14 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     <div
                                         key={t.id}
                                         onClick={() => setTargetType(t.id as 'all' | 'category' | 'product')}
-                                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer h-full ${targetType === t.id ? 'border-brand-primary bg-brand-subtle' : 'border-slate-100 bg-slate-50 hover:border-brand-subtle'}`}
+                                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer h-full ${targetType === t.id ? 'border-brand-primary bg-brand-subtle' : 'border-border bg-muted/70 hover:border-brand-subtle'}`}
                                     >
                                         <RadioGroupItem value={t.id} id={`targetType-${t.id}`} className="text-brand-primary border-brand-subtle shrink-0" />
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
                                             <span className={`p-1.5 rounded-md shrink-0 ${targetType === t.id ? 'bg-brand-primary text-white' : 'bg-card text-muted-foreground'}`}>
                                                 {t.icon}
                                             </span>
-                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-brand-dark' : 'text-foreground/70'}`}>
+                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-brand-primary' : 'text-foreground/70'}`}>
                                                 {t.label}
                                             </span>
                                         </div>
@@ -392,7 +392,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="border border-border rounded-3xl p-6 bg-slate-50 max-h-64 overflow-y-auto overflow-hidden shadow-inner"
+                                        className="border border-border rounded-3xl p-6 bg-muted max-h-64 overflow-y-auto overflow-hidden shadow-inner"
                                     >
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                             {categories.map(cat => (
@@ -418,7 +418,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="border border-border rounded-3xl p-6 bg-slate-50 overflow-hidden shadow-inner"
+                                        className="border border-border rounded-3xl p-6 bg-muted overflow-hidden shadow-inner"
                                     >
                                         <div className="relative mb-4">
                                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -427,7 +427,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 placeholder="Rechercher un produit..."
                                                 value={productSearch}
                                                 onChange={(e) => setProductSearch(e.target.value)}
-                                                className="w-full bg-card rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
+                                                className="w-full bg-card text-foreground placeholder:text-muted-foreground rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
                                             />
                                         </div>
                                         <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
@@ -458,11 +458,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 4: Dates */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-black text-foreground uppercase tracking-wider">La Période</h2>
+                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">La Période</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="startDate" className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Date de lancement</Label>
+                                    <Label htmlFor="startDate" className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Date de lancement</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                         <input
@@ -470,22 +470,22 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                             type="date"
                                             value={startDate}
                                             onChange={(e) => setStartDate(e.target.value)}
-                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 font-bold text-gray-800 focus:ring-2 ring-brand-primary/20"
+                                            className="w-full h-14 bg-muted border border-border rounded-2xl pl-12 pr-4 font-bold text-foreground focus:ring-2 ring-brand-primary/20 outline-none"
                                             required
                                         />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="endDate" className="text-xs font-black text-muted-foreground uppercase tracking-widest pl-1">Fin (Illimité si vide)</Label>
+                                    <Label htmlFor="endDate" className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Fin (Illimité si vide)</Label>
                                     <div className="relative group">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-hover:text-brand-primary" size={18} />
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-brand-primary" size={18} />
                                         <input
                                             id="endDate"
                                             type="date"
                                             value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
                                             min={startDate}
-                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 font-bold text-gray-800 focus:ring-2 ring-brand-primary/20"
+                                            className="w-full h-14 bg-muted border border-border rounded-2xl pl-12 pr-4 font-bold text-foreground focus:ring-2 ring-brand-primary/20 outline-none"
                                         />
                                     </div>
                                 </div>
@@ -497,13 +497,13 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             <Button
                                 onClick={onClose}
                                 variant="ghost"
-                                className="h-14 px-8 rounded-2xl font-bold text-muted-foreground hover:bg-slate-100 transition-all flex-1"
+                                className="h-14 px-8 rounded-2xl font-bold text-muted-foreground hover:bg-muted transition-all flex-1"
                             >
                                 Abandonner
                             </Button>
                             <Button
                                 onClick={() => handleSubmit()}
-                                className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
+                                className="h-14 px-12 rounded-2xl font-bold uppercase tracking-widest btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
                             >
                                 <Save className="mr-2" size={20} />
                                 Activer la Promotion
@@ -513,14 +513,14 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                 </div>
 
                 {/* Right Column: Live Preview Card */}
-                <div className="hidden md:flex flex-1 bg-slate-100 items-center justify-center p-12 relative overflow-hidden">
+                <div className="hidden md:flex flex-1 bg-muted items-center justify-center p-12 relative overflow-hidden">
                     {/* Background decoration */}
                     <div className="absolute top-0 right-0 w-96 h-96 bg-brand-primary opacity-20 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-primary opacity-10 blur-[80px] rounded-full -translate-x-1/2 translate-y-1/2"></div>
 
                     <div className="max-w-md w-full perspective-1000">
                         <div className="mb-8 text-center">
-                            <span className="px-5 py-2 rounded-full bg-brand-subtle text-brand-primary font-black text-xs uppercase tracking-widest border border-brand-subtle">
+                            <span className="px-5 py-2 rounded-full bg-brand-subtle text-brand-primary font-bold text-xs uppercase tracking-widest border border-brand-subtle">
                                 Prévisualisation en direct
                             </span>
                         </div>
@@ -543,7 +543,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     </div>
                                 </div>
 
-                                <h2 className="text-3xl font-black text-gray-800 mb-2 uppercase tracking-tight break-words">
+                                <h2 className="text-3xl font-bold text-foreground mb-2 uppercase tracking-tight break-words">
                                     {name || 'Nom de la Promo'}
                                 </h2>
                                 <p className="text-muted-foreground font-medium italic text-sm mb-10 min-h-[40px]">
@@ -552,8 +552,8 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
 
                                 <div className="space-y-6">
                                     <div className="py-6 border-y border-dashed border-border">
-                                        <div className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Offre Exclusive</div>
-                                        <div className="text-5xl font-black text-foreground leading-tight">
+                                        <div className="text-[10px] font-bold text-brand-primary uppercase tracking-[0.3em] mb-2">Offre Exclusive</div>
+                                        <div className="text-5xl font-bold text-foreground leading-tight">
                                             {(type === 'pourcentage' || type === 'percentage') && `-${discountPercentage}%`}
                                             {(type === 'reduction_vente' || type === 'fixed_discount') && `-${discountAmount} F`}
                                             {type === 'reduction_produit' && `-${discountAmount} F`}
@@ -566,14 +566,14 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between items-center text-[10px] font-black text-gray-300 uppercase tracking-widest px-4">
+                                    <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-4">
                                         <div className="flex flex-col items-start gap-1">
                                             <span>Valide Du</span>
-                                            <span className="text-foreground bg-slate-50 px-2 py-1 rounded-md">{format(new Date(startDate), 'dd MMM yyyy', { locale: fr })}</span>
+                                            <span className="text-foreground bg-muted px-2 py-1 rounded-md">{format(new Date(startDate), 'dd MMM yyyy', { locale: fr })}</span>
                                         </div>
                                         <div className="flex flex-col items-end gap-1 text-right">
                                             <span>Expire Le</span>
-                                            <span className="text-foreground bg-slate-50 px-2 py-1 rounded-md">
+                                            <span className="text-foreground bg-muted px-2 py-1 rounded-md">
                                                 {endDate ? format(new Date(endDate), 'dd MMM yyyy', { locale: fr }) : 'JAMAIS'}
                                             </span>
                                         </div>
@@ -582,13 +582,13 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             </div>
 
                             {/* Barcode/Branding Area */}
-                            <div className="bg-slate-50 p-6 flex flex-col items-center gap-3">
+                            <div className="bg-muted p-6 flex flex-col items-center gap-3">
                                 <div className="w-full h-12 flex gap-1 items-center justify-center opacity-20 overflow-hidden">
                                     {[...Array(30)].map((_, i) => (
                                         <div key={i} className={`bg-gray-900 w-[${Math.random() * 3 + 1}px] h-full`}></div>
                                     ))}
                                 </div>
-                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.4em]">BarTender Digital Pass</span>
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.4em]">BarTender Digital Pass</span>
                             </div>
                         </motion.div>
                     </div>

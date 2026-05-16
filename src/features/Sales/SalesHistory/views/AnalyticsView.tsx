@@ -7,6 +7,7 @@ import { getSaleDate, isConfirmedReturn } from '../../../../utils/saleHelpers';
 import { TopProductsChart } from '../../../../components/analytics/TopProductsChart';
 import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
 import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
+import { ChartTooltip } from '../../../../components/charts/ChartTooltip';
 import {
   LineChart,
   CartesianGrid,
@@ -47,6 +48,9 @@ import { ThemeService } from '../../../../services/theme.service';
 
 // NOTE: Chart colors are now dynamic inside the component
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
+
+const chartAxisTick = { fill: 'hsl(var(--muted-foreground))', fontSize: 12 };
+const chartLegendStyle = { color: 'hsl(var(--muted-foreground))', fontSize: '12px' };
 
 interface AnalyticsViewProps {
   sales: Sale[];
@@ -406,13 +410,10 @@ export function AnalyticsView({
           <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <LineChart data={evolutionChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--brand-bg-subtle)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', color: 'hsl(var(--foreground))', border: '1px solid var(--brand-primary)', borderRadius: '12px', boxShadow: '0 4px 12px var(--brand-shadow)' }}
-                  formatter={(value: any) => formatPrice(Number(value))}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.55} />
+                <XAxis dataKey="label" tick={chartAxisTick} />
+                <YAxis tick={chartAxisTick} />
+                <Tooltip content={<ChartTooltip valueFormatter={(value) => formatPrice(value)} />} />
                 <Line type="monotone" dataKey="revenue" stroke="var(--brand-primary)" strokeWidth={3} dot={{ fill: 'var(--brand-primary)', r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
@@ -435,17 +436,18 @@ export function AnalyticsView({
                   dataKey="value"
                   isAnimationActive={false}
                   label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
+                  labelLine={{ stroke: 'hsl(var(--border))' }}
                 >
                   {categoryData.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
+                <Tooltip content={<ChartTooltip valueFormatter={(value) => formatPrice(value)} />} />
                 <Legend
                   layout={isMobile ? "horizontal" : "vertical"}
                   align={isMobile ? "center" : "right"}
                   verticalAlign={isMobile ? "bottom" : "middle"}
-                  wrapperStyle={{ fontSize: '12px' }}
+                  wrapperStyle={chartLegendStyle}
                 />
               </PieChart>
             </ResponsiveContainer>
