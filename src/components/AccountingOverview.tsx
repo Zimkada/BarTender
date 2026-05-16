@@ -693,20 +693,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
   return (
     <div className={`${isMobile ? 'p-3 space-y-4 pb-24' : 'p-6 space-y-6'}`}>
-      {/* Header with Glassmorphism feel */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className={`font-bold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              📊 Pilotage
-            </h2>
-          </div>
-
-          <p className="text-muted-foreground text-sm font-medium">
-            {currentBar.name} • Comptabilité & Finances
-          </p>
-        </div>
-
+      {/* Actions toolbar — le titre est porté par TabbedPageHeader */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4">
           {/* Export Actions — Primary (filled) */}
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">

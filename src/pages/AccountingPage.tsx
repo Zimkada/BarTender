@@ -61,7 +61,7 @@ export default function AccountingPage() {
     if (!currentBar || !currentSession) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
-                <p className="text-gray-500">Sélectionnez un bar pour accéder à la comptabilité</p>
+                <p className="text-body-sm text-muted-foreground">Sélectionnez un bar pour accéder à la comptabilité</p>
             </div>
         );
     }
@@ -101,7 +101,7 @@ export default function AccountingPage() {
                     <Suspense fallback={
                         <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
-                            <span className="ml-3 text-body-sm text-gray-600">Chargement...</span>
+                            <span className="ml-3 text-body-sm text-muted-foreground">Chargement...</span>
                         </div>
                     }>
                         {activeTab === 'overview' && <AccountingOverview period={periodProps} />}

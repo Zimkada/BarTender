@@ -104,7 +104,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                         placeholder="Rechercher une date (JJ-MM-AAAA)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-card border border-brand-subtle rounded-xl text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all shadow-sm"
+                        className="input-token w-full pl-10 pr-4 py-2 bg-card border border-border rounded-xl shadow-sm"
                     />
                 </div>
             </div>
@@ -124,7 +124,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                         <div className="min-w-0">
                             <p className="text-micro text-muted-foreground">{kpi.label}</p>
                             {periodLabel && (
-                                <p className="text-[10px] text-muted-foreground mb-0.5">{periodLabel}</p>
+                                <p className="text-caption text-muted-foreground mb-0.5">{periodLabel}</p>
                             )}
                             <p className="text-body font-semibold text-foreground tabular-nums truncate">
                                 {formatPrice(kpi.value)}
@@ -172,14 +172,14 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                             <tbody className="divide-y divide-border">
                                 {filteredDays.slice(0, visibleCount).map((day, idx) => (
                                     <tr key={day.sale_date || idx} className="hover:bg-muted/50 transition-colors group">
-                                        <td className="py-2 md:py-4 text-xs md:text-sm font-medium text-foreground">
+                                        <td className="py-2 md:py-4 text-caption md:text-body-sm font-medium text-foreground">
                                             {day.sale_date?.split('-').reverse().join('-')}
                                         </td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center">{formatPrice(day.cash_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.card_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-foreground/70 text-center sm:hidden">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-foreground text-center">{formatPrice(day.net_revenue, false)}</td>
+                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center">{formatPrice(day.cash_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.card_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center sm:hidden">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-caption md:text-body-sm font-semibold text-foreground text-center">{formatPrice(day.net_revenue, false)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -188,7 +188,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                             <div className="flex justify-center pt-4 pb-2">
                                 <button
                                     onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                                    className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-body-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
                                 >
                                     <ChevronDown size={16} />
                                     Voir plus ({filteredDays.length - visibleCount} jours restants)
