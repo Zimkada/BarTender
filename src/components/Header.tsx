@@ -29,6 +29,7 @@ import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import AnimatedBarName from './AnimatedBarName';
 import { AnimatedCounter } from './AnimatedCounter';
+import { ColorModeToggle } from './ColorModeToggle';
 import { getInitials } from '../utils/stringFormatting';
 
 //import { Bar } from '../types'; // NEW: Import Bar type
@@ -106,6 +107,7 @@ export function Header({
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
                 <RefreshButton />
+                <ColorModeToggle variant="header" />
               </div>
 
               {/* Logo + Nom bar - CENTER/RIGHT */}
@@ -152,7 +154,7 @@ export function Header({
                   <SyncStatusBadge compact position="header" />
                   <RefreshButton />
                   <NetworkBadge />
-
+                  <ColorModeToggle variant="header" />
 
                   <Button
                     onClick={logout}
@@ -262,6 +264,9 @@ export function Header({
 
             {/* ✅ Badge réseau compact (offline/connexion lente) */}
             <NetworkBadge />
+
+            {/* ✅ Toggle Mode d'affichage (système / clair / sombre) */}
+            <ColorModeToggle variant="header" />
 
             {/* NEW: Desktop buttons for common modals */}
             {currentSession?.role !== 'super_admin' && (
