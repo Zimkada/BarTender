@@ -353,17 +353,8 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-h2 text-foreground flex items-center gap-2">
-            💸 <span>Dépenses & charges</span>
-          </h2>
-          <p className="text-body-sm text-muted-foreground">
-            Gérez vos flux sortants et approvisionnements.
-          </p>
-        </div>
-
+      {/* Actions toolbar — le titre est porté par TabbedPageHeader */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
