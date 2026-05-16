@@ -75,9 +75,9 @@ export default function AccountingPage() {
                 icon={<DollarSign size={24} />}
                 guideId="accounting-guide"
                 tabs={[
-                    { id: 'overview', label: 'Vue globale', icon: BarChart3 },
-                    { id: 'revenues', label: 'Revenus', icon: DollarSign },
-                    { id: 'expenses', label: 'Dépenses', icon: Receipt },
+                    { id: 'overview', label: 'Vue globale', icon: BarChart3, dataGuide: 'accounting-tab-overview' },
+                    { id: 'revenues', label: 'Revenus', icon: DollarSign, dataGuide: 'accounting-tab-revenues' },
+                    { id: 'expenses', label: 'Dépenses', icon: Receipt, dataGuide: 'accounting-tab-expenses' },
                 ]}
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as TabType)}

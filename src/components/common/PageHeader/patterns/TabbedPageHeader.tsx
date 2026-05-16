@@ -10,6 +10,8 @@ export interface TabItem {
     badge?: number;
     /** Variante visuelle du badge — 'default' = brand-subtle, 'alert' = rouge */
     badgeVariant?: 'default' | 'alert';
+    /** Marqueur facultatif pour le ciblage par les guides tour (data-guide="..."). */
+    dataGuide?: string;
 }
 
 export interface TabbedPageHeaderProps {
@@ -92,6 +94,7 @@ export function TabbedPageHeader({
                                 key={tab.id}
                                 onClick={() => onTabChange(tab.id)}
                                 variant="ghost"
+                                data-guide={tab.dataGuide}
                                 className={`flex-1 py-1.5 sm:py-2 px-3 sm:px-4 text-caption sm:text-body-sm font-medium transition-all whitespace-nowrap rounded-lg ${isActive
                                     ? 'glass-action-button-active-2026 font-semibold'
                                     : 'glass-action-button-2026 opacity-80'

@@ -49,7 +49,7 @@ export const ACCOUNTING_MODULE_GUIDE: GuideTour = {
             title: 'Contrôlez la Période d\'Analyse',
             description:
                 'Avant toute analyse, vérifiez toujours la **période sélectionnée**. Les statistiques (Revenus/Dépenses) sont regroupées par **journée commerciale** (ex: de 6h à 6h si votre bar ferme à l\'aube).',
-            elementSelector: '.date-range-filter-container',
+            elementSelector: '[data-guide="accounting-period-filter"]',
             position: 'bottom',
             tips: [
                 '📈 Comparez le mois actuel au mois précédent pour mesurer votre croissance',
@@ -79,7 +79,7 @@ export const ACCOUNTING_MODULE_GUIDE: GuideTour = {
             title: 'Détail des Revenus',
             description:
                 'L\'onglet **Revenus** segmente vos rentrées d\'argent. Identifiez quel type de consommation génère le plus de cash et analysez les méthodes de paiement les plus utilisées.',
-            elementSelector: '[data-role="tab-revenues"]',
+            elementSelector: '[data-guide="accounting-tab-revenues"]',
             position: 'bottom',
             tips: [
                 '🍹 Voyez quels produits sont vos "vaches à lait"',
@@ -95,7 +95,7 @@ export const ACCOUNTING_MODULE_GUIDE: GuideTour = {
             title: 'Gestion des Dépenses & Salaires',
             description:
                 'Ici, vous gérez vos coûts. **Approvisionnements**, charges fixes et **paie du personnel**. Notez que les filtres de date ici suivent la **date réelle de paiement** pour votre trésorerie.',
-            elementSelector: '[data-role="tab-expenses"]',
+            elementSelector: '[data-guide="accounting-tab-expenses"]',
             position: 'bottom',
             tips: [
                 '💸 **Salaires** : Filtrés par date de décaissement (Trésorerie)',

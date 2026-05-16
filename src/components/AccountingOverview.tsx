@@ -749,7 +749,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         </div>
 
         {/* Period Filter */}
-        <div className="w-full xl:w-auto overflow-x-auto">
+        <div className="w-full xl:w-auto overflow-x-auto" data-guide="accounting-period-filter">
           <PeriodFilter
             timeRange={timeRange}
             setTimeRange={setTimeRange}
@@ -762,6 +762,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       </div>
 
       {/* Main Stats KPIs */}
+      <div data-guide="accounting-kpis">
       <AccountingKPIs
         viewMode={viewMode}
         periodLabel={periodLabel}
@@ -783,6 +784,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
           cashRunway
         }}
       />
+      </div>
 
       {/* Charts Section */}
       <Suspense fallback={<div className="h-64 bg-muted rounded-xl animate-pulse flex items-center justify-center text-muted-foreground">Chargement graphiques...</div>}>

@@ -546,7 +546,7 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Détecter les Anomalies (Filtre Suspects)',
       description:
         'Le bouton **Suspects** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif, vente à découvert ou **stock dormant**. Un inventaire sain ne devrait afficher aucun résultat ici.',
-      elementSelector: '[data-guide="inventory-filter-suspicious"]',
+      elementSelector: '[data-guide="inventory-filter-anomalies"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
