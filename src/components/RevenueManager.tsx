@@ -32,7 +32,6 @@ export function RevenueManager({ period }: RevenueManagerProps) {
         setTimeRange,
         startDate,
         endDate,
-        periodLabel,
         customRange,
         updateCustomRange
     } = period;
@@ -53,6 +52,9 @@ export function RevenueManager({ period }: RevenueManagerProps) {
 
     // Reset pagination quand les filtres changent
     useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchTerm, timeRange, startDate, endDate]);
+
+    // YYYY-MM-DD pour comparaison avec day.sale_date
+    const todayStr = useMemo(() => dateToYYYYMMDD(new Date()), []);
 
     const filteredDays = useMemo(() => {
         if (!searchTerm) return days;
@@ -123,9 +125,6 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                         </div>
                         <div className="min-w-0">
                             <p className="text-micro text-muted-foreground">{kpi.label}</p>
-                            {periodLabel && (
-                                <p className="text-caption text-muted-foreground mb-0.5">{periodLabel}</p>
-                            )}
                             <p className="text-body font-semibold text-foreground tabular-nums truncate">
                                 {formatPrice(kpi.value)}
                             </p>
@@ -159,30 +158,55 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead>
+                            <thead className="sticky top-0 bg-card z-10">
                                 <tr className="text-micro text-muted-foreground border-b border-border">
-                                    <th className="pb-4">Date</th>
-                                    <th className="pb-4 text-center">Espèces</th>
-                                    <th className="pb-4 text-center hidden sm:table-cell">Mobile Money</th>
-                                    <th className="pb-4 text-center hidden sm:table-cell">Carte & Autres</th>
-                                    <th className="pb-4 text-center sm:hidden">Autres moyens</th>
-                                    <th className="pb-4 text-center text-brand-primary">Total jour</th>
+                                    <th className="py-3">Date</th>
+                                    <th className="py-3 text-center">Espèces</th>
+                                    <th className="py-3 text-center hidden sm:table-cell">Mobile Money</th>
+                                    <th className="py-3 text-center hidden sm:table-cell">Carte & Autres</th>
+                                    <th className="py-3 text-center sm:hidden">Autres</th>
+                                    <th className="py-3 text-center text-brand-primary">Total jour</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
-                                {filteredDays.slice(0, visibleCount).map((day, idx) => (
-                                    <tr key={day.sale_date || idx} className="hover:bg-muted/50 transition-colors group">
-                                        <td className="py-2 md:py-4 text-caption md:text-body-sm font-medium text-foreground">
-                                            {day.sale_date?.split('-').reverse().join('-')}
-                                        </td>
-                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center">{formatPrice(day.cash_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center hidden sm:table-cell">{formatPrice(day.card_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center sm:hidden">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-caption md:text-body-sm font-semibold text-foreground text-center">{formatPrice(day.net_revenue, false)}</td>
-                                    </tr>
-                                ))}
+                                {filteredDays.slice(0, visibleCount).map((day, idx) => {
+                                    const isToday = day.sale_date === todayStr;
+                                    return (
+                                        <tr
+                                            key={day.sale_date || idx}
+                                            className={`transition-colors group ${
+                                                isToday
+                                                    ? 'bg-brand-subtle/40 hover:bg-brand-subtle/60'
+                                                    : 'hover:bg-muted/50'
+                                            }`}
+                                        >
+                                            <td className="py-3 md:py-4 text-caption md:text-body-sm font-medium text-foreground">
+                                                <span className="inline-flex items-center gap-2">
+                                                    {day.sale_date?.split('-').reverse().join('-')}
+                                                    {isToday && (
+                                                        <span className="text-micro text-brand-primary font-semibold">Aujourd'hui</span>
+                                                    )}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center tabular-nums">{formatPrice(day.cash_revenue, isMobile)}</td>
+                                            <td className="py-3 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center hidden sm:table-cell tabular-nums">{formatPrice(day.mobile_revenue, isMobile)}</td>
+                                            <td className="py-3 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center hidden sm:table-cell tabular-nums">{formatPrice(day.card_revenue, isMobile)}</td>
+                                            <td className="py-3 md:py-4 text-caption md:text-body-sm text-foreground/70 text-center sm:hidden tabular-nums">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
+                                            <td className="py-3 md:py-4 text-caption md:text-body-sm font-semibold text-foreground text-center tabular-nums">{formatPrice(day.net_revenue, false)}</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
+                            <tfoot className="border-t-2 border-border bg-muted/40">
+                                <tr className="text-caption md:text-body-sm font-semibold text-foreground">
+                                    <td className="py-3 md:py-4">Total</td>
+                                    <td className="py-3 md:py-4 text-center tabular-nums">{formatPrice(totals.cash, isMobile)}</td>
+                                    <td className="py-3 md:py-4 text-center hidden sm:table-cell tabular-nums">{formatPrice(totals.mobile, isMobile)}</td>
+                                    <td className="py-3 md:py-4 text-center hidden sm:table-cell tabular-nums">{formatPrice(totals.card, isMobile)}</td>
+                                    <td className="py-3 md:py-4 text-center sm:hidden tabular-nums">{formatPrice(totals.mobile + totals.card, isMobile)}</td>
+                                    <td className="py-3 md:py-4 text-center text-brand-primary tabular-nums">{formatPrice(totals.revenue, false)}</td>
+                                </tr>
+                            </tfoot>
                         </table>
                         {filteredDays.length > visibleCount && (
                             <div className="flex justify-center pt-4 pb-2">
