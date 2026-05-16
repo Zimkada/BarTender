@@ -310,7 +310,7 @@ export default function SalesHistoryPage() {
                     guideId={historyGuideId}
                     actions={
                         !isMobile && (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" data-guide="sales-export">
                                 {/* Toggle format export — segmented control */}
                                 <div
                                     role="radiogroup"
@@ -414,6 +414,7 @@ export default function SalesHistoryPage() {
                             <div
                                 role="radiogroup"
                                 aria-label="Filtre par statut"
+                                data-guide="sales-type-filter"
                                 className="flex p-0.5 bg-muted rounded-full border border-border w-full lg:w-auto"
                             >
                                 {(['validated', 'rejected', 'cancelled'] as const).map((status) => {
@@ -440,7 +441,7 @@ export default function SalesHistoryPage() {
 
                     {/* Export format toggle & Action (mobile) */}
                     {isMobile && (
-                        <div className="flex items-center gap-2 w-full pt-2 border-t border-border mt-2">
+                        <div className="flex items-center gap-2 w-full pt-2 border-t border-border mt-2" data-guide="sales-export">
                             <span className="text-caption text-muted-foreground whitespace-nowrap">Format</span>
                             <div
                                 role="radiogroup"
@@ -505,7 +506,7 @@ export default function SalesHistoryPage() {
                     ) : (
                         <div className="mt-2">
                             {viewMode === 'cards' ? (
-                                <div className="space-y-4 max-w-5xl mx-auto">
+                                <div className="space-y-4 max-w-5xl mx-auto" data-guide="sales-cards">
                                     <SalesCardsView
                                         sales={paginatedSales}
                                         formatPrice={formatPrice}
@@ -526,7 +527,7 @@ export default function SalesHistoryPage() {
                                     )}
                                 </div>
                             ) : viewMode === 'list' ? (
-                                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
+                                <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden" data-guide="sales-list">
                                     <SalesListView
                                         sales={paginatedSales}
                                         formatPrice={formatPrice}
@@ -578,6 +579,7 @@ export default function SalesHistoryPage() {
 
             {/* Détail vente */}
             {selectedSale && (
+                <div data-guide="sales-details">
                 <SaleDetailModal
                     sale={selectedSale}
                     formatPrice={formatPrice}
@@ -596,6 +598,7 @@ export default function SalesHistoryPage() {
                         return undefined;
                     })()}
                 />
+                </div>
             )}
 
             <GuideTourModal />

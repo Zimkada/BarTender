@@ -353,7 +353,7 @@ export function AnalyticsView({
   return (
     <div className="space-y-4">
       {/* KPIs principaux */}
-      <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
+      <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`} data-guide="analytics-kpis">
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
           <h4 className="text-micro text-brand-primary mb-1">Chiffre d'affaires</h4>
           <p className="text-h2 font-semibold text-foreground tabular-nums">{formatPrice(kpis.revenue.value)}</p>
@@ -400,7 +400,7 @@ export function AnalyticsView({
       {/* Graphiques principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`} data-guide="analytics-charts">
         {/* Évolution CA - granularité adaptative */}
-        <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+        <div className="bg-card rounded-xl p-4 border border-border shadow-sm" data-guide="analytics-revenue-chart">
           <h4 className="text-sm font-semibold text-foreground mb-3">
             Évolution du CA
             <span className="text-xs text-muted-foreground ml-2">
@@ -421,7 +421,7 @@ export function AnalyticsView({
         </div>
 
         {/* Répartition par catégorie */}
-        <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+        <div className="bg-card rounded-xl p-4 border border-border shadow-sm" data-guide="analytics-category-chart">
           <h4 className="text-sm font-semibold text-foreground mb-3">Répartition par catégorie</h4>
           <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
