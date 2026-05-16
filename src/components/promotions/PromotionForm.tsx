@@ -208,7 +208,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             <div className="flex items-center gap-4">
                                 <BackButton onClick={onClose} />
                                 <div>
-                                    <h1 className="text-h1 text-foreground uppercase tracking-tight flex items-center gap-3">
+                                    <h1 className="text-h1 text-foreground flex items-center gap-3">
                                         Promotion Studio
                                         <Wand2 className="text-brand-primary" />
                                     </h1>
@@ -220,7 +220,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 1: Basics */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-h3 text-foreground uppercase tracking-wider">L'Identité</h2>
+                                <h2 className="text-h3 text-foreground">L'Identité</h2>
                             </div>
                             <div className="space-y-4">
                                 <div>
@@ -252,7 +252,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 2: Type Selection */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-h3 text-foreground uppercase tracking-wider">Le Mécanisme</h2>
+                                <h2 className="text-h3 text-foreground">Le Mécanisme</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                 {promotionTypes.map((t) => (
@@ -354,7 +354,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 3: Targeting */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-h3 text-foreground uppercase tracking-wider">Le Ciblage</h2>
+                                <h2 className="text-h3 text-foreground">Le Ciblage</h2>
                             </div>
 
                             <RadioGroup
@@ -458,7 +458,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 4: Dates */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-h3 text-foreground uppercase tracking-wider">La Période</h2>
+                                <h2 className="text-h3 text-foreground">La Période</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
