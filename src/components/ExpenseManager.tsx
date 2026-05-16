@@ -3,7 +3,10 @@ import {
   Plus,
   TrendingDown,
   LayoutGrid,
-  Receipt
+  Receipt,
+  Settings,
+  UserCog,
+  Briefcase
 } from 'lucide-react';
 import {
   EXPENSE_CATEGORY_LABELS,
@@ -270,13 +273,24 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   // ✅ Fixes audit findings:
   //   1. Consistent data source (filteredUnified) for both total and categories
   //   2. Includes all expense types (investments, supplies, etc.) — not just operating_expenses
-  const totalExpenses = useMemo(() => {
+  const { totalExpenses, operatingExpenses, investmentExpenses } = useMemo(() => {
     // 🛡️ CRITICAL: Exclude salaries (already in filteredSalariesTotal) and reversed supplies
     // Reversed supplies stay in the list for audit trail but must not count toward the total
-    const nonSalaryExpenses = filteredUnified
-      .filter(exp => exp.category !== 'salary' && !exp.supplyReversed)
-      .reduce((sum, exp) => sum + exp.amount, 0);
-    return nonSalaryExpenses + filteredSalariesTotal;
+    let operating = 0;
+    let investments = 0;
+    filteredUnified.forEach(exp => {
+      if (exp.category === 'salary' || exp.supplyReversed) return;
+      if (exp.category === 'investment') {
+        investments += exp.amount;
+      } else {
+        operating += exp.amount;
+      }
+    });
+    return {
+      totalExpenses: operating + investments + filteredSalariesTotal,
+      operatingExpenses: operating,
+      investmentExpenses: investments,
+    };
   }, [filteredUnified, filteredSalariesTotal]);
 
   // ✨ Group by Category (Unified)
@@ -342,7 +356,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className={`text-foreground flex items-center gap-2 ${isMobile ? 'text-h2' : 'text-h1'}`}>
+          <h2 className="text-h2 text-foreground flex items-center gap-2">
             💸 <span>Dépenses & charges</span>
           </h2>
           <p className="text-body-sm text-muted-foreground">
@@ -400,7 +414,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
           />
         </div>
 
-        {/* Total Row */}
+        {/* Total Row — KPI principal */}
         <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition-shadow flex items-center justify-between min-h-[56px]">
           <div className="flex flex-col justify-center">
             <h3 className="text-micro text-muted-foreground mb-1">
@@ -413,6 +427,27 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
           <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
             <TrendingDown size={18} />
           </div>
+        </div>
+
+        {/* 3 sous-KPIs — Opérationnel / Salaires / Investissements */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            { label: 'Opérationnel', value: operatingExpenses, icon: Settings },
+            { label: 'Salaires', value: filteredSalariesTotal, icon: UserCog },
+            { label: 'Investissements', value: investmentExpenses, icon: Briefcase },
+          ].map((kpi, idx) => (
+            <div key={idx} className="bg-card rounded-2xl p-4 shadow-sm border border-border flex items-center gap-3 hover:shadow-md transition-shadow">
+              <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
+                <kpi.icon size={18} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-micro text-muted-foreground">{kpi.label}</p>
+                <p className="text-body font-semibold text-foreground tabular-nums truncate">
+                  {formatPrice(kpi.value)}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -455,8 +490,8 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
                       {expandedCategories.has(key) && (
                         <div className="bg-muted/80 px-4 md:px-12 py-4 border-t border-border flex flex-col gap-3 shadow-inner">
                           <div className="flex justify-between items-center mb-2">
-                            <h4 className="text-sm font-bold text-foreground/80">Journal des Paies</h4>
-                            <Button variant="outline" size="sm" onClick={() => setShowSalaryModal(true)} className="h-8 text-xs bg-card border-brand-primary/20 text-brand-primary hover:bg-brand-primary/5">
+                            <h4 className="text-body-sm font-semibold text-foreground/80">Journal des Paies</h4>
+                            <Button variant="outline" size="sm" onClick={() => setShowSalaryModal(true)} className="h-8 text-caption bg-card border-brand-primary/20 text-brand-primary hover:bg-brand-primary/5">
                               <Plus size={14} className="mr-1" /> Payer
                             </Button>
                           </div>
