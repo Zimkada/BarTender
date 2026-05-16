@@ -224,7 +224,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="promoName" className="text-micro text-muted-foreground uppercase mb-2 block">Nom de la promotion</Label>
+                                    <Label htmlFor="promoName" className="text-micro text-muted-foreground mb-2 block">Nom de la promotion</Label>
                                     <Input
                                         id="promoName"
                                         type="text"
@@ -236,7 +236,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="description" className="text-micro text-muted-foreground uppercase mb-2 block">Accroche Marketing</Label>
+                                    <Label htmlFor="description" className="text-micro text-muted-foreground mb-2 block">Accroche marketing</Label>
                                     <Textarea
                                         id="description"
                                         value={description}
@@ -283,7 +283,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     <Tag size={32} />
                                 </div>
                                 <div className="flex-1 w-full space-y-2">
-                                    <div className="text-micro text-brand-primary opacity-60 uppercase">Valeur de la remise</div>
+                                    <div className="text-micro text-brand-primary opacity-70">Valeur de la remise</div>
 
                                     {(type === 'pourcentage' || type === 'percentage') && (
                                         <div className="flex items-center gap-4">
@@ -334,7 +334,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 onChange={(e) => setBundleQuantity(Number(e.target.value))}
                                                 className="w-16 bg-card rounded-xl p-2 text-2xl font-bold text-brand-primary text-center shadow-sm"
                                             />
-                                            <span className="text-body-sm font-semibold text-brand-primary opacity-60 uppercase">Articles pour</span>
+                                            <span className="text-body-sm font-semibold text-brand-primary opacity-70">articles pour</span>
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="number"
@@ -445,7 +445,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                     />
                                                     <div className="flex-1 min-w-0">
                                                         <div className="text-body-sm font-semibold line-clamp-2 leading-tight">{product.name}</div>
-                                                        <div className={`text-micro uppercase ${selectedProductIds.includes(product.id) ? 'text-white/70' : 'text-muted-foreground'}`}>{product.volume}</div>
+                                                        <div className={`text-micro ${selectedProductIds.includes(product.id) ? 'text-white/70' : 'text-muted-foreground'}`}>{product.volume}</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -462,7 +462,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="startDate" className="text-micro text-muted-foreground uppercase pl-1">Date de lancement</Label>
+                                    <Label htmlFor="startDate" className="text-micro text-muted-foreground pl-1">Date de lancement</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                         <input
@@ -476,7 +476,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="endDate" className="text-micro text-muted-foreground uppercase pl-1">Fin (Illimité si vide)</Label>
+                                    <Label htmlFor="endDate" className="text-micro text-muted-foreground pl-1">Fin (illimité si vide)</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-brand-primary" size={18} />
                                         <input
@@ -503,7 +503,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             </Button>
                             <Button
                                 onClick={() => handleSubmit()}
-                                className="h-14 px-12 rounded-2xl text-body-sm font-semibold uppercase tracking-widest btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
+                                className="h-14 px-12 rounded-2xl text-body-sm font-semibold btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
                             >
                                 <Save className="mr-2" size={20} />
                                 Activer la Promotion
