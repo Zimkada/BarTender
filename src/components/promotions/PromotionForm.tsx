@@ -194,8 +194,8 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                 {/* Header (Mobile-Friendly) */}
                 <div className="md:hidden bg-card border-b border-border p-4 flex items-center justify-between">
                     <BackButton onClick={onClose} className="mr-2" />
-                    <h2 className="font-bold text-foreground">Promotion Studio</h2>
-                    <Button onClick={() => handleSubmit()} size="sm" className="btn-brand font-bold">
+                    <h2 className="text-h3 text-foreground">Promotion Studio</h2>
+                    <Button onClick={() => handleSubmit()} size="sm" className="btn-brand text-body-sm font-semibold">
                         OK
                     </Button>
                 </div>
@@ -208,11 +208,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             <div className="flex items-center gap-4">
                                 <BackButton onClick={onClose} />
                                 <div>
-                                    <h1 className="text-3xl font-bold text-foreground uppercase tracking-tight flex items-center gap-3">
+                                    <h1 className="text-h1 text-foreground uppercase tracking-tight flex items-center gap-3">
                                         Promotion Studio
                                         <Wand2 className="text-brand-primary" />
                                     </h1>
-                                    <p className="text-muted-foreground font-medium">Configurez votre offre marketing irrésistible</p>
+                                    <p className="text-body-sm text-muted-foreground">Configurez votre offre marketing irrésistible</p>
                                 </div>
                             </div>
                         </div>
@@ -220,23 +220,23 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 1: Basics */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">L'Identité</h2>
+                                <h2 className="text-h3 text-foreground uppercase tracking-wider">L'Identité</h2>
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <Label htmlFor="promoName" className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">Nom de la promotion</Label>
+                                    <Label htmlFor="promoName" className="text-micro text-muted-foreground uppercase mb-2 block">Nom de la promotion</Label>
                                     <Input
                                         id="promoName"
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="ex: HAPPY HOUR CHILL..."
-                                        className="h-14 text-lg font-semibold bg-muted border-border focus:bg-card focus:border-brand-primary transition-all rounded-2xl"
+                                        className="h-14 text-body font-semibold bg-muted border-border focus:bg-card focus:border-brand-primary transition-all rounded-2xl"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="description" className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 block">Accroche Marketing</Label>
+                                    <Label htmlFor="description" className="text-micro text-muted-foreground uppercase mb-2 block">Accroche Marketing</Label>
                                     <Textarea
                                         id="description"
                                         value={description}
@@ -252,7 +252,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 2: Type Selection */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">Le Mécanisme</h2>
+                                <h2 className="text-h3 text-foreground uppercase tracking-wider">Le Mécanisme</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                                 {promotionTypes.map((t) => (
@@ -268,8 +268,8 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                         <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-all ${type === t.id ? 'btn-brand shadow-lg' : 'bg-card text-muted-foreground'}`}>
                                             {t.icon}
                                         </div>
-                                        <div className={`font-bold text-sm ${type === t.id ? 'text-brand-primary' : 'text-foreground/80'}`}>{t.label}</div>
-                                        <div className="text-[10px] text-muted-foreground font-medium truncate italic">{t.description}</div>
+                                        <div className={`text-body-sm font-semibold ${type === t.id ? 'text-brand-primary' : 'text-foreground/80'}`}>{t.label}</div>
+                                        <div className="text-caption text-muted-foreground truncate italic">{t.description}</div>
                                     </button>
                                 ))}
                             </div>
@@ -283,7 +283,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     <Tag size={32} />
                                 </div>
                                 <div className="flex-1 w-full space-y-2">
-                                    <div className="text-xs font-bold text-brand-primary opacity-60 uppercase tracking-[0.15em]">Valeur de la remise</div>
+                                    <div className="text-micro text-brand-primary opacity-60 uppercase">Valeur de la remise</div>
 
                                     {(type === 'pourcentage' || type === 'percentage') && (
                                         <div className="flex items-center gap-4">
@@ -334,7 +334,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 onChange={(e) => setBundleQuantity(Number(e.target.value))}
                                                 className="w-16 bg-card rounded-xl p-2 text-2xl font-bold text-brand-primary text-center shadow-sm"
                                             />
-                                            <span className="font-bold text-brand-primary opacity-40 uppercase">Articles pour</span>
+                                            <span className="text-body-sm font-semibold text-brand-primary opacity-60 uppercase">Articles pour</span>
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="number"
@@ -354,7 +354,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 3: Targeting */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">Le Ciblage</h2>
+                                <h2 className="text-h3 text-foreground uppercase tracking-wider">Le Ciblage</h2>
                             </div>
 
                             <RadioGroup
@@ -378,7 +378,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                             <span className={`p-1.5 rounded-md shrink-0 ${targetType === t.id ? 'bg-brand-primary text-white' : 'bg-card text-muted-foreground'}`}>
                                                 {t.icon}
                                             </span>
-                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-brand-primary' : 'text-foreground/70'}`}>
+                                            <span className={`text-body-sm font-semibold break-words leading-tight ${targetType === t.id ? 'text-brand-primary' : 'text-foreground/70'}`}>
                                                 {t.label}
                                             </span>
                                         </div>
@@ -407,7 +407,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                         onCheckedChange={() => toggleCategory(cat.id)}
                                                         className={`shrink-0 ${selectedCategoryIds.includes(cat.id) ? 'border-white' : 'border-border'}`}
                                                     />
-                                                    <span className="text-sm font-bold line-clamp-2 leading-tight">{cat.name}</span>
+                                                    <span className="text-body-sm font-semibold line-clamp-2 leading-tight">{cat.name}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -427,7 +427,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                 placeholder="Rechercher un produit..."
                                                 value={productSearch}
                                                 onChange={(e) => setProductSearch(e.target.value)}
-                                                className="w-full bg-card text-foreground placeholder:text-muted-foreground rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
+                                                className="w-full bg-card text-foreground placeholder:text-muted-foreground rounded-xl pl-12 pr-4 h-12 text-body-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
                                             />
                                         </div>
                                         <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
@@ -444,8 +444,8 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                                         className={`shrink-0 ${selectedProductIds.includes(product.id) ? 'border-white' : 'border-border'}`}
                                                     />
                                                     <div className="flex-1 min-w-0">
-                                                        <div className="text-sm font-bold line-clamp-2 leading-tight">{product.name}</div>
-                                                        <div className={`text-[10px] uppercase font-medium ${selectedProductIds.includes(product.id) ? 'text-white/70' : 'text-muted-foreground'}`}>{product.volume}</div>
+                                                        <div className="text-body-sm font-semibold line-clamp-2 leading-tight">{product.name}</div>
+                                                        <div className={`text-micro uppercase ${selectedProductIds.includes(product.id) ? 'text-white/70' : 'text-muted-foreground'}`}>{product.volume}</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -458,11 +458,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                         {/* step 4: Dates */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
-                                <h2 className="text-lg font-bold text-foreground uppercase tracking-wider">La Période</h2>
+                                <h2 className="text-h3 text-foreground uppercase tracking-wider">La Période</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <Label htmlFor="startDate" className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Date de lancement</Label>
+                                    <Label htmlFor="startDate" className="text-micro text-muted-foreground uppercase pl-1">Date de lancement</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                         <input
@@ -476,7 +476,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="endDate" className="text-xs font-bold text-muted-foreground uppercase tracking-widest pl-1">Fin (Illimité si vide)</Label>
+                                    <Label htmlFor="endDate" className="text-micro text-muted-foreground uppercase pl-1">Fin (Illimité si vide)</Label>
                                     <div className="relative group">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-hover:text-brand-primary" size={18} />
                                         <input
@@ -497,13 +497,13 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
                             <Button
                                 onClick={onClose}
                                 variant="ghost"
-                                className="h-14 px-8 rounded-2xl font-bold text-muted-foreground hover:bg-muted transition-all flex-1"
+                                className="h-14 px-8 rounded-2xl text-body-sm font-semibold text-muted-foreground hover:bg-muted transition-all flex-1"
                             >
                                 Abandonner
                             </Button>
                             <Button
                                 onClick={() => handleSubmit()}
-                                className="h-14 px-12 rounded-2xl font-bold uppercase tracking-widest btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
+                                className="h-14 px-12 rounded-2xl text-body-sm font-semibold uppercase tracking-widest btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
                             >
                                 <Save className="mr-2" size={20} />
                                 Activer la Promotion
