@@ -38,7 +38,7 @@ export function TabbedPageHeader({
     mobileTopRightContent,
     guideId,
     onBack,
-    showBack = true,
+    showBack = false,
     hideSubtitleOnMobile
 }: TabbedPageHeaderProps) {
     return (

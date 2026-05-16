@@ -1,11 +1,11 @@
 // src/pages/AnalyticsPage.tsx
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
-import { Button } from '../components/ui/Button';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
+import { SimplePageHeader } from '../components/common/PageHeader/patterns/SimplePageHeader';
 
 import AnalyticsCharts from '../components/AnalyticsCharts';
 
@@ -110,27 +110,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="bg-card rounded-2xl shadow-sm border border-brand-subtle mb-6 overflow-hidden" data-guide="analytics-header">
-        <div className="bg-brand-primary text-white p-6" style={{ background: 'var(--brand-gradient)' }}>
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="rounded-lg transition-colors hover:bg-card/20"
-            >
-              <ArrowLeft size={24} />
-            </Button>
-            <div className="flex items-center gap-3">
-              <BarChart3 size={28} />
-              <div>
-                <h1 className="text-xl font-bold">Analytics</h1>
-                <p className="opacity-80 text-sm">Statistiques de {currentBar.name}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div data-guide="analytics-header">
+        <SimplePageHeader
+          title="Analytics"
+          subtitle={`Statistiques de ${currentBar.name}`}
+          icon={<BarChart3 size={24} />}
+          showBack
+          onBack={() => navigate('/dashboard')}
+        />
       </div>
 
       {/* Charts */}

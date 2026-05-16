@@ -27,10 +27,9 @@ export default function DashboardPage() {
 
   const role = currentSession?.role;
 
-  // Choose the right guide base on role
-  let tourId = 'dashboard-overview';
-  if (role === 'gerant') tourId = 'manager-dashboard';
-  if (role === 'serveur') tourId = 'create-first-sale';
+  // Guide ciblé par rôle. Promoteur et gérant partagent le même guide
+  // (pas de variante manager-dashboard distincte aujourd'hui).
+  const tourId = role === 'serveur' ? 'create-first-sale' : 'dashboard-overview';
 
   // Formatage de la date pour le sous-titre
   const businessDate = getCurrentBusinessDateString();
@@ -60,7 +59,6 @@ export default function DashboardPage() {
         activeTab={viewMode}
         onTabChange={(id) => setViewMode(id as DashboardViewMode)}
         guideId={tourId}
-        showBack={false}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-6">

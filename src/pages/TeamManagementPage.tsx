@@ -439,7 +439,6 @@ export default function TeamManagementPage() {
           { id: 'add', label: isMobile ? 'Ajouter' : 'Recrutement', icon: UserPlus },
           ...(FEATURES.ENABLE_SWITCHING_MODE ? [{ id: 'mappings', label: isMobile ? 'Nom sur vente' : "Nom d'affichage sur vente", icon: GitBranch }] : [])
         ]}
-        showBack={false}
         activeTab={pageTab}
         onTabChange={(id) => {
           setPageTab(id as 'members' | 'mappings' | 'add');

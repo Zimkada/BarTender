@@ -174,7 +174,6 @@ export default function PromotionsPage() {
                 subtitle="Créez des offres stratégiques et analysez leur impact sur votre chiffre d'affaires."
                 icon={<Gift size={24} aria-hidden="true" />}
                 hideSubtitleOnMobile={true}
-                showBack={false}
                 tabs={[
                     { id: 'list', label: isMobile ? 'Catalogue' : 'Catalogue', icon: List },
                     { id: 'analytics', label: 'Analyses', icon: BarChart3 },

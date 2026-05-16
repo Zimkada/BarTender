@@ -1,13 +1,14 @@
 // src/pages/SaleDetailsPage.tsx
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Package, User, Calendar, CreditCard, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Package, User, Calendar, CreditCard, Clock, CheckCircle, XCircle, Receipt } from 'lucide-react';
 import { SalesService } from '../services/supabase/sales.service';
 import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
+import { SimplePageHeader } from '../components/common/PageHeader/patterns/SimplePageHeader';
 
 /**
  * Page Détails d'une Vente
@@ -70,35 +71,25 @@ export default function SaleDetailsPage() {
     }
   };
 
+  const saleDate = new Date(sale.created_at).toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/sales')}
-          className="rounded-lg transition-colors hover:bg-muted"
-        >
-          <ArrowLeft size={24} className="text-foreground/70" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">
-            Vente #{sale.id.slice(-6).toUpperCase()}
-          </h1>
-          <p className="text-foreground/70 text-sm">
-            {new Date(sale.created_at).toLocaleDateString('fr-FR', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            })}
-          </p>
-        </div>
-        {getStatusBadge(sale.status)}
-      </div>
+      <SimplePageHeader
+        title={`Vente #${sale.id.slice(-6).toUpperCase()}`}
+        subtitle={saleDate}
+        icon={<Receipt size={24} />}
+        showBack
+        onBack={() => navigate('/sales')}
+        actions={getStatusBadge(sale.status)}
+      />
 
       {/* Info Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

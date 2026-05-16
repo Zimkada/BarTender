@@ -121,8 +121,8 @@ export default function InventoryPage() {
         setViewingHistoryProduct(product);
     };
 
-    // 4. Config
-    const inventoryGuideId = currentSession?.role === 'gerant' ? 'manager-inventory' : 'manage-inventory';
+    // 4. Config — promoteur et gérant partagent le guide manage-inventory.
+    const inventoryGuideId = 'manage-inventory';
 
     // Badge "Commandes" : nombre de bons de commande actifs (brouillon, en attente, partiel)
     const { data: purchaseOrders } = usePurchaseOrders(currentBar?.id);
@@ -164,7 +164,6 @@ export default function InventoryPage() {
                 activeTab={viewMode}
                 onTabChange={(id) => setViewMode(id as ViewMode)}
                 guideId={inventoryGuideId}
-                showBack={false}
             />
 
             <main className="container mx-auto px-4 py-4 pb-24">

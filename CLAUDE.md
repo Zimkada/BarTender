@@ -709,6 +709,21 @@ npm run build-storybook  # Build statique
 
 Chaque composant du design system doit documenter ses variants (default, disabled, loading, error...) dans une story.
 
+### Règle : bouton retour dans les PageHeader
+
+Convention binaire pour `SimplePageHeader` / `TabbedPageHeader` / `ViewSwitcherPageHeader` :
+
+| Type de page | `showBack` | Pourquoi |
+|---|---|---|
+| Page de menu (accessible via nav principale) | **Absent** (défaut `false`) | Navigation déjà fournie par `MobileNavigation` + sidebar |
+| Page avec `:param` dans l'URL (détail) | `showBack` + `onBack={() => navigate('/destination-fixe')}` | Deep link possible — destination explicite obligatoire |
+| Page de flux séquentiel (onboarding, reset password) | `showBack` + `onBack` vers étape précédente | UX standard de flux |
+
+**Règles strictes** :
+- Le défaut de `showBack` est `false` dans les 3 patterns — c'est intentionnel
+- **Jamais `navigate(-1)` seul** : fragile en deep link / PWA standalone / refresh. Toujours une destination explicite par page
+- Ne jamais réinventer un bouton retour custom (`<ArrowLeft>` + `<Button>` ad hoc) — toujours passer par `<PageHeader.Back />` du design system
+
 ---
 
 ## Theming System
