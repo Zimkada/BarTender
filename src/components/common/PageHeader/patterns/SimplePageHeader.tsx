@@ -23,7 +23,7 @@ export function SimplePageHeader({
     mobileTopRightContent,
     guideId,
     onBack,
-    showBack = false,
+    showBack = true,
     className
 }: SimplePageHeaderProps) {
     return (

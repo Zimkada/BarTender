@@ -711,17 +711,17 @@ Chaque composant du design system doit documenter ses variants (default, disable
 
 ### Règle : bouton retour dans les PageHeader
 
-Convention binaire pour `SimplePageHeader` / `TabbedPageHeader` / `ViewSwitcherPageHeader` :
+Convention pour `SimplePageHeader` / `TabbedPageHeader` / `ViewSwitcherPageHeader` :
 
-| Type de page | `showBack` | Pourquoi |
+| Type de page | `showBack` | Comportement |
 |---|---|---|
-| Page de menu (accessible via nav principale) | **Absent** (défaut `false`) | Navigation déjà fournie par `MobileNavigation` + sidebar |
-| Page avec `:param` dans l'URL (détail) | `showBack` + `onBack={() => navigate('/destination-fixe')}` | Deep link possible — destination explicite obligatoire |
+| Page de menu (accessible via nav principale) | **Absent** (défaut `true`) | `navigate(-1)` — habitude utilisateur établie |
+| Page avec `:param` dans l'URL (détail) | `showBack` + `onBack={() => navigate('/destination-fixe')}` | Deep link possible — destination explicite préférable |
 | Page de flux séquentiel (onboarding, reset password) | `showBack` + `onBack` vers étape précédente | UX standard de flux |
 
-**Règles strictes** :
-- Le défaut de `showBack` est `false` dans les 3 patterns — c'est intentionnel
-- **Jamais `navigate(-1)` seul** : fragile en deep link / PWA standalone / refresh. Toujours une destination explicite par page
+**Règles** :
+- Le défaut de `showBack` est `true` dans les 3 patterns — comportement attendu par les utilisateurs existants
+- Pour les pages de détail accessibles via deep link, préférer une destination explicite (`navigate('/sales')`) plutôt que `navigate(-1)` qui peut renvoyer hors de l'app
 - Ne jamais réinventer un bouton retour custom (`<ArrowLeft>` + `<Button>` ad hoc) — toujours passer par `<PageHeader.Back />` du design system
 
 ---

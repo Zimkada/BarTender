@@ -24,7 +24,7 @@ export function ViewSwitcherPageHeader({
     actions,
     guideId,
     onBack,
-    showBack = false
+    showBack = true
 }: ViewSwitcherPageHeaderProps) {
 
     const ViewToggle = (
