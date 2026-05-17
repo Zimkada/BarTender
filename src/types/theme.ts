@@ -1,4 +1,4 @@
-export type ThemePreset = 'amber' | 'blue' | 'emerald' | 'rose' | 'purple' | 'slate' | 'sunset' | 'sky' | 'mojito' | 'midnight' | 'custom';
+export type ThemePreset = 'amber' | 'blue' | 'emerald' | 'rose' | 'purple' | 'slate' | 'bordeaux' | 'sky' | 'mojito' | 'midnight' | 'custom';
 
 export interface ThemeColors {
     primary: string;
@@ -17,10 +17,10 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
         secondary: '#d98d4a', // HSL(28, 65, 55)
         accent: '#f1dec8' // HSL(28, 65, 85)
     },
-    sunset: {
-        primary: '#f97316', // Orange-500 (Vif et Solaire)
-        secondary: '#ea580c', // Orange-600 (Profond mais pas rouge)
-        accent: '#fbbf24' // Amber-400 (Or Doré)
+    bordeaux: {
+        primary: '#991b1b', // Bordeaux profond — robe d'un grand cru
+        secondary: '#7f1d1d', // Rouge profond — décanteur
+        accent: '#fbbf24' // Or chaud — étiquette luxe
     },
     sky: {
         primary: '#0ea5e9', // Sky-500 (Azur Vif)
@@ -33,14 +33,14 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
         accent: '#bef264' // Lime-300 (Zest)
     },
     midnight: {
-        primary: '#4f46e5', // Indigo-600 (Électrique)
-        secondary: '#312e81', // Indigo-900 (Nuit Profonde)
-        accent: '#a5b4fc' // Indigo-300 (Lune)
+        primary: '#3730a3', // Indigo-800 — profondeur royale
+        secondary: '#1e1b4b', // Indigo-950 — nuit absolue
+        accent: '#a5b4fc' // Indigo-300 — éclat lunaire (conservé pour contraste)
     },
     blue: {
-        primary: '#3b82f6', // blue-500
-        secondary: '#60a5fa', // blue-400
-        accent: '#93c5fd' // blue-300
+        primary: '#2563eb', // blue-600 — bleu profond
+        secondary: '#1d4ed8', // blue-700 — océan
+        accent: '#93c5fd' // blue-300 — ciel léger (conservé)
     },
     emerald: {
         primary: '#10b981', // emerald-500
@@ -48,14 +48,14 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
         accent: '#6ee7b7' // emerald-300
     },
     rose: {
-        primary: '#f43f5e', // rose-500
-        secondary: '#fb7185', // rose-400
-        accent: '#fda4af' // rose-300
+        primary: '#d6304c', // Rose mature — moins fluo que rose-500
+        secondary: '#b91c3d', // Rose profond — bordure de pétale
+        accent: '#fda4af' // rose-300 — touche douce (conservée)
     },
     purple: {
-        primary: '#a855f7', // purple-500
-        secondary: '#c084fc', // purple-400
-        accent: '#e9d5ff' // purple-300
+        primary: '#8b3fd6', // Violet profond — premium, moins éclatant
+        secondary: '#7c2cd0', // Violet royal — solide
+        accent: '#e9d5ff' // purple-300 — voile clair (conservé)
     },
     slate: {
         primary: '#475569', // slate-600
@@ -66,7 +66,7 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
 
 export const PRESET_LABELS: Record<ThemePreset, string> = {
     amber: 'Ambre Nocturne',
-    sunset: 'Coucher de Soleil',
+    bordeaux: 'Bordeaux Vin Rouge',
     sky: 'Ciel d\'Été',
     mojito: 'Mojito Frais',
     midnight: 'Minuit Élégant',
