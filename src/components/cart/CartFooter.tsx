@@ -272,7 +272,11 @@ export function CartFooter({
                         >
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-sm font-black text-foreground uppercase">Choisir un bon</h3>
-                                <button onClick={() => setShowBonSelection(false)} className="p-2 bg-muted rounded-full">
+                                <button
+                                    onClick={() => setShowBonSelection(false)}
+                                    className="p-2 bg-muted rounded-full text-foreground hover:bg-muted/80 transition-colors"
+                                    aria-label="Fermer"
+                                >
                                     <X size={16} />
                                 </button>
                             </div>
