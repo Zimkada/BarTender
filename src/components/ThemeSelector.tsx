@@ -51,8 +51,8 @@ export function ThemeSelector() {
                     <Palette size={24} />
                 </div>
                 <div>
-                    <h3 className="text-lg font-bold text-foreground">Thème de Couleur</h3>
-                    <p className="text-sm text-muted-foreground">Personnalisez l'apparence de votre interface BarTender</p>
+                    <h3 className="text-h3 text-foreground">Thème de couleur</h3>
+                    <p className="text-body-sm text-muted-foreground">Personnalisez l'apparence de votre interface BarTender</p>
                 </div>
             </div>
 
@@ -71,8 +71,8 @@ export function ThemeSelector() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handlePresetClick(preset)}
                                 className={`relative group flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary ${isActive
-                                    ? 'border-gray-900 bg-muted shadow-md'
-                                    : 'border-border hover:border-border bg-card hover:shadow-sm'
+                                    ? 'border-brand-primary bg-brand-subtle shadow-md'
+                                    : 'border-border hover:border-brand-primary/40 bg-card hover:shadow-sm'
                                     }`}
                             >
                                 {/* Aperçu des couleurs */}
@@ -92,7 +92,7 @@ export function ThemeSelector() {
                                 </div>
 
                                 {/* Label */}
-                                <span className={`text-sm font-medium ${isActive ? 'text-foreground' : 'text-foreground/70'}`}>
+                                <span className={`text-body-sm font-medium ${isActive ? 'text-brand-primary' : 'text-foreground/70'}`}>
                                     {PRESET_LABELS[preset]}
                                 </span>
 
@@ -101,7 +101,7 @@ export function ThemeSelector() {
                                     <motion.div
                                         initial={{ scale: 0 }}
                                         animate={{ scale: 1 }}
-                                        className="absolute -top-2 -right-2 bg-gray-900 text-white rounded-full p-1 shadow-lg"
+                                        className="absolute -top-2 -right-2 bg-brand-primary text-white rounded-full p-1 shadow-lg"
                                     >
                                         <Check size={12} strokeWidth={3} />
                                     </motion.div>
@@ -125,8 +125,8 @@ export function ThemeSelector() {
                             <div className="flex items-center gap-3 text-foreground">
                                 <Palette size={20} className="text-brand-primary" />
                                 <div>
-                                    <p className="font-bold text-sm">Mode Aperçu Actif - {PRESET_LABELS[themeConfig.preset]}</p>
-                                    <p className="text-xs text-foreground/70">Ces changements ne sont pas encore sauvegardés.</p>
+                                    <p className="text-body-sm font-semibold">Mode aperçu actif — {PRESET_LABELS[themeConfig.preset]}</p>
+                                    <p className="text-caption text-foreground/70">Ces changements ne sont pas encore sauvegardés.</p>
                                 </div>
                             </div>
 
@@ -134,7 +134,7 @@ export function ThemeSelector() {
                                 <button
                                     onClick={handleCancel}
                                     disabled={isLoading}
-                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-border bg-card text-foreground/80 hover:bg-muted text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-border bg-card text-foreground/80 hover:bg-muted text-body-sm font-medium flex items-center justify-center gap-2 transition-colors"
                                 >
                                     <RotateCcw size={16} />
                                     Annuler
@@ -142,7 +142,7 @@ export function ThemeSelector() {
                                 <button
                                     onClick={handleSave}
                                     disabled={isLoading}
-                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-brand-gradient hover:brightness-110 text-white text-sm font-medium flex items-center justify-center gap-2 shadow-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-brand-gradient hover:brightness-110 text-white text-body-sm font-medium flex items-center justify-center gap-2 shadow-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

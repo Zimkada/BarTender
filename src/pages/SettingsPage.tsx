@@ -319,8 +319,8 @@ export default function SettingsPage() {
     if (currentSession.role === 'serveur') {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
-                <div className="p-4 bg-red-50 rounded-full">
-                    <ShieldCheck size={48} className="text-red-500" />
+                <div className="p-4 bg-red-50 dark:bg-red-950/30 rounded-full">
+                    <ShieldCheck size={48} className="text-red-500 dark:text-red-400" />
                 </div>
                 <h2 className="text-h2 text-foreground">Accès non autorisé</h2>
                 <p className="text-body-sm text-muted-foreground max-w-md">
@@ -365,13 +365,13 @@ export default function SettingsPage() {
                             </div>
 
                             {isMfaEnabled ? (
-                                <Alert variant="success" className="border-green-200 bg-green-50">
+                                <Alert variant="success" className="border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/30">
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-2 text-green-800 font-semibold">
+                                        <div className="flex items-center gap-2 text-green-800 dark:text-green-400 font-semibold">
                                             <CheckCircle size={20} />
                                             <span>La protection 2FA est active</span>
                                         </div>
-                                        <p className="text-body-sm text-green-700">Votre compte est sécurisé par application d'authentification.</p>
+                                        <p className="text-body-sm text-green-700 dark:text-green-300">Votre compte est sécurisé par application d'authentification.</p>
                                         <Button
                                             onClick={handleUnenrollMfa}
                                             disabled={mfaLoading}
