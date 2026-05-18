@@ -129,7 +129,7 @@ export function InventoryCard({
                         <div className="text-micro text-muted-foreground mb-1">Coût</div>
                         <div className="text-caption font-semibold text-foreground/80 tabular-nums">{displayCost.cost > 0 ? formatPrice(displayCost.cost) : '—'}</div>
                         {displayCost.source !== 'none' && displayCost.source !== 'cump' && (
-                            <div className="text-[10px] text-muted-foreground mt-0.5">{getCostSourceLabel(displayCost.source)}</div>
+                            <div className="text-micro text-muted-foreground mt-0.5">{getCostSourceLabel(displayCost.source)}</div>
                         )}
                     </div>
                     <div className="text-center">

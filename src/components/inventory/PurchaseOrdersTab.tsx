@@ -165,7 +165,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                         En cours
                         {activeOrders.length > 0 && (
                             <span className={cn(
-                                'px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums',
+                                'px-1.5 py-0.5 rounded-full text-micro tabular-nums',
                                 filterMode === 'active' ? 'bg-brand-subtle text-brand-primary' : 'bg-border text-foreground/70',
                             )}>
                                 {activeOrders.length}

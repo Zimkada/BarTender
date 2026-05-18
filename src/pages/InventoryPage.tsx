@@ -143,7 +143,7 @@ export default function InventoryPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[var(--brand-bg-subtle)]">
+        <div className="min-h-screen bg-brand-subtle">
             {isOnboardingMode && (
                 <OnboardingBreadcrumb
                     currentStep={
@@ -256,7 +256,7 @@ export default function InventoryPage() {
                                             <span>Anomalies</span>
                                             {anomalyCount > 0 && (
                                                 <span className={cn(
-                                                    "ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums",
+                                                    "ml-0.5 px-1.5 py-0.5 rounded-full text-micro tabular-nums",
                                                     showAnomalies ? "bg-card/25" : "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400"
                                                 )}>
                                                     {anomalyCount}

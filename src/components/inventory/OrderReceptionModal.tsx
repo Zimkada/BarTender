@@ -154,19 +154,19 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
 
                                         {/* Product info */}
                                         <div className="flex-1 min-w-0">
-                                            <p className="font-bold text-foreground text-sm truncate">{item.productName}</p>
-                                            <p className="text-xs text-muted-foreground">{item.productVolume}</p>
+                                            <p className="text-body-sm font-semibold text-foreground truncate">{item.productName}</p>
+                                            <p className="text-caption text-muted-foreground">{item.productVolume}</p>
                                         </div>
 
                                         {/* Qty comparison */}
                                         <div className="text-right mr-2 hidden sm:block">
-                                            <p className="text-[10px] uppercase font-bold text-muted-foreground">Commandé</p>
-                                            <p className="text-sm font-black text-foreground/80">{item.quantity}</p>
+                                            <p className="text-micro text-muted-foreground">Commandé</p>
+                                            <p className="text-body-sm font-semibold text-foreground/80 tabular-nums">{item.quantity}</p>
                                         </div>
 
                                         {/* Input received qty */}
                                         <div className="flex flex-col items-center">
-                                            <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">Reçu</p>
+                                            <p className="text-micro text-muted-foreground mb-1">Reçu</p>
                                             <input
                                                 type="number"
                                                 min={0}
@@ -196,19 +196,19 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
 
                                     {/* Expanded details */}
                                     {isExpanded && (
-                                        <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                                        <div className="mt-3 pt-3 border-t border-border grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             <div>
-                                                <p className="uppercase font-bold text-muted-foreground">Lot / Condit.</p>
-                                                <p className="font-bold text-foreground/80">{item.lotSize} unités</p>
+                                                <p className="text-micro text-muted-foreground">Lot / Condit.</p>
+                                                <p className="text-caption font-semibold text-foreground/80">{item.lotSize} unités</p>
                                             </div>
                                             <div>
-                                                <p className="uppercase font-bold text-muted-foreground">Prix / Lot</p>
-                                                <p className="font-bold text-foreground/80">{formatPrice(item.lotPrice)}</p>
+                                                <p className="text-micro text-muted-foreground">Prix / Lot</p>
+                                                <p className="text-caption font-semibold text-foreground/80">{formatPrice(item.lotPrice)}</p>
                                             </div>
                                             {item.supplierName && (
                                                 <div>
-                                                    <p className="uppercase font-bold text-muted-foreground">Fournisseur</p>
-                                                    <p className="font-bold text-foreground/80">{item.supplierName}</p>
+                                                    <p className="text-micro text-muted-foreground">Fournisseur</p>
+                                                    <p className="text-caption font-semibold text-foreground/80">{item.supplierName}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -221,10 +221,10 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                     {/* Summary footer */}
                     <div className="flex items-center justify-between pt-3 border-t border-border">
                         <div>
-                            <p className="text-xs text-muted-foreground uppercase font-bold">Total reçu</p>
-                            <p className="text-lg font-black text-foreground">{totalReceived} unités</p>
+                            <p className="text-micro text-muted-foreground">Total reçu</p>
+                            <p className="text-h3 font-semibold text-foreground tabular-nums">{totalReceived} unités</p>
                             {!allFullyReceived && totalReceived > 0 && (
-                                <p className="text-xs text-amber-600 font-medium mt-0.5">Livraison partielle</p>
+                                <p className="text-caption text-amber-600 dark:text-amber-400 font-medium mt-0.5">Livraison partielle</p>
                             )}
                         </div>
                         <div className="flex gap-2">

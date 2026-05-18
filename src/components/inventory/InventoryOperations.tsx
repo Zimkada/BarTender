@@ -130,7 +130,7 @@ export function InventoryOperations({
                                     <BackButton
                                         onClick={handleBack}
                                     />
-                                    <h2 className="text-h3 text-gray-900">Importation massive</h2>
+                                    <h2 className="text-h3 text-foreground">Importation massive</h2>
                                 </div>
                                 <Suspense fallback={<div className="py-12 text-center text-muted-foreground">Chargement...</div>}>
                                     <ProductImport

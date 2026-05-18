@@ -137,11 +137,11 @@ export function InventoryExportModal({
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
-                        className="space-y-4 bg-blue-50 p-4 rounded-xl border border-blue-100"
+                        className="space-y-4 bg-blue-50 dark:bg-blue-950/30 p-4 rounded-xl border border-blue-100 dark:border-blue-900/40"
                     >
                         <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs text-blue-800">
+                            <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-caption text-blue-800 dark:text-blue-300">
                                 <strong>Mode Reconstruction :</strong> Le système va recalculer le stock exact
                                 à la date choisie en annulant tous les mouvements récents.
                             </p>
@@ -149,22 +149,22 @@ export function InventoryExportModal({
 
                         <div className="flex items-center gap-4">
                             <div className="flex-1 space-y-2">
-                                <label className="text-xs font-medium text-foreground/70">Date Cible</label>
+                                <label className="text-micro text-muted-foreground">Date Cible</label>
                                 <input
                                     type="date"
                                     max={getCurrentBusinessDateString(currentBar?.closingHour)}
                                     value={targetDate}
                                     onChange={(e) => setTargetDate(e.target.value)}
-                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    className="input-token w-full bg-card border border-border rounded-lg px-3 py-2 text-body-sm"
                                 />
                             </div>
                             <div className="flex-1 space-y-2">
-                                <label className="text-xs font-medium text-foreground/70">Heure (Début Jr.)</label>
+                                <label className="text-micro text-muted-foreground">Heure (Début Jr.)</label>
                                 <input
                                     type="time"
                                     value={targetTime}
                                     onChange={(e) => setTargetTime(e.target.value)}
-                                    className="w-full bg-card border border-border rounded-lg px-3 py-2 text-foreground focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                    className="input-token w-full bg-card border border-border rounded-lg px-3 py-2 text-body-sm"
                                 />
                             </div>
                         </div>

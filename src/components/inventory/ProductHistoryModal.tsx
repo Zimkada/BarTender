@@ -124,21 +124,21 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
         >
             <div className="flex items-center gap-2 px-1 mb-4 bg-muted p-3 rounded-lg border border-border">
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Du</label>
+                    <label className="block text-micro text-muted-foreground mb-1">Du</label>
                     <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full text-sm border-border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="input-token w-full text-body-sm border border-border bg-card rounded-md px-2 py-1.5"
                     />
                 </div>
                 <div className="flex-1">
-                    <label className="block text-xs font-bold text-muted-foreground uppercase mb-1">Au</label>
+                    <label className="block text-micro text-muted-foreground mb-1">Au</label>
                     <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full text-sm border-border rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="input-token w-full text-body-sm border border-border bg-card rounded-md px-2 py-1.5"
                     />
                 </div>
             </div>
@@ -147,17 +147,17 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-40 gap-3">
                         <Spinner size="lg" />
-                        <p className="text-sm text-muted-foreground">Reconstitution de l'enquête...</p>
+                        <p className="text-body-sm text-muted-foreground">Reconstitution de l'enquête...</p>
                     </div>
                 ) : error ? (
-                    <div className="p-4 bg-red-50 text-red-600 rounded-lg text-center">
+                    <div className="p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 rounded-lg text-center">
                         {error}
-                        <button onClick={loadHistory} className="block mx-auto mt-2 text-sm underline">Réessayer</button>
+                        <button onClick={loadHistory} className="block mx-auto mt-2 text-body-sm underline">Réessayer</button>
                     </div>
                 ) : history.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">
                         <History size={48} className="mx-auto mb-3 opacity-20" />
-                        <p>Aucun mouvement récent enregistré.</p>
+                        <p className="text-body-sm">Aucun mouvement récent enregistré.</p>
                     </div>
                 ) : (
                     <div className="space-y-0 relative before:absolute before:left-4 before:top-0 before:bottom-0 before:w-px before:bg-gray-200">
@@ -176,29 +176,29 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                             </span>
                                             <div>
                                                 <div className="flex items-center gap-1.5">
-                                                    <h4 className="text-sm font-bold text-foreground capitalize">
+                                                    <h4 className="text-body-sm font-semibold text-foreground capitalize">
                                                         {event.label}
                                                     </h4>
                                                     {(event as any).status === 'pending' && (
-                                                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">
+                                                        <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-micro rounded">
                                                             En attente
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                <p className="text-caption text-muted-foreground flex items-center gap-1">
                                                     <Calendar size={10} />
                                                     {format(event.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${getBadgeColor(event.delta)}`}>
+                                        <span className={`px-2.5 py-1 rounded-lg text-caption font-semibold border flex items-center gap-1 tabular-nums ${getBadgeColor(event.delta)}`}>
                                             {event.delta > 0 ? <TrendingUp size={12} /> : event.delta < 0 ? <TrendingDown size={12} /> : <Package size={12} />}
                                             {event.delta > 0 ? '+' : ''}{event.delta}
                                         </span>
                                     </div>
 
-                                    <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-50">
+                                    <div className="flex items-center justify-between text-caption mt-2 pt-2 border-t border-border">
                                         <div className="flex items-center gap-1.5 text-foreground/70 bg-muted px-2 py-1 rounded">
                                             <User size={12} />
                                             <span className="font-medium">
@@ -222,7 +222,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                     </div>
 
                                     {event.notes && (
-                                        <div className="mt-2 text-xs text-muted-foreground italic pl-2 border-l-2 border-border">
+                                        <div className="mt-2 text-caption text-muted-foreground italic pl-2 border-l-2 border-border">
                                             "{event.notes}"
                                         </div>
                                     )}
@@ -230,13 +230,13 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                     {event.type === 'supply' && canManageSupplies && (
                                         <div className="mt-2 flex justify-end">
                                             {event.supplyReversed ? (
-                                                <span className="text-[9px] bg-muted text-muted-foreground px-2 py-1 rounded-full font-black uppercase tracking-wider">
+                                                <span className="text-micro bg-muted text-muted-foreground px-2 py-1 rounded-full uppercase">
                                                     Annulé
                                                 </span>
                                             ) : (
                                                 <button
                                                     onClick={() => setSupplyToReverse(event)}
-                                                    className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-lg transition-all"
+                                                    className="flex items-center gap-1 text-caption text-rose-500 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 px-2 py-1 rounded-lg transition-all"
                                                 >
                                                     <Undo2 size={12} />
                                                     Annuler cet appro
