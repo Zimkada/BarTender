@@ -75,31 +75,31 @@ export function ConsignmentCard({
 
             <div className="pl-3">
                 {/* Header: Customer & Badge */}
-                <div className="flex justify-between items-start mb-5">
+                <div className="flex justify-between items-start mb-5 gap-3">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-black text-foreground text-lg truncate leading-none">
+                            <h4 className="text-h3 font-semibold text-foreground truncate leading-none">
                                 {consignment.customerName}
                             </h4>
                             {isExpiringSoon && !isExpired && (
-                                <span className="animate-pulse w-2 h-2 rounded-full bg-amber-500" />
+                                <span className="animate-pulse w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                             )}
                         </div>
                         {consignment.customerPhone ? (
                             <a
                                 href={`tel:${consignment.customerPhone}`}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground hover:text-brand-primary transition-colors bg-muted px-2 py-1 rounded-md border border-border"
+                                className="inline-flex items-center gap-1.5 text-caption font-medium text-muted-foreground hover:text-brand-primary transition-colors bg-muted px-2 py-1 rounded-md border border-border tabular-nums"
                             >
                                 <Phone size={10} strokeWidth={3} />
                                 {consignment.customerPhone}
                             </a>
                         ) : (
-                            <span className="text-[10px] text-muted-foreground/60 italic">Sans contact</span>
+                            <span className="text-caption text-muted-foreground/60 italic">Sans contact</span>
                         )}
                     </div>
 
                     <div className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm",
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm flex-shrink-0",
                         isExpired ? "bg-red-50 dark:bg-red-950/30 border-red-100 dark:border-red-900/40 text-red-600 dark:text-red-400" :
                             isExpiringSoon ? "bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40 text-amber-700 dark:text-amber-400" :
                                 "bg-muted border-border text-muted-foreground"
@@ -107,12 +107,12 @@ export function ConsignmentCard({
                         {isExpired ? (
                             <>
                                 <AlertTriangle size={12} strokeWidth={2.5} />
-                                <span className="text-[9px] font-black uppercase tracking-wider">Expiré</span>
+                                <span className="text-micro">Expiré</span>
                             </>
                         ) : (
                             <>
                                 <Clock size={12} strokeWidth={2.5} />
-                                <span className="text-[9px] font-black uppercase tracking-wider">
+                                <span className="text-micro tabular-nums">
                                     {Math.floor(hoursLeft / 24)}j {hoursLeft % 24}h
                                 </span>
                             </>
@@ -124,25 +124,25 @@ export function ConsignmentCard({
                 <div className="bg-muted/50 rounded-xl p-4 border border-dashed border-border mb-5 relative group-hover:border-brand-primary/20 transition-colors">
                     <div className="flex items-start gap-4 mb-4">
                         <div className="w-12 h-12 rounded-xl bg-card border border-border shadow-sm flex items-center justify-center shrink-0">
-                            <span className="font-black text-xl text-foreground">{consignment.quantity}</span>
+                            <span className="text-h3 font-semibold text-foreground tabular-nums">{consignment.quantity}</span>
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-1">Produit</p>
-                            <p className="font-bold text-foreground leading-tight">{consignment.productName}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{consignment.productVolume || 'Standard'}</p>
+                            <p className="text-micro text-muted-foreground mb-1">Produit</p>
+                            <p className="text-body font-semibold text-foreground leading-tight">{consignment.productName}</p>
+                            <p className="text-caption text-muted-foreground mt-0.5">{consignment.productVolume || 'Standard'}</p>
                         </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-3 border-t border-border border-dashed">
                         <div>
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider mb-0.5">Valeur Stockée</p>
-                            <p className="font-black text-sm font-mono tracking-tighter text-brand-primary">
+                            <p className="text-micro text-muted-foreground mb-0.5">Valeur stockée</p>
+                            <p className="text-body-sm font-semibold text-brand-primary tabular-nums">
                                 {formatPrice(consignment.totalAmount)}
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider mb-0.5">Limite</p>
-                            <p className={`text-xs font-bold ${isExpiringSoon ? 'text-amber-600 dark:text-amber-400' : 'text-foreground/70'}`}>
+                            <p className="text-micro text-muted-foreground mb-0.5">Limite</p>
+                            <p className={`text-caption font-medium tabular-nums ${isExpiringSoon ? 'text-amber-600 dark:text-amber-400' : 'text-foreground/70'}`}>
                                 {expiresAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
                             </p>
                         </div>
@@ -153,13 +153,13 @@ export function ConsignmentCard({
                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
                     {/* Meta Info (Seller & ID) */}
                     <div className="flex items-center justify-between sm:justify-start gap-3 mb-2 sm:mb-0 sm:mr-auto">
-                        <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                        <span className="text-micro text-muted-foreground/70 tabular-nums">
                             #{consignment.id.slice(-4).toUpperCase()}
                         </span>
                         {originalSeller && (
                             <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-brand-subtle border border-brand-subtle">
                                 <User size={10} className="text-brand-primary" />
-                                <span className="text-[9px] font-black text-brand-primary uppercase tracking-tight">
+                                <span className="text-micro text-brand-primary">
                                     {originalSeller.name}
                                 </span>
                             </div>
@@ -172,23 +172,22 @@ export function ConsignmentCard({
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onClaim}
-                                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 text-white rounded-xl shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-1.5 sm:gap-2"
-                                style={{ background: 'var(--brand-gradient)' }}
+                                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 text-white rounded-xl shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-1.5 sm:gap-2 btn-brand"
                                 title="Client récupère le produit"
                             >
                                 <CheckCircle size={13} className="sm:w-[14px] sm:h-[14px]" strokeWidth={3} />
-                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-wider">Récupérer</span>
+                                <span className="text-caption font-semibold">Récupérer</span>
                             </motion.button>
 
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onForfeit}
-                                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-colors"
-                                title="Confisquer (Remise en stock)"
+                                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-100 dark:hover:bg-red-950/50 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-colors"
+                                title="Confisquer (remise en stock)"
                             >
                                 <Package size={13} className="sm:w-[14px] sm:h-[14px]" strokeWidth={2.5} />
-                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-wider">Confisquer</span>
+                                <span className="text-caption font-semibold">Confisquer</span>
                             </motion.button>
                         </div>
                     )}

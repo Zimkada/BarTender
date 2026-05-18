@@ -245,7 +245,7 @@ export function CreateConsignmentForm({
                             className="space-y-6"
                         >
                             <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">1. Sélectionner une vente</h3>
+                                <h3 className="text-h3 text-foreground whitespace-nowrap">1. Sélectionner une vente</h3>
                             </div>
 
 
@@ -284,7 +284,7 @@ export function CreateConsignmentForm({
                                 {filteredSales.length === 0 ? (
                                     <div className="col-span-full py-20 text-center text-muted-foreground">
                                         <ShoppingCart size={48} strokeWidth={1} className="mx-auto mb-4 opacity-20" />
-                                        <p className="font-medium text-sm">Aucune vente correspondante</p>
+                                        <p className="text-body-sm font-medium">Aucune vente correspondante</p>
                                     </div>
                                 ) : (
                                     filteredSales.map(sale => {
@@ -301,44 +301,37 @@ export function CreateConsignmentForm({
                                             >
                                                 <div className="space-y-3">
                                                     {/* Top Row: Server & Time */}
-                                                    <div className="flex items-center justify-between">
+                                                    <div className="flex items-center justify-between gap-2">
                                                         <div className="flex items-center gap-2 min-w-0">
                                                             {seller ? (
                                                                 <>
                                                                     <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20 flex-shrink-0">
                                                                         <User size={12} className="text-brand-primary" />
                                                                     </div>
-                                                                    <span
-                                                                        className="font-black text-xs uppercase tracking-tight"
-                                                                        style={{
-                                                                            background: 'var(--brand-gradient)',
-                                                                            WebkitBackgroundClip: 'text',
-                                                                            WebkitTextFillColor: 'transparent'
-                                                                        }}
-                                                                    >
+                                                                    <span className="text-caption font-semibold text-brand-primary truncate">
                                                                         {seller.name}
                                                                     </span>
                                                                 </>
                                                             ) : (
-                                                                <div className="text-xs font-bold text-muted-foreground">Vendeur inconnu</div>
+                                                                <div className="text-caption font-medium text-muted-foreground">Vendeur inconnu</div>
                                                             )}
                                                         </div>
-                                                        <span className="text-[10px] font-bold text-muted-foreground">
+                                                        <span className="text-micro text-muted-foreground tabular-nums flex-shrink-0">
                                                             {new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
 
                                                     {/* Middle: Product List */}
-                                                    <div className="text-xs text-foreground font-black line-clamp-2 leading-relaxed bg-muted/30 p-2.5 rounded-lg border border-border">
+                                                    <div className="text-caption text-foreground font-medium line-clamp-2 leading-relaxed bg-muted/30 p-2.5 rounded-lg border border-border">
                                                         {productPreview}
                                                     </div>
 
                                                     {/* Bottom: ID & Price */}
                                                     <div className="flex items-center justify-between pt-1">
-                                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                                        <span className="text-micro text-muted-foreground tabular-nums">
                                                             #{sale.id.slice(-4).toUpperCase()}
                                                         </span>
-                                                        <span className="text-[11px] font-bold text-foreground">
+                                                        <span className="text-caption font-semibold text-foreground tabular-nums">
                                                             {formatPrice(sale.total)}
                                                         </span>
                                                     </div>
@@ -367,7 +360,7 @@ export function CreateConsignmentForm({
                                 <BackButton
                                     onClick={() => setStep(1)}
                                 />
-                                <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">2. Choisir le produit</h3>
+                                <h3 className="text-h3 text-foreground whitespace-nowrap">2. Choisir le produit</h3>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -384,49 +377,42 @@ export function CreateConsignmentForm({
                                             status={isUnavailable ? 'disabled' : 'default'}
                                             statusText={isUnavailable ? 'Indisponible' : undefined}
                                             priceDisplay={
-                                                <span className="text-sm font-black text-foreground font-mono">
+                                                <span className="text-body-sm font-semibold text-foreground tabular-nums">
                                                     {formatPrice(item.unit_price)}
                                                 </span>
                                             }
                                         >
                                             <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className="font-black text-foreground text-sm tracking-tight uppercase">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                    <span className="text-body-sm font-semibold text-foreground">
                                                         {item.product_name}
                                                     </span>
                                                     {item.product_volume && (
-                                                        <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                                                        <span className="text-micro text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                                                             {item.product_volume}
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-3 flex-wrap">
                                                     <div className="flex items-center gap-1.5">
-                                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Dispo:</span>
-                                                        <span
-                                                            className="text-xs font-black"
-                                                            style={{
-                                                                background: 'var(--brand-gradient)',
-                                                                WebkitBackgroundClip: 'text',
-                                                                WebkitTextFillColor: 'transparent'
-                                                            }}
-                                                        >
+                                                        <span className="text-micro text-muted-foreground">Dispo :</span>
+                                                        <span className="text-caption font-semibold text-brand-primary tabular-nums">
                                                             {available}
                                                         </span>
                                                     </div>
 
                                                     {(consignedCount > 0 || returnedCount > 0) && (
                                                         <>
-                                                            <span className="text-[10px] text-gray-300 font-medium">|</span>
+                                                            <span className="text-micro text-muted-foreground/40">|</span>
                                                             <div className="flex items-center gap-2">
                                                                 {consignedCount > 0 && (
-                                                                    <span className="text-[10px] font-bold text-amber-600 flex items-center gap-1">
+                                                                    <span className="text-micro text-amber-600 dark:text-amber-400 flex items-center gap-1 tabular-nums">
                                                                         <Archive size={8} /> {consignedCount}
                                                                     </span>
                                                                 )}
                                                                 {returnedCount > 0 && (
-                                                                    <span className="text-[10px] font-bold text-red-500 flex items-center gap-1">
+                                                                    <span className="text-micro text-red-500 dark:text-red-400 flex items-center gap-1 tabular-nums">
                                                                         <Package size={8} /> {returnedCount}
                                                                     </span>
                                                                 )}
@@ -457,7 +443,7 @@ export function CreateConsignmentForm({
                                 <BackButton
                                     onClick={() => setStep(2)}
                                 />
-                                <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">3. Finalisation</h3>
+                                <h3 className="text-h3 text-foreground whitespace-nowrap">3. Finalisation</h3>
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -466,30 +452,30 @@ export function CreateConsignmentForm({
                                     <div className="bg-card p-6 rounded-3xl border border-border shadow-sm space-y-6">
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Quantité</Label>
+                                                <Label className="text-micro text-muted-foreground">Quantité</Label>
                                                 <Input
                                                     type="number"
                                                     value={quantity}
                                                     onChange={e => setQuantity(Number(e.target.value))}
                                                     max={maxQuantity}
                                                     min={1}
-                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-lg font-bold shadow-sm rounded-xl transition-all"
+                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-body font-semibold tabular-nums shadow-sm rounded-xl transition-all"
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Délai (Jours)</Label>
+                                                <Label className="text-micro text-muted-foreground">Délai (jours)</Label>
                                                 <Input
                                                     type="number"
                                                     value={expirationDays}
                                                     onChange={e => setExpirationDays(Number(e.target.value))}
                                                     min={1}
-                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-lg font-bold shadow-sm rounded-xl transition-all"
+                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-body font-semibold tabular-nums shadow-sm rounded-xl transition-all"
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Client</Label>
+                                            <Label className="text-micro text-muted-foreground">Client</Label>
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <Input
                                                     placeholder="Nom complet"
@@ -507,7 +493,7 @@ export function CreateConsignmentForm({
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Note (Optionnel)</Label>
+                                            <Label className="text-micro text-muted-foreground">Note (optionnelle)</Label>
                                             <Textarea
                                                 value={notes}
                                                 onChange={e => setNotes(e.target.value)}
@@ -525,38 +511,38 @@ export function CreateConsignmentForm({
                                         <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,transparent_33.333%,#fff_33.333%,#fff_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#fff_33.333%,#fff_66.667%,transparent_66.667%)] bg-[length:12px_24px] bg-[position:0_-12px] rotate-180 transform translate-y-[-50%]" />
 
                                         <div className="p-6 pt-8 text-center border-b border-dashed border-border">
-                                            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100">
-                                                <Archive className="w-5 h-5 text-amber-600" />
+                                            <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950/30 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100 dark:border-amber-900/40">
+                                                <Archive className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                                             </div>
-                                            <h4 className="font-black text-muted-foreground uppercase tracking-[0.3em] text-[9px] mb-1">Billet de</h4>
-                                            <h3 className="text-lg font-black text-foreground uppercase">Consignation</h3>
+                                            <h4 className="text-micro text-muted-foreground mb-1">Billet de</h4>
+                                            <h3 className="text-h3 text-foreground">Consignation</h3>
                                         </div>
 
                                         <div className="p-6 space-y-4 flex-1 bg-card">
-                                            <div className="flex justify-between items-center text-sm border-b border-dashed border-border pb-3">
-                                                <span className="text-muted-foreground font-bold uppercase text-[10px]">Produit</span>
-                                                <span className="text-foreground font-black">{selectedProductItem.product_name}</span>
+                                            <div className="flex justify-between items-center gap-3 border-b border-dashed border-border pb-3">
+                                                <span className="text-micro text-muted-foreground">Produit</span>
+                                                <span className="text-body-sm font-semibold text-foreground truncate">{selectedProductItem.product_name}</span>
                                             </div>
-                                            <div className="flex justify-between items-center text-sm border-b border-dashed border-border pb-3">
-                                                <span className="text-muted-foreground font-bold uppercase text-[10px]">Quantité</span>
-                                                <span className="text-foreground font-bold">x{quantity}</span>
+                                            <div className="flex justify-between items-center border-b border-dashed border-border pb-3">
+                                                <span className="text-micro text-muted-foreground">Quantité</span>
+                                                <span className="text-body-sm font-semibold text-foreground tabular-nums">x{quantity}</span>
                                             </div>
-                                            <div className="flex justify-between items-center text-sm pb-2">
-                                                <span className="text-muted-foreground font-bold uppercase text-[10px]">Valeur Totale</span>
-                                                <span className="text-amber-600 font-black font-mono">{formatPrice(selectedProductItem.unit_price * quantity)}</span>
+                                            <div className="flex justify-between items-center pb-2">
+                                                <span className="text-micro text-muted-foreground">Valeur totale</span>
+                                                <span className="text-body-sm font-semibold text-amber-600 dark:text-amber-400 tabular-nums">{formatPrice(selectedProductItem.unit_price * quantity)}</span>
                                             </div>
                                         </div>
 
                                         <div className="p-4 bg-muted border-t border-border">
                                             <EnhancedButton
                                                 onClick={handleSubmit}
-                                                className="w-full bg-brand-primary hover:bg-brand-dark text-white py-3.5 rounded-xl font-black uppercase tracking-wider text-xs shadow-lg shadow-brand-primary/20 mb-2"
+                                                className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white py-3.5 rounded-xl text-body-sm font-semibold shadow-lg shadow-brand-primary/20 mb-2"
                                             >
                                                 Confirmer
                                             </EnhancedButton>
                                             <button
                                                 onClick={onCancel}
-                                                className="w-full text-center py-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-red-500 transition-colors"
+                                                className="w-full text-center py-2 text-caption font-medium text-muted-foreground hover:text-red-500 dark:hover:text-red-400 transition-colors"
                                             >
                                                 Annuler
                                             </button>

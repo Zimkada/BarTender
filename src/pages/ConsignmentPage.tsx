@@ -216,43 +216,53 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card/60 dark:bg-muted/60 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-brand-subtle shadow-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-card p-3 sm:p-4 rounded-2xl border border-border shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center shadow-sm">
-            <span className="text-2xl font-black text-brand-primary font-mono leading-none">
+          <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center gap-2 shadow-sm">
+            <span className="text-h2 font-semibold text-brand-primary tabular-nums leading-none">
               {activeConsignments.length}
             </span>
-            <span className="text-[10px] uppercase font-black text-brand-dark ml-2 tracking-wider">
+            <span className="text-micro text-brand-primary">
               Actives
             </span>
           </div>
 
-          <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center shadow-sm">
-            <span className="text-[10px] uppercase font-black text-brand-dark mr-2 tracking-wider">
+          <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center gap-2 shadow-sm">
+            <span className="text-micro text-brand-primary">
               Valeur
             </span>
-            <span className="text-lg font-black text-brand-primary font-mono tracking-tighter leading-none">
+            <span className="text-body font-semibold text-brand-primary tabular-nums leading-none">
               {formatPrice(activeConsignmentsTotalValue)}
             </span>
           </div>
 
-          <div className="flex bg-card/40 dark:bg-muted/40 backdrop-blur-md rounded-2xl p-1.5 gap-1.5 border border-brand-subtle shadow-sm overflow-x-auto scrollbar-hide">
+          <div
+            role="radiogroup"
+            aria-label="Filtrer par urgence"
+            className="flex p-0.5 bg-muted rounded-full border border-border overflow-x-auto scrollbar-hide"
+          >
             {[
               { id: "all", label: "Tout" },
               { id: "soon", label: "Bientôt" },
               { id: "expired", label: "Expirés" },
-            ].map((f) => (
-              <button
-                key={f.id}
-                onClick={() => setUrgencyFilter(f.id as "all" | "soon" | "expired")}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${urgencyFilter === f.id
-                  ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
-                  : "glass-action-button-2026"
+            ].map((f) => {
+              const isActive = urgencyFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  role="radio"
+                  aria-checked={isActive}
+                  onClick={() => setUrgencyFilter(f.id as "all" | "soon" | "expired")}
+                  className={`px-4 py-1.5 rounded-full text-caption transition-all whitespace-nowrap ${
+                    isActive
+                      ? "bg-card text-brand-primary shadow-sm font-semibold"
+                      : "text-muted-foreground hover:text-foreground font-medium"
                   }`}
-              >
-                {f.label}
-              </button>
-            ))}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -262,7 +272,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Nom, produit, ID..."
             leftIcon={<Search className="w-4 h-4" />}
-            className="bg-card/80 border-brand-subtle rounded-xl focus:border-[var(--brand-primary)]"
+            className="bg-card border-border rounded-xl focus:border-brand-primary"
           />
         </div>
       </div>
@@ -270,13 +280,13 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
       {filteredConsignments.length === 0 ? (
         <div className="py-20 text-center bg-muted/50 rounded-3xl border-2 border-dashed border-border">
           <Package className="w-16 h-16 mx-auto mb-4 opacity-30 text-muted-foreground" />
-          <p className="text-muted-foreground font-medium">Aucune consignation trouvée</p>
+          <p className="text-body-sm text-muted-foreground font-medium">Aucune consignation trouvée</p>
           <button
             onClick={() => {
               setSearchTerm("");
               setUrgencyFilter("all");
             }}
-            className="mt-2 text-brand-primary font-bold hover:underline text-sm"
+            className="mt-2 text-body-sm text-brand-primary font-medium hover:underline"
           >
             Réinitialiser les filtres
           </button>
@@ -379,24 +389,34 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 flex-wrap bg-card/40 dark:bg-muted/40 backdrop-blur-md p-1.5 rounded-2xl border border-brand-subtle w-fit shadow-sm">
+      <div
+        role="radiogroup"
+        aria-label="Filtrer l'historique"
+        className="flex p-0.5 bg-muted rounded-full border border-border w-fit"
+      >
         {[
           { value: "all", label: "Tout" },
           { value: "claimed", label: "Récupérés" },
           { value: "expired", label: "Expirés" },
           { value: "forfeited", label: "Confisqués" },
-        ].map((filter) => (
-          <button
-            key={filter.value}
-            onClick={() => setFilterStatus(filter.value as "all" | "claimed" | "expired" | "forfeited")}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${filterStatus === filter.value
-              ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
-              : "glass-action-button-2026 text-muted-foreground"
+        ].map((filter) => {
+          const isActive = filterStatus === filter.value;
+          return (
+            <button
+              key={filter.value}
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => setFilterStatus(filter.value as "all" | "claimed" | "expired" | "forfeited")}
+              className={`px-4 py-1.5 rounded-full text-caption transition-all ${
+                isActive
+                  ? "bg-card text-brand-primary shadow-sm font-semibold"
+                  : "text-muted-foreground hover:text-foreground font-medium"
               }`}
-          >
-            {filter.label}
-          </button>
-        ))}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
       </div>
 
       {sortedHistory.length === 0 ? (
@@ -412,30 +432,30 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
             return (
               <div
                 key={consignment.id}
-                className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
+                className="bg-card border border-border rounded-xl p-4 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium text-foreground">{consignment.customerName}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {consignment.quantity} × {consignment.productName}{" "}
+                <div className="flex items-start justify-between mb-2 gap-3">
+                  <div className="min-w-0">
+                    <h4 className="text-body font-semibold text-foreground truncate">{consignment.customerName}</h4>
+                    <p className="text-body-sm text-muted-foreground">
+                      <span className="tabular-nums">{consignment.quantity}</span> × {consignment.productName}{" "}
                       {consignment.productVolume}
                     </p>
                     {originalSeller && (
-                      <p className="text-xs text-brand-primary mt-1">👤 Vendeur: {originalSeller.name}</p>
+                      <p className="text-caption text-brand-primary mt-1">👤 Vendeur : {originalSeller.name}</p>
                     )}
                   </div>
                   <StatusBadge status={consignment.status} />
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Créé: {new Date(consignment.createdAt).toLocaleDateString("fr-FR")}</span>
-                  <span>{formatPrice(consignment.totalAmount)}</span>
+                <div className="flex items-center justify-between text-caption text-muted-foreground">
+                  <span>Créé : <span className="tabular-nums">{new Date(consignment.createdAt).toLocaleDateString("fr-FR")}</span></span>
+                  <span className="font-semibold text-foreground tabular-nums">{formatPrice(consignment.totalAmount)}</span>
                 </div>
 
                 {consignment.claimedAt && (
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    Récupéré le {new Date(consignment.claimedAt).toLocaleDateString("fr-FR")}
+                  <div className="text-caption text-green-600 dark:text-green-400 mt-1">
+                    Récupéré le <span className="tabular-nums">{new Date(consignment.claimedAt).toLocaleDateString("fr-FR")}</span>
                   </div>
                 )}
               </div>
@@ -445,10 +465,10 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
             <div className="flex justify-center py-4">
               <button
                 onClick={() => setVisibleCount(c => c + HISTORY_PAGE_SIZE)}
-                className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
+                className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-body-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
               >
                 <ChevronDown size={16} />
-                Voir plus ({sortedHistory.length - visibleCount} restantes)
+                Voir plus (<span className="tabular-nums">{sortedHistory.length - visibleCount}</span> restantes)
               </button>
             </div>
           )}
@@ -461,16 +481,16 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
 // ===== STATUS BADGE =====
 const StatusBadge: React.FC<{ status: Consignment["status"] }> = ({ status }) => {
   const configs = {
-    active: { label: "Actif", color: "bg-amber-100 text-amber-700" },
-    claimed: { label: "Récupéré", color: "bg-green-100 text-green-700" },
-    expired: { label: "Expiré", color: "bg-amber-100 text-amber-700" },
-    forfeited: { label: "Confisqué", color: "bg-red-100 text-red-700" },
+    active: { label: "Actif", color: "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/40" },
+    claimed: { label: "Récupéré", color: "bg-green-100 dark:bg-green-950/40 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/40" },
+    expired: { label: "Expiré", color: "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/40" },
+    forfeited: { label: "Confisqué", color: "bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/40" },
   };
 
   const config = configs[status];
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${config.color}`}>
+    <span className={`px-3 py-1 rounded-full text-caption font-medium border whitespace-nowrap ${config.color}`}>
       {config.label}
     </span>
   );
