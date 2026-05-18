@@ -973,7 +973,7 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
   estimatedDuration: 5,
   difficulty: 'intermediate',
   emoji: '📦',
-  version: 3,
+  version: 4,
 
   triggers: [
     {
@@ -991,14 +991,14 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion des Consignations !',
       description:
-        'Votre système de **Gestion des Consignations** se divise en **3 onglets** pour gérer complètement les produits payés mais non consommés : **Nouvelle Consignation** (création), **Consignations Actives** (gestion), **Historique** (traçabilité). **Important** : Consignation = Client paie → laisse produits au bar → **SANS REMBOURSEMENT** → reviendra plus tard.',
+        'Votre espace **Consignations** se divise en **3 onglets** : **Nouvelle consignation** (création), **Consignations actives** (gestion en cours), **Historique** (traçabilité). **Important** : une consignation = un client paie → laisse ses produits au bar → **sans remboursement** → reviendra les récupérer plus tard.',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '✅ Consignation = Mise de côté (PAS remboursement)',
-        '📦 Client paie 5 bières → consomme 2 → consigne les 3',
-        '📊 À CRÉATION : Stock Physique ↑ (produits reviennent) | Stock Vendable invariant (déjà vendus)',
-        '⏳ Délai paramétrable (7j défaut). Après: décision manuelle confisquer ou récupérer',
+        '✅ Consignation = mise de côté (pas un remboursement)',
+        '📦 Exemple : le client paie 5 bières → en consomme 2 → consigne les 3 autres',
+        '📊 À la création : Stock Physique ↑ | Stock Vendable invariant (déjà vendu)',
+        '⏳ Délai paramétrable (7j par défaut). Au-delà : décision manuelle (Récupérer ou Confisquer)',
       ],
     },
 
@@ -1041,68 +1041,68 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
     {
       id: 'step-4',
       emoji: '⏳',
-      title: 'Onglet 2: Consignations Actives - Vue & Actions',
+      title: 'Onglet 2 : Consignations actives — Vue & actions',
       description:
-        'L\'**Onglet Consignations Actives** affiche tous les produits actuellement mis de côté. Pour chaque consignation, vous voyez : **client**, **produit**, **quantité**, **date expiration**, et **urgence badge** (vert/jaune/rouge). Vous pouvez effectuer 2 actions cruciales : **Récupérer** ou **Confisquer**.',
+        'L\'onglet **Consignations actives** affiche en haut **2 cartes de synthèse** (nombre d\'Actives + Valeur totale) et un **filtre rapide d\'urgence** (Tout / Bientôt / Expirés). Chaque consignation s\'affiche en carte avec : client, téléphone, produit, quantité, badge d\'expiration coloré, et les 2 actions **Récupérer** et **Confisquer**.',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🟢 Vert = Beaucoup de temps avant expiration',
-        '🟡 Jaune = Expiration proche (avertir client)',
-        '🔴 Rouge = Délai très court ou expiré',
-        '📋 Chaque ligne a boutons **Récupérer** et **Confisquer**',
+        '🟢 Accent vert = beaucoup de temps avant expiration',
+        '🟡 Accent ambre = expiration proche (24h ou moins), point qui pulse',
+        '🔴 Accent rouge = expiré (action requise)',
+        '🔍 Barre de recherche : par nom client, téléphone, produit ou ID',
       ],
     },
 
     {
       id: 'step-5',
       emoji: '📤',
-      title: 'Action: Récupérer (Client vient chercher)',
+      title: 'Action : Récupérer (le client vient chercher)',
       description:
-        'Quand le **client vient récupérer** ses produits consignés, cliquez sur le bouton **RÉCUPÉRER**. Cela marque la consignation comme complétée. Le **Stock Physique diminue** (produits quittent le bar). Le **Stock Vendable reste invariant** (il n\'a jamais changé car produits déjà vendus).',
+        'Quand le **client vient récupérer** ses produits consignés, cliquez sur **Récupérer** (bouton brand vert/orange). Cela marque la consignation comme complétée. Le **Stock Physique diminue** (produits quittent le bar). Le **Stock Vendable reste invariant** (il n\'avait jamais changé puisque les produits étaient déjà vendus).',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📤 Produit sort **physiquement** du bar (client l\'emporte)',
-        '📊 Impact stocks à récupération : Stock Physique ↓ | Stock Vendable invariant (jamais changé)',
-        '✅ Action enregistrée dans historique pour traçabilité',
-        '💡 Client repart avec ses produits déjà payés, zéro remboursement',
+        '📤 Les produits sortent **physiquement** du bar (le client les emporte)',
+        '📊 Impact stocks : Stock Physique ↓ | Stock Vendable invariant',
+        '✅ L\'action est enregistrée dans l\'historique pour traçabilité',
+        '💡 Le client repart avec ses produits déjà payés, zéro remboursement',
       ],
     },
 
     {
       id: 'step-6',
       emoji: '🔒',
-      title: 'Action: Confisquer (Délai expiré ou renoncement)',
+      title: 'Action : Confisquer (délai expiré ou renoncement)',
       description:
-        'Si le **délai d\'expiration est dépassé** ou le **client renonce**, cliquez sur **CONFISQUER**. Le produit est **réintégré à votre Stock Vendable** (redevient disponible à la vente). Le **Stock Physique reste stable** car produit est toujours au bar. Vous récupérez le droit de vente.',
+        'Si le **délai est dépassé** ou si le **client renonce**, cliquez sur **Confisquer** (bouton rouge). Le produit est **réintégré à votre Stock Vendable** (redevient disponible à la vente). Le **Stock Physique reste stable** car le produit est toujours au bar.',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ **Pas automatique** : L\'expiration du délai n\'auto-confisque PAS, action manuelle requise',
-        '📊 Impact stocks à confiscation : Stock Physique invariant (produit reste) | Stock Vendable ↑ (réintégré)',
-        '💡 Exemple: Consignation 5 bières expirent → vous confisquez → redevient 5 bières à vendre',
-        '🔄 Réintégration = Produit redevient disponible vente (comme si jamais consigné)',
+        '⏰ **Pas automatique** : l\'expiration n\'auto-confisque PAS, action manuelle requise',
+        '📊 Impact stocks : Stock Physique invariant | Stock Vendable ↑',
+        '💡 Exemple : 5 bières consignées expirent → vous confisquez → redeviennent 5 bières à vendre',
+        '🔄 Le produit redevient disponible à la vente (comme s\'il n\'avait jamais été consigné)',
       ],
     },
 
     {
       id: 'step-7',
       emoji: '🚨',
-      title: 'Gérer Expiration & Urgence',
+      title: 'Gérer expiration & urgence',
       description:
-        'Les **consignations expirées** sont marquées en **rouge**. Vous devez manuellement décider : **Récupérer** (si client la redemande) ou **Confisquer** (si délai dépassé et client silencieux).',
+        'Les **consignations expirées** sont marquées par une bande rouge à gauche de la carte et un badge "Expiré". Le filtre **Expirés** en haut permet de les isoler rapidement. Vous devez manuellement décider : **Récupérer** (si le client revient) ou **Confisquer** (si le délai est dépassé sans nouvelle).',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⚠️ Expiration = **Alerte seulement** (pas action automatique)',
-        '📞 Avertissez client AVANT expiration pour lui rappeler récupérer',
-        '⏰ Délai = Paramétrable en Paramètres (onglet Opérationnel)',
-        '🔴 Consignations expirées = Marquées rouge dans l\'onglet Actives',
+        '⚠️ Expiration = alerte uniquement (pas d\'action automatique)',
+        '📞 Avertissez le client AVANT expiration pour lui rappeler la récupération',
+        '⏰ Le délai est paramétrable dans Paramètres → onglet Opérationnel',
+        '🟠 Filtre "Bientôt" : affiche les consignations à expirer dans 24h',
       ],
     },
 
@@ -1110,34 +1110,33 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
     {
       id: 'step-8',
       emoji: '📚',
-      title: 'Onglet 3: Historique - Audit & Traçabilité',
+      title: 'Onglet 3 : Historique — Audit & traçabilité',
       description:
-        'L\'**Onglet Historique** affiche **toutes les consignations complétées** (non actives). Vous voyez le **statut final** : Récupérée (client a pris) ou Confisquée (bar a réintégré). Filtrez par **statut** ou **période** pour auditer votre historique consignations.',
+        'L\'onglet **Historique** affiche **toutes les consignations non actives**. Chaque ligne montre le statut final (**Récupéré** ou **Confisqué**), la date de création, la valeur, et le serveur d\'origine. Un filtre **par statut** en haut permet d\'isoler les Récupérés ou les Confisqués.',
       elementSelector: '[data-guide="consignments-history-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '✅ Récupérée = Client est venu chercher ses produits',
-        '🔐 Confisquée = Délai expiré ou rejet, réintégré à vente',
-        '📅 Filtrez par statut (Tout/Récupérées/Confisquées) ou période',
-        '🔍 Utile pour litiges clients, bilans stocks, traçabilité',
+        '✅ Récupéré = le client est venu chercher ses produits',
+        '🔐 Confisqué = délai expiré, produit réintégré à la vente',
+        '🔍 Filtre statut : Tout / Récupérés / Expirés / Confisqués',
+        '📊 Utile pour les litiges clients, les bilans stocks et la traçabilité',
       ],
     },
 
     {
       id: 'step-9',
       emoji: '🔍',
-      title: 'Recherche & Filtrage Historique',
+      title: 'Lecture rapide d\'une carte historique',
       description:
-        'Utilisez les **filtres** pour analyser : **Filtre Statut** (voir uniquement Récupérées ou Confisquées) pour comprendre patterns. **Filtre Période** pour bilans mensuels/annuels. Cherchez par **client** ou **produit** pour enquêtes litiges ou stock reconciliation.',
+        'Chaque carte historique affiche : **nom client**, **quantité × produit**, **serveur d\'origine** (si connu), **date de création**, **valeur totale** et le **statut** (badge coloré à droite). Si la consignation a été récupérée, la **date de récupération** apparaît en vert en bas. La liste est paginée par 100 entrées avec un bouton "Voir plus".',
       elementSelector: '[data-guide="consignments-history-filters"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔄 Statuts: Tout, Récupérées, Confisquées',
-        '📅 Périodes: Aujourd\'hui, 7j, 30j, custom',
-        '🔎 Recherche par nom client ou produit',
-        '📊 Utilisez pour: Bilan stocks, litiges clients, audit traçabilité',
+        '👤 Serveur d\'origine = qui a créé la vente initiale (utile pour bonus/commission)',
+        '💰 La valeur reste tracée même après confiscation (pour analyse perte)',
+        '📅 Le serveur ne voit que ses propres consignations (filtrage automatique)',
       ],
     },
 
@@ -1145,18 +1144,18 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
     {
       id: 'step-10',
       emoji: '✅',
-      title: 'Vous Maîtrisez les Consignations !',
+      title: 'Vous maîtrisez les Consignations !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Création, Actives, Historique), comment **créer consignations**, **récupérer** (client) **ou confisquer** (délai expiré), et **tracer historique** pour audit. Vous comprenez aussi les **impacts stocks** : création ↑ Physique, récupération ↓ Physique, confiscation ↑ Vendable.',
+        'Vous connaissez maintenant les **3 onglets** (Création, Actives, Historique), comment **créer une consignation**, **Récupérer** (le client revient) ou **Confisquer** (délai expiré), et **tracer l\'historique** pour audit. Vous comprenez aussi les impacts stocks : création ↑ Physique, récupération ↓ Physique, confiscation ↑ Vendable.',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📦 Consignation = **Mise de côté** (PAS remboursement jamais)',
-        '📊 Stock impact = Physique change (produits là physiquement), Vendable change à confiscation (réintégration)',
-        '⏰ Urgence badges = Rappels (not automatic action)',
-        '📚 Historique = Audit trail pour litiges/reconciliation',
+        '📦 Consignation = mise de côté (jamais un remboursement)',
+        '📊 Impact stocks : Physique varie (le produit est là ou non), Vendable varie à la confiscation',
+        '⏰ Les badges d\'urgence sont des rappels, pas des actions automatiques',
+        '📚 L\'historique est votre journal d\'audit en cas de litige',
       ],
-      action: '→ Gérez vos consignations efficacement !',
+      action: 'Gérez vos consignations efficacement',
     },
   ],
 };
