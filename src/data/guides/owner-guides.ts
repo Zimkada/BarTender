@@ -1905,7 +1905,7 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
   estimatedDuration: 7,
   difficulty: 'intermediate',
   emoji: '🎁',
-  version: 2,
+  version: 3,
 
   triggers: [
     {
@@ -1922,7 +1922,7 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       emoji: '🎁',
       title: 'Bienvenue à la Gestion des Promotions !',
       description:
-        'Les promotions sont votre outil principal pour augmenter les ventes et fidéliser les clients. Cet espace est organisé en **3 onglets** :\n\n• **Catalogue d\'Offres** : Gérez vos promotions existantes (liste, recherche, création, activation, suppression)\n• **Analyses** : Suivez les performances (CA, Utilisations, Profit, ROI) par promotion\n• **Nouvelle Promotion** : Créez ou modifiez une promotion avec ses 6 types possibles',
+        'Les promotions sont votre outil principal pour augmenter les ventes et fidéliser les clients. Cet espace est organisé en **3 onglets** :\n\n• **Catalogue** : gérez vos promotions existantes (liste, recherche, création, activation, suppression)\n• **Analyses** : suivez les performances (CA, Utilisations, Profit, Retour sur investissement) par promotion\n• **Nouvelle promotion** : créez ou modifiez une promotion avec ses 6 types possibles',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -1936,7 +1936,7 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
     {
       id: 'step-2',
       emoji: '📋',
-      title: 'Onglet 1 : Catalogue d\'Offres',
+      title: 'Onglet 1 : Catalogue',
       description:
         'Cet onglet affiche la **liste de toutes vos promotions** sous forme de cartes. Chaque carte montre le statut, les détails clés et les actions disponibles.',
       elementSelector: '[data-guide="promo-catalog"]',
@@ -1988,46 +1988,47 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       emoji: '📊',
       title: 'Onglet 2 : Analyses',
       description:
-        'Cet onglet vous montre les **performances de vos promotions** en temps réel. Vous y trouvez les KPIs clés (CA, Utilisations, Profit, ROI) et un classement des meilleures offres.',
+        'Cet onglet vous montre les **performances de vos promotions** en temps réel. Vous y trouvez les KPIs clés (CA, Utilisations, Profit réalisé, Retour sur invest.) et un **Classement des offres** par rentabilité.',
       elementSelector: '[data-guide="promo-analytics"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📈 Les données s\'actualisent en temps réel',
         '🎯 Identifiez rapidement vos meilleures et pires promotions',
+        '📅 Filtrez par période pour comparer (semaine, mois, trimestre)',
       ],
     },
 
     {
       id: 'step-6',
       emoji: '📉',
-      title: 'KPIs : Métriques Clés',
+      title: 'KPIs : 4 métriques clés',
       description:
-        'Quatre **cartes de synthèse** en haut de l\'onglet Analyses :\n\n• **Chiffre d\'Affaires (CA)** : Montant total généré par les promotions\n• **Utilisations** : Nombre de fois où vos promotions ont été appliquées\n• **Profit Net** : Gain réel après coût des produits\n• **ROI (Retour sur Investissement)** : Performance comparée à l\'investissement',
+        'Quatre **cartes de synthèse** en haut de l\'onglet Analyses :\n\n• **Chiffre d\'affaires** : montant total généré par les promotions sur la période\n• **Utilisations** : nombre de fois où vos promotions ont été appliquées\n• **Profit réalisé** : gain réel après coût des produits (basé sur vos marges)\n• **Retour sur invest.** : performance de la promo comparée à son coût',
       elementSelector: '[data-guide="promo-kpis"]',
       position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '💰 Le Profit Net dépend de vos marges produit (défini dans Inventaire)',
-        '📊 Un ROI > 100% signifie votre promo est très rentable',
-        '🎯 Ciblez les promotions avec ROI élevé et marge stable',
+        '💰 Le **Profit réalisé** dépend des marges produit (définies dans Inventaire)',
+        '📊 Un **Retour sur invest. > 100%** signifie que la promo est très rentable',
+        '🎯 Ciblez les promotions avec un bon retour ET une marge stable',
       ],
     },
 
     {
       id: 'step-7',
       emoji: '🏆',
-      title: 'Analyses: KPIs de Performance',
+      title: 'Classement des offres',
       description:
-        'Vous trouvez les **KPIs clés** (CA, Utilisations, Profit, ROI) qui vous permettent d\'analyser vos promotions. Les meilleures promotions sont celles qui génèrent le plus de profit et d\'utilisation avec un bon ROI.',
+        'En dessous des KPIs, le **Classement des offres** trie vos promotions par rentabilité directe. Vous voyez d\'un coup d\'œil quelles offres marchent et lesquelles méritent d\'être désactivées ou ajustées.',
       elementSelector: '[data-guide="promo-ranking"]',
       position: 'top',
-      action: 'Consultez les KPIs',
+      action: 'Consultez le classement',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⭐ ROI = combinaison de profit et d\'utilisations',
-        '📅 Comparez les périodes (jour, semaine, mois) avec les filtres',
-        '🔄 Les promotions avec bon ROI méritent d\'être réactivées',
+        '⭐ Le **Score** combine profit et utilisations',
+        '🔴 Une ligne **rouge** = profit net négatif → la promo vous coûte plus qu\'elle ne rapporte',
+        '🔄 Les promotions avec un bon retour méritent d\'être réactivées chaque saison',
       ],
     },
 
@@ -2069,16 +2070,16 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       emoji: '⚙️',
       title: 'Section 2 - Mécanisme (6 Types)',
       description:
-        'Choisissez le **type d\'offre** parmi 6 options :\n\n1. **Unitaire** : ex: "-50 FCFA par bouteille" (prix réduit = prix fixe - montant)\n2. **Pourcentage** : ex: "-10%" (prix réduit = prix fixe × (100% - pourcentage))\n3. **Offre Groupée (Lôts)** : ex: "3 pour 1000 FCFA" (prix fixe pour un lot complet)\n4. **Prix Fixe** : ex: "Heineken à 300 FCFA" (remplace le prix d\'origine)\n5. **Sur Vente** : ex: "-5% si achat > 5000 FCFA" (reduction appliquée sur montant total)\n6. **Majoration** : ex: "+100 FCFA de nuit" (augmentation temporaire du prix)',
+        'Choisissez le **type d\'offre** parmi 6 options :\n\n1. **Unitaire** : ex: "-50 FCFA par bouteille" (prix réduit = prix d\'origine − montant fixe)\n2. **Pourcentage** : ex: "-10%" (prix réduit = prix d\'origine × (100% − pourcentage))\n3. **Offre Groupée** : ex: "3 pour 1000 FCFA" (prix fixe pour un lot complet)\n4. **Prix Fixe** : ex: "Heineken à 300 FCFA" (remplace le prix d\'origine)\n5. **Sur Vente** : ex: "-5% si achat > 5000 FCFA" (réduction sur le panier total)\n6. **Majoration** : ex: "+100 FCFA de nuit" (augmentation temporaire du prix)',
       elementSelector: '[data-guide="promo-mechanism"]',
       position: 'bottom',
       action: 'Sélectionnez un type d\'offre',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎯 **Unitaire** est le plus courant (ex: réduction fixe par article)',
-        '📦 **Lôts** pour écouler du stock groupé (ex: 3 bières pour une price spéciale)',
+        '📦 **Offre Groupée** pour écouler du stock par lot (ex: 3 bières à prix spécial)',
         '🌙 **Majoration** pour tarifs dynamiques (tarif de nuit, tarif événement)',
-        '💰 Le système gère automatiquement les cas limites (ex: 3 lôts = 9 articles)',
+        '💰 Le système gère automatiquement les cas limites (ex: 3 lots = 9 articles)',
       ],
     },
 
@@ -2104,16 +2105,16 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       emoji: '📅',
       title: 'Section 4 - Période',
       description:
-        'Programmez **quand appliquer** la promotion :\n\n• **Date début/fin** : Ex: "1 déc - 31 déc" (période fixe) ou "Sans limite" (permanent)\n• **Horaires** : Ex: "17:00-19:00" (Happy Hour spécifique) ou "00:00-23:59" (toute la journée)\n• **Jours de la semaine** : Lundi à dimanche (cochez les jours concernés)',
+        'Programmez **quand appliquer** la promotion :\n\n• **Date de lancement** : à quelle date la promo devient active\n• **Date de fin** : laissez vide pour une promotion sans limite (permanente). Vous pouvez toujours la mettre en pause manuellement depuis le Catalogue.',
       elementSelector: '[data-guide="promo-period"]',
       position: 'bottom',
       action: 'Configurez la validité',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ Programmez à l\'avance : Happy Hours quotidiens, promos saisonnières, offres limitées',
-        '📆 "Sans limite" pour une promotion permanente (mais vérifiable en Analyses)',
-        '🕐 Horaires = utile pour Happy Hours (17:00-19:00 chaque jour)',
-        '🔄 Vous pouvez programmer et mettre en pause à tout moment',
+        '📆 Laissez "Fin" vide pour une promo permanente — vous pourrez l\'arrêter à tout moment',
+        '🗓️ Programmez à l\'avance vos promos saisonnières (Noël, Indépendance, fin d\'année…)',
+        '⏸️ Une promo créée aujourd\'hui mais commençant la semaine prochaine reste en statut "Programmée" jusqu\'à sa date de lancement',
+        '🔄 Mettre en pause ne supprime pas la promo — vous pouvez la relancer plus tard',
       ],
     },
 
@@ -2127,7 +2128,7 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       action: 'Cliquez sur Terminer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🚀 Commencez par des promotions simples (Unitaire ou Lôts)',
+        '🚀 Commencez par des promotions simples (Unitaire ou Offre Groupée)',
         '📊 Testez et ajustez rapidement en fonction des Analyses',
         '💡 Communiquez vos offres aux clients (réseaux, affichage, serveurs)',
         '🎯 Concentrez-vous sur les offres avec ROI > 100% et marge stable',

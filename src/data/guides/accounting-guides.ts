@@ -12,10 +12,10 @@ export const ACCOUNTING_MODULE_GUIDE: GuideTour = {
 
     targetRoles: ['promoteur'],
 
-    estimatedDuration: 6,
+    estimatedDuration: 7,
     difficulty: 'intermediate',
     emoji: '💰',
-    version: 1,
+    version: 2,
 
     triggers: [
         {
@@ -33,88 +33,119 @@ export const ACCOUNTING_MODULE_GUIDE: GuideTour = {
             emoji: '👋',
             title: 'Bienvenue dans votre Espace Comptable',
             description:
-                'Cet espace est **réservé exclusivement aux promoteurs**. C’est ici que vous pilotez la rentabilité réelle de votre établissement. Le module se divise en **3 onglets** : Vue Globale, Revenus et Dépenses (incluant les salaires).',
+                'Cet espace est **réservé exclusivement aux promoteurs**. C\'est ici que vous pilotez la rentabilité réelle de votre établissement. Le module se divise en **3 onglets** : Vue globale, Revenus et Dépenses (qui inclut les salaires).',
             position: 'center',
             tips: [
-                '🔄 Données **synchronisées** : Les chiffres reflètent les opérations validées et synchronisées',
+                '🔄 Données **synchronisées** : les chiffres reflètent les opérations validées et synchronisées',
                 '📅 Les calculs suivent votre **journée commerciale** (basée sur votre heure de clôture)',
-                '🔐 Accès restreint : Seul vous avez une vision complète des marges et salaires',
+                '🔐 Accès restreint : seul le promoteur a une vision complète des marges et salaires',
             ],
         },
 
-        // ==================== FILTRES DE PÉRIODE ====================
+        // ==================== FILTRE DE PÉRIODE ====================
         {
             id: 'step-2',
             emoji: '📅',
-            title: 'Contrôlez la Période d\'Analyse',
+            title: 'Une période, trois onglets',
             description:
-                'Avant toute analyse, vérifiez toujours la **période sélectionnée**. Les statistiques (Revenus/Dépenses) sont regroupées par **journée commerciale** (ex: de 6h à 6h si votre bar ferme à l\'aube).',
-            elementSelector: '[data-guide="accounting-period-filter"]',
+                'Le **filtre de période** est commun aux 3 onglets : si vous sélectionnez "Ce mois" dans Vue globale, vous retrouvez la même période en passant sur Revenus ou Dépenses. C\'est votre source unique de vérité pour l\'analyse.',
             position: 'bottom',
             tips: [
-                '📈 Comparez le mois actuel au mois précédent pour mesurer votre croissance',
-                '⚠️ Les chiffres d\'"Aujourd\'hui" incluent les ventes depuis la dernière ouverture de caisse',
+                '📈 Comparez "Ce mois" au "Mois précédent" pour mesurer votre croissance',
+                '⚠️ La journée d\'aujourd\'hui inclut les ventes depuis votre dernière ouverture',
+                '🔁 Le filtre est centralisé : pas besoin de le re-régler en changeant d\'onglet',
             ],
         },
 
-        // ==================== VUE GLOBALE - KPIs ====================
+        // ==================== VUE GLOBALE — TOGGLE TRÉSORERIE / ANALYTIQUE ====================
         {
             id: 'step-3',
-            emoji: '📈',
-            title: 'KPIs : La Santé de votre Bar',
+            emoji: '🔀',
+            title: 'Vue globale : 2 modes d\'analyse',
             description:
-                'L\'onglet **Vue Globale** affiche vos indicateurs de performance clés. Surveillez le **Chiffre d\'Affaires**, le **Résultat d\'Exploitation** et votre **Marge Bénéficiaire**. Ces KPIs sont mis à jour après chaque synchronisation.',
-            elementSelector: '[data-guide="accounting-kpis"]',
+                'L\'onglet Vue globale propose **deux modes** sélectionnables via le toggle dans la barre de contrôle :\n\n• **Trésorerie** : focus sur la performance de la période (Bénéfice opérationnel, Revenus, Charges opérationnelles, Investissements)\n• **Analytique** : focus sur la position financière (Solde de début, Revenus, Coûts totaux, Solde de fin) — idéal pour le suivi long terme',
             position: 'bottom',
             tips: [
-                '💰 **Résultat d\'Exploitation** = Revenus - Dépenses Opérationnelles',
-                '🎯 Visez une marge stable pour assurer la pérennité de votre bar',
+                '💰 **Trésorerie** = "Qu\'ai-je gagné/dépensé sur cette période ?"',
+                '📊 **Analytique** = "Où en est mon solde global aujourd\'hui ?"',
+                '🎯 Les deux modes partagent le même filtre de période',
             ],
         },
 
-        // ==================== REVENUS ====================
+        // ==================== VUE GLOBALE — KPIs ====================
         {
             id: 'step-4',
-            emoji: '➕',
-            title: 'Détail des Revenus',
+            emoji: '📈',
+            title: 'KPIs : la santé de votre bar',
             description:
-                'L\'onglet **Revenus** segmente vos rentrées d\'argent. Identifiez quel type de consommation génère le plus de cash et analysez les méthodes de paiement les plus utilisées.',
-            elementSelector: '[data-guide="accounting-tab-revenues"]',
+                'En mode **Trésorerie**, les 4 cartes affichent :\n\n• **Bénéfice opérationnel** = Revenus − Charges opérationnelles (avec le pourcentage de marge)\n• **Revenus** : chiffre d\'affaires net de la période\n• **Charges opérationnelles** : dépenses courantes (hors investissements)\n• **Investissements** : dépenses durables (avec leur poids en % du CA)',
             position: 'bottom',
             tips: [
-                '🍹 Voyez quels produits sont vos "vaches à lait"',
-                '💳 Comparez le cash vs les paiements mobiles',
-                '📊 **Export** : Utilisez le bouton dédié pour extraire vos données en Excel/CSV pour un expert-comptable',
+                '💰 Un **bénéfice opérationnel positif** = votre activité courante est rentable',
+                '⚠️ Un **taux d\'investissement > 20%** déclenche un signal — vérifier que c\'est volontaire',
+                '🎯 Visez une marge stable d\'un mois sur l\'autre pour assurer la pérennité',
             ],
         },
 
-        // ==================== DÉPENSES & SALAIRES ====================
+        // ==================== VUE GLOBALE — ACTIONS ====================
         {
             id: 'step-5',
-            emoji: '➖',
-            title: 'Gestion des Dépenses & Salaires',
+            emoji: '🛠️',
+            title: 'Actions de la Vue globale',
             description:
-                'Ici, vous gérez vos coûts. **Approvisionnements**, charges fixes et **paie du personnel**. Notez que les filtres de date ici suivent la **date réelle de paiement** pour votre trésorerie.',
-            elementSelector: '[data-guide="accounting-tab-expenses"]',
+                'La barre d\'actions propose 4 boutons selon leur usage :\n\n• **Livre Journal** (vert) : export comptable conforme **SYSCOHADA** pour votre expert-comptable\n• **Export Simple** (noir) : export Excel récapitulatif (ventes, dépenses, totaux)\n• **Apport Capital** (bleu) : enregistrer un apport au capital du bar\n• **Solde Initial** (discret) : action de configuration ponctuelle — à faire une seule fois à la création du bar',
             position: 'bottom',
             tips: [
-                '💸 **Salaires** : Filtrés par date de décaissement (Trésorerie)',
-                '📦 Les approvisionnements sont automatiquement importés ici après achat',
-                '💡 Une dépense enregistrée réduit immédiatement votre résultat affiché',
+                '📕 **Livre Journal** = le document que votre comptable attend (norme OHADA)',
+                '💼 **Apport Capital** = utile à chaque injection de fonds (les associés et vous)',
+                '🔧 **Solde Initial** = trésorerie de départ, à régler une fois au lancement',
+            ],
+        },
+
+        // ==================== ONGLET REVENUS ====================
+        {
+            id: 'step-6',
+            emoji: '➕',
+            title: 'Onglet Revenus : suivi journalier',
+            description:
+                'L\'onglet Revenus affiche **4 cartes** (Total période, Espèces, Mobile Money, Carte & Autres) puis un **tableau journalier** détaillant chaque jour de la période. Le tableau a un **en-tête collant**, met en valeur la **ligne du jour** et termine par une **ligne Total** récapitulative.',
+            position: 'bottom',
+            tips: [
+                '🟠 La ligne "Aujourd\'hui" est mise en évidence en orange',
+                '💳 Comparez la part du cash vs paiements mobiles pour ajuster votre stratégie',
+                '🔎 Une barre de recherche au-dessus du tableau permet de filtrer par date',
+                '📊 **Export** : utilisez les boutons d\'export de la Vue globale pour extraire les données',
+            ],
+        },
+
+        // ==================== ONGLET DÉPENSES & SALAIRES ====================
+        {
+            id: 'step-7',
+            emoji: '➖',
+            title: 'Onglet Dépenses : coûts détaillés',
+            description:
+                'L\'onglet Dépenses présente **4 cartes** :\n\n• **Total période** (en grand, avec icône rouge)\n• **Opérationnel** : achats, charges, fournitures\n• **Salaires** : paies des membres de l\'équipe\n• **Investissements** : achats durables (matériel, équipement)\n\nPuis la liste des **catégories** vous permet de drilling-down : cliquez sur une catégorie pour voir les dépenses individuelles.',
+            position: 'bottom',
+            tips: [
+                '💸 Les **salaires** sont filtrés par date de paiement réelle (Trésorerie)',
+                '📦 Les **approvisionnements** sont importés automatiquement depuis l\'inventaire',
+                '➕ Boutons en haut à droite : ajouter une dépense, un salaire ou créer une catégorie personnalisée',
+                '💡 Une dépense enregistrée réduit immédiatement votre bénéfice affiché',
             ],
         },
 
         // ==================== CONCLUSION ====================
         {
-            id: 'step-6',
+            id: 'step-8',
             emoji: '🎯',
-            title: 'Prêt pour un Pilotage Expert !',
+            title: 'Prêt pour un pilotage expert !',
             description:
                 'Vous avez maintenant les clés pour une gestion financière rigoureuse. Une comptabilité à jour vous permet de prendre les bonnes décisions pour votre établissement.',
             position: 'center',
             tips: [
                 '📕 Consultez régulièrement pour ne jamais être surpris par vos charges',
-                '💬 Utilisez ce bouton Bleu à tout moment si vous avez un doute',
+                '📊 Exportez le Livre Journal en fin de mois pour votre comptable',
+                '💬 Le bouton Guide reste accessible en haut de page si vous avez un doute',
             ],
             action: 'Terminer le guide',
         },
