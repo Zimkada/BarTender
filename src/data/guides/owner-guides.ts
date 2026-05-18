@@ -1417,7 +1417,7 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
   estimatedDuration: 5,
   difficulty: 'beginner',
   emoji: '👥',
-  version: 3,
+  version: 4,
 
   triggers: [
     {
@@ -1435,13 +1435,13 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion de l\'Équipe !',
       description:
-        'Votre système de **Gestion de l\'Équipe** se divise en **3 onglets** pour gérer complètement votre équipe : **Mon Équipe** (visualiser et retirer membres), **Recrutement** (ajouter nouveaux ou importer existants), et **Nom d\'affichage pour les ventes** (mode simplifié). Un bar bien organisé commence par une équipe bien définie !',
+        'Votre espace **Gestion d\'équipe** se compose de **2 à 3 onglets** selon votre configuration :\n\n• **Mon Équipe** : visualiser, modifier les rôles et retirer les membres\n• **Recrutement** : ajouter un nouveau compte ou importer un membre existant\n• **Nom d\'affichage sur vente** (optionnel) : configurer les noms courts en Mode Simplifié',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔄 Basculez entre les 3 onglets pour différentes tâches',
-        '⚖️ Permissions = **Promoteur** peut tout faire | **Gérant** peut gérer serveurs seulement',
-        '🔐 Vous contrôlez l\'accès des membres (création, retrait)',
+        '⚖️ Permissions : **Promoteur** peut tout faire | **Gérant** peut gérer les serveurs uniquement',
+        '🔐 Vous contrôlez l\'accès des membres (création, changement de rôle, retrait)',
+        '🎨 Hiérarchie visuelle des rôles : Promoteur (couleur brand), Gérant (neutre), Serveur (atténué)',
       ],
     },
 
@@ -1449,49 +1449,49 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
     {
       id: 'step-2',
       emoji: '👥',
-      title: 'Onglet 1: Mon Équipe - Vue d\'Ensemble',
+      title: 'Onglet 1 : Mon Équipe — Vue d\'ensemble',
       description:
-        'L\'**Onglet Mon Équipe** affiche tous vos collaborateurs actuels avec leurs **rôles** (Gérant/Serveur), **contacts** (téléphone, email), **dernière connexion** et **statut actif/inactif**. Vous voyez aussi les **statistiques** : nombre de gérants et serveurs.',
+        'L\'onglet **Mon Équipe** affiche tous vos collaborateurs sous forme de **cartes** (grille 3 colonnes sur desktop, 1 sur mobile). Chaque carte montre : avatar avec initiales, nom, rôle, contacts (téléphone, email) et dernière connexion. Un compteur en haut indique le nombre de gérants et serveurs.',
       elementSelector: '[data-guide="team-members"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🟢 Indicateur vert = Actif récemment (< 24h)',
-        '⚫ Indicateur gris = Hors ligne',
-        '🔴 Indicateur rouge = Inactif',
-        '📊 Statistiques en haut affichent répartition gérants vs serveurs',
+        '🟢 Point vert = actif récemment (< 24h)',
+        '⚫ Point gris = hors ligne',
+        '🔴 Point rouge = compte inactif',
+        '📊 Compteur en haut : nombre de Gérants et Serveurs actifs',
       ],
     },
 
     {
       id: 'step-3',
       emoji: '🔍',
-      title: 'Rechercher & Filtrer les Membres',
+      title: 'Rechercher & filtrer les membres',
       description:
-        'Cherchez rapidement un membre par **nom**, **email** ou **username** via la barre de recherche. Utilisez le bouton **"Voir inactifs"** pour afficher/masquer les membres inactifs. Les filtres s\'appliquent instantanément.',
+        'Cherchez rapidement un membre par **nom**, **email** ou **identifiant** via la barre de recherche. Utilisez le bouton **"Inactifs"** pour afficher les membres désactivés (ce bouton n\'apparaît que s\'il y a au moins un inactif). Les filtres s\'appliquent instantanément sur les cartes.',
       elementSelector: '[data-guide="team-search"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔎 Recherche temps réel : Tapez nom, email ou identifiant',
-        '👁️ Toggle inactifs = Voir complet historique (actifs + inactifs)',
-        '📋 Tableau triable pour scanner rapidement',
+        '🔎 Recherche temps réel : tapez nom, email ou identifiant',
+        '👁️ Bouton "Inactifs (N)" : affiche les comptes désactivés',
+        '🃏 Vue cards plutôt que tableau — adapté à la lecture rapide des contacts',
       ],
     },
 
     {
       id: 'step-3b',
       emoji: '🎭',
-      title: 'Changer le Rôle d\'un Membre',
+      title: 'Changer le rôle d\'un membre',
       description:
-        'Vous pouvez modifier le rôle d\'un collaborateur directement dans la liste. 1️⃣ Cliquez sur son **badge de rôle** (ex: "Serveur") → 2️⃣ Une demande de **confirmation** apparaîtra → 3️⃣ Validez, et son rôle sera mis à jour instantanément. C\'est rapide et sécurisé !',
+        'Sous l\'avatar de chaque membre actif (sauf Promoteur), un **sélecteur de rôle** (RoleSwitcher) permet de basculer entre **Gérant** et **Serveur**. Un clic ouvre une **modale de confirmation** avant validation. La mise à jour est instantanée.',
       elementSelector: '[data-guide="team-role-select"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔐 **Confirmation** : Une étape de validation vous protège des erreurs de clic',
-        '✅ **Feedback** : Une notification verte confirme la mise à jour réussie',
-        '⚠️ Le menu n\'apparaît que si vous avez les permissions nécessaires',
+        '🔐 **Confirmation requise** : une modale vous protège des erreurs de clic',
+        '✅ **Notification** : un toast confirme la mise à jour réussie',
+        '⚠️ Le sélecteur n\'apparaît que si vous avez la permission `canCreateManagers`',
       ],
     },
 
@@ -1563,56 +1563,37 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       ],
     },
 
-    // ==================== MAPPINGS AUTOMATIQUES ====================
-    {
-      id: 'step-7b',
-      emoji: '🔗',
-      title: 'Mappings Automatiques Serveurs (Promoteur & Serveur)',
-      description:
-        '**Lors de la création d\'un compte** ou de l\'**ajout d\'un membre existant**, le système crée automatiquement un **mapping** entre le nom d\'affichage (pour les ventes en mode simplifié) et le compte réel du serveur. **Exemple** : Compte "Ahmed_Ali" → Nom d\'affichage auto-généré "AA" ou "Ahmed". Ce mapping facilite les ventes rapides au comptoir en mode simplifié.',
-      elementSelector: '[data-guide="team-mappings-auto"]',
-      position: 'bottom',
-      visibleFor: ['promoteur', 'gerant'],
-      tips: [
-        '⚙️ **Automatique** : Pas d\'action manuelle requise lors création/ajout',
-        '🎯 Nom d\'affichage = Initiales ou prénom court pour rapididité',
-        '📱 Utile en **Mode Simplifié** où 1 compte gérant crée les ventes',
-        '🔄 Mappings éditable après création si besoin de clarifier',
-      ],
-    },
-
-    // ==================== ONGLET 3: ASSIGNATION CAISSES ====================
+    // ==================== ONGLET 3: NOM D'AFFICHAGE SUR VENTE ====================
     {
       id: 'step-8',
       emoji: '🔗',
-      title: 'Onglet 3: Nom d\'affichage pour les ventes (Mode Simplifié)',
+      title: 'Onglet 3 : Nom d\'affichage sur vente (Mode Simplifié)',
       description:
-        'L\'**Onglet Nom d\'affichage pour les ventes** configure les **identifiants d\'affichage** entre noms courts pour la vente (ex: "Afi", "Fifi") et comptes serveurs réels. **Uniquement nécessaire en Mode Simplifié** (1 compte manager au comptoir, création manuelle ventes). Cette section peut être repliée par défaut.',
+        'L\'onglet **Nom d\'affichage sur vente** configure le pont entre les **noms courts utilisés au comptoir** (ex: "Afi", "Fifi", "Ali") et les **comptes utilisateurs réels** des serveurs. Cet onglet n\'apparaît que si le **Mode Simplifié** est activé dans les paramètres du bar (sinon il est masqué).',
       elementSelector: '[data-guide="team-mappings"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⚙️ **Mode Simplifié** = 1 compte manager crée ventes + sélectionne serveur manuellement',
-        '🔗 Identifiants = Lier noms (ex:"Afi") à vrais serveurs pour affichage correct',
-        '📍 Auto-populate = Bouton pour créer noms d\'affichage auto depuis membres actifs',
-        '🚫 Pas nécessaire en Mode Complet (chaque serveur a son compte)',
+        '⚙️ **Mode Simplifié** = 1 compte gérant au comptoir crée les ventes et sélectionne le serveur',
+        '🔗 Les mappings permettent d\'attribuer chaque vente au bon serveur dans les statistiques',
+        '🚫 Inutile en **Mode Complet** (chaque serveur a son propre compte et crée ses ventes)',
       ],
     },
 
     {
       id: 'step-9',
       emoji: '⚙️',
-      title: 'Configurer les Noms d\'affichage',
+      title: 'Créer les mappings serveurs',
       description:
-        '**Ajouter un nom d\'affichage** : Saisissez le nom pour la vente (ex: "Afi") → Sélectionnez le serveur correspondant (dropdown) → Validez. **Supprimer** : Icône trash pour retirer le nom. **Auto-populate** : Bouton pour générer automatiquement les noms depuis vos membres actifs.',
+        'Deux façons d\'alimenter la liste :\n\n• **Manuel** : saisissez le nom court (ex: "Afi") → choisissez le compte associé → cliquez sur **"Valider le nom de vente"**.\n• **Auto-synchroniser** : un seul bouton qui crée automatiquement les noms d\'affichage à partir de vos membres actifs. Idéal pour démarrer rapidement.',
       elementSelector: '[data-guide="team-mappings-add"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📝 Nom court = Identifiant simple (ex: "Afi", "Fifi", "Ali")',
-        '👤 Sélectionnez le vrai compte serveur associé',
-        '⚡ Auto-populate = Économise temps, crée noms d\'affichage auto',
-        '🔐 Indispensable pour Mode Simplifié (sinon ventes non attribuées correctement)',
+        '⚡ **Auto-synchroniser** = générer tous les mappings d\'un coup depuis vos membres existants',
+        '✏️ **Manuel** = pour personnaliser un nom court (préférence du serveur, surnom...)',
+        '🗑️ Supprimer un mapping = icône poubelle (apparaît au survol de la carte)',
+        '🔐 Indispensable en Mode Simplifié : sans mapping, la vente n\'est attribuée à personne',
       ],
     },
 
@@ -1620,18 +1601,18 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
     {
       id: 'step-10',
       emoji: '✅',
-      title: 'Vous Maîtrisez Votre Équipe !',
+      title: 'Vous maîtrisez votre Équipe !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Mon Équipe, Recrutement, Nom d\'affichage pour les ventes), comment **ajouter/retirer membres**, **créer nouveaux comptes ou importer existants**, et configurer **identifiants pour mode simplifié**. Vous êtes prêt à gérer votre équipe complètement !',
+        'Vous connaissez maintenant les onglets de **Gestion d\'équipe**, comment **ajouter ou retirer des membres**, **changer leur rôle**, **importer des collaborateurs d\'autres bars** et configurer le **Mode Simplifié** si nécessaire. Vous êtes prêt à organiser votre équipe sereinement !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📊 Consultez Mon Équipe régulièrement pour vérifier statuts',
-        '👥 Recrutement = Continuer grandir équipe',
-        '🔗 Identifiants = Essentiel en Mode Simplifié (sinon sales attribution problems)',
-        '⚙️ Vérifiez permissions = Ce que vous pouvez faire vs ce que vous ne pouvez pas',
+        '📊 Consultez **Mon Équipe** régulièrement pour vérifier les statuts de connexion',
+        '👥 **Recrutement** : continuez à faire grandir votre équipe',
+        '🔗 **Mode Simplifié** : pensez à créer les mappings, sinon les ventes ne seront pas attribuées',
+        '⚖️ Vérifiez vos permissions : un Gérant ne peut gérer que les serveurs',
       ],
-      action: '→ Commencez à gérer votre équipe !',
+      action: 'Commencez à gérer votre équipe',
     },
   ],
 };
