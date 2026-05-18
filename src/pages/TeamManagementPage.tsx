@@ -494,7 +494,7 @@ export default function TeamManagementPage() {
                   placeholder="Rechercher un membre..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-body-sm rounded-xl border border-border focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
+                  className="pl-9 pr-3 py-2 text-body-sm rounded-xl border border-border focus:ring-brand-primary focus:border-brand-primary w-full"
                   aria-label="Rechercher un membre de l'équipe"
                 />
               </div>
@@ -589,7 +589,7 @@ export default function TeamManagementPage() {
                       {/* Avatar Section */}
                       <div className="mt-7 mb-5 flex flex-col items-center">
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-h3 font-semibold mb-3 ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
-                          member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
+                          member.role === 'gerant' ? 'bg-muted text-foreground' :
                             'bg-muted text-muted-foreground'
                           }`}
                           aria-hidden="true"
@@ -611,7 +611,7 @@ export default function TeamManagementPage() {
                           />
                         ) : (
                           <span className={`px-3 py-1 rounded-full text-micro font-semibold ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
-                            member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
+                            member.role === 'gerant' ? 'bg-muted text-foreground border border-border' :
                               'bg-muted text-foreground/70'
                             }`}>
                             {getRoleLabel(member.role)}
@@ -690,7 +690,7 @@ export default function TeamManagementPage() {
             className="space-y-6"
           >
             {/* 📘 ONBOARDING / HELP PANEL */}
-            <div className="bg-[var(--brand-bg-subtle)] border border-brand-subtle rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-brand-subtle border border-brand-subtle rounded-xl overflow-hidden shadow-sm">
               <button
                 onClick={() => setIsInfoExpanded(!isInfoExpanded)}
                 className="w-full px-5 py-4 flex items-center justify-between hover:bg-amber-100/50 transition-colors"
@@ -913,7 +913,7 @@ export default function TeamManagementPage() {
                                     value: c.id,
                                     label: `${c.name} (${c.role} chez ${c.sourceBarName})`
                                   }))}
-                                  className="h-11 border-border focus:border-[var(--brand-primary)]"
+                                  className="h-11 border-border focus:border-brand-primary"
                                 />
                               )}
                             </div>

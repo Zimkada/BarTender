@@ -187,14 +187,14 @@ export function ServerMappingsManager({
   return (
     <div className="space-y-8">
       {/* Header Info */}
-      <div className="bg-brand-bg-subtle border border-brand-border rounded-2xl p-6 relative overflow-hidden">
+      <div className="bg-brand-subtle border border-brand-subtle rounded-2xl p-6 relative overflow-hidden">
         <div className="absolute -right-8 -top-8 w-32 h-32 bg-brand-primary/5 rounded-full blur-3xl" />
         <div className="relative z-10">
-          <h3 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
+          <h3 className="text-h3 text-foreground mb-2 flex items-center gap-2">
             <Zap className="text-brand-primary" size={20} />
             Noms d'affichage pour les ventes
           </h3>
-          <p className="text-sm text-foreground/70 max-w-2xl leading-relaxed">
+          <p className="text-body-sm text-foreground/70 max-w-2xl leading-relaxed">
             Reliez les noms utilisés en <strong>Mode Simplifié</strong> (Noms de vente, Identifiants courts) aux comptes utilisateurs du <strong>Mode Complet</strong> pour garantir un suivi précis.
           </p>
         </div>
@@ -223,16 +223,16 @@ export function ServerMappingsManager({
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
           <Loader size={32} className="animate-spin text-brand-primary" />
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Initialisation des configurations...</p>
+          <p className="text-body-sm text-muted-foreground">Initialisation des configurations...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Main List */}
           <div className="lg:col-span-3 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
-              <h4 className="font-bold text-foreground flex items-center gap-2">
+              <h4 className="text-body font-semibold text-foreground flex items-center gap-2">
                 Noms d'affichage actifs
-                <span className="bg-muted text-muted-foreground text-[10px] px-2 py-0.5 rounded-full">{mappings.length}</span>
+                <span className="bg-muted text-muted-foreground text-micro px-2 py-0.5 rounded-full tabular-nums">{mappings.length}</span>
               </h4>
               {mappings.length > 0 && (
                 <Button
@@ -240,10 +240,10 @@ export function ServerMappingsManager({
                   size="sm"
                   onClick={handleAutoPopulate}
                   disabled={saving}
-                  className="text-xs text-brand-primary hover:bg-brand-subtle font-bold uppercase tracking-widest"
+                  className="text-caption font-medium text-brand-primary hover:bg-brand-subtle"
                 >
                   {saving ? <Loader size={14} className="animate-spin mr-2" /> : <Zap size={14} className="mr-2" />}
-                  Auto-Synchroniser
+                  Auto-synchroniser
                 </Button>
               )}
             </div>
@@ -261,24 +261,24 @@ export function ServerMappingsManager({
                       className="group flex items-center justify-between bg-card rounded-2xl p-4 border border-border hover:border-brand-subtle hover:shadow-xl hover:shadow-brand-subtle/10 transition-all"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-brand-gradient flex items-center justify-center text-white font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-xl bg-brand-gradient flex items-center justify-center text-white text-h3 font-semibold shadow-lg group-hover:scale-110 transition-transform">
                           {mapping.serverName[0].toUpperCase()}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <h5 className="font-black text-foreground text-base">{mapping.serverName}</h5>
+                            <h5 className="text-body font-semibold text-foreground">{mapping.serverName}</h5>
                             <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                           </div>
-                          <div className="text-xs font-semibold text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1">
+                          <div className="text-caption text-muted-foreground flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1">
                             <span className="flex items-center gap-1"><User size={10} /> Lié à :</span>
-                            <span className="text-brand-primary truncate max-w-[100px] sm:max-w-none">{mapping.userName}</span>
+                            <span className="text-brand-primary font-medium truncate max-w-[100px] sm:max-w-none">{mapping.userName}</span>
                           </div>
                         </div>
                       </div>
                       <button
                         onClick={() => handleRemoveMapping(mapping.serverName)}
                         disabled={saving}
-                        className="p-3 text-muted-foreground/60 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        className="p-3 text-muted-foreground/60 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                         title="Supprimer l'assignation"
                       >
                         <Trash2 size={18} />
@@ -294,17 +294,17 @@ export function ServerMappingsManager({
                     <div className="w-16 h-16 bg-card rounded-2xl flex items-center justify-center shadow-sm mb-4">
                       <MousePointerClick className="text-muted-foreground/60" size={32} />
                     </div>
-                    <h5 className="font-bold text-foreground mb-1">Aucun nom de vente configuré</h5>
-                    <p className="text-xs text-muted-foreground max-w-xs mb-6">
+                    <h5 className="text-h3 text-foreground mb-1">Aucun nom de vente configuré</h5>
+                    <p className="text-caption text-muted-foreground max-w-xs mb-6">
                       Commencez par utiliser l'auto-synchronisation ou ajoutez manuellement vos noms de vente.
                     </p>
                     <Button
                       onClick={handleAutoPopulate}
                       disabled={saving}
-                      className="shadow-lg shadow-brand-subtle btn-sm uppercase tracking-widest font-black"
+                      className="shadow-lg shadow-brand-subtle btn-sm"
                     >
                       {saving ? <Loader size={16} className="animate-spin mr-2" /> : <Zap size={16} className="mr-2" />}
-                      Générer Automatiquement
+                      Générer automatiquement
                     </Button>
                   </motion.div>
                 )}
@@ -314,32 +314,32 @@ export function ServerMappingsManager({
 
           {/* Sidebar: Add Form */}
           <div className="lg:col-span-2 space-y-4">
-            <h4 className="font-bold text-foreground mb-2 px-1 text-sm uppercase tracking-widest opacity-60">Nouvel Ajout</h4>
-            <div className="bg-card rounded-3xl p-4 sm:p-6 border-2 border-dashed border-brand-border relative overflow-hidden flex flex-col shadow-inner">
+            <h4 className="text-micro text-muted-foreground mb-2 px-1">Nouvel ajout</h4>
+            <div className="bg-card rounded-3xl p-4 sm:p-6 border-2 border-dashed border-brand-subtle relative overflow-hidden flex flex-col shadow-inner">
               {/* Ticket Cutouts */}
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-muted rounded-full border-b border-border" />
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-muted rounded-full border-t border-border" />
 
               <div className="space-y-6 flex-1 py-2">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest pl-1">Nom du vendeur (Affichage Vente)</label>
+                  <label className="text-micro text-brand-primary pl-1">Nom du vendeur (affichage vente)</label>
                   <Input
                     type="text"
                     placeholder="ex: Ahmed ou Serveur 1"
                     value={newServerName}
                     onChange={(e) => setNewServerName(e.target.value)}
-                    className="h-12 bg-muted border-border focus:bg-card rounded-xl text-sm font-bold"
+                    className="h-12 bg-muted border-border focus:bg-card rounded-xl text-body-sm font-medium"
                     disabled={saving}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest pl-1">Compte Utilisateur Associé</label>
+                  <label className="text-micro text-brand-primary pl-1">Compte utilisateur associé</label>
                   <Select
                     options={memberOptions}
                     value={newServerId}
                     onChange={(e) => setNewServerId(e.target.value)}
-                    className="h-12 bg-muted border-border rounded-xl text-sm font-bold"
+                    className="h-12 bg-muted border-border rounded-xl text-body-sm font-medium"
                     disabled={saving}
                   />
                 </div>
@@ -348,17 +348,17 @@ export function ServerMappingsManager({
                   <Button
                     onClick={handleAddMapping}
                     disabled={saving || !newServerName.trim() || !newServerId}
-                    className="w-full h-14 rounded-2xl font-black uppercase tracking-wide sm:tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2 text-xs sm:text-sm"
+                    className="w-full h-14 rounded-2xl text-body-sm font-semibold shadow-xl shadow-brand-subtle flex items-center justify-center gap-2"
                   >
                     {saving ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
-                    {saving ? 'Validation...' : 'Valider le Nom de Vente'}
+                    {saving ? 'Validation...' : 'Valider le nom de vente'}
                   </Button>
                 </div>
 
                 <div className="mt-6 flex items-start gap-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
                   <AlertCircle size={16} className="text-brand-primary mt-0.5 shrink-0" />
-                  <p className="text-[10px] font-medium text-foreground/80 leading-relaxed">
-                    <strong>Note :</strong> Lors du changement de mode, le système utilisera ces mappings pour attribuer automatiquement les ventes aux bons membres de l'équipe.
+                  <p className="text-caption text-foreground/80 leading-relaxed">
+                    <strong>Note :</strong> lors du changement de mode, le système utilisera ces mappings pour attribuer automatiquement les ventes aux bons membres de l'équipe.
                   </p>
                 </div>
               </div>
