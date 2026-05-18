@@ -768,7 +768,7 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
   estimatedDuration: 5,
   difficulty: 'intermediate',
   emoji: '↩️',
-  version: 2,
+  version: 3,
 
   triggers: [
     {
@@ -786,14 +786,14 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion des Retours !',
       description:
-        'Votre système de **Retours** se divise en **3 onglets** pour gérer complètement les remboursements et stock. Les retours sont **créés AVANT fermeture caisse** (défaut: 6h matin) et doivent être **approuvés pour être finalisés**.',
+        'Votre système de **Retours** se divise en **3 onglets** : **Nouveau retour** (création), **Liste des retours** (validation), **Statistiques** (analyse). Les retours sont **créés avant la fermeture caisse** (par défaut 6h du matin) et doivent être **approuvés pour être finalisés**.',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔄 Basculez entre les 3 onglets pour différentes étapes',
-        '⏰ Retours autorisés UNIQUEMENT avant fermeture caisse',
+        '🔄 Le 1er onglet "Nouveau retour" n\'apparaît que si vous avez la permission de créer',
+        '⏰ Retours autorisés uniquement avant la fermeture caisse',
         '📅 Seules les ventes de la journée commerciale actuelle peuvent être retournées',
-        '✅ Chaque retour doit être **approuvé** pour être finalisé',
+        '✅ Chaque retour doit être **approuvé** pour être finalisé (statut "En attente" sinon)',
       ],
     },
 
@@ -801,16 +801,16 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
     {
       id: 'step-2',
       emoji: '➕',
-      title: 'Onglet 1: Créer un Nouveau Retour',
+      title: 'Onglet Nouveau retour : la création',
       description:
-        'L\'**Onglet Nouveau Retour** vous permet de créer rapidement un retour : sélectionnez une vente du jour → choisissez le produit → indiquez la quantité → sélectionnez le motif → vérifiez les impacts (remboursement, remise en stock).',
+        'L\'onglet **Nouveau retour** vous guide étape par étape : sélectionnez une vente du jour → choisissez le produit → indiquez la quantité → sélectionnez le motif → vérifiez les impacts (remboursement, remise en stock) → créez le retour.',
       elementSelector: '[data-guide="returns-create-btn"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ Les ventes affichées sont UNIQUEMENT celles d\'aujourd\'hui (journée commerciale)',
+        '⏰ Les ventes affichées sont uniquement celles de la journée commerciale en cours',
         '🔍 Filtrez par serveur pour retrouver rapidement la vente concernée',
-        '3️⃣ Processus : Sélect vente → Sélect produit → Saisie quantité → Choix motif → Vérif → Créer',
+        '➡️ Processus en 5 étapes : sélectionner vente → produit → quantité → motif → créer',
       ],
     },
 
@@ -921,19 +921,20 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
     {
       id: 'step-8',
       emoji: '📊',
-      title: 'Onglet 3: Statistiques & Analytics',
+      title: 'Onglet Statistiques : analyse complète',
       description:
-        'L\'**Onglet Statistiques** synthétise vos retours en **KPIs clés** : À traiter (count), Remboursements (total €), Retours validés (count), Remis en stock (units), Pertes produits (units), Taux de rejet (%). Visualisez aussi la **distribution par motif** (pie chart).',
+        'L\'onglet **Statistiques** présente **6 cartes KPI** (À traiter, Remboursés, Validés, En stock, Pertes, Refus) + une **Répartition par motif** (barres de progression) + un **panneau Analyse & Conseil** avec recommandation contextuelle selon le motif dominant.',
       elementSelector: '[data-guide="returns-stats"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔴 À traiter = Nombre de retours EN ATTENTE (non approuvés)',
-        '💰 Remboursements = Montant total remboursé (approuvés seulement)',
-        '✅ Retours validés = Nombre de retours APPROUVÉS',
-        '📦 Remis en stock = Total units restaurées (Erreur, Non consommé)',
-        '💥 Pertes = Total units perdues (Défectueux, Périmé)',
-        '📉 Taux rejet = % de retours rejetés vs créés',
+        '🔴 **À traiter** = nombre de retours en attente (non encore approuvés)',
+        '💰 **Remboursés** = montant total effectivement remboursé',
+        '✅ **Validés** = nombre de retours approuvés',
+        '📦 **En stock** = unités restaurées (motifs Erreur article, Non consommé)',
+        '💥 **Pertes** = unités perdues (motifs Défectueux, Périmé)',
+        '📉 **Refus** = pourcentage de retours rejetés vs créés',
+        '💡 Le panneau Analyse adapte sa recommandation selon le motif dominant',
       ],
     },
 
@@ -941,18 +942,18 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
     {
       id: 'step-9',
       emoji: '✅',
-      title: 'Vous Maîtrisez la Gestion des Retours !',
+      title: 'Vous maîtrisez la Gestion des Retours !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Créer, Liste, Statistiques), les **5 types de retours** avec leurs règles automatiques, et surtout l\'**approbation** qui finalise les retours. Vous êtes prêt à gérer efficacement remboursements et stock !',
+        'Vous connaissez maintenant les **3 onglets** (Nouveau retour, Liste, Statistiques), les **6 motifs de retour** avec leurs règles automatiques, et surtout l\'**approbation** qui finalise les retours. Vous êtes prêt à gérer efficacement remboursements et stock !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ Créez retours AVANT fermeture caisse, approuvez tant que possible avant clôture',
-        '⚙️ Comprenez les motifs pour choisir le bon (impacte remboursement + stock)',
-        '📊 Consultez Statistiques pour analyser patterns de retours',
-        '💡 Taux rejet élevé? Analysez motifs pour améliorer service/qualité',
+        '⏰ Créez les retours avant la fermeture caisse, approuvez avant clôture',
+        '⚙️ Comprenez les 6 motifs pour choisir le bon (impacte remboursement + stock)',
+        '📊 Consultez Statistiques pour analyser les patterns de retours',
+        '💡 Taux de rejet élevé ? Analysez les motifs pour améliorer service/qualité',
       ],
-      action: '→ Vous pouvez créer et approuver vos retours !',
+      action: 'Vous pouvez créer et approuver vos retours',
     },
   ],
 };
