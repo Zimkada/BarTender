@@ -48,7 +48,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Bienvenue au Processus de Vente BarTender !',
       description:
         'BarTender gère les ventes selon **2 modes de fonctionnement** et **votre rôle**. Ce guide couvre tous les scénarios : mode complet (serveurs créent, gérant valide), mode simplifié (gérant crée tout), bons/paiement différé, offline & synchronisation. Découvrez comment fonctionne votre bar !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant', 'serveur'],
       tips: [
         '📋 **Mode Complet** : Serveurs créent ventes (pending) → Gérant valide → Stock déduit',
@@ -65,7 +64,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Complet : Vous êtes SERVEUR',
       description:
         '**En Mode Complet**, vous avez un **compte avec authentification**. Vous créez les ventes au comptoir, puis un **Gérant les valide**. Votre rôle : capter les commandes clients avec précision. Le Gérant assure la validité et la comptabilité.',
-      position: 'bottom',
       visibleFor: ['serveur'],
       tips: [
         '✅ Vous créez ventes (Panier → Paiement → Envoyer)',
@@ -81,8 +79,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Complet - Serveur : Flux Étape par Étape',
       description:
         '**Flux de créati vente** : 1️⃣ Cliquez "Vente Rapide" (menu bas ou Dashboard) → 2️⃣ Sélectionnez produits demandés par client → 3️⃣ Vérifiez panier (quantités, prix) → 4️⃣ Choisissez paiement (cash, mobile, carte) → 5️⃣ Cliquez "Valider" → ✅ Vente envoyée (status=pending) → Attente gérant.',
-      elementSelector: '[data-guide="quick-sale-btn"]',
-      position: 'bottom',
       visibleFor: ['serveur'],
       tips: [
         '💰 Paiement = Spécifiez à la création (cash par défaut)',
@@ -98,8 +94,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Complet - Serveur : Vos Performances',
       description:
         'Votre **historique personnel** (page "Historique") affiche toutes vos ventes : **validées** (finales, comptabilisées), **rejetées** (retournées pour correction), **annulées** (supprimées par promoteur). Analysez vos **CA net** et nombre de ventes pour progresser. Gérant utilise ces données pour vous motiver !',
-      elementSelector: '[data-guide="sales-history"]',
-      position: 'bottom',
       visibleFor: ['serveur'],
       tips: [
         '✅ Ventes Validées = Finales, stock déduit, comptabilisées',
@@ -116,7 +110,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Complet : Vous êtes GÉRANT',
       description:
         '**En Mode Complet**, votre rôle double : **créer ventes directes** (vous validées auto) + **valider ventes serveurs**. Vous pilotez les stocks, la comptabilité et contrôlez la qualité. Dashboard central pour superviser tous.',
-      position: 'bottom',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '🎯 **Ventes propres** : Validées instantanément (pas d\'attente)',
@@ -132,8 +125,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Complet - Gérant : Valider les Ventes',
       description:
         '**Dashboard → Onglet "Gestion Commandes"** affiche toutes les ventes serveurs en **attente de validation**. Pour chaque vente : voir heure, montant, articles. **Actions** : ✅ Valider (stock déduit, comptabilisé) ou ❌ Rejeter (retour serveur, stock remis). Vous pouvez **valider en masse** : cochez plusieurs + cliquez "Valider tous".',
-      elementSelector: '[data-guide="pending-sales"]',
-      position: 'bottom',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '📌 Validation = Déduction stock + Comptabilisation finale',
@@ -150,7 +141,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Simplifié : Architecture & Accès',
       description:
         '**En Mode Simplifié**, **serveurs n\'ont pas de comptes** (juste noms : "Ahmed", "Fifi", "Moustapha"). **Gérant crée TOUTES les ventes** au comptoir, attribuant chacune à un serveur via son nom. **Validation immédiate** (pas d\'attente). Bons & tickets pour traçabilité. Idéal pour gérant solo ou peu staffing.',
-      position: 'center',
       visibleFor: ['gerant', 'promoteur', 'serveur'],
       tips: [
         '👤 Serveurs = Noms texte, pas comptes auth',
@@ -166,8 +156,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Mode Simplifié - Gérant : Flux Vente',
       description:
         '**Flux** : 1️⃣ Cliquez "Vente Rapide" → 2️⃣ **Sélectionnez serveur** dans dropdown (ex: "Ahmed", "Fifi", ou "Moi (Gérant)") → 3️⃣ Ajouter produits → 4️⃣ Optionnel : **Créer/mettre sur Bon** (paiement différé) OU → 5️⃣ Paiement cash immédiat → 6️⃣ Cliquez "Valider" → ✅ Vente créée + validée immédiatement.',
-      elementSelector: '[data-guide="quick-sale-btn"]',
-      position: 'bottom',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '📝 **Sélection serveur** = Dropdown de noms + "Moi (Gérant)"',
@@ -184,8 +172,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Bons & Tickets : Paiement Différé & Traçabilité',
       description:
         '**Bon/Ticket** = Enregistrement de commande avec paiement reporté. Utilisé pour : **paiement différé** (client paie plus tard) ou **traçabilité** (numéro table, nom client). **Workflow** : 1️⃣ Créer bon → 2️⃣ Ajouter ventes au bon (plusieurs ventes) → 3️⃣ Client revient payer → 4️⃣ Cliquez "Fermer bon" (= Payer) → ✅ Paiement final collecté.',
-      elementSelector: '[data-guide="bon-strip"]',
-      position: 'bottom',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '🎫 Bon # = Numéro séquentiel (1, 2, 3...) visible partout',
@@ -202,7 +188,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Offline : Créer Ventes Sans Réseau',
       description:
         '**Pas d\'internet ?** BarTender fonctionne quand même ! Les ventes créées **offline** sont **en cache** (stockées localement). Quand réseau revient, **synchronisation automatique** : ventes envoyées vers serveur. **Aucune donnée perdue**. Bannière orange = Indication offline.',
-      position: 'center',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '📱 Créez ventes normalement même offline',
@@ -218,7 +203,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Offline : Synchronisation Automatique',
       description:
         '**Quand réseau revient** : 1️⃣ BarTender détecte connexion automatiquement → 2️⃣ Boucle sur opérations en cache (ventes, bons) → 3️⃣ Envoie vers serveur → 4️⃣ Si succès : ventes finalisées (stock déduit, comptabilité mise à jour) → ✅ Toast "Synchronisé" → Dashboard se met à jour. **Anti-doublon** : Chaque vente = clé unique (évite créer 2x si problème).',
-      position: 'bottom',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '⚙️ Sync = Automatique, vous ne faites rien',
@@ -235,8 +219,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Cas Avancé : Retours & Remboursements',
       description:
         '**Client retour produit** ? Historique → Sélectionnez vente → Cliquez "Créer Retour" → Modal → Choisissez produit + raison (Défectueux, Expiré, Erreur, etc.) → Submit. Retour en **attente** de validation gérant. Une fois approuvé : **Stock remis** + **Remboursement traité**. Vente reste comptabilisée (avec retour soustrait).',
-      elementSelector: '[data-guide="create-return"]',
-      position: 'bottom',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '✅ Approuvé retour = Stock remis + Remboursement dans stats',
@@ -252,8 +234,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Cas Avancé : Annulation de Vente (Promoteur)',
       description:
         '**Promoteur uniquement** : Historique → Détails vente → Bouton "Annuler" (si vente validée). Annulation = **Stock restitué** + **Vente supprimée des stats**. ⚠️ Action irréversible ! Confirmez avant (tapez nom bar pour confirmer). Utile si erreur grave ou problème client insolvable.',
-      elementSelector: '[data-guide="sales-details"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '⚠️ UNIQUEMENT Promoteur (autorité suprême)',
@@ -270,7 +250,6 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       title: 'Vous Maîtrisez le Processus de Vente !',
       description:
         'Félicitations ! Vous connaissez maintenant : **Mode Complet** (serveur pending → gérant valide), **Mode Simplifié** (gérant direct), **Bons & paiement différé**, **Offline & sync**, **Retours & annulations**. Vous êtes prêt à créer des ventes efficacement selon votre rôle et contexte !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant', 'serveur'],
       tips: [
         '🎯 Débutez avec ventes simples, progressez vers bons/offline',
@@ -316,7 +295,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Bienvenue sur votre Tableau de Bord !',
       description:
         'Votre tableau de bord se divise en **3 onglets** : **Synthèse du jour** pour vos chiffres clés, **Gestion Commandes** pour valider les ventes, et **Performance équipe** pour suivre vos collaborateurs. Toutes les données se mettent à jour en temps réel.',
-      position: 'center',
       action: 'Cliquez sur Suivant pour explorer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -333,8 +311,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Onglet 1 : Synthèse du Jour - Les 6 Métriques Clés',
       description:
         'Cet onglet affiche 6 métriques importantes pour la journée commerciale : **Revenus** (CA Net), **Ventes** (compteur), **Articles** vendus, **Alertes** stock, **Retours**, et **Consignations** actives. Ces chiffres se mettent à jour en temps réel.',
-      elementSelector: '[data-guide="revenue-stats"]',
-      position: 'bottom',
       action: 'Examinez les 6 métriques',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -353,7 +329,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Top Produits & Alertes Stock',
       description:
         'Sous les 6 métriques, vous trouvez **vos 5 meilleurs produits du jour** (les plus vendus) et **les produits en alerte stock** (proches de la rupture). Ces informations vous aident à optimiser vos commandes et à anticiper les réapprovisionnements.',
-      position: 'bottom',
       action: 'Consultez vos top produits et alertes',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -370,7 +345,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Actions : Exporter WhatsApp & Fermer Caisse',
       description:
         'En bas de cet onglet, deux actions importantes : **Bouton WhatsApp** pour exporter un rapport journalier complet, et **Bouton Fermer caisse** pour marquer la fin de votre journée commerciale (managers uniquement).',
-      position: 'top',
       action: 'Découvrez ces actions',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -388,8 +362,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Onglet 2 : Gestion Commandes - Les Ventes en Attente',
       description:
         '**Mode Complet uniquement** : Cet onglet affiche toutes les ventes initiées par vos serveurs en attente de votre validation. Pour chaque vente : heure de création, montant total, nombre d\'articles. Vous pouvez développer pour voir le détail des produits commandés.',
-      elementSelector: '[data-guide="pending-sales"]',
-      position: 'bottom',
       action: 'Explorez une vente en attente',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -407,7 +379,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Valider ou Rejeter les Ventes',
       description:
         'Pour chaque vente en attente, vous avez **2 actions** : **✓ Valider** (la vente devient définitive, stock sorti) ou **✗ Rejeter** (le serveur peut la modifier et renvoyer). Vous pouvez aussi **valider en masse** en cochant plusieurs ventes.',
-      position: 'bottom',
       action: 'Cliquez sur ✓ ou ✗ pour agir',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -426,8 +397,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Onglet 3 : Performance Équipe',
       description:
         'Cet onglet affiche la performance de chaque serveur pour la journée : nombre de ventes validées et chiffre d\'affaires net généré. Suivez en temps réel qui sont vos meilleurs éléments et utilisez ces données pour faire votre bilan journalier.',
-      elementSelector: '[data-guide="team-performance"]',
-      position: 'bottom',
       action: 'Consultez les performances individuelles',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -446,8 +415,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Gestion des Bons et Tickets',
       description:
         '**Bons de Commande** et **Tickets** facilitent la gestion de votre bar selon votre rôle. Les **Bons** (pour précommandes/commandes) et **Tickets** (mini-reçus de transactions) offrent une traçabilité complète. Tous les rôles ont accès à cette fonctionnalité de manière adaptée à leurs besoins.',
-      elementSelector: '[data-guide="dashboard-tickets"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant', 'serveur'],
       tips: [
         '📋 **Bons** = Précommandes ou commandes en attente de traitement',
@@ -464,7 +431,6 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       title: 'Vous Maîtrisez Maintenant votre Tableau de Bord !',
       description:
         'Félicitations ! Vous connaissez les 3 onglets du tableau de bord : **Synthèse du jour** (chiffres clés), **Gestion Commandes** (validation), **Performance équipe** (statistiques), et **Gestion Bons/Tickets** (traçabilité). Pour explorer d\'autres fonctionnalités (Inventaire, Historique, Équipe, Paramètres), ouvrez le menu hamburger (☰) en haut à droite.',
-      position: 'center',
       action: 'Cliquez sur Fermer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -512,7 +478,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Bienvenue à la Gestion de votre Inventaire !',
       description:
         'Votre **Inventaire** se divise en **4 onglets** pour gérer tous les aspects : **Produits** (catalogue), **Opérations** (création/import/approvisionnement), **Commandes** (bons de commande fournisseurs), **Statistiques** (santé du stock). Comprenez la différence entre **Stock Physique** (réel au bar) et **Stock Vendable** (disponible à la vente, moins les consignations actives).',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔄 Basculez entre les 4 onglets en haut pour différentes tâches',
@@ -529,8 +494,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Onglet 1 : Produits — Votre Catalogue',
       description:
         'L\'**Onglet Produits** affiche tous vos produits sous forme de cartes. Vous pouvez **rechercher** rapidement, **trier** par catégorie/nom/stock, **filtrer les anomalies**, et accéder aux actions (Modifier / Ajuster / Historique / Supprimer) sur chaque carte.',
-      elementSelector: '[data-guide="inventory-products"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔍 Recherche instantanée par nom de produit',
@@ -546,8 +509,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Détecter les anomalies',
       description:
         'Le bouton **Anomalies** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif, vente à découvert, ou **stock dormant**. Un inventaire sain ne devrait afficher aucun résultat ici.',
-      elementSelector: '[data-guide="inventory-filter-anomalies"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔴 Stock négatif = erreur de saisie d\'approvisionnement',
@@ -563,8 +524,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Exporter votre Inventaire (Valorisation)',
       description:
         'Besoin d\'un rapport externe ou d\'un pointage papier ? Le bouton **Export Inventaire** génère un fichier Excel complet. Il inclut : stock physique, stock consigné, et surtout la **valorisation au CUMP** (Prix d\'achat moyen). Option : export actuel ou historique (Time Travel).',
-      elementSelector: '[data-guide="inventory-export-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 Valeur Stock = Stock Physique × Prix d\'Achat Moyen (CUMP)',
@@ -578,8 +537,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Historique Détaillé : La Timeline du Produit',
       description:
         'Pour chaque produit, accédez à une **Timeline complète** de tous les mouvements : ventes, approvisionnements, ajustements et **retours**. C\'est votre outil de traçabilité ultime pour comprendre chaque variation de stock.',
-      elementSelector: '[data-guide="inventory-history-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📅 **Par défaut** : Affiche les 7 derniers jours (réglable)',
@@ -595,8 +552,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Analyser les marges de vos produits',
       description:
         'Chaque carte produit affiche **Prix de vente**, **Coût moyen** et **Marge commerciale**. La marge est colorée pour une lecture rapide : **vert au-dessus de 40%** (confortable), **brand entre 20 et 40%** (correcte), **rouge en dessous de 20%** (faible). Identifiez les produits non rentables et optimisez vos prix.',
-      elementSelector: '[data-guide="inventory-table"]',
-      position: 'top',
       visibleFor: ['promoteur'],
       tips: [
         '📊 Coût moyen (CUMP) = moyenne pondérée de tous vos approvisionnements',
@@ -611,8 +566,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Ajouter de Nouveaux Produits',
       description:
         'Créez rapidement de nouveaux produits : **Manuel** (saisie manuelle) ou **Catalogue** (sélection parmi produits pré-enregistrés). Définissez prix, catégorie, stock initial et seuil d\'alerte.',
-      elementSelector: '[data-guide="inventory-add-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎨 Mode Produit Personnalisé : Création libre avec tous les paramètres',
@@ -627,8 +580,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Modifier & Supprimer des Produits',
       description:
         'Éditez les détails d\'un produit : prix, catégorie, seuil d\'alerte (mais pas le stock initial). Vous pouvez aussi supprimer un produit si nécessaire. Les modifications ne sont pas rétroactives.',
-      elementSelector: '[data-guide="inventory-edit-btn"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✏️ Modifiable : Prix, Catégorie, Seuil d\'alerte, Description',
@@ -644,8 +595,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Onglet 2 : Opérations — 3 tuiles d\'action',
       description:
         'L\'**Onglet Opérations** présente **3 grandes tuiles** pour faire entrer des produits ou du stock dans le système :\n\n• **Nouveau produit** : ajout manuel d\'un produit au catalogue\n• **Import Excel** : chargement en masse depuis un fichier .xlsx\n• **Approvisionner** : ajouter du stock à un produit existant (CUMP recalculé automatiquement)\n\nLes alertes de stock bas sont visibles dans l\'onglet **Statistiques** (panneau d\'attention).',
-      elementSelector: '[data-guide="inventory-operations"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✨ Pattern uniforme : 3 tuiles cliquables avec icône, titre et sous-titre',
@@ -660,8 +609,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Approvisionner Rapidement votre Stock',
       description:
         'Ajoutez rapidement du stock : Sélectionnez produit → Saisissez quantité par lot (ex: 1 carton = 24 unités) → Nombre de lots → Fournisseur & Coût → Validation. Le coût alimente le calcul de **Coût moyen**.',
-      elementSelector: '[data-guide="inventory-supply-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📦 Quantité par lot = Unités dans 1 lot (ex: 1 carton = 24 bouteilles)',
@@ -676,8 +623,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Importer des Produits en Masse',
       description:
         'Pour l\'initialisation rapide : préparez un fichier **Excel** (.xlsx) avec colonnes (nom, prix, catégorie, stock) et importez 50+ produits en une opération. Les doublons sont détectés automatiquement.',
-      elementSelector: '[data-guide="inventory-import-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '📊 Format Excel : 4 colonnes minimum (nom, prix, catégorie, stock)',
@@ -692,8 +637,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Refondation : Préparation de Commande Assistée',
       description:
         'Ne commandez plus au hasard ! Depuis l\'onglet **Commandes**, le bouton **+ Nouvelle commande** ouvre un module qui analyse le rythme de vos **30 derniers jours de vente** pour suggérer les quantités idéales couvrant votre **fréquence de réapprovisionnement** (réglable dans vos Paramètres). Il détecte ainsi les ruptures imminentes.',
-      elementSelector: '[data-guide="inventory-new-order-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✨ **Suggestions IA** : Basées sur votre rythme réel de consommation',
@@ -708,7 +651,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Finalisation et Conditionnement',
       description:
         'Dans la phase de finalisation, ajustez vos conditionnements (lots de 12, 24, etc.). Le système stabilise les prix unitaires pour garantir une comptabilité exacte, même si vos fournisseurs changent de format de lot.',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚖️ Prix unitaire constant = Protection de vos marges',
@@ -724,8 +666,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Onglet 4 : Statistiques — Santé de l\'inventaire',
       description:
         'L\'**Onglet Statistiques** présente 3 sections :\n\n• **4 cartes résumé** : Catégories, Produits, Valeur d\'achat, Valeur de vente\n• **Répartition par catégorie** : nombre de produits par catégorie\n• **Panneau d\'attention** : tous les produits en anomalie (Critique / Alerte / Info) avec accès direct à l\'action recommandée',
-      elementSelector: '[data-guide="inventory-stats"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💚 Si tout va bien, le panneau d\'attention affiche "Inventaire en parfaite santé"',
@@ -741,7 +681,6 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       title: 'Vous maîtrisez votre Inventaire !',
       description:
         'Vous connaissez maintenant les **4 onglets** (Produits, Opérations, Commandes, Statistiques), la gestion des produits, le suivi des marges commerciales, et l\'approvisionnement. Vous êtes prêt à gérer efficacement votre stock !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📅 Vérifiez régulièrement les anomalies pour éviter les ruptures',
@@ -787,7 +726,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Bienvenue à la Gestion des Retours !',
       description:
         'Votre système de **Retours** se divise en **3 onglets** : **Nouveau retour** (création), **Liste des retours** (validation), **Statistiques** (analyse). Les retours sont **créés avant la fermeture caisse** (par défaut 6h du matin) et doivent être **approuvés pour être finalisés**.',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔄 Le 1er onglet "Nouveau retour" n\'apparaît que si vous avez la permission de créer',
@@ -804,8 +742,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Onglet Nouveau retour : la création',
       description:
         'L\'onglet **Nouveau retour** vous guide étape par étape : sélectionnez une vente du jour → choisissez le produit → indiquez la quantité → sélectionnez le motif → vérifiez les impacts (remboursement, remise en stock) → créez le retour.',
-      elementSelector: '[data-guide="returns-create-btn"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏰ Les ventes affichées sont uniquement celles de la journée commerciale en cours',
@@ -820,8 +756,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Comprendre les Types de Retours',
       description:
         '**6 types de retours** disponibles, chacun avec des règles automatiques : **Défectueux** (remboursé, pas restocké) | **Erreur article** (remboursé + restocké) | **Non consommé** (pas remboursé, restocké) | **Périmé** (remboursé, pas restocké) | **Échange** (restocké + remplacement) | **Autre** (manuel).',
-      elementSelector: '[data-guide="returns-reasons"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔴 **Défectueux**: Produit détruit → Remboursement OUI | Restock NON',
@@ -838,8 +772,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Échange de Produit (Ancien Magic Swap)',
       description:
         'L\'**Échange** est la méthode royale pour corriger une erreur sans rembourser de cash. Sélectionnez le motif **Échange**, puis choisissez l\'**article de remplacement**. Le système calcule automatiquement l\'**écart de prix** et remet l\'ancien produit en stock.',
-      elementSelector: '[data-guide="returns-exchange-summary"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✨ **Flux Continu** : Retourne l\'ancien ET commande le nouveau en 1 clic',
@@ -855,8 +787,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Vérifier avant de Créer le Retour',
       description:
         'Avant de créer le retour, vérifiez : le **montant remboursé** (calculé auto selon motif), la **remise en stock** (certains motifs seulement), et le **statut EN ATTENTE** (créé mais pas encore approuvé = remboursement pas débité).',
-      elementSelector: '[data-guide="returns-summary"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💰 Montant = Quantité retour × Prix unitaire (calculé automatiquement)',
@@ -873,8 +803,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Onglet 2: Liste des Retours & Approbations',
       description:
         'L\'**Onglet Liste** affiche tous les retours créés. Vous voyez le **statut de chaque retour** (EN ATTENTE, APPROUVÉ, REJETÉ), le **produit**, la **raison**, et le **montant remboursé**. Ici vous **approuvez ou rejetez** les retours.',
-      elementSelector: '[data-guide="returns-list"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏳ EN ATTENTE = Retour créé mais pas finalisé (remboursement pas débité)',
@@ -890,8 +818,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: '⚠️ APPROBATION: L\'Étape Cruciale !',
       description:
         'C\'est là que le retour devient **EFFECTIF**. Cliquez sur **APPROUVER** pour finaliser : le remboursement est débité du CA, et le stock est mis à jour selon le motif (restauré ou perdu). ❌ **REJETER** annule le retour sans impact.',
-      elementSelector: '[data-guide="returns-actions"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✅ APPROUVER = Remboursement débité MAINTENANT + Stock MAJ (restauré ou perdu)',
@@ -907,8 +833,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Filtrer & Rechercher les Retours',
       description:
         'Utilisez les **filtres de période** (Aujourd\'hui, 7j, 30j, personnalisé) et **filtres de statut** (EN ATTENTE, APPROUVÉ, REJETÉ) pour retrouver rapidement un retour. La **recherche texte** retrouve par ID vente ou nom produit.',
-      elementSelector: '[data-guide="returns-filters"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📅 Filtres période : Aujourd\'hui, 7 derniers jours, 30 derniers jours, personnalisé',
@@ -924,8 +848,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Onglet Statistiques : analyse complète',
       description:
         'L\'onglet **Statistiques** présente **6 cartes KPI** (À traiter, Remboursés, Validés, En stock, Pertes, Refus) + une **Répartition par motif** (barres de progression) + un **panneau Analyse & Conseil** avec recommandation contextuelle selon le motif dominant.',
-      elementSelector: '[data-guide="returns-stats"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔴 **À traiter** = nombre de retours en attente (non encore approuvés)',
@@ -945,7 +867,6 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       title: 'Vous maîtrisez la Gestion des Retours !',
       description:
         'Vous connaissez maintenant les **3 onglets** (Nouveau retour, Liste, Statistiques), les **6 motifs de retour** avec leurs règles automatiques, et surtout l\'**approbation** qui finalise les retours. Vous êtes prêt à gérer efficacement remboursements et stock !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏰ Créez les retours avant la fermeture caisse, approuvez avant clôture',
@@ -992,7 +913,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Bienvenue à la Gestion des Consignations !',
       description:
         'Votre espace **Consignations** se divise en **3 onglets** : **Nouvelle consignation** (création), **Consignations actives** (gestion en cours), **Historique** (traçabilité). **Important** : une consignation = un client paie → laisse ses produits au bar → **sans remboursement** → reviendra les récupérer plus tard.',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✅ Consignation = mise de côté (pas un remboursement)',
@@ -1009,8 +929,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Onglet 1: Nouvelle Consignation - Créer',
       description:
         'L\'**Onglet Nouvelle Consignation** vous permet de créer une consignation rapidement : **Sélectionnez la vente du jour** → **Choisissez le produit** → **Indiquez la quantité** → **Remplissez infos client**. À la création, Stock Physique augmente (produits reviennent au bar).',
-      elementSelector: '[data-guide="consignments-create-tab"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚠️ Seules ventes **payées du jour** peuvent être consignées',
@@ -1026,8 +944,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Processus de Création - Étapes',
       description:
         '**Étape 1** : Sélectionnez la **vente du jour** (affiche serveur, heure, total). **Étape 2** : Choisissez le **produit à consigner** de cette vente. **Étape 3** : Indiquez la **quantité exacte** laissée au bar. **Étape 4** : Remplissez **infos client** (nom, téléphone) pour contact ultérieur récupération.',
-      elementSelector: '[data-guide="consignments-create-form"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '1️⃣ Vente = Historique de la vente aujourd\'hui',
@@ -1044,8 +960,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Onglet 2 : Consignations actives — Vue & actions',
       description:
         'L\'onglet **Consignations actives** affiche en haut **2 cartes de synthèse** (nombre d\'Actives + Valeur totale) et un **filtre rapide d\'urgence** (Tout / Bientôt / Expirés). Chaque consignation s\'affiche en carte avec : client, téléphone, produit, quantité, badge d\'expiration coloré, et les 2 actions **Récupérer** et **Confisquer**.',
-      elementSelector: '[data-guide="consignments-active-tab"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🟢 Accent vert = beaucoup de temps avant expiration',
@@ -1061,8 +975,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Action : Récupérer (le client vient chercher)',
       description:
         'Quand le **client vient récupérer** ses produits consignés, cliquez sur **Récupérer** (bouton brand vert/orange). Cela marque la consignation comme complétée. Le **Stock Physique diminue** (produits quittent le bar). Le **Stock Vendable reste invariant** (il n\'avait jamais changé puisque les produits étaient déjà vendus).',
-      elementSelector: '[data-guide="consignments-active-tab"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📤 Les produits sortent **physiquement** du bar (le client les emporte)',
@@ -1078,8 +990,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Action : Confisquer (délai expiré ou renoncement)',
       description:
         'Si le **délai est dépassé** ou si le **client renonce**, cliquez sur **Confisquer** (bouton rouge). Le produit est **réintégré à votre Stock Vendable** (redevient disponible à la vente). Le **Stock Physique reste stable** car le produit est toujours au bar.',
-      elementSelector: '[data-guide="consignments-active-tab"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏰ **Pas automatique** : l\'expiration n\'auto-confisque PAS, action manuelle requise',
@@ -1095,8 +1005,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Gérer expiration & urgence',
       description:
         'Les **consignations expirées** sont marquées par une bande rouge à gauche de la carte et un badge "Expiré". Le filtre **Expirés** en haut permet de les isoler rapidement. Vous devez manuellement décider : **Récupérer** (si le client revient) ou **Confisquer** (si le délai est dépassé sans nouvelle).',
-      elementSelector: '[data-guide="consignments-active-tab"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚠️ Expiration = alerte uniquement (pas d\'action automatique)',
@@ -1113,8 +1021,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Onglet 3 : Historique — Audit & traçabilité',
       description:
         'L\'onglet **Historique** affiche **toutes les consignations non actives**. Chaque ligne montre le statut final (**Récupéré** ou **Confisqué**), la date de création, la valeur, et le serveur d\'origine. Un filtre **par statut** en haut permet d\'isoler les Récupérés ou les Confisqués.',
-      elementSelector: '[data-guide="consignments-history-tab"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✅ Récupéré = le client est venu chercher ses produits',
@@ -1130,8 +1036,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Lecture rapide d\'une carte historique',
       description:
         'Chaque carte historique affiche : **nom client**, **quantité × produit**, **serveur d\'origine** (si connu), **date de création**, **valeur totale** et le **statut** (badge coloré à droite). Si la consignation a été récupérée, la **date de récupération** apparaît en vert en bas. La liste est paginée par 100 entrées avec un bouton "Voir plus".',
-      elementSelector: '[data-guide="consignments-history-filters"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '👤 Serveur d\'origine = qui a créé la vente initiale (utile pour bonus/commission)',
@@ -1147,7 +1051,6 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       title: 'Vous maîtrisez les Consignations !',
       description:
         'Vous connaissez maintenant les **3 onglets** (Création, Actives, Historique), comment **créer une consignation**, **Récupérer** (le client revient) ou **Confisquer** (délai expiré), et **tracer l\'historique** pour audit. Vous comprenez aussi les impacts stocks : création ↑ Physique, récupération ↓ Physique, confiscation ↑ Vendable.',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📦 Consignation = mise de côté (jamais un remboursement)',
@@ -1193,7 +1096,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue dans Historique et Analytics',
       description: 'Votre **Historique** se divise en **3 vues** pour analyser vos ventes sous différents angles. Vous pouvez filtrer par période, chercher des ventes spécifiques, et exporter vos données pour vos analyses externes.',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔄 Basculez entre les 3 vues avec les onglets en haut',
@@ -1208,8 +1110,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '📋',
       title: 'Vue 1: Tableau Complet des Ventes',
       description: 'La **Vue Liste** affiche chaque vente en **tableau détaillé** avec tous les paramètres : ID, date/heure, vendeur, nombre d\'articles, total original, retours et **revenu net final**.',
-      elementSelector: '[data-guide="sales-list"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📌 La colonne Revenu Net déduit automatiquement les retours approuvés',
@@ -1224,8 +1124,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '📇',
       title: 'Vue 2: Cartes Visuelles (Mini-tickets)',
       description: 'La **Vue Cartes** affiche vos ventes sous format **mini-ticket**. Parfait pour un aperçu rapide : ID, date, vendeur, premiers produits, total avec retours et revenu net.',
-      elementSelector: '[data-guide="sales-cards"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✨ Format visuel idéal pour scanner rapidement vos ventes',
@@ -1240,8 +1138,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '📊',
       title: 'Vue 3: Analytics - Vos Statistiques en Détail',
       description: 'La **Vue Analytics** synthétise vos données avec **3 KPIs clés** (Revenu, Ventes, Articles) et des **graphiques avancés** pour une analyse complète de vos performances.',
-      elementSelector: '[data-guide="analytics-kpis"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📈 Les 3 KPIs incluent la comparaison avec la période précédente (%)',
@@ -1256,8 +1152,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '📈',
       title: 'Analyse: Évolution de Votre CA',
       description: 'Le **graphique CA** suit votre **revenu net** et s\'adapte automatiquement selon la période : **Par heure** (≤2j) → **Par jour** (≤14j) → **Par jour/semaine** (>14j) pour une analyse granulaire de vos pics d\'activité.',
-      elementSelector: '[data-guide="analytics-revenue-chart"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏰ Granularité automatique basée sur votre sélection de période',
@@ -1272,8 +1166,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '🍰',
       title: 'Analyse: Répartition par Catégorie',
       description: 'Le **graphique Catégories** (Donut) montre le **revenu net généré par chaque catégorie de produits** (Bières, Sucreries, etc.). Les retours sont déjà déduits automatiquement.',
-      elementSelector: '[data-guide="analytics-category-chart"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎯 Identifiez vos catégories les plus rentables',
@@ -1290,8 +1182,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '🏆',
       title: 'Analyse: Vos Top Produits',
       description: 'Découvrez vos **champions** avec 3 filtres de vue : **Unités vendues** (volume) → **Revenus générés** (CA) → ou **Profit** (marge nette). Ajustez le nombre de produits (Top 5, 10, 20).',
-      elementSelector: '[data-guide="analytics-top-products"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⭐ Comparez volume vs revenu pour identifier les articles stratégiques',
@@ -1306,8 +1196,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '👥',
       title: 'Analyse: Performance de Votre Équipe',
       description: 'Comparez l\'**efficacité de vos serveurs/bartenders** : affichage du **CA généré** par personne et leur **nombre de transactions**. Parfait pour identifier vos top performers et optimiser formations/motivations.',
-      elementSelector: '[data-guide="analytics-team"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🌟 CA généré = revenu net attribué au serveur',
@@ -1322,8 +1210,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '🔍',
       title: 'Filtres Puissants & Recherche',
       description: '**Affinez vos analyses** avec 3 filtres : **Période** (Aujourd\'hui, Hier, 7j, 30j, Personnalisé) → **Vendeur** (un ou plusieurs) → **Recherche** (ID de vente ou nom de produit). Les filtres s\'appliquent à toutes les 3 vues instantanément.',
-      elementSelector: '[data-guide="sales-filters"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚡ Les filtres se mettent à jour instantanément',
@@ -1338,8 +1224,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '🚫',
       title: 'Annuler une Vente (Promoteur Uniquement)',
       description: '**Mode Lecture Détails** : Cliquez sur une vente pour ouvrir ses détails complets. En tant que **Promoteur**, vous avez l\'option **"Annuler"** pour annuler définitivement cette vente. L\'annulation **restitue les articles au stock** et **supprime la vente des statistiques**.',
-      elementSelector: '[data-guide="sales-details"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '🔍 Ouvrez le détail de la vente (cliquez sur le ticket)',
@@ -1355,8 +1239,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '🔍',
       title: 'Filtrer par Type de Vente (Validées / Rejetées / Annulées)',
       description: '**Filtrer les ventes** par statut : **Validées** (approuvées et comptabilisées), **Rejetées** (non approuvées par managers), **Annulées** (supprimées par promoteur). Ces filtres s\'appliquent à toutes les 3 vues (Liste, Cartes, Analytics) instantanément pour une analyse fine par statut.',
-      elementSelector: '[data-guide="sales-type-filter"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '✅ **Validées** = Ventes finales, comptabilisées dans les stats',
@@ -1372,8 +1254,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '💾',
       title: 'Exporter Vos Données',
       description: 'Exportez vos analyses complètes en **Excel** ou **CSV** pour des traitements externes (analyse poussée, rapports détaillés, intégration comptabilité). Les données exportées incluent tous les ajustements (retours, consignations).',
-      elementSelector: '[data-guide="sales-export"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 Excel = avec mise en forme, parfait pour les rapports',
@@ -1388,7 +1268,6 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       emoji: '✅',
       title: 'Vous Maîtrisez Votre Historique !',
       description: 'Vous connaissez maintenant les **3 vues** (Liste, Cartes, Analytics), les **filtres puissants** (période, vendeur, type), les **3 KPIs clés**, les **graphiques avancés** (CA, Catégories), l\'**annulation de vente** (promoteur), et l\'**export données**. Vous êtes prêt à analyser vos performances en profondeur !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎯 Consultez régulièrement vos analytics pour optimiser votre bar',
@@ -1435,7 +1314,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Bienvenue à la Gestion de l\'Équipe !',
       description:
         'Votre espace **Gestion d\'équipe** se compose de **2 à 3 onglets** selon votre configuration :\n\n• **Mon Équipe** : visualiser, modifier les rôles et retirer les membres\n• **Recrutement** : ajouter un nouveau compte ou importer un membre existant\n• **Nom d\'affichage sur vente** (optionnel) : configurer les noms courts en Mode Simplifié',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚖️ Permissions : **Promoteur** peut tout faire | **Gérant** peut gérer les serveurs uniquement',
@@ -1451,8 +1329,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Onglet 1 : Mon Équipe — Vue d\'ensemble',
       description:
         'L\'onglet **Mon Équipe** affiche tous vos collaborateurs sous forme de **cartes** (grille 3 colonnes sur desktop, 1 sur mobile). Chaque carte montre : avatar avec initiales, nom, rôle, contacts (téléphone, email) et dernière connexion. Un compteur en haut indique le nombre de gérants et serveurs.',
-      elementSelector: '[data-guide="team-members"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🟢 Point vert = actif récemment (< 24h)',
@@ -1468,8 +1344,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Rechercher & filtrer les membres',
       description:
         'Cherchez rapidement un membre par **nom**, **email** ou **identifiant** via la barre de recherche. Utilisez le bouton **"Inactifs"** pour afficher les membres désactivés (ce bouton n\'apparaît que s\'il y a au moins un inactif). Les filtres s\'appliquent instantanément sur les cartes.',
-      elementSelector: '[data-guide="team-search"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔎 Recherche temps réel : tapez nom, email ou identifiant',
@@ -1484,8 +1358,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Changer le rôle d\'un membre',
       description:
         'Sous l\'avatar de chaque membre actif (sauf Promoteur), un **sélecteur de rôle** (RoleSwitcher) permet de basculer entre **Gérant** et **Serveur**. Un clic ouvre une **modale de confirmation** avant validation. La mise à jour est instantanée.',
-      elementSelector: '[data-guide="team-role-select"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔐 **Confirmation requise** : une modale vous protège des erreurs de clic',
@@ -1500,8 +1372,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Retirer un Membre',
       description:
         'Cliquez sur l\'**icône Poubelle** (trash) à droite du membre pour le retirer. Le retrait est **immédiat** et **bloque toute nouvelle connexion**. Une confirmation vous demande avant suppression. ⚠️ Vous ne pouvez retirer que les rôles que vous pouvez créer.',
-      elementSelector: '[data-guide="team-delete"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✅ **Promoteur** : Peut retirer Gérants ET Serveurs',
@@ -1518,8 +1388,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Onglet 2: Recrutement - Ajouter Membres',
       description:
         'L\'**Onglet Recrutement** vous permet d\'ajouter rapidement de nouveaux collaborateurs. Vous avez **2 options** : **Nouveau Compte** (créer identifiants from scratch) ou **Membre Existant** (importer quelqu\'un qui travaille déjà dans un autre de vos bars).',
-      elementSelector: '[data-guide="team-recruitment"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🆕 Nouveau Compte = Créer identifiants (username/password) + email auto-généré',
@@ -1534,8 +1402,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Option 1: Créer un Nouveau Compte',
       description:
         'Créez rapidement un nouveau collaborateur : saisissez **Identifiant de connexion** (username, lowercase automatique) → **Mot de passe temporaire** (min 8 caractères) → **Nom complet** → **Téléphone**. L\'email est auto-généré (@bartender.app). Sélectionnez son **Rôle** (Gérant ou Serveur) et créez !',
-      elementSelector: '[data-guide="team-create-form"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '👤 Identifiant = Login unique (converti lowercase, espaces enlevés)',
@@ -1551,8 +1417,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Option 2: Importer un Membre Existant',
       description:
         'Importez quelqu\'un qui travaille **déjà dans un autre de vos bars** : Sélectionnez le candidat dans la **dropdown liste** (affiche nom, rôle actuel, bar source) ou recherchez par **email/username**. Sélectionnez son nouveau **Rôle** dans ce bar et importez !',
-      elementSelector: '[data-guide="team-import-form"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔄 Évite doublons = Un compte pour multiple bars',
@@ -1569,8 +1433,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Onglet 3 : Nom d\'affichage sur vente (Mode Simplifié)',
       description:
         'L\'onglet **Nom d\'affichage sur vente** configure le pont entre les **noms courts utilisés au comptoir** (ex: "Afi", "Fifi", "Ali") et les **comptes utilisateurs réels** des serveurs. Cet onglet n\'apparaît que si le **Mode Simplifié** est activé dans les paramètres du bar (sinon il est masqué).',
-      elementSelector: '[data-guide="team-mappings"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚙️ **Mode Simplifié** = 1 compte gérant au comptoir crée les ventes et sélectionne le serveur',
@@ -1585,8 +1447,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Créer les mappings serveurs',
       description:
         'Deux façons d\'alimenter la liste :\n\n• **Manuel** : saisissez le nom court (ex: "Afi") → choisissez le compte associé → cliquez sur **"Valider le nom de vente"**.\n• **Auto-synchroniser** : un seul bouton qui crée automatiquement les noms d\'affichage à partir de vos membres actifs. Idéal pour démarrer rapidement.',
-      elementSelector: '[data-guide="team-mappings-add"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚡ **Auto-synchroniser** = générer tous les mappings d\'un coup depuis vos membres existants',
@@ -1603,7 +1463,6 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       title: 'Vous maîtrisez votre Équipe !',
       description:
         'Vous connaissez maintenant les onglets de **Gestion d\'équipe**, comment **ajouter ou retirer des membres**, **changer leur rôle**, **importer des collaborateurs d\'autres bars** et configurer le **Mode Simplifié** si nécessaire. Vous êtes prêt à organiser votre équipe sereinement !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 Consultez **Mon Équipe** régulièrement pour vérifier les statuts de connexion',
@@ -1650,7 +1509,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Bienvenue dans les Paramètres !',
       description:
         'Vos paramètres se répartissent en **2 à 3 onglets selon votre rôle** :\n\n• **Informations Bar** *(Promoteur uniquement)* : nom, adresse, contact, thème de couleur\n• **Configuration de gestion** *(Promoteur & Gérant)* : heure de clôture, consignations, fréquence d\'appro, méthode de coût, devise, mode opérationnel\n• **Sécurité** *(Promoteur uniquement)* : authentification à deux facteurs (2FA)',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔄 Onglets disponibles selon votre rôle (les Gérants ne voient que Configuration de gestion)',
@@ -1666,8 +1524,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Onglet Informations Bar — Identification',
       description:
         'Cet onglet contient les **informations d\'identification** de votre établissement : **Nom du bar**, **Téléphone**, **Email**, **Adresse géographique**. Ces infos apparaissent sur les exports comptables, factures et communications officielles. **Promoteur uniquement** pour protéger les données sensibles.',
-      elementSelector: '[data-guide="settings-bar"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '📝 **Nom du bar** : ex. "Le Privilège", "Chez Maman"',
@@ -1684,8 +1540,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Thème de couleur de votre établissement',
       description:
         'Dans l\'onglet Informations Bar (en bas), choisissez parmi plusieurs **presets de couleur de marque** : la couleur principale (boutons, accents, badges actifs) suivra votre choix dans toute l\'application. Cliquez sur un preset pour voir un **aperçu temps réel**, puis "Appliquer ce thème" pour valider.\n\n**À ne pas confondre** avec le **mode clair/sombre** qui se règle via l\'icône Soleil/Lune dans le header en haut à droite.',
-      elementSelector: '[data-guide="settings-theme"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '🎨 **Thème de couleur** = couleur de marque du bar (orange, bleu, vert…)',
@@ -1702,8 +1556,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Onglet Configuration de gestion',
       description:
         'Cet onglet centralise tous les réglages opérationnels :\n\n• **Heure de clôture** (journée commerciale)\n• **Expiration des consignations** (7 / 14 / 30 jours)\n• **Fréquence approvisionnement** (7 / 14 / 30 jours)\n• **Méthode de coût** d\'inventaire (CUMP ou dernier coût)\n• **Devise** (4 options ouest-africaines)\n• **Mode opérationnel** (Complet ou Simplifié)\n\nVisible par les **Promoteurs et les Gérants**.',
-      elementSelector: '[data-guide="settings-operational"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔧 Cœur opérationnel de votre bar — modifications impactantes',
@@ -1718,8 +1570,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Heure de clôture journalière',
       description:
         'L\'**heure de clôture** définit la fin de votre journée commerciale (ex. 06h pour un bar de nuit). Toute vente effectuée **avant** cette heure appartient à la journée d\'hier, toute vente **après** appartient à aujourd\'hui.\n\n**Exemple** : avec fermeture à 06h00, une vente à **02h00 du mardi matin** est comptabilisée dans la journée du **lundi** (cohérence comptable des nuits).',
-      elementSelector: '[data-guide="settings-closing-hour"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏰ Plage : 00h00 à 23h00 (24 options)',
@@ -1735,8 +1585,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Consignations & approvisionnement',
       description:
         '**Expiration des consignations** : délai avant qu\'une consignation puisse être confisquée (3 options : 7 / 14 / 30 jours, défaut 7j).\n\n**Fréquence d\'approvisionnement** : intervalle moyen entre vos approvisionnements (3 options : 7 / 14 / 30 jours). Utilisé pour suggérer les quantités à commander dans l\'onglet Commandes de l\'Inventaire.',
-      elementSelector: '[data-guide="settings-expiration"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📦 Consignation = produits payés mais laissés au bar (mise de côté)',
@@ -1751,8 +1599,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Méthode de coût (inventaire)',
       description:
         'Choisissez comment le **coût affiché** dans l\'inventaire est calculé :\n\n• **CUMP** (Coût Unitaire Moyen Pondéré) : moyenne pondérée de tous vos approvisionnements. Plus stable.\n• **Dernier coût d\'achat** : prix du dernier approvisionnement. Plus réactif aux variations.\n\n⚠️ Important : la **comptabilité utilise toujours le CUMP**, quel que soit ce réglage. Le choix n\'affecte que l\'affichage dans les cartes produits.',
-      elementSelector: '[data-guide="settings-operational"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 CUMP = standard comptable (lisse les variations de prix)',
@@ -1767,8 +1613,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Devise principale',
       description:
         'Sélectionnez la monnaie de votre établissement parmi **4 devises ouest-africaines** : **FCFA (XOF)**, **XAF**, **NGN (Naira)**, **GHS (Cedi)**. Le symbole apparaîtra partout (prix, chiffre d\'affaires, rapports, exports).',
-      elementSelector: '[data-guide="settings-currency"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💰 FCFA (XOF) = Bénin, Sénégal, Côte d\'Ivoire',
@@ -1784,8 +1628,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Mode de fonctionnement : Complet vs Simplifié',
       description:
         '**Mode complet** : chaque serveur a son propre compte, crée ses ventes et gère ses tables. Idéal pour les grands établissements structurés.\n\n**Mode simplifié** : le gérant centralise les commandes au comptoir et sélectionne le serveur manuellement à chaque vente. Idéal pour les maquis et petits bars.',
-      elementSelector: '[data-guide="settings-operating-mode"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '👤 **Complet** : chaque serveur a un compte et crée ses ventes',
@@ -1801,8 +1643,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Configuration du Mode Simplifié',
       description:
         'Si vous activez le **Mode simplifié**, une section **Configuration du mode switching** apparaît juste en dessous. Elle permet de configurer les **noms d\'affichage courts** (ex. "Afi", "Fifi") liés aux comptes réels des serveurs — sinon les ventes ne pourraient pas être attribuées à un membre de l\'équipe.\n\nLa même configuration est accessible depuis l\'onglet **"Nom d\'affichage sur vente"** de la page Équipe.',
-      elementSelector: '[data-guide="settings-switching-mode"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔗 Lier noms courts → vrais comptes serveurs',
@@ -1819,8 +1659,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Onglet Sécurité — Protection 2FA',
       description:
         'Cet onglet protège votre compte avec l\'**authentification à deux facteurs (2FA)**. Une fois activée, même si quelqu\'un connaît votre mot de passe, il ne pourra pas se connecter sans le code à 6 chiffres généré par votre application d\'authentification.\n\n**Promoteur uniquement** (les comptes employés utilisent souvent des emails fictifs qui rendent la récupération 2FA risquée).',
-      elementSelector: '[data-guide="settings-security"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '🔐 La 2FA est une protection critique pour les comptes promoteurs',
@@ -1835,8 +1673,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Activer la 2FA en 4 étapes',
       description:
         '1. Cliquez sur **"Activer maintenant"**\n2. **Scannez le QR Code** avec votre application d\'authentification (Google Authenticator, Authy…)\n3. Entrez le **code à 6 chiffres** généré par l\'app\n4. Cliquez sur **"Confirmer"** — votre compte est maintenant doublement protégé\n\nUne fois activée, l\'onglet affichera "**La protection 2FA est active**" avec un bouton pour désactiver si besoin.',
-      elementSelector: '[data-guide="settings-2fa"]',
-      position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
         '📲 Pas d\'app installée ? Téléchargez Google Authenticator (iOS/Android)',
@@ -1852,8 +1688,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Sauvegarder vos modifications',
       description:
         'En bas de page, deux boutons :\n\n• **"Enregistrer les modifications"** (brand) : sauvegarde tous vos changements et revient à la page précédente\n• **"Annuler"** : abandonne sans sauvegarder\n\nSur mobile, ces boutons sont **toujours visibles en bas de l\'écran** (sticky) pour ne jamais perdre vos modifications de vue.',
-      elementSelector: '[data-guide="settings-actions"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💾 Cliquez "Enregistrer les modifications" après chaque changement',
@@ -1869,7 +1703,6 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       title: 'Vous maîtrisez la Configuration !',
       description:
         'Vous connaissez maintenant les onglets de **Paramètres** (Informations Bar, Configuration de gestion, Sécurité), comment configurer les **infos établissement**, **heure de clôture**, **consignations**, **devise**, **mode opérationnel**, **méthode de coût**, et protéger votre compte avec **2FA**. Votre bar est correctement configuré !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⏰ L\'heure de clôture impacte tout : retours, journées commerciales, comptabilité',
@@ -1915,7 +1748,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Bienvenue à la Gestion des Promotions !',
       description:
         'Les promotions sont votre outil principal pour augmenter les ventes et fidéliser les clients. Cet espace est organisé en **3 onglets** :\n\n• **Catalogue** : gérez vos promotions existantes (liste, recherche, création, activation, suppression)\n• **Analyses** : suivez les performances (CA, Utilisations, Profit, Retour sur investissement) par promotion\n• **Nouvelle promotion** : créez ou modifiez une promotion avec ses 6 types possibles',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '6 types de promotions possibles : Unitaire, Pourcentage, Offre Groupée, Prix Fixe, Sur Vente, Majoration',
@@ -1931,8 +1763,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Onglet 1 : Catalogue',
       description:
         'Cet onglet affiche la **liste de toutes vos promotions** sous forme de cartes. Chaque carte montre le statut, les détails clés et les actions disponibles.',
-      elementSelector: '[data-guide="promo-catalog"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📌 Les promotions sont triées par statut : Actives, Programmées, En pause, Expirées, Brouillon',
@@ -1946,8 +1776,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Rechercher et Filtrer',
       description:
         'Utilisez la **barre de recherche** pour trouver rapidement une promotion par nom, ou les **filtres** pour afficher uniquement celles qui vous intéressent.',
-      elementSelector: '[data-guide="promotions-search"]',
-      position: 'bottom',
       action: 'Essayez de rechercher ou filtrer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -1963,8 +1791,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Créer une Nouvelle Promotion',
       description:
         'Le **bouton "Nouvelle Promotion"** accède à l\'onglet 3 (formulaire). Chaque promotion créée apparaît dans ce catalogue. Les actions de chaque carte permettent de **modifier, prévisualiser, mettre en pause ou supprimer** une promotion existante.',
-      elementSelector: '[data-guide="promo-create-button"]',
-      position: 'bottom',
       action: 'Repérez le bouton Nouvelle Promotion',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -1981,8 +1807,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Onglet 2 : Analyses',
       description:
         'Cet onglet vous montre les **performances de vos promotions** en temps réel. Vous y trouvez les KPIs clés (CA, Utilisations, Profit réalisé, Retour sur invest.) et un **Classement des offres** par rentabilité.',
-      elementSelector: '[data-guide="promo-analytics"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📈 Les données s\'actualisent en temps réel',
@@ -1997,8 +1821,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'KPIs : 4 métriques clés',
       description:
         'Quatre **cartes de synthèse** en haut de l\'onglet Analyses :\n\n• **Chiffre d\'affaires** : montant total généré par les promotions sur la période\n• **Utilisations** : nombre de fois où vos promotions ont été appliquées\n• **Profit réalisé** : gain réel après coût des produits (basé sur vos marges)\n• **Retour sur invest.** : performance de la promo comparée à son coût',
-      elementSelector: '[data-guide="promo-kpis"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💰 Le **Profit réalisé** dépend des marges produit (définies dans Inventaire)',
@@ -2013,8 +1835,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Classement des offres',
       description:
         'En dessous des KPIs, le **Classement des offres** trie vos promotions par rentabilité directe. Vous voyez d\'un coup d\'œil quelles offres marchent et lesquelles méritent d\'être désactivées ou ajustées.',
-      elementSelector: '[data-guide="promo-ranking"]',
-      position: 'top',
       action: 'Consultez le classement',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -2031,8 +1851,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Onglet 3 : Nouvelle Promotion (Formulaire)',
       description:
         'Cet onglet contient le **formulaire de création/modification**. Organisé en **4 sections** :\n\n• **Identité** : Nom, Description\n• **Mécanisme** : Type d\'offre (6 choix possibles)\n• **Ciblage** : Quoi promouvoir (Tout, Catégories, Produits)\n• **Période** : Quand appliquer la promotion (Dates, Horaires)',
-      elementSelector: '[data-guide="promo-form"]',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📋 Remplissez les sections dans l\'ordre proposé',
@@ -2047,8 +1865,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Section 1 - Identité',
       description:
         'Commencez par **identifier votre promotion** :\n\n• **Nom** : ex: "Happy Hour Lundi", "Offre Noël", "Bières en Promotion"\n• **Description** : Contexte interne, raison de l\'offre, cible client',
-      elementSelector: '[data-guide="promo-identity"]',
-      position: 'bottom',
       action: 'Donnez un nom clair à votre promotion',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -2063,8 +1879,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Section 2 - Mécanisme (6 Types)',
       description:
         'Choisissez le **type d\'offre** parmi 6 options :\n\n1. **Unitaire** : ex: "-50 FCFA par bouteille" (prix réduit = prix d\'origine − montant fixe)\n2. **Pourcentage** : ex: "-10%" (prix réduit = prix d\'origine × (100% − pourcentage))\n3. **Offre Groupée** : ex: "3 pour 1000 FCFA" (prix fixe pour un lot complet)\n4. **Prix Fixe** : ex: "Heineken à 300 FCFA" (remplace le prix d\'origine)\n5. **Sur Vente** : ex: "-5% si achat > 5000 FCFA" (réduction sur le panier total)\n6. **Majoration** : ex: "+100 FCFA de nuit" (augmentation temporaire du prix)',
-      elementSelector: '[data-guide="promo-mechanism"]',
-      position: 'bottom',
       action: 'Sélectionnez un type d\'offre',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -2081,8 +1895,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Section 3 - Ciblage (3 Niveaux)',
       description:
         'Définissez **quoi promouvoir** pour protéger vos marges :\n\n• **Tout le menu** : Promo globale sur toutes les ventes\n• **Par catégorie** : Ex: Promo uniquement sur "Bières" ou "Sodas"\n• **Par produit** : Ex: Promo spécifique sur "Heineken 50cl" ou "Coca-Cola"',
-      elementSelector: '[data-guide="promo-targeting"]',
-      position: 'bottom',
       action: 'Choisissez un niveau de ciblage',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -2098,8 +1910,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Section 4 - Période',
       description:
         'Programmez **quand appliquer** la promotion :\n\n• **Date de lancement** : à quelle date la promo devient active\n• **Date de fin** : laissez vide pour une promotion sans limite (permanente). Vous pouvez toujours la mettre en pause manuellement depuis le Catalogue.',
-      elementSelector: '[data-guide="promo-period"]',
-      position: 'bottom',
       action: 'Configurez la validité',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -2116,7 +1926,6 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
       title: 'Créer & Optimiser vos Promotions !',
       description:
         'Vous maîtrisez maintenant la création de promotions. Créez des offres attractives, programmez vos happy hours, et **consultez régulièrement l\'onglet Analyses** pour optimiser vos meilleures offres.',
-      position: 'center',
       action: 'Cliquez sur Terminer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -2162,7 +1971,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Bienvenue sur Mon Profil !',
       description:
         'Cet espace est accessible à **tous les comptes** (serveurs, gérants, promoteurs). Vous y gérez vos **informations personnelles**, votre **sécurité** (mot de passe) et consultez votre **statut de formation**. Le profil est organisé en **3 onglets** plus une **carte d\'identification** à droite.',
-      position: 'center',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '👤 **3 onglets** : Informations, Sécurité, Formation',
@@ -2178,8 +1986,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Onglet 1 : Informations Personnelles',
       description:
         'Cet onglet permet de **mettre à jour vos informations** : **Nom Complet** (requis), **Email** (optionnel) et **Téléphone** (optionnel). Tous les champs se sauvegardent en cliquant sur "Sauvegarder les modifications".',
-      elementSelector: '[data-guide="profile-info"]',
-      position: 'bottom',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '✏️ **Nom Complet** : Champ obligatoire (utilisé sur la carte d\'ID)',
@@ -2194,8 +2000,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Sauvegarder vos Modifications',
       description:
         'Une fois vos informations mises à jour (au minimum le Nom), cliquez sur le **bouton "Sauvegarder les modifications"**. Un message de succès s\'affichera et vos données seront mises à jour partout dans l\'application.',
-      elementSelector: '[data-guide="save-info-btn"]',
-      position: 'top',
       action: 'Modifiez et sauvegardez',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
@@ -2212,8 +2016,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Onglet 2 : Sécurité - Changer votre Mot de Passe',
       description:
         'Cet onglet est dédié à la **sécurité de votre compte**. Vous devez entrer votre **mot de passe actuel** (vérification), puis définir un **nouveau mot de passe** et le **confirmer**. Les deux nouveaux mots de passe doivent correspondre.',
-      elementSelector: '[data-guide="profile-security"]',
-      position: 'bottom',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '🔐 Le mot de passe actuel est demandé pour la sécurité',
@@ -2228,8 +2030,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Conseils de Sécurité pour votre Mot de Passe',
       description:
         'Un encadré bleu affiche les **4 critères minimums** pour un mot de passe sûr :\n\n• **Minimum 8 caractères**\n• **Majuscules & Minuscules** (ex: AaBbCc)\n• **Chiffres & Signes** (ex: 123 !@#)\n• **Différent du précédent** (sécurité renforcée)',
-      elementSelector: '[data-guide="password-tips"]',
-      position: 'top',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '💪 Suivez ces 4 critères pour un mot de passe vraiment sûr',
@@ -2245,8 +2045,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Valider le Changement de Mot de Passe',
       description:
         'Une fois les 3 champs remplis et les critères respectés, cliquez sur **"Mettre à jour le mot de passe"**. Un message de succès confirme que votre mot de passe a été changé. Vous pouvez vous reconnecter avec le nouveau mot de passe.',
-      elementSelector: '[data-guide="update-password-btn"]',
-      position: 'top',
       action: 'Changez votre mot de passe',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
@@ -2263,8 +2061,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Onglet 3 : Formation',
       description:
         'Cet onglet affiche votre **statut de certification et de formation**. Vous y trouvez les modules d\'apprentissage disponibles pour maîtriser l\'application. La certification est requise pour accéder à certaines fonctionnalités avancées.',
-      elementSelector: '[data-guide="profile-training"]',
-      position: 'bottom',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '📚 Consultez et complétez les modules de formation',
@@ -2280,8 +2076,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Votre Carte d\'Identification BarTender',
       description:
         'À **droite du formulaire**, votre **carte d\'ID personnalisée** affiche :\n\n• **Avatar** avec vos initiales\n• **Rôle** (Serveur, Gérant, Promoteur)\n• **Identifiant Système** (@username unique)\n• **Membre depuis** : Date de création de votre compte\n• **Dernier accès** : Quand vous vous êtes connecté la dernière fois\n• **Certification Formation** : ✓ Certifié ou ⏳ En attente',
-      elementSelector: '[data-guide="profile-id-card"]',
-      position: 'left',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '👤 Initiales = extraites de votre nom (ex: Jean Dupont = JD)',
@@ -2297,7 +2091,6 @@ export const PROFILE_GUIDE: GuideTour = {
       title: 'Votre Profil est Maintenant Sécurisé !',
       description:
         'Vous connaissez maintenant votre espace Mon Profil. Vous pouvez : **mettre à jour vos infos personnelles**, **sécuriser votre compte** avec un nouveau mot de passe, **consulter votre formation** et **vérifier votre carte d\'ID**. Votre compte est entre vos mains !',
-      position: 'center',
       action: 'Cliquez sur Terminer',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
@@ -2343,7 +2136,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Bienvenue aux Prévisions et IA !',
       description:
         'Cet espace est dédié aux **analyses prédictives** et aux **fonctionnalités d\'IA** pour vous aider à optimiser votre bar. Actuellement, vous trouvez **2 onglets** : **Prévisions de Ventes** (en construction) et **Assistant Intelligent IA** (à venir). Ces fonctionnalités arrivent prochainement !',
-      position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 **Prévisions de Ventes** : Analyses prédictives basées sur vos données historiques',
@@ -2359,8 +2151,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Onglet 1 : Prévisions de Ventes',
       description:
         'Cet onglet affichera bientôt vos **analyses prédictives basées sur vos données de ventes**. Une vision stratégique listant **4 points clés** :\n\n• **CA estimé sur le mois prochain** : Projection de chiffre d\'affaires futur\n• **Optimisation des heures de pointe** : Identifiez quand vos clients achètent le plus\n• **Tendance de consommation hebdomadaire** : Patterns et variations par jour/semaine\n• **Ajustement dynamique des marges** : Recommandations pour optimiser vos marges',
-      elementSelector: '[data-guide="sales-forecast"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💰 **CA estimé** = Chiffre d\'affaires prévu (vous aide à budgétiser)',
@@ -2376,7 +2166,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Vision Stratégique Future',
       description:
         'La vision stratégique à venir inclura des **recommandations intelligentes** basées sur l\'analyse de vos tendances de ventes. Ces analyses vous permettront de :\n\n• Anticiper la demande et ajuster votre stock\n• Programmer vos promotions au moment optimal\n• Maximiser vos profits grâce à des marges variables\n• Prendre des décisions basées sur des données fiables',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎯 Ces analyses vous aident à **décider** plutôt que de suivre l\'intuition',
@@ -2392,8 +2181,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Onglet 2 : Assistant Intelligent IA',
       description:
         'Cet onglet accueillera bientôt votre **coach personnel entraîné sur vos données**. Un assistant conversationnel capable de :\n\n• Répondre à vos questions sur la **rentabilité**\n• Analyser vos **performances de ventes**\n• Proposer des **stratégies d\'optimisation**\n• Fouiller vos données pour des **insights actionnables**',
-      elementSelector: '[data-guide="ai-assistant"]',
-      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '💬 Assistant conversationnel = Posez vos questions en langage naturel',
@@ -2409,7 +2196,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Comment Fonctionne l\'Assistant IA',
       description:
         'L\'assistant IA (en développement) sera capable de :\n\n1. **Comprendre vos questions** en français naturel\n2. **Accéder vos données** (ventes, stock, retours, consignations)\n3. **Analyser les patterns** (jours forts, produits populaires, marges)\n4. **Générer des recommandations** basées sur les insights découverts\n5. **Vous aider à décider** rapidement avec des données fiables',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 Exemples de questions : "Quel est mon meilleur produit ?" "Quand dois-je faire une promo ?"',
@@ -2425,7 +2211,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Prochaines Étapes & Calendrier',
       description:
         'Ces fonctionnalités arrivent très bientôt ! Le développement inclut :\n\n• **Phase 1 (En cours)** : Collecte et analyse de vos données historiques\n• **Phase 2** : Implémentation du graphique de projection linéaire (Prévisions)\n• **Phase 3** : Intégration du modèle de langage sélectionné (Assistant IA)\n• **Phase 4** : Tests et optimisation\n\nVous serez notifié dès que ces fonctionnalités seront disponibles !',
-      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📬 Restez connecté pour les mises à jour',
@@ -2441,7 +2226,6 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
       title: 'Utilisez Ces Données Quand Elles Arriveront !',
       description:
         'Quand les Prévisions et l\'IA seront **disponibles**, vous pourrez :\n\n• **Décider** en confiance avec des données prédictives\n• **Automatiser** vos approvisionnements via OrderPreparation\n• **Optimiser** vos prix et promotions dynamiquement\n• **Grossir** votre business en suivant ce qui marche vraiment',
-      position: 'center',
       action: 'Cliquez sur Terminer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [

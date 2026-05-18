@@ -7,24 +7,23 @@ export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
 
 export type GuideDifficulty = 'beginner' | 'intermediate' | 'advanced';
 
-export type StepPosition = 'top' | 'bottom' | 'left' | 'right' | 'center';
-
 export type TriggerType = 'onMount' | 'onAction' | 'onFeatureAvailable';
 
 export type MediaType = 'image' | 'video' | 'gif';
 
 /**
  * Single step within a guide tour
+ *
+ * Note : les guides sont rendus comme des modales centrées informatives
+ * (GuideTourModal) — pas de spotlight ou highlight d'éléments DOM. Si un
+ * système de tour interactif est ajouté plus tard (React Joyride, Shepherd.js),
+ * réintroduire elementSelector + position ici.
  */
 export interface GuideStep {
   id: string;
   emoji?: string;
   title: string;
   description: string;
-
-  // For spotlight/highlight
-  elementSelector?: string; // CSS selector to highlight
-  position?: StepPosition; // Tooltip position relative to element
 
   // User action text
   action?: string; // "Click X to..." or "You'll see..."
