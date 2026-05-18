@@ -118,19 +118,19 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                         initial="hidden"
                         animate="visible"
                         variants={cardVariants}
-                        className={`bg-card rounded-2xl p-4 shadow-sm border transition-shadow hover:shadow-md ${kpi.isDanger ? 'border-red-200' : 'border-border'}`}
+                        className={`bg-card rounded-2xl p-4 shadow-sm border transition-shadow hover:shadow-md ${kpi.isDanger ? 'border-red-200 dark:border-red-900/40' : 'border-border'}`}
                     >
                         <div className="flex items-center justify-between mb-3">
-                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.isDanger ? 'bg-red-50 text-red-600' : 'bg-brand-subtle text-brand-primary'}`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${kpi.isDanger ? 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400' : 'bg-brand-subtle text-brand-primary'}`}>
                                 <kpi.Icon size={18} />
                             </div>
                             <span className="text-micro text-muted-foreground">{kpi.label}</span>
                         </div>
                         <div className="flex items-baseline gap-1.5">
                             {kpi.animated !== false ? (
-                                <AnimatedCounter value={kpi.value} className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600' : 'text-foreground'}`} />
+                                <AnimatedCounter value={kpi.value} className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`} />
                             ) : (
-                                <div className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600' : 'text-foreground'}`}>
+                                <div className={`text-h2 font-semibold tabular-nums ${kpi.isDanger ? 'text-red-600 dark:text-red-400' : 'text-foreground'}`}>
                                     <AnimatedCounter value={kpi.value} />
                                 </div>
                             )}
@@ -231,7 +231,7 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                         </div>
                         <div className="p-3 rounded-xl bg-muted border border-border">
                             <p className="text-micro text-muted-foreground mb-1">Qualité stock</p>
-                            <p className={`text-body font-semibold ${stats.itemsRestocked > stats.lostProductCount ? 'text-green-600' : 'text-red-600'}`}>
+                            <p className={`text-body font-semibold ${stats.itemsRestocked > stats.lostProductCount ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {stats.itemsRestocked > stats.lostProductCount ? "Stable" : "Alerte"}
                             </p>
                         </div>

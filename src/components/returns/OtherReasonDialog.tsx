@@ -49,7 +49,7 @@ export function OtherReasonDialog({
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="text-amber-600" size={24} />
-              <h2 className="text-lg font-bold text-foreground">
+              <h2 className="text-h3 text-foreground">
                 Retour - Autre raison
               </h2>
             </div>
@@ -63,10 +63,10 @@ export function OtherReasonDialog({
                   className="w-5 h-5 rounded border-border text-blue-600 focus:ring-blue-500"
                 />
                 <div>
-                  <p className="font-medium text-foreground">
+                  <p className="text-body-sm font-medium text-foreground">
                     Rembourser le client
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-caption text-muted-foreground">
                     Le montant sera déduit du CA
                   </p>
                 </div>
@@ -80,8 +80,8 @@ export function OtherReasonDialog({
                   className="w-5 h-5 rounded border-border text-green-600 focus:ring-green-500"
                 />
                 <div>
-                  <p className="font-medium text-foreground">Remettre en stock</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-body-sm font-medium text-foreground">Remettre en stock</p>
+                  <p className="text-caption text-muted-foreground">
                     Le produit sera remis en inventaire
                   </p>
                 </div>

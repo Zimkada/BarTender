@@ -104,12 +104,12 @@ export function ReturnReasonSelector({
                             {/* Mobile Impact Badges - Compact */}
                             <div className="flex flex-wrap gap-1 mt-1 sm:hidden">
                                 {config.autoRestock && (
-                                    <span className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full font-medium border border-green-100">
+                                    <span className="text-micro bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded-full border border-green-100 dark:border-green-900/40">
                                         + Stock
                                     </span>
                                 )}
                                 {config.autoRefund && (
-                                    <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-medium border border-blue-100">
+                                    <span className="text-micro bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full border border-blue-100 dark:border-blue-900/40">
                                         Remboursé
                                     </span>
                                 )}
@@ -119,12 +119,12 @@ export function ReturnReasonSelector({
                         {/* Desktop Impact Badges */}
                         <div className="hidden sm:flex flex-wrap gap-1 mt-auto pt-1">
                             {config.autoRestock && (
-                                <span className="text-caption bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium border border-green-100">
+                                <span className="text-caption bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-medium border border-green-100 dark:border-green-900/40">
                                     + Stock
                                 </span>
                             )}
                             {config.autoRefund && (
-                                <span className="text-caption bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">
+                                <span className="text-caption bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-full font-medium border border-blue-100 dark:border-blue-900/40">
                                     Remboursement
                                 </span>
                             )}

@@ -119,8 +119,8 @@ export function ReturnCard({
 
           {/* Badge Échange si le retour est lié à une vente de remplacement */}
           {returnItem.linkedSaleId && (
-            <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              <p className="text-caption text-amber-700 font-medium flex items-center gap-1.5">
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 rounded-lg px-3 py-2">
+              <p className="text-caption text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1.5">
                 <ArrowLeftRight size={14} />
                 Retour lié à la vente #{returnItem.linkedSaleId.slice(-6).toUpperCase()}
               </p>
@@ -160,14 +160,14 @@ export function ReturnCard({
             </span>
 
             {returnItem.autoRestock && (
-              <span className="inline-flex items-center gap-1 text-caption font-medium bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1 text-caption font-medium bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-900/40 px-2.5 py-1 rounded-full">
                 <Package size={11} />
                 Restock auto
               </span>
             )}
 
             {returnItem.isRefunded && (
-              <span className="text-caption font-medium bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full">
+              <span className="text-caption font-medium bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 px-2.5 py-1 rounded-full">
                 Crédité
               </span>
             )}
@@ -179,7 +179,7 @@ export function ReturnCard({
             )}
 
             {returnItem.linkedSaleId && (
-              <span className="inline-flex items-center gap-1 text-caption font-medium bg-amber-50 text-amber-700 border border-amber-100 px-2.5 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1 text-caption font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40 px-2.5 py-1 rounded-full">
                 <RotateCcw size={11} />
                 Échange produit
               </span>
@@ -195,7 +195,7 @@ export function ReturnCard({
                 <motion.button
                   whileTap={{ scale: 0.96 }}
                   onClick={() => onReject(returnItem.id)}
-                  className="px-4 py-2 rounded-lg text-body-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-100"
+                  className="px-4 py-2 rounded-lg text-body-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-950/60 transition-colors border border-red-100 dark:border-red-900/40"
                 >
                   Rejeter
                 </motion.button>
@@ -224,13 +224,13 @@ export function ReturnCard({
               )}
 
             {returnItem.status === "restocked" && (
-              <span className="inline-flex items-center gap-1.5 text-caption font-medium text-green-700 bg-green-50 border border-green-100 px-3 py-1.5 rounded-full tabular-nums">
+              <span className="inline-flex items-center gap-1.5 text-caption font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/40 border border-green-100 dark:border-green-900/40 px-3 py-1.5 rounded-full tabular-nums">
                 <Package size={14} aria-hidden="true" />
                 En stock ({new Date(returnItem.restockedAt!).toLocaleDateString("fr-FR")})
               </span>
             )}
             {returnItem.status === "rejected" && (
-              <span className="inline-flex items-center gap-1.5 text-caption font-medium text-red-700 bg-red-50 border border-red-100 px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1.5 text-caption font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border border-red-100 dark:border-red-900/40 px-3 py-1.5 rounded-full">
                 <X size={14} aria-hidden="true" />
                 Rejeté
               </span>

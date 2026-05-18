@@ -510,7 +510,7 @@ export default function ReturnsPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-1 bg-brand-subtle text-brand-primary px-2 py-0.5 rounded-full text-[10px] font-bold border border-brand-subtle"
+                className="flex items-center gap-1 bg-brand-subtle text-brand-primary px-2 py-0.5 rounded-full text-micro border border-brand-subtle"
               >
                 <DollarSign size={10} aria-hidden="true" />
                 Aujourd'hui: <AnimatedCounter value={todayRefundedAmount} /> FCFA
@@ -601,7 +601,7 @@ export default function ReturnsPage() {
                     <div className="bg-muted p-6 rounded-full mb-4">
                       <RotateCcw size={48} className="text-muted-foreground/60" aria-hidden="true" />
                     </div>
-                    <h2 className="text-lg font-medium text-foreground/80 mb-2">
+                    <h2 className="text-h3 text-foreground/80 mb-2">
                       Aucun retour trouvé
                     </h2>
                     <p className="text-muted-foreground max-w-md">
@@ -631,7 +631,7 @@ export default function ReturnsPage() {
                       <div className="flex justify-center py-4">
                         <button
                           onClick={() => setVisibleCount(c => c + RETURNS_PAGE_SIZE)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-body-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
                         >
                           <ChevronDown size={16} />
                           Voir plus ({allFilteredReturns.length - visibleCount} restants)
@@ -677,7 +677,7 @@ export default function ReturnsPage() {
                     <div className="bg-muted p-6 rounded-full mb-4">
                       <RotateCcw size={48} className="text-muted-foreground/60" aria-hidden="true" />
                     </div>
-                    <h2 className="text-lg font-medium text-foreground/80 mb-2">
+                    <h2 className="text-h3 text-foreground/80 mb-2">
                       Aucun retour trouvé
                     </h2>
                     <p className="text-muted-foreground max-w-md">
@@ -707,7 +707,7 @@ export default function ReturnsPage() {
                       <div className="flex justify-center py-4">
                         <button
                           onClick={() => setVisibleCount(c => c + RETURNS_PAGE_SIZE)}
-                          className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
+                          className="flex items-center gap-2 px-6 py-2.5 bg-card border border-border rounded-xl text-body-sm font-medium text-foreground/80 hover:bg-muted hover:border-brand-primary/40 transition-all shadow-sm"
                         >
                           <ChevronDown size={16} />
                           Voir plus ({allFilteredReturns.length - visibleCount} restants)
