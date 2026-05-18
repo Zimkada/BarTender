@@ -144,7 +144,7 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
             )}
 
             <Button onClick={onNavigateToOperations} className="px-8">
-                Aller aux opérations
+                {lowStockCount > 0 ? 'Approvisionner les produits' : 'Voir les opérations'}
             </Button>
         </div>
     );

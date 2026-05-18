@@ -8,6 +8,11 @@ import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getCostSourceLabel, type DisplayCost } from '../../utils/costResolution';
 
+// Seuils de marge — couleurs sémantiques d'affichage uniquement (pas de logique métier dérivée)
+// Au-delà de 40% : marge confortable (vert). Entre 20-40% : marge correcte (brand). En dessous de 20% : marge faible (rouge).
+const MARGIN_HEALTHY_THRESHOLD = 40;
+const MARGIN_LOW_THRESHOLD = 20;
+
 interface InventoryCardProps {
     product: ProductWithAnomaly;
     stockInfo: ProductStockInfo | null;
@@ -136,7 +141,9 @@ export function InventoryCard({
                         <div className="text-micro text-muted-foreground mb-1">Marge</div>
                         <div className={cn(
                             "text-caption font-semibold tabular-nums",
-                            margin > 40 ? 'text-green-600 dark:text-green-400' : margin > 20 ? 'text-brand-primary' : 'text-red-500'
+                            margin > MARGIN_HEALTHY_THRESHOLD ? 'text-green-600 dark:text-green-400'
+                                : margin > MARGIN_LOW_THRESHOLD ? 'text-brand-primary'
+                                    : 'text-red-500'
                         )}>
                             {margin > 0 ? `${margin.toFixed(0)}%` : '—'}
                         </div>
