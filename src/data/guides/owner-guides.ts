@@ -490,10 +490,10 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 6,
+  estimatedDuration: 7,
   difficulty: 'beginner',
   emoji: '📦',
-  version: 2,
+  version: 3,
 
   triggers: [
     {
@@ -511,11 +511,11 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion de votre Inventaire !',
       description:
-        'Votre **Inventaire** se divise en **3 onglets** pour gérer tous les aspects : **Produits** (catalogue), **Opérations** (alertes, approvisionnement, import), **Statistiques** (vue d\'ensemble). Comprenez la différence entre **Stock Physique** (réel au bar) et **Stock Vendable** (disponible à la vente, moins les consignations actives).',
+        'Votre **Inventaire** se divise en **4 onglets** pour gérer tous les aspects : **Produits** (catalogue), **Opérations** (création/import/approvisionnement), **Commandes** (bons de commande fournisseurs), **Statistiques** (santé du stock). Comprenez la différence entre **Stock Physique** (réel au bar) et **Stock Vendable** (disponible à la vente, moins les consignations actives).',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔄 Basculez entre les 3 onglets en haut pour différentes tâches',
+        '🔄 Basculez entre les 4 onglets en haut pour différentes tâches',
         '💼 Stock Physique = Quantité réelle au bar',
         '📊 Stock Vendable = Physique - Consignations en attente',
         '💰 Analysez vos marges pour optimiser vos prix',
@@ -526,33 +526,33 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
     {
       id: 'step-2',
       emoji: '📋',
-      title: 'Onglet 1: Produits - Votre Catalogue',
+      title: 'Onglet 1 : Produits — Votre Catalogue',
       description:
-        'L\'**Onglet Produits** affiche tous vos produits en liste détaillée. Vous pouvez **rechercher** rapidement, **trier** par catégorie/stock, **ajouter** de nouveaux produits, ou **modifier** les existants.',
+        'L\'**Onglet Produits** affiche tous vos produits sous forme de cartes. Vous pouvez **rechercher** rapidement, **trier** par catégorie/nom/stock, **filtrer les anomalies**, et accéder aux actions (Modifier / Ajuster / Historique / Supprimer) sur chaque carte.',
       elementSelector: '[data-guide="inventory-products"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🔍 Recherche instantanée par nom de produit',
-        '📂 Trier par : Catégorie, Alphabétique, ou Niveau de stock',
-        '🚨 **Filtre Suspects** : Isole instantanément les anomalies (stocks négatifs)',
-        '✅ Les filtres se combinent pour des résultats précis',
+        '📂 Trier par : Catégorie, Nom (alphabétique), ou Stock',
+        '🚨 **Filtre Anomalies** : isole instantanément les produits avec incohérences',
+        '✅ Le filtre Anomalies se combine avec la recherche',
       ],
     },
 
     {
       id: 'step-suspicious',
       emoji: '🚨',
-      title: 'Détecter les Anomalies (Filtre Suspects)',
+      title: 'Détecter les anomalies',
       description:
-        'Le bouton **Suspects** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif, vente à découvert ou **stock dormant**. Un inventaire sain ne devrait afficher aucun résultat ici.',
+        'Le bouton **Anomalies** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif, vente à découvert, ou **stock dormant**. Un inventaire sain ne devrait afficher aucun résultat ici.',
       elementSelector: '[data-guide="inventory-filter-anomalies"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔴 Stock négatif = Erreur de saisie d\'approvisionnement',
-        '💤 **Stock Dormant** = Basé sur votre fréquence d\'approv habituelle',
-        '💡 **Détail Anomale** : Cliquez sur l\'icône (⚠️, 🛑) pour voir le diagnostic précis',
+        '🔴 Stock négatif = erreur de saisie d\'approvisionnement',
+        '💤 **Stock dormant** = basé sur votre fréquence d\'approv habituelle',
+        '💡 **Détail anomalie** : cliquez sur l\'icône (⚠️, 🛡️) sur la carte pour voir le diagnostic',
         '🔧 Cliquez "Modifier" pour corriger les erreurs de saisie',
       ],
     },
@@ -592,16 +592,16 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
     {
       id: 'step-3',
       emoji: '💰',
-      title: 'Analyser les Marges de vos Produits',
+      title: 'Analyser les marges de vos produits',
       description:
-        'Chaque produit affiche **Prix de vente**, **Coût moyen**, et **Marge commerciale**. Une marge saine est généralement **> 30%**. Identifiez les produits non rentables et optimisez vos prix.',
+        'Chaque carte produit affiche **Prix de vente**, **Coût moyen** et **Marge commerciale**. La marge est colorée pour une lecture rapide : **vert au-dessus de 40%** (confortable), **brand entre 20 et 40%** (correcte), **rouge en dessous de 20%** (faible). Identifiez les produits non rentables et optimisez vos prix.',
       elementSelector: '[data-guide="inventory-table"]',
       position: 'top',
       visibleFor: ['promoteur'],
       tips: [
-        '📊 Coût moyen = moyenne pondérée de tous vos approvisionnements',
-        '🔴 Marge rouge (< 30%) = produit non rentable → Augmentez le prix ou réduisez le coût',
-        '📈 Stock Vendable = Stock Physique - Consignations actives (les réservations temporaires)',
+        '📊 Coût moyen (CUMP) = moyenne pondérée de tous vos approvisionnements',
+        '🟢 Marge > 40% = confortable | 🟠 20-40% = correcte | 🔴 < 20% = faible',
+        '📈 Stock Vendable = Stock Physique − Consignations actives (réservations temporaires)',
       ],
     },
 
@@ -640,17 +640,17 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
     // ==================== ONGLET 2: OPÉRATIONS ====================
     {
       id: 'step-6',
-      emoji: '⚠️',
-      title: 'Onglet 2: Opérations - Alertes Stock',
+      emoji: '🛠️',
+      title: 'Onglet 2 : Opérations — 3 tuiles d\'action',
       description:
-        'L\'**Onglet Opérations** centralise vos actions opérationnelles. La section **Alertes Stock** affiche tous les produits sous seuil. Approvisionner rapidement pour éviter les ruptures.',
-      elementSelector: '[data-guide="inventory-alerts"]',
+        'L\'**Onglet Opérations** présente **3 grandes tuiles** pour faire entrer des produits ou du stock dans le système :\n\n• **Nouveau produit** : ajout manuel d\'un produit au catalogue\n• **Import Excel** : chargement en masse depuis un fichier .xlsx\n• **Approvisionner** : ajouter du stock à un produit existant (CUMP recalculé automatiquement)\n\nLes alertes de stock bas sont visibles dans l\'onglet **Statistiques** (panneau d\'attention).',
+      elementSelector: '[data-guide="inventory-operations"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔴 Alerte rouge = stock critique (sous seuil)',
-        '🟢 Alerte verte = tous les stocks vont bien',
-        '⚡ Les alertes se mettent à jour en temps réel après chaque vente',
+        '✨ Pattern uniforme : 3 tuiles cliquables avec icône, titre et sous-titre',
+        '⚡ Chaque tuile ouvre un formulaire dédié — pas de modale flottante',
+        '🔙 Bouton retour pour revenir au menu des 3 tuiles',
       ],
     },
 
@@ -717,20 +717,20 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       ],
     },
 
-    // ==================== ONGLET 3: STATISTIQUES ====================
+    // ==================== ONGLET 4: STATISTIQUES ====================
     {
       id: 'step-9',
       emoji: '📊',
-      title: 'Onglet 3: Statistiques - Vue d\'Ensemble',
+      title: 'Onglet 4 : Statistiques — Santé de l\'inventaire',
       description:
-        'L\'**Onglet Statistiques** synthétise votre inventaire : **Tableau des catégories** (nombre produits/alertes par catégorie), **Santé du stock** (visual overview), et **Analytics inventaire** (insights détaillés).',
+        'L\'**Onglet Statistiques** présente 3 sections :\n\n• **4 cartes résumé** : Catégories, Produits, Valeur d\'achat, Valeur de vente\n• **Répartition par catégorie** : nombre de produits par catégorie\n• **Panneau d\'attention** : tous les produits en anomalie (Critique / Alerte / Info) avec accès direct à l\'action recommandée',
       elementSelector: '[data-guide="inventory-stats"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📂 Chaque catégorie affiche : Nombre produits | Nombre d\'alertes',
-        '🎯 Utilisez pour équilibrer votre offre par catégorie',
-        '📈 Identifiez catégories en manque de diversité',
+        '💚 Si tout va bien, le panneau d\'attention affiche "Inventaire en parfaite santé"',
+        '🚨 Sinon, le panneau change de couleur selon la sévérité maximale (rouge/orange)',
+        '🎯 Le bouton du panneau s\'adapte : "Approvisionner les produits" si stock bas, sinon "Voir les opérations"',
       ],
     },
 
@@ -738,15 +738,15 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
     {
       id: 'step-10',
       emoji: '✅',
-      title: 'Vous Maîtrisez votre Inventaire !',
+      title: 'Vous maîtrisez votre Inventaire !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Produits, Opérations, Statistiques), la gestion des produits, le suivi des alertes, les marges commerciales, et l\'approvisionnement. Vous êtes prêt à gérer efficacement votre stock!',
+        'Vous connaissez maintenant les **4 onglets** (Produits, Opérations, Commandes, Statistiques), la gestion des produits, le suivi des marges commerciales, et l\'approvisionnement. Vous êtes prêt à gérer efficacement votre stock !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📅 Vérifiez régulièrement les alertes stock pour éviter les ruptures',
-        '💰 Analysez les marges mensuellement pour optimiser rentabilité',
-        '📊 Utilisez les statistiques pour décisions d\'achat stratégiques',
+        '📅 Vérifiez régulièrement les anomalies pour éviter les ruptures',
+        '💰 Analysez les marges mensuellement pour optimiser la rentabilité',
+        '📊 Utilisez l\'export Excel pour partager avec votre comptable ou faire un comptage papier',
       ],
       action: '→ Commencez par ajouter vos premiers produits !',
     },
