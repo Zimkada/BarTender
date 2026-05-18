@@ -1631,7 +1631,7 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
   estimatedDuration: 6,
   difficulty: 'intermediate',
   emoji: '⚙️',
-  version: 4,
+  version: 5,
 
   triggers: [
     {
@@ -1647,15 +1647,15 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
     {
       id: 'step-1',
       emoji: '👋',
-      title: 'Bienvenue aux Paramètres !',
+      title: 'Bienvenue dans les Paramètres !',
       description:
-        'Votre système de **Paramètres** se divise en **3 onglets** pour configurer tous les aspects de votre bar : **Bar** (infos établissement), **Operational** (gestion: fermeture, consignations, devise, mode), **Security** (2FA). Tous ces réglages impactent votre comptabilité et sécurité quotidienne.',
+        'Vos paramètres se répartissent en **2 à 3 onglets selon votre rôle** :\n\n• **Informations Bar** *(Promoteur uniquement)* : nom, adresse, contact, thème de couleur\n• **Configuration de gestion** *(Promoteur & Gérant)* : heure de clôture, consignations, fréquence d\'appro, méthode de coût, devise, mode opérationnel\n• **Sécurité** *(Promoteur uniquement)* : authentification à deux facteurs (2FA)',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔄 Basculez entre les 3 onglets pour configurer différents aspects',
-        '💾 Cliquez "Enregistrer" en bas pour sauvegarder vos modifications',
-        '❌ Cliquez "Annuler" pour abandonner sans sauvegarder',
+        '🔄 Onglets disponibles selon votre rôle (les Gérants ne voient que Configuration de gestion)',
+        '💾 Cliquez "Enregistrer les modifications" en bas pour sauvegarder',
+        '❌ Cliquez "Annuler" pour abandonner et revenir à la page précédente',
       ],
     },
 
@@ -1663,96 +1663,110 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
     {
       id: 'step-2',
       emoji: '🏢',
-      title: 'Onglet 1: Infos Bar - Identification',
+      title: 'Onglet Informations Bar — Identification',
       description:
-        'L\'**Onglet Bar** contient les informations d\'identification de votre établissement : **Nom du bar**, **Adresse**, **Téléphone**, **Email**. Ces infos apparaissent sur vos factures, rapports d\'export et communications officielles. **Promoteur uniquement**.',
+        'Cet onglet contient les **informations d\'identification** de votre établissement : **Nom du bar**, **Téléphone**, **Email**, **Adresse géographique**. Ces infos apparaissent sur les exports comptables, factures et communications officielles. **Promoteur uniquement** pour protéger les données sensibles.',
       elementSelector: '[data-guide="settings-bar"]',
       position: 'bottom',
       visibleFor: ['promoteur'],
       tips: [
-        '📝 **Nom du bar** : Ex: "Le Privilège", "Le Spot", etc.',
-        '📍 **Adresse** : Complète pour factures (ex: Cotonou, Bénin)',
-        '📞 **Téléphone** : Contact principal (ex: +229 97 00 00 00)',
-        '📧 **Email** : Contact email official',
-        '🔒 Accès réservé aux Promoteurs pour protéger les infos sensibles',
+        '📝 **Nom du bar** : ex. "Le Privilège", "Chez Maman"',
+        '📞 **Téléphone** : contact principal (ex. +229 97 00 00 00)',
+        '📧 **Email** : contact officiel (ex. contact@lebar.com)',
+        '📍 **Adresse** : géographique complète (ex. Quartier Haie Vice, Cotonou)',
       ],
     },
 
-    // ==================== CHANGEMENT DE THÈME ====================
+    // ==================== THÈME DE COULEUR (presets de marque) ====================
     {
       id: 'step-2b',
       emoji: '🎨',
-      title: 'Changement de Thème (Tous Rôles)',
+      title: 'Thème de couleur de votre établissement',
       description:
-        'Personnalisez votre **interface BarTender** avec le **changement de thème** : passez entre **Mode Clair** (blanc, lisibilité diurne) et **Mode Sombre** (noir/gris, réduction fatigue oculaire nocturne). Le thème s\'applique instantanément à tous les écrans et se mémorise dans vos préférences.',
+        'Dans l\'onglet Informations Bar (en bas), choisissez parmi plusieurs **presets de couleur de marque** : la couleur principale (boutons, accents, badges actifs) suivra votre choix dans toute l\'application. Cliquez sur un preset pour voir un **aperçu temps réel**, puis "Appliquer ce thème" pour valider.\n\n**À ne pas confondre** avec le **mode clair/sombre** qui se règle via l\'icône Soleil/Lune dans le header en haut à droite.',
       elementSelector: '[data-guide="settings-theme"]',
       position: 'bottom',
-      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      visibleFor: ['promoteur'],
       tips: [
-        '☀️ **Mode Clair** = Blanc/gris clair, idéal le jour',
-        '🌙 **Mode Sombre** = Noir/gris foncé, réduit fatigue nocturne',
-        '⚡ Changement instantané, pas de rechargement',
-        '💾 Préférence sauvegardée automatiquement par utilisateur',
+        '🎨 **Thème de couleur** = couleur de marque du bar (orange, bleu, vert…)',
+        '🌙 **Mode clair/sombre** = règle séparée dans le header (icône Soleil/Lune)',
+        '👁️ Mode aperçu actif tant que vous n\'avez pas cliqué "Appliquer"',
+        '↩️ "Annuler" pour revenir au thème précédent sans sauvegarder',
       ],
     },
 
-    // ==================== ONGLET 2: OPERATIONAL ====================
+    // ==================== ONGLET 2: CONFIGURATION DE GESTION ====================
     {
       id: 'step-3',
       emoji: '⚙️',
-      title: 'Onglet 2: Opérationnel - Gestion Globale',
+      title: 'Onglet Configuration de gestion',
       description:
-        'L\'**Onglet Operational** centralise tous les réglages de gestion : **Heure de clôture** (journée commerciale), **Consignation expiration**, **Fréquence approvisionnement**, **Devise**, **Mode opérationnel** (Complet/Simplifié), et optionnellement **Switching mode**.',
+        'Cet onglet centralise tous les réglages opérationnels :\n\n• **Heure de clôture** (journée commerciale)\n• **Expiration des consignations** (7 / 14 / 30 jours)\n• **Fréquence approvisionnement** (7 / 14 / 30 jours)\n• **Méthode de coût** d\'inventaire (CUMP ou dernier coût)\n• **Devise** (4 options ouest-africaines)\n• **Mode opérationnel** (Complet ou Simplifié)\n\nVisible par les **Promoteurs et les Gérants**.',
       elementSelector: '[data-guide="settings-operational"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔧 Cet onglet = Cœur opérationnel de votre bar',
-        '💾 Modifications ici affectent journées commerciales + comptabilité',
-        '⏰ Closing hour très important = définit limite retours/ventes',
+        '🔧 Cœur opérationnel de votre bar — modifications impactantes',
+        '💾 Affecte les journées commerciales et la comptabilité',
+        '⏰ L\'heure de clôture définit la limite des retours et des ventes du jour',
       ],
     },
 
     {
       id: 'step-4',
       emoji: '🌙',
-      title: 'Closing Hour (Heure de Clôture)',
+      title: 'Heure de clôture journalière',
       description:
-        '**Heure de clôture** = fin de votre **Journée Commerciale** (ex: 06h matin pour bar de nuit). Toute vente **avant** cette heure appartient à la journée d\'hier, toute vente **après** appartient à aujourd\'hui.\n\n**Exemple clé** : Avec fermeture à 06h00, une vente à **02h00 du matin mardi** est comptabilisée en **lundi** (garder comptabilité cohérente nuits).',
+        'L\'**heure de clôture** définit la fin de votre journée commerciale (ex. 06h pour un bar de nuit). Toute vente effectuée **avant** cette heure appartient à la journée d\'hier, toute vente **après** appartient à aujourd\'hui.\n\n**Exemple** : avec fermeture à 06h00, une vente à **02h00 du mardi matin** est comptabilisée dans la journée du **lundi** (cohérence comptable des nuits).',
       elementSelector: '[data-guide="settings-closing-hour"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ Gamme: 0h (minuit) à 23h',
-        '🌙 Bars de nuit = généralement 6h, 7h, ou 8h',
-        '📊 Affecte: Retours (avant fermeture seulement), Analytics, Rapports',
-        '⚠️ Changement = réorganise dates ventes historiques!',
+        '⏰ Plage : 00h00 à 23h00 (24 options)',
+        '🌙 Bars de nuit : généralement 06h00, 07h00 ou 08h00',
+        '📊 Affecte : retours (autorisés avant fermeture seulement), Analytics, rapports',
+        '⚠️ Un changement réorganise les dates des ventes historiques',
       ],
     },
 
     {
       id: 'step-5',
       emoji: '📦',
-      title: 'Consignation Expiration & Supply Frequency',
+      title: 'Consignations & approvisionnement',
       description:
-        '**Consignation Expiration** : Combien de jours avant qu\'une consignation expire? (1-30 jours, défaut 7j). Passé cette date, gérant peut confisquer.\n\n**Supply Frequency** : Intervalle moyen entre approvisionnements (1-30 jours). Utilisé pour alertes stock prédictives.',
+        '**Expiration des consignations** : délai avant qu\'une consignation puisse être confisquée (3 options : 7 / 14 / 30 jours, défaut 7j).\n\n**Fréquence d\'approvisionnement** : intervalle moyen entre vos approvisionnements (3 options : 7 / 14 / 30 jours). Utilisé pour suggérer les quantités à commander dans l\'onglet Commandes de l\'Inventaire.',
       elementSelector: '[data-guide="settings-expiration"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📦 Consignation = Produits payés mais laissés au bar (mise de côté)',
-        '⏳ Expiration = Délai avant confiscation (réintégration stock)',
-        '🚚 Supply Frequency = Aider prédire quand approvisionnement nécessaire',
-        '🔢 Valeurs typiques: Consignation 5-14j, Supply 3-7j',
+        '📦 Consignation = produits payés mais laissés au bar (mise de côté)',
+        '⏳ Expiration = délai avant que vous puissiez confisquer (réintégration stock)',
+        '🚚 Fréquence appro = base de calcul des suggestions de commande',
+      ],
+    },
+
+    {
+      id: 'step-5b',
+      emoji: '💰',
+      title: 'Méthode de coût (inventaire)',
+      description:
+        'Choisissez comment le **coût affiché** dans l\'inventaire est calculé :\n\n• **CUMP** (Coût Unitaire Moyen Pondéré) : moyenne pondérée de tous vos approvisionnements. Plus stable.\n• **Dernier coût d\'achat** : prix du dernier approvisionnement. Plus réactif aux variations.\n\n⚠️ Important : la **comptabilité utilise toujours le CUMP**, quel que soit ce réglage. Le choix n\'affecte que l\'affichage dans les cartes produits.',
+      elementSelector: '[data-guide="settings-operational"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📊 CUMP = standard comptable (lisse les variations de prix)',
+        '⚡ Dernier coût = utile si vos prix d\'achat varient beaucoup',
+        '🛡️ La comptabilité reste sur CUMP en interne dans les deux cas',
       ],
     },
 
     {
       id: 'step-6',
       emoji: '💱',
-      title: 'Devise (Currency)',
+      title: 'Devise principale',
       description:
-        '**Devise** = Monnaie de votre établissement. Choix de **4 devises ouest-africaines** : **FCFA (XOF)**, **XAF**, **NGN (Naira)**, **GHS (Cedi)**. Sélectionnez la devise qui s\'affiche partout (prix, CA, rapports).',
+        'Sélectionnez la monnaie de votre établissement parmi **4 devises ouest-africaines** : **FCFA (XOF)**, **XAF**, **NGN (Naira)**, **GHS (Cedi)**. Le symbole apparaîtra partout (prix, chiffre d\'affaires, rapports, exports).',
       elementSelector: '[data-guide="settings-currency"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
@@ -1761,93 +1775,90 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
         '💴 XAF = Cameroun, Gabon, Congo',
         '₦ NGN = Nigeria',
         '₵ GHS = Ghana',
-        '🔄 Changement = Affecte TOUS les affichages prix/CA',
       ],
     },
 
     {
       id: 'step-7',
       emoji: '🔄',
-      title: 'Mode Opérationnel: Complet vs Simplifié',
+      title: 'Mode de fonctionnement : Complet vs Simplifié',
       description:
-        '**Mode Complet** : Chaque serveur a son **compte personnel** (téléphone), crée ses propres ventes (validées par manager dans dashboard).\n\n**Mode Simplifié** : **1 compte manager** (comptoir), crée TOUTES les ventes et sélectionne manuellement qui (Afi, Fifi) à chaque vente. Nécessite **Mappings Serveurs**.',
+        '**Mode complet** : chaque serveur a son propre compte, crée ses ventes et gère ses tables. Idéal pour les grands établissements structurés.\n\n**Mode simplifié** : le gérant centralise les commandes au comptoir et sélectionne le serveur manuellement à chaque vente. Idéal pour les maquis et petits bars.',
       elementSelector: '[data-guide="settings-operating-mode"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '👤 **Complet** = Chaque serveur: compte + création vente',
-        '🔒 **Simplifié** = Manager centralisé + attribution manuelle',
-        '🔗 **Simplifié** = Nécessite configurer Mappings (noms courts → vraies serveurs)',
-        '⚡ Changement de mode = Réfléchissez bien (affecte workflow)',
+        '👤 **Complet** : chaque serveur a un compte et crée ses ventes',
+        '🔒 **Simplifié** : un compte gérant centralisé + attribution manuelle',
+        '🔗 Le mode Simplifié nécessite de configurer les mappings de noms',
+        '⚡ Changement de mode = réfléchissez bien, ça impacte le workflow quotidien',
       ],
     },
 
     {
       id: 'step-8',
       emoji: '🔗',
-      title: 'Configuration Nom d\'affichage (Mode Simplifié)',
+      title: 'Configuration du Mode Simplifié',
       description:
-        'Si vous choisissez **Mode Simplifié**, une section **Nom d\'affichage pour les ventes** apparaît pour configurer les **Identifiants d\'affichage** : lier noms courts (ex: "Afi") à vrais comptes serveurs pour attribution correcte ventes.',
+        'Si vous activez le **Mode simplifié**, une section **Configuration du mode switching** apparaît juste en dessous. Elle permet de configurer les **noms d\'affichage courts** (ex. "Afi", "Fifi") liés aux comptes réels des serveurs — sinon les ventes ne pourraient pas être attribuées à un membre de l\'équipe.\n\nLa même configuration est accessible depuis l\'onglet **"Nom d\'affichage sur vente"** de la page Équipe.',
       elementSelector: '[data-guide="settings-switching-mode"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔗 Identifiants = Lier noms courts → serveurs réels',
-        '📝 Exemple: "Afi" → Afiwa, "Fifi" → Félicitée',
-        '⚡ Auto-populate = Bouton pour générer auto depuis membres actifs',
-        '🚫 Sans identifiants = Ventes mode simplifié ne sont pas attribuées!',
+        '🔗 Lier noms courts → vrais comptes serveurs',
+        '📝 Exemple : "Afi" → Afiwa, "Fifi" → Félicitée',
+        '⚡ Bouton "Auto-synchroniser" pour générer les mappings depuis vos membres actifs',
+        '🚫 Sans mapping, les ventes en mode simplifié ne sont attribuées à personne',
       ],
     },
 
-    // ==================== ONGLET 3: SECURITY ====================
+    // ==================== ONGLET 3: SÉCURITÉ ====================
     {
       id: 'step-9',
       emoji: '🛡️',
-      title: 'Onglet 3: Sécurité - Protection 2FA',
+      title: 'Onglet Sécurité — Protection 2FA',
       description:
-        'L\'**Onglet Sécurité** protège votre compte avec **Double Authentification (2FA)**. Activez 2FA pour ajouter une couche de sécurité : même si quelqu\'un a votre password, il ne peut se connecter sans votre téléphone.',
+        'Cet onglet protège votre compte avec l\'**authentification à deux facteurs (2FA)**. Une fois activée, même si quelqu\'un connaît votre mot de passe, il ne pourra pas se connecter sans le code à 6 chiffres généré par votre application d\'authentification.\n\n**Promoteur uniquement** (les comptes employés utilisent souvent des emails fictifs qui rendent la récupération 2FA risquée).',
       elementSelector: '[data-guide="settings-security"]',
       position: 'bottom',
-      visibleFor: ['promoteur', 'gerant'],
+      visibleFor: ['promoteur'],
       tips: [
-        '🔐 2FA = Sécurité critique pour protection données/finances',
-        '📱 Fonctionne avec: Google Authenticator, Authy, Microsoft Authenticator',
-        '✅ Fortement recommandé pour comptes manager/promoteur',
+        '🔐 La 2FA est une protection critique pour les comptes promoteurs',
+        '📱 Compatible avec Google Authenticator, Authy, Microsoft Authenticator…',
+        '✅ Fortement recommandé si vous gérez des finances sensibles',
       ],
     },
 
     {
       id: 'step-10',
       emoji: '🔐',
-      title: 'Activer 2FA (Double Authentification)',
+      title: 'Activer la 2FA en 4 étapes',
       description:
-        '**Pour activer 2FA** : Cliquez "Activer la 2FA" → Scannez le **QR Code** avec votre app Authenticator (Google Authenticator, Authy) → Saisissez le **code 6 chiffres** généré → "Vérifier et Activer". Votre compte est maintenant **doublement protégé**.',
+        '1. Cliquez sur **"Activer maintenant"**\n2. **Scannez le QR Code** avec votre application d\'authentification (Google Authenticator, Authy…)\n3. Entrez le **code à 6 chiffres** généré par l\'app\n4. Cliquez sur **"Confirmer"** — votre compte est maintenant doublement protégé\n\nUne fois activée, l\'onglet affichera "**La protection 2FA est active**" avec un bouton pour désactiver si besoin.',
       elementSelector: '[data-guide="settings-2fa"]',
       position: 'bottom',
-      visibleFor: ['promoteur', 'gerant'],
+      visibleFor: ['promoteur'],
       tips: [
-        '1️⃣ Cliquez "Activer 2FA"',
-        '2️⃣ Installez app si pas déjà: Google Authenticator (iOS/Android)',
-        '3️⃣ Scannez QR Code affiché',
-        '4️⃣ Entrez code 6 chiffres de l\'app',
-        '5️⃣ 2FA activée! Chaque connexion demande le code',
+        '📲 Pas d\'app installée ? Téléchargez Google Authenticator (iOS/Android)',
+        '🔢 Si vous ne pouvez pas scanner le QR, copiez le code secret affiché en dessous',
+        '⏱️ Le code à 6 chiffres change toutes les 30 secondes',
+        '🛡️ Notez le code secret en lieu sûr — utile en cas de perte du téléphone',
       ],
     },
 
     {
       id: 'step-11',
-      emoji: '⚠️',
-      title: 'Sauvegarder & Désactiver 2FA',
+      emoji: '💾',
+      title: 'Sauvegarder vos modifications',
       description:
-        '**Sauvegarder** : N\'oubliez pas de cliquer "Enregistrer" en bas pour valider vos modifications (bar infos, paramètres operationnels). **Désactiver 2FA** : Si vous avez perdu accès à votre app Authenticator, cliquez "Désactiver 2FA" (nécessite vérification identité).',
+        'En bas de page, deux boutons :\n\n• **"Enregistrer les modifications"** (brand) : sauvegarde tous vos changements et revient à la page précédente\n• **"Annuler"** : abandonne sans sauvegarder\n\nSur mobile, ces boutons sont **toujours visibles en bas de l\'écran** (sticky) pour ne jamais perdre vos modifications de vue.',
       elementSelector: '[data-guide="settings-actions"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '💾 Cliquez "Enregistrer" APRÈS modifications',
-        '❌ Cliquez "Annuler" pour abandonner',
-        '⚠️ Désactiver 2FA = Vérification sécurité requise',
-        '🔐 Garde une sauvegarde du code secret en lieu sûr!',
+        '💾 Cliquez "Enregistrer les modifications" après chaque changement',
+        '❌ "Annuler" = aucun changement n\'est sauvegardé',
+        '📱 Sur mobile, la barre de boutons reste visible en permanence',
       ],
     },
 
@@ -1855,18 +1866,18 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
     {
       id: 'step-12',
       emoji: '✅',
-      title: 'Vous Maîtrisez la Configuration !',
+      title: 'Vous maîtrisez la Configuration !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Bar, Operational, Security), comment configurer **infos bar**, **heure de clôture**, **consignations**, **devise**, **mode opérationnel**, et protéger votre compte avec **2FA**. Votre bar est maintenant correctement configuré et sécurisé!',
+        'Vous connaissez maintenant les onglets de **Paramètres** (Informations Bar, Configuration de gestion, Sécurité), comment configurer les **infos établissement**, **heure de clôture**, **consignations**, **devise**, **mode opérationnel**, **méthode de coût**, et protéger votre compte avec **2FA**. Votre bar est correctement configuré !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⚙️ Vérifiez Closing Hour = Impacte TOUT (retours, journées, comptabilité)',
-        '🔄 Mode Opérationnel = Choix important (affecte workflow serveurs)',
-        '🔗 Mode Simplifié = Configurez Identifiants d\'affichage sinon attribution cassée',
-        '🛡️ Activez 2FA = Protection critique pour votre sécurité',
+        '⏰ L\'heure de clôture impacte tout : retours, journées commerciales, comptabilité',
+        '🔄 Le mode opérationnel affecte le workflow quotidien des serveurs',
+        '🔗 Mode Simplifié = pensez à configurer les mappings de noms',
+        '🛡️ Activez la 2FA pour protéger votre compte promoteur',
       ],
-      action: '→ Vérifiez et sauvegardez vos paramètres !',
+      action: 'Sauvegardez vos paramètres',
     },
   ],
 };
