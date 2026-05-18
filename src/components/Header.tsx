@@ -151,10 +151,10 @@ export function Header({
 
                 {/* Badges + Actions - RIGHT */}
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <SyncStatusBadge compact position="header" />
                   <RefreshButton />
-                  <NetworkBadge />
                   <ColorModeToggle variant="header" />
+                  <SyncStatusBadge compact position="header" />
+                  <NetworkBadge />
 
                   <Button
                     onClick={logout}
