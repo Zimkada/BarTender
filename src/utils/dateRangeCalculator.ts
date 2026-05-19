@@ -7,22 +7,9 @@
 import { TimeRange, DateRangePeriod, PeriodComparison } from '../types/dateFilters';
 import { TIME_RANGE_CONFIGS } from '../config/dateFilters';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../config/constants';
-
-/**
- * Retourne la date "Commerciale" actuelle sous forme YYYY-MM-DD
- * Si il est 02:00 du matin et que la clôture est à 06:00, on retourne la date d'hier.
- */
-export function getCurrentBusinessDateString(closeHour: number = BUSINESS_DAY_CLOSE_HOUR): string {
-  const now = new Date();
-  const currentHour = now.getHours();
-
-  // Si on est avant l'heure de clôture (ex: 03h00 < 06h00), on est encore "hier"
-  if (currentHour < closeHour) {
-    now.setDate(now.getDate() - 1);
-  }
-
-  return dateToInputValue(now);
-}
+// Source unique de vérité (aligné trigger SQL migration 067_add_business_date.sql)
+import { getCurrentBusinessDateString } from './businessDateHelpers';
+export { getCurrentBusinessDateString };
 
 /**
  * Calcule la plage de dates pour un filtre temporel donné
