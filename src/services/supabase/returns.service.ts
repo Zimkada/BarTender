@@ -205,12 +205,23 @@ export class ReturnsService {
 
     /**
      * Mettre à jour un retour
+     * Accepte les champs en camelCase (côté métier) ou snake_case (DB).
+     * Les clés camelCase sont mappées vers leurs équivalents DB avant l'update.
      */
-    static async updateReturn(id: string, updates: any): Promise<DBReturn> {
+    static async updateReturn(
+        id: string,
+        updates: Partial<DBReturn> & {
+            restockedAt?: Date | string;
+            validatedBy?: string | null;
+            rejectedBy?: string | null;
+            businessDate?: string;
+            isRefunded?: boolean;
+        }
+    ): Promise<DBReturn> {
         try {
             // 🛡️ Map camelCase to snake_case for Supabase compatibility
             // Mandatory cleanup: delete original keys to avoid "column not found" errors
-            const mappedUpdates: any = { ...updates };
+            const mappedUpdates: Record<string, unknown> = { ...updates };
 
             if ('restockedAt' in updates) {
                 mappedUpdates.restocked_at = updates.restockedAt;
