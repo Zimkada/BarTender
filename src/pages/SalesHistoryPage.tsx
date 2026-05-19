@@ -27,6 +27,7 @@ import { User, getPermissionsByRole } from '../types';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { useSalesExport } from '../features/Sales/SalesHistory/hooks/useSalesExport';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 // Lazy load AnalyticsView to defer recharts bundle
 import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
 
@@ -107,8 +108,8 @@ export default function SalesHistoryPage() {
     } = useUnifiedSales(currentBar?.id, {
         searchTerm: serverSearchTerm,
         timeRange,
-        startDate: startDate?.toISOString().split('T')[0],
-        endDate: endDate?.toISOString().split('T')[0],
+        startDate: startDate ? dateToYYYYMMDD(startDate) : undefined,
+        endDate: endDate ? dateToYYYYMMDD(endDate) : undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         ignoreTiering: isTieringIgnored,
         includeItems: false,
@@ -121,8 +122,8 @@ export default function SalesHistoryPage() {
     } = useUnifiedSales(currentBar?.id, {
         searchTerm: serverSearchTerm,
         timeRange,
-        startDate: startDate?.toISOString().split('T')[0],
-        endDate: endDate?.toISOString().split('T')[0],
+        startDate: startDate ? dateToYYYYMMDD(startDate) : undefined,
+        endDate: endDate ? dateToYYYYMMDD(endDate) : undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
         ignoreTiering: isTieringIgnored,
         includeItems: true,
@@ -196,8 +197,8 @@ export default function SalesHistoryPage() {
         users: safeUsers,
         barMembers: safeBarMembers,
         barId: currentBar?.id, // ✨ REQUIRED for integral export
-        startDate: startDate?.toISOString().split('T')[0],
-        endDate: endDate?.toISOString().split('T')[0],
+        startDate: startDate ? dateToYYYYMMDD(startDate) : undefined,
+        endDate: endDate ? dateToYYYYMMDD(endDate) : undefined,
         statusFilter, // Pass 'all' directly to handle it inside the hook
     });
 

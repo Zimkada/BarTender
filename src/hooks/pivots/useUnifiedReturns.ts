@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
-import { filterByBusinessDateRange, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
+import { dateToYYYYMMDD, filterByBusinessDateRange, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../constants/businessDay';
 import { useRealtimeReturns } from '../useRealtimeReturns';
 import type { Return } from '../../types';
@@ -50,7 +50,7 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
         }
 
         return {
-            startDate: now.toISOString().split('T')[0],
+            startDate: dateToYYYYMMDD(now),
             refetchInterval: false
         };
     }, [currentBar?.settings?.dataTier]);

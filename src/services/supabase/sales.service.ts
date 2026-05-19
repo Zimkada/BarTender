@@ -7,7 +7,7 @@ import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
 import { generateUUID } from '../../utils/crypto';
 import { toSupabaseJson } from '../../lib/supabase-rpc.types';
-import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
+import { calculateBusinessDate, dateToYYYYMMDD, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 
 export type DBSale = Database['public']['Tables']['sales']['Row'] & {
   idempotency_key?: string;
@@ -607,8 +607,8 @@ export class SalesService {
       .eq('bar_id', barId)
       .eq('status', 'validated');
 
-    if (startDate) query = query.gte('business_date', startDate.toISOString().split('T')[0]);
-    if (endDate) query = query.lte('business_date', endDate.toISOString().split('T')[0]);
+    if (startDate) query = query.gte('business_date', dateToYYYYMMDD(startDate));
+    if (endDate) query = query.lte('business_date', dateToYYYYMMDD(endDate));
     if (serverId) query = query.eq('sold_by', serverId);
 
     const result = await this.withTimeout<{
@@ -633,14 +633,16 @@ export class SalesService {
       // 1. Récupérer toutes les opé de type 'CREATE_SALE' en attente ou en cours
       const operations = await offlineQueue.getOperations({ barId });
 
-      const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
-      const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
+      const startStr = startDate ? dateToYYYYMMDD(startDate) : null;
+      const endStr = endDate ? dateToYYYYMMDD(endDate) : null;
 
       const pendingSales = operations
         .filter((op): op is SyncOperationCreateSale => op.type === 'CREATE_SALE' && (op.status === 'pending' || op.status === 'syncing'))
         .filter(op => {
           if (!startStr || !endStr) return true;
-          const saleDate = op.payload.business_date || new Date(op.timestamp).toISOString().split('T')[0];
+          // Fallback aligné SQL (cf. Fix #2) — local + closeHour par défaut (service sans accès au bar)
+          const saleDate = op.payload.business_date
+            || dateToYYYYMMDD(calculateBusinessDate(new Date(op.timestamp)));
           return saleDate >= startStr && saleDate <= endStr;
         })
         .map(op => this.mapOperationToOfflineSale(op, barId));

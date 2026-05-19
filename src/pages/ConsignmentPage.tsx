@@ -20,6 +20,7 @@ import { Input } from '../components/ui/Input';
 import { CreateConsignmentForm } from '../components/consignments/CreateConsignmentForm';
 import { ConsignmentCard as PremiumConsignmentCard } from '../components/consignments/ConsignmentCard';
 import { Consignment, User as UserType } from '../types';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -99,7 +100,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
   const consignmentSalesFilters = useMemo(() => {
     const start = new Date();
     start.setDate(start.getDate() - 60);
-    return { startDate: start.toISOString().split('T')[0], includeItems: false as const };
+    return { startDate: dateToYYYYMMDD(start), includeItems: false as const };
   }, []);
 
   const { sales } = useUnifiedSales(currentBar?.id, consignmentSalesFilters);
@@ -321,7 +322,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const historySalesFilters = useMemo(() => {
     const start = new Date();
     start.setDate(start.getDate() - 60);
-    return { startDate: start.toISOString().split('T')[0], includeItems: false as const };
+    return { startDate: dateToYYYYMMDD(start), includeItems: false as const };
   }, []);
 
   const { sales } = useUnifiedSales(currentBar?.id, historySalesFilters);
