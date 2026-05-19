@@ -38,10 +38,6 @@ import { EditSupplyMetadataModal } from '../features/Accounting/components/EditS
 import { useStockMutations } from '../hooks/mutations/useStockMutations';
 import type { UnifiedExpense } from '../hooks/pivots/useUnifiedExpenses';
 import { getCurrentPeriod } from '../utils/accounting';
-import {
-  formatDate,
-  formatPrice as formatPriceUtil
-} from '../utils/formatters';
 
 import type { BarMember, User } from '../types';
 
