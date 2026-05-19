@@ -105,7 +105,13 @@ function isDateInRange(date: string | null | undefined, startDate: string, endDa
 function getDateFromUnknown(value: unknown): string {
     if (!value) return '';
     if (typeof value === 'string') return value.split('T')[0];
-    if (value instanceof Date) return value.toISOString().split('T')[0];
+    if (value instanceof Date) {
+        // ⚠️ Date locale → YYYY-MM-DD local (pas UTC) pour rester aligné business_date
+        const y = value.getFullYear();
+        const m = String(value.getMonth() + 1).padStart(2, '0');
+        const d = String(value.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
     return '';
 }
 
@@ -304,8 +310,14 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         networkMode: 'always',
         queryFn: async () => {
             const serverId = isServerRole ? currentSession?.userId : undefined;
-            const dStart = startDate ? new Date(startDate) : undefined;
-            const dEnd = endDate ? new Date(endDate) : undefined;
+            // startDate/endDate sont déjà des YYYY-MM-DD locaux. Parsing local explicite
+            // (sinon new Date("YYYY-MM-DD") interprète en UTC → décalage en UTC+1).
+            const parseLocal = (s: string): Date => {
+                const [y, m, d] = s.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            };
+            const dStart = startDate ? parseLocal(startDate) : undefined;
+            const dEnd = endDate ? parseLocal(endDate) : undefined;
 
             let serverRawData: SalesSummaryRow[] | null = null;
             try {
@@ -314,8 +326,8 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
                     .select('total, sold_by, business_date, idempotency_key, payment_method')
                     .eq('bar_id', currentBarId)
                     .eq('status', 'validated')
-                    .gte('business_date', dStart?.toISOString().split('T')[0] || '')
-                    .lte('business_date', dEnd?.toISOString().split('T')[0] || '');
+                    .gte('business_date', startDate || '')
+                    .lte('business_date', endDate || '');
 
                 if (isServerRole && currentSession?.userId) {
                     query = query.or(`sold_by.eq.${currentSession.userId},server_id.eq.${currentSession.userId}`);

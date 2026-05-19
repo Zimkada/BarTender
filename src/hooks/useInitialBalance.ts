@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { InitialBalance } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorHandler';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 export function useInitialBalance(barId?: string) {
   const [initialBalance, setInitialBalance] = useState<InitialBalance | null>(null);
@@ -71,7 +72,7 @@ export function useInitialBalance(barId?: string) {
             {
               bar_id: barId,
               amount: balanceData.amount,
-              date: balanceData.date.toISOString().split('T')[0],
+              date: dateToYYYYMMDD(balanceData.date),
               description: balanceData.description,
               created_by: currentSession.userId,
             },
@@ -119,7 +120,7 @@ export function useInitialBalance(barId?: string) {
       try {
         const updateData: any = {};
         if (updates.amount !== undefined) updateData.amount = updates.amount;
-        if (updates.date !== undefined) updateData.date = updates.date.toISOString().split('T')[0];
+        if (updates.date !== undefined) updateData.date = dateToYYYYMMDD(updates.date);
         if (updates.description !== undefined) updateData.description = updates.description;
 
         const { data, error } = await supabase

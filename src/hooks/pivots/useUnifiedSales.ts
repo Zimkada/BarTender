@@ -229,11 +229,11 @@ export const useUnifiedSales = (
         const today = getCurrentBusinessDateString(currentBar?.closingHour);
 
         const todaySales = unifiedSales.filter((s: any) => {
-            // Helper pour extraire la date YYYY-MM-DD
+            // Helper pour extraire la date YYYY-MM-DD (local, pas UTC)
             const getDay = (date: any) => {
                 if (!date) return '';
                 if (typeof date === 'string') return date.split('T')[0];
-                if (date instanceof Date) return date.toISOString().split('T')[0];
+                if (date instanceof Date) return dateToYYYYMMDD(date);
                 return '';
             };
 

@@ -131,6 +131,8 @@ export const PromotionsService = {
     async getActivePromotions(barId: string, productId?: string, categoryId?: string): Promise<Promotion[]> {
         try {
             const now = new Date();
+            // ⚠️ UTC volontaire : la DB compare start_date/end_date à CURRENT_DATE (serveur, UTC).
+            // Utiliser une date locale ici décalerait la fenêtre par rapport à la DB.
             const currentDate = now.toISOString().split('T')[0];
             const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
             const currentDayOfWeek = now.getDay();

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { CapitalContribution, CapitalSource } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorHandler';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 // Labels pour les sources d'apport (UI)
 export const CAPITAL_SOURCE_LABELS: Record<CapitalSource, { label: string; icon: string; description: string }> = {
@@ -100,7 +101,7 @@ export function useCapitalContributions(barId?: string) {
               source: contribution.source,
               source_details: contribution.sourceDetails,
               description: contribution.description,
-              date: contribution.date.toISOString().split('T')[0],
+              date: dateToYYYYMMDD(contribution.date),
               created_by: currentSession.userId,
             },
           ])

@@ -2,6 +2,7 @@ import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import type { SaleItemDB } from '../../hooks/useInventoryHistory.types';
 import { ADJUSTMENT_REASONS } from '../../types';
+import { dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 
 const CONSIGNMENT_STATUS_FR: Record<string, string> = {
     active: 'Active',
@@ -372,8 +373,8 @@ export class StockService {
         try {
             const { limit = 50, startDate, endDate } = options;
 
-            // Helper to format date as YYYY-MM-DD
-            const toYYYYMMDD = (d: Date) => d.toISOString().split('T')[0];
+            // Use local-time YYYY-MM-DD (cohérent avec business_date côté DB)
+            const toYYYYMMDD = dateToYYYYMMDD;
 
             // 1. Fetch all sources in parallel
             const [sales, supplies, consignments, adjustments, returns] = await Promise.all([

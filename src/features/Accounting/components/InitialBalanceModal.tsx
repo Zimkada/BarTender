@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Label } from '../../../components/ui/Label'; // Assuming this exists or using generic label
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
+import { dateToYYYYMMDD } from '../../../utils/businessDateHelpers';
 
 interface InitialBalanceModalProps {
     open: boolean;
@@ -28,7 +29,7 @@ export const InitialBalanceModal: React.FC<InitialBalanceModalProps> = ({
     const { formatPrice } = useCurrencyFormatter();
     const [form, setForm] = React.useState({
         amount: '',
-        date: new Date().toISOString().split('T')[0],
+        date: dateToYYYYMMDD(new Date()),
         description: 'Solde initial'
     });
 

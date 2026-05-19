@@ -8,6 +8,7 @@ import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { SimplePageHeader } from '../components/common/PageHeader/patterns/SimplePageHeader';
 
 import AnalyticsCharts from '../components/AnalyticsCharts';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
@@ -24,12 +25,9 @@ export default function AnalyticsPage() {
     start.setMonth(start.getMonth() - 12);
     start.setDate(1); // Start of month
 
-    // Convert to YYYY-MM-DD
-    const formatDate = (d: Date) => d.toISOString().split('T')[0];
-
     return {
-      startDate: formatDate(start),
-      endDate: formatDate(end)
+      startDate: dateToYYYYMMDD(start),
+      endDate: dateToYYYYMMDD(end)
     };
   }, []);
 

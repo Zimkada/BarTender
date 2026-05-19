@@ -4,6 +4,7 @@ import { Sale, SaleItem, Return, User, BarMember, Category, Product } from '../.
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { useNotifications } from '../../../../components/Notifications';
 import { usePlan } from '../../../../hooks/usePlan';
+import { dateToYYYYMMDD } from '../../../../utils/businessDateHelpers';
 
 interface UseSalesExportProps {
     filteredSales: Sale[];
@@ -194,7 +195,7 @@ export function useSalesExport({
             delete (row as any)._sortTimestamp;
         });
 
-        const fileName = `ventes_${new Date().toISOString().split('T')[0]}`;
+        const fileName = `ventes_${dateToYYYYMMDD(new Date())}`;
 
         if (exportData.length === 0) {
             showNotification('error', 'Aucune donnée à exporter');

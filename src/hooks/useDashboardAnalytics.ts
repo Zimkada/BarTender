@@ -65,11 +65,16 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     // 3. Filtered Data per Role (Restricted to TODAY'S sales via salesStats.sales)
     const todaySales = useMemo(() => {
         return unifiedSales.filter((s: any) => {
-            // Helper pour extraire la date YYYY-MM-DD
+            // Helper pour extraire la date YYYY-MM-DD (local, pas UTC)
             const getDay = (date: any) => {
                 if (!date) return '';
                 if (typeof date === 'string') return date.split('T')[0];
-                if (date instanceof Date) return date.toISOString().split('T')[0];
+                if (date instanceof Date) {
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth() + 1).padStart(2, '0');
+                    const d = String(date.getDate()).padStart(2, '0');
+                    return `${y}-${m}-${d}`;
+                }
                 return '';
             };
 

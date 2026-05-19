@@ -7,6 +7,7 @@ import { Product } from '../../types';
 import { Spinner } from '../ui/Spinner';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 import { useStockMutations } from '../../hooks/mutations/useStockMutations';
+import { dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import {
     History,
     TrendingDown,
@@ -59,10 +60,10 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
 
     // ✨ Date Filters (Default: Last 7 days for responsive loading)
     const [startDate, setStartDate] = useState<string>(
-        new Date(Date.now() - DEFAULT_HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        dateToYYYYMMDD(new Date(Date.now() - DEFAULT_HISTORY_DAYS * 24 * 60 * 60 * 1000))
     );
     const [endDate, setEndDate] = useState<string>(
-        new Date().toISOString().split('T')[0]
+        dateToYYYYMMDD(new Date())
     );
 
     useEffect(() => {
@@ -75,8 +76,13 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
         setIsLoading(true);
         setError(null);
         try {
-            const start = startDate ? new Date(startDate) : undefined;
-            const end = endDate ? new Date(endDate) : undefined;
+            // Parse YYYY-MM-DD as local date (sinon new Date() interprète en UTC → décalage UTC+1)
+            const parseLocal = (s: string): Date => {
+                const [y, m, d] = s.split('-').map(Number);
+                return new Date(y, m - 1, d);
+            };
+            const start = startDate ? parseLocal(startDate) : undefined;
+            const end = endDate ? parseLocal(endDate) : undefined;
 
             // Adjust end date to include the full day
             if (end) end.setHours(23, 59, 59, 999);

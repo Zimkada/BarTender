@@ -75,7 +75,7 @@ function calculateExpenseMetricsFromUnified(
   unifiedExpenses.forEach(exp => {
     if (exp.date < startDate || exp.date > endDate) return;
 
-    const dateStr = exp.date.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateStr = dateToYYYYMMDD(exp.date); // YYYY-MM-DD local (pas UTC)
     const metrics = metricsByDate.get(dateStr) || { operating_expenses: 0, investments: 0 };
 
     // Exclude salaries from expenses calculation (they're handled separately)
@@ -99,7 +99,7 @@ function calculateExpenseMetricsFromUnified(
     const paidAt = new Date(sal.paidAt);
     if (paidAt < startDate || paidAt > endDate) return;
 
-    const dateStr = paidAt.toISOString().split('T')[0];
+    const dateStr = dateToYYYYMMDD(paidAt);
     const metrics = metricsByDate.get(dateStr) || { operating_expenses: 0, investments: 0 };
 
     metrics.operating_expenses += sal.amount;

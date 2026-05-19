@@ -31,6 +31,7 @@ import { Alert } from '../components/ui/Alert';
 import { exportToCSV } from '../utils/exportToCSV';
 import { exportToExcel } from '../utils/exportToExcel';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 // Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
 const RefreshHistoryChart = lazy(() =>
@@ -166,7 +167,7 @@ export default function SecurityDashboardPage() {
       created_at: log.created_at,
     }));
 
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = dateToYYYYMMDD(new Date());
     exportToCSV(exportData, `refresh_logs_${timestamp}`);
   };
 
@@ -187,7 +188,7 @@ export default function SecurityDashboardPage() {
       'Créé le': new Date(log.created_at).toLocaleString('fr-FR'),
     }));
 
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = dateToYYYYMMDD(new Date());
     await exportToExcel(exportData, `refresh_logs_${timestamp}`);
   };
 
