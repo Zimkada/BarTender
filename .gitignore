@@ -41,3 +41,17 @@ configure_postgres_settings.sql
 
 *storybook.log
 storybook-static
+
+# VSCode local history extension (contient parfois des copies de .env)
+.history/
+
+# Rapports d'audit / dead code (régénérables)
+knip-report.txt
+ts-prune-report.txt
+git-log.txt
+unpushed_commits_*.txt
+
+# Fichiers temporaires Vite
+vite.config.ts.timestamp-*.mjs
+vite.config.ts.timestamp-*.js
+
