@@ -10,6 +10,8 @@ import { useExpenses, useCustomExpenseCategories } from '../queries/useExpensesQ
 import { useSupplies } from '../queries/useStockQueries';
 import { useSalaries } from '../useSalaries';
 import { offlineQueue } from '../../services/offlineQueue';
+import { useBarContext } from '../../context/BarContext';
+import { calculateBusinessDate } from '../../utils/businessDateHelpers';
 import { ExpenseCategory } from '../../types';
 
 export interface UnifiedExpense {
@@ -37,6 +39,9 @@ export interface UnifiedExpense {
  * Combine Expenses, Supplies, et Salaries (Online + Offline)
  */
 export function useUnifiedExpenses(barId: string | undefined, options: { startDate?: string; endDate?: string } = {}) {
+
+    const { currentBar } = useBarContext();
+    const closeHour = currentBar?.closingHour ?? 6;
 
     // 1. Online Data
     const { data: onlineExpenses = [] } = useExpenses(barId, options);
@@ -159,13 +164,20 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
         const mappedOffline: UnifiedExpense[] = offlineOps.map(op => {
             const payload = op.payload as any;
             const isSupply = op.type === 'ADD_SUPPLY';
-            // Note: ADD_SALARY est filtré au fetch pour éviter le double optimisme 
-            // avec le hook useSalaries. 
+            // Note: ADD_SALARY est filtré au fetch pour éviter le double optimisme
+            // avec le hook useSalaries.
+
+            // Date métier : payload.expense_date / supply_date si fourni (YYYY-MM-DD),
+            // sinon recalcul depuis le timestamp local + closeHour (aligné trigger SQL).
+            const rawDate: string | undefined = isSupply ? payload.supply_date : payload.expense_date;
+            const date = (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate))
+                ? new Date(rawDate + 'T00:00:00') // parse local (pas UTC)
+                : calculateBusinessDate(new Date(op.timestamp), closeHour);
 
             return {
                 id: op.id,
                 amount: isSupply ? (payload.lotPrice * payload.lotSize) : payload.amount,
-                date: new Date(op.timestamp),
+                date,
                 category: isSupply ? 'supply' : payload.category, // ADD_SALARY est filtré au fetch
                 customCategoryId: payload.customCategoryId,
                 notes: isSupply ? `${payload.productName} (Offline)` : payload.notes,
@@ -181,7 +193,7 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
 
         // Tri par date décroissante
         return combined.sort((a, b) => b.date.getTime() - a.date.getTime());
-    }, [expensesHash]);
+    }, [expensesHash, closeHour]);
 
     return {
         expenses: unifiedExpenses,

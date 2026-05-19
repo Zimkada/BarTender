@@ -7,6 +7,7 @@ import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
 import { generateUUID } from '../../utils/crypto';
 import { toSupabaseJson } from '../../lib/supabase-rpc.types';
+import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 
 export type DBSale = Database['public']['Tables']['sales']['Row'] & {
   idempotency_key?: string;
@@ -356,7 +357,9 @@ export class SalesService {
       created_by: data.sold_by, // Créateur = vendeur
       created_at: new Date().toISOString(),
       payment_method: data.payment_method,
-      business_date: data.business_date || new Date().toISOString().split('T')[0],
+      // ⚠️ data.business_date est toujours fourni via useSalesMutations (calculateBusinessDate).
+      // Fallback défensif : getCurrentBusinessDateString utilise l'heure locale + closeHour par défaut.
+      business_date: data.business_date || getCurrentBusinessDateString(),
       server_id: data.server_id || null,
       ticket_id: data.ticket_id || null,
       idempotency_key: idempotencyKey,

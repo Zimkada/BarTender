@@ -136,6 +136,10 @@ export const useUnifiedSales = (
                     const payload = op.payload;
                     const subtotal = payload.items.reduce((sum, item) => sum + item.total_price, 0);
                     const createdAt = new Date(op.timestamp).toISOString();
+                    // Fallback aligné SQL : si payload.business_date manque, recalcul depuis le timestamp local + closeHour
+                    const fallbackBusinessDate = dateToYYYYMMDD(
+                        calculateBusinessDate(new Date(op.timestamp), closeHour)
+                    );
 
                     const unifiedSale: UnifiedSale = {
                         id: op.id,
@@ -148,8 +152,8 @@ export const useUnifiedSales = (
                         createdBy: payload.sold_by,
                         created_at: createdAt,
                         createdAt: createdAt, // Standardized
-                        business_date: payload.business_date || createdAt.split('T')[0],
-                        businessDate: payload.business_date || createdAt.split('T')[0], // Standardized
+                        business_date: payload.business_date || fallbackBusinessDate,
+                        businessDate: payload.business_date || fallbackBusinessDate, // Standardized
                         idempotency_key: payload.idempotency_key,
                         paymentMethod: payload.payment_method as any,
                         items_count: payload.items.reduce((sum, item) => sum + (item.quantity || 0), 0),
