@@ -367,7 +367,7 @@ export class SalesService {
   static async validateSale(id: string, validatedBy: string): Promise<void> {
     try {
       // ✅ Expert Fix: Use atomic RPC to ensure both status update AND stock decrement succeed
-      const { error } = await supabase.rpc('validate_sale' as any, {
+      const { error } = await supabase.rpc('validate_sale', {
         p_sale_id: id,
         p_validated_by: validatedBy
       });
@@ -382,10 +382,10 @@ export class SalesService {
     try {
       // ✅ Expert Fix: Use atomic RPC to handle both status update AND
       // conditional stock restoration (only if it was validated)
-      const { error } = await supabase.rpc('reject_sale' as any, {
+      const { error } = await supabase.rpc('reject_sale', {
         p_sale_id: id,
         p_rejected_by: rejectedBy,
-        p_note: reason || null
+        p_note: reason || undefined
       });
 
       if (error) throw error;
@@ -396,10 +396,10 @@ export class SalesService {
 
   static async rejectMultipleSales(saleIds: string[], rejectedBy: string, reason?: string): Promise<{ success: number; failed: number }> {
     try {
-      const { data, error } = await supabase.rpc('reject_multiple_sales' as any, {
+      const { data, error } = await supabase.rpc('reject_multiple_sales', {
         p_sale_ids: saleIds,
         p_rejector_id: rejectedBy,
-        p_reason: reason || null
+        p_reason: reason || undefined
       });
 
       if (error) throw error;
@@ -424,14 +424,14 @@ export class SalesService {
       const barId = saleData?.bar_id || 'unknown';
 
       // ✅ Expert Fix: Atomic RPC for Cancellation
-      const { data, error } = await supabase.rpc('cancel_sale' as any, {
+      const { data, error } = await supabase.rpc('cancel_sale', {
         p_sale_id: saleId,
         p_cancelled_by: cancelledBy,
         p_reason: reason
       });
 
       if (error) throw error;
-      const result = data as any;
+      const result = data as { success: boolean; message?: string };
       if (!result.success) throw new Error(result.message);
 
       // Audit logs are handled after success
