@@ -49,10 +49,13 @@ export interface DateRangePeriod {
 
 /**
  * Options pour le hook useDateRangeFilter
+ *
+ * Note : la prise en compte de la journée commerciale est implicite dès
+ * qu'un `closeHour` est fourni (ou via le défaut `BUSINESS_DAY_CLOSE_HOUR`).
+ * Pour forcer un calcul strictement civil, passer `closeHour: 0`.
  */
 export interface DateRangeFilterOptions {
   defaultRange?: TimeRange;
-  includeBusinessDay?: boolean;
   closeHour?: number;
   enableComparison?: boolean;  // Pour calculer période précédente
 }

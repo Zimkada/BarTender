@@ -35,7 +35,6 @@ export default function SuperAdminPage() {
 
   const filter = useDateRangeFilter({
     defaultRange: 'yesterday', // Default to yesterday
-    includeBusinessDay: true,
   });
 
   // Map the filter hook's timeRange to the format the SQL function expects

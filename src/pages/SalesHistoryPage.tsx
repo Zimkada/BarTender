@@ -93,7 +93,6 @@ export default function SalesHistoryPage() {
     // ✨ NOUVEAU: Pilotage temporel centralisé (Certification Elite)
     const dateFilter = useDateRangeFilter({
         defaultRange: 'today',
-        includeBusinessDay: true,
         closeHour
     });
 

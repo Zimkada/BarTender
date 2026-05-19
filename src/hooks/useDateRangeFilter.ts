@@ -29,17 +29,16 @@ import {
  *   defaultRange: 'last_30days'
  * });
  *
- * // Dans SalesHistory (avec Business Day)
+ * // Dans SalesHistory (journée commerciale avec closeHour explicite)
  * const filter = useDateRangeFilter({
  *   defaultRange: 'today',
- *   includeBusinessDay: true
+ *   closeHour
  * });
  * ```
  */
 export function useDateRangeFilter(options?: DateRangeFilterOptions) {
   const {
     defaultRange = 'last_30days',
-    includeBusinessDay = false,
     closeHour,
     enableComparison = false
   } = options || {};
@@ -54,10 +53,9 @@ export function useDateRangeFilter(options?: DateRangeFilterOptions) {
   // Calcul de la période actuelle
   const currentPeriod = useMemo<DateRangePeriod>(() => {
     return calculateDateRange(timeRange, customRange, {
-      includeBusinessDay,
       closeHour
     });
-  }, [timeRange, customRange, includeBusinessDay, closeHour]);
+  }, [timeRange, customRange, closeHour]);
 
   // Calcul de la période précédente (pour comparaison)
   const comparison = useMemo<PeriodComparison | null>(() => {
