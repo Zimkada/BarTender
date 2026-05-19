@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import type { SaleItemDB } from '../../hooks/useInventoryHistory.types';
 import { ADJUSTMENT_REASONS } from '../../types';
 
 const CONSIGNMENT_STATUS_FR: Record<string, string> = {
@@ -459,13 +460,13 @@ export class StockService {
             const timeline = [
                 // Sales - Filtered in JS for reliability
                 ...(sales.data as JoinedSale[] || [])
-                    .filter(s => (s.items as any[] || []).some(i => i.product_id === productId))
+                    .filter(s => ((s.items as SaleItemDB[] | null) || []).some(i => i.product_id === productId))
                     .flatMap(s => {
-                        const items = s.items as any[];
+                        const items = (s.items as SaleItemDB[] | null) || [];
                         const item = items.find(i => i.product_id === productId);
                         if (!item) return [];
 
-                        const isExchange = (s as any).source_return_id;
+                        const isExchange = s.source_return_id;
 
                         return [{
                             id: s.id,
@@ -484,18 +485,18 @@ export class StockService {
                 // Supplies — les lignes reverse (reversal_of_id non null) sont exclues
                 // pour ne pas afficher deux fois le même mouvement dans la timeline.
                 ...(supplies.data as Supply[] || [])
-                    .filter(s => !(s as any).reversal_of_id)
+                    .filter(s => !s.reversal_of_id)
                     .map(s => ({
                         id: s.id,
                         type: 'supply' as const,
                         date: new Date(s.created_at || ''),
                         delta: s.quantity,
-                        label: (s as any).reversed_at ? 'Approvisionnement (annulé)' : 'Approvisionnement',
+                        label: s.reversed_at ? 'Approvisionnement (annulé)' : 'Approvisionnement',
                         user: s.supplied_by || 'Admin',
                         details: s.supplier_name || 'Fournisseur Inconnu',
                         price: s.unit_cost,
                         notes: `Total: ${s.total_cost}`,
-                        supplyReversed: !!(s as any).reversed_at,
+                        supplyReversed: !!s.reversed_at,
                         supplyReversalOf: null,
                     })),
 
