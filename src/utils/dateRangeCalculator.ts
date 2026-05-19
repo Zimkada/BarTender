@@ -73,7 +73,8 @@ export function calculateDateRange(
 
       endDate = new Date(referenceDate);
       startDate = new Date(referenceDate);
-      startDate.setDate(startDate.getDate() - days);
+      // Inclusif des deux côtés : [J-(days-1), J] = days jours au total
+      startDate.setDate(startDate.getDate() - days + 1);
 
       label = config.label;
       break;
