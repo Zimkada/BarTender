@@ -321,21 +321,42 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
             let serverRawData: SalesSummaryRow[] | null = null;
             try {
-                let query = supabase
-                    .from('sales')
-                    .select('total, sold_by, business_date, idempotency_key, payment_method')
-                    .eq('bar_id', currentBarId)
-                    .eq('status', 'validated')
-                    .gte('business_date', startDate || '')
-                    .lte('business_date', endDate || '');
+                // PostgREST `max_rows = 1000` tronquerait silencieusement les bars
+                // à fort volume sur une plage longue. Pagination explicite jusqu'au plafond.
+                const PAGE_SIZE = 1000;
+                const ABSOLUTE_CAP = 50000;
 
-                if (isServerRole && currentSession?.userId) {
-                    query = query.or(`sold_by.eq.${currentSession.userId},server_id.eq.${currentSession.userId}`);
+                const buildQuery = () => {
+                    let q = supabase
+                        .from('sales')
+                        .select('total, sold_by, business_date, idempotency_key, payment_method')
+                        .eq('bar_id', currentBarId)
+                        .eq('status', 'validated')
+                        .gte('business_date', startDate || '')
+                        .lte('business_date', endDate || '')
+                        .order('business_date', { ascending: false })
+                        .order('created_at', { ascending: false });
+                    if (isServerRole && currentSession?.userId) {
+                        q = q.or(`sold_by.eq.${currentSession.userId},server_id.eq.${currentSession.userId}`);
+                    }
+                    return q;
+                };
+
+                const aggregated: SalesSummaryRow[] = [];
+                let from = 0;
+                for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+                    const { data, error: queryError } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+                    if (queryError) throw queryError;
+                    const chunk = (data as SalesSummaryRow[]) || [];
+                    aggregated.push(...chunk);
+                    if (chunk.length < PAGE_SIZE) break;
+                    if (aggregated.length >= ABSOLUTE_CAP) {
+                        console.warn(`[useRevenueStats] Plafond ABSOLUTE_CAP=${ABSOLUTE_CAP} atteint pour bar ${currentBarId}, plage ${startDate}-${endDate}`);
+                        break;
+                    }
+                    from += PAGE_SIZE;
                 }
-
-                const { data, error: queryError } = await query;
-                if (queryError) throw queryError;
-                serverRawData = (data as SalesSummaryRow[]) || [];
+                serverRawData = aggregated;
             } catch (err) {
                 console.warn('[useRevenueStats] Server fetch failed, using local fallback...', err);
                 return calculateLocalStats();

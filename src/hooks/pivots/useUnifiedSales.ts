@@ -68,24 +68,24 @@ export const useUnifiedSales = (
         businessDatePivotDefault.setDate(businessDatePivotDefault.getDate() - 7);
         const defaultStartDate = startDate || dateToYYYYMMDD(businessDatePivotDefault);
 
-        // ✨ NOUVEAU: Débrayage explicite (Certification Elite)
-        // ignoreTiering = l'utilisateur veut une période étendue → on passe les filtres UI tels quels
-        // mais on garantit au minimum que startDate est défini pour éviter un full-scan
+        // ✨ Débrayage explicite : l'utilisateur veut une période étendue → on passe
+        // les filtres UI tels quels. La pagination auto côté SalesService garantit
+        // qu'on récupère toutes les ventes de la plage (cap 50 000).
         if (ignoreTiering) {
-            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500, includeItems };
+            return { startDate: defaultStartDate, endDate, status, searchTerm, includeItems };
         }
 
-        // ✨ NOUVEAU: Recherche "Backend-Failover"
-        // Si on a un terme de recherche (min 3 caractères), on ignore les tiers
+        // Recherche "Backend-Failover" : ici on garde un limit car la recherche
+        // peut potentiellement remonter beaucoup de hits non bornés par date.
         if (searchTerm && searchTerm.length >= 3) {
             return { searchTerm, limit: 500, includeItems };
         }
 
-        // ✨ NOUVEAU: Débrayage via UI (Période étendue)
-        // Si l'utilisateur a explicitement demandé une période au-delà du mois,
-        // on passe les filtres UI + limite de sécurité
+        // ✨ Débrayage via UI (Période étendue) : custom / this_month / this_quarter
+        // / this_year. On passe les bornes telles quelles, la pagination auto côté
+        // service récupère toutes les ventes de la plage.
         if (timeRange && !['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
-            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500, includeItems };
+            return { startDate: defaultStartDate, endDate, status, searchTerm, includeItems };
         }
 
         // 🔴 CALCUL PIVOT SUR BUSINESS DATE (Fin de décalage minuit-6h)

@@ -118,33 +118,48 @@ export class ReturnsService {
                 return `${year}-${month}-${day}`;
             };
 
-            let query = supabase
-                .from('returns')
-                .select(RETURNS_LIST_SELECT)
-                .eq('bar_id', barId)
-                .order('returned_at', { ascending: false });
+            const buildQuery = () => {
+                let q = supabase
+                    .from('returns')
+                    .select(RETURNS_LIST_SELECT)
+                    .eq('bar_id', barId)
+                    .order('returned_at', { ascending: false });
+                if (startDate) q = q.gte('business_date', formatToYYYYMMDD(startDate));
+                if (endDate) q = q.lte('business_date', formatToYYYYMMDD(endDate));
+                return q;
+            };
 
             console.log('[ReturnsService] fetching returns for bar:', barId, {
                 startDate: startDate ? formatToYYYYMMDD(startDate) : 'none',
                 endDate: endDate ? formatToYYYYMMDD(endDate) : 'none'
             });
 
-            if (startDate) {
-                query = query.gte('business_date', formatToYYYYMMDD(startDate));
-            }
+            let allReturns: DBReturn[];
 
-            if (endDate) {
-                query = query.lte('business_date', formatToYYYYMMDD(endDate));
-            }
-
-            // 🛡️ Garde-fou egress : si aucun filtre de date, limiter à 500
             if (!startDate && !endDate) {
-                query = query.limit(500);
+                // Garde-fou egress : pas de date → 500 lignes max.
+                const { data, error } = await buildQuery().limit(500);
+                if (error) throw error;
+                allReturns = (data || []) as DBReturn[];
+            } else {
+                // Pagination explicite (PostgREST tronquerait sinon à max_rows=1000).
+                const PAGE_SIZE = 1000;
+                const ABSOLUTE_CAP = 50000;
+                allReturns = [];
+                let from = 0;
+                for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+                    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+                    if (error) throw error;
+                    const chunk = (data || []) as DBReturn[];
+                    allReturns.push(...chunk);
+                    if (chunk.length < PAGE_SIZE) break;
+                    if (allReturns.length >= ABSOLUTE_CAP) {
+                        console.warn(`[ReturnsService] Plafond atteint pour bar ${barId}`);
+                        break;
+                    }
+                    from += PAGE_SIZE;
+                }
             }
-
-            const { data: allReturns, error } = await query;
-
-            if (error) throw error;
 
             // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
             // Apply server filter in JavaScript to ensure proper AND/OR precedence
@@ -173,11 +188,6 @@ export class ReturnsService {
         endDate?: Date | string
     ): Promise<DBReturn[]> {
         try {
-            let query = supabase
-                .from('returns')
-                .select(RETURNS_LIST_SELECT)
-                .order('returned_at', { ascending: false });
-
             const formatToYYYYMMDD = (date: Date | string): string => {
                 if (typeof date === 'string') return date;
                 const year = date.getFullYear();
@@ -186,18 +196,34 @@ export class ReturnsService {
                 return `${year}-${month}-${day}`;
             };
 
-            if (startDate) {
-                query = query.gte('business_date', formatToYYYYMMDD(startDate));
+            const buildQuery = () => {
+                let q = supabase
+                    .from('returns')
+                    .select(RETURNS_LIST_SELECT)
+                    .order('returned_at', { ascending: false });
+                if (startDate) q = q.gte('business_date', formatToYYYYMMDD(startDate));
+                if (endDate) q = q.lte('business_date', formatToYYYYMMDD(endDate));
+                return q;
+            };
+
+            // Pagination explicite (PostgREST tronquerait sinon à max_rows=1000).
+            const PAGE_SIZE = 1000;
+            const ABSOLUTE_CAP = 100000;
+            const all: DBReturn[] = [];
+            let from = 0;
+            for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+                const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+                if (error) throw error;
+                const chunk = (data || []) as DBReturn[];
+                all.push(...chunk);
+                if (chunk.length < PAGE_SIZE) break;
+                if (all.length >= ABSOLUTE_CAP) {
+                    console.warn('[ReturnsService.getAllReturns] Plafond atteint');
+                    break;
+                }
+                from += PAGE_SIZE;
             }
-
-            if (endDate) {
-                query = query.lte('business_date', formatToYYYYMMDD(endDate));
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-            return data || [];
+            return all;
         } catch (error) {
             throw new Error(handleSupabaseError(error));
         }

@@ -28,86 +28,101 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
     /**
      * Récupère tous les mouvements depuis une date cible jusqu'à maintenant
      * ⚠️ Type-safe avec gestion d'erreur explicite
+     * ⚠️ Pagination explicite : PostgREST tronque à max_rows=1000 sinon (cf. config.toml).
      */
     const fetchMovements = useCallback(async (targetDate: Date, now: Date): Promise<FetchedMovements> => {
         const targetISO = targetDate.toISOString();
         const nowISO = now.toISOString();
+        const PAGE_SIZE = 1000;
+        const ABSOLUTE_CAP = 50000;
+
+        // Helper de pagination générique pour les tables filtrées par plage temporelle.
+        type PaginatedResult = { data: unknown[] | null; error: unknown };
+        const fetchAllPaginated = async <T>(
+            tableLabel: string,
+            buildQuery: (from: number, to: number) => PromiseLike<PaginatedResult>
+        ): Promise<T[]> => {
+            const all: T[] = [];
+            let from = 0;
+            for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+                const { data, error } = await buildQuery(from, from + PAGE_SIZE - 1);
+                if (error) throw new Error(`Erreur chargement ${tableLabel}: ${getErrorMessage(error)}`);
+                const chunk = (data || []) as T[];
+                all.push(...chunk);
+                if (chunk.length < PAGE_SIZE) break;
+                if (all.length >= ABSOLUTE_CAP) {
+                    console.warn(`[useInventoryHistory] Plafond atteint pour ${tableLabel}`);
+                    break;
+                }
+                from += PAGE_SIZE;
+            }
+            return all;
+        };
 
         // 1. Ventes (Sales) - Uniquement validées
-        const { data: sales, error: salesError } = await supabase
-            .from('sales')
-            .select('id, items, validated_at')
-            .eq('bar_id', barId)
-            .eq('status', 'validated')
-            .gte('validated_at', targetISO)
-            .lte('validated_at', nowISO);
-
-        if (salesError) {
-            throw new Error(`Erreur chargement ventes: ${getErrorMessage(salesError)}`);
-        }
+        const sales = await fetchAllPaginated<SaleRowMinimal>('ventes', (from, to) =>
+            supabase
+                .from('sales')
+                .select('id, items, validated_at')
+                .eq('bar_id', barId)
+                .eq('status', 'validated')
+                .gte('validated_at', targetISO)
+                .lte('validated_at', nowISO)
+                .order('validated_at', { ascending: true })
+                .range(from, to)
+        );
 
         // 2. Approvisionnements (Supplies)
-        const { data: supplies, error: suppliesError } = await supabase
-            .from('supplies')
-            .select('id, product_id, quantity, created_at')
-            .eq('bar_id', barId)
-            .gte('created_at', targetISO)
-            .lte('created_at', nowISO);
-
-        if (suppliesError) {
-            throw new Error(`Erreur chargement approvisionnements: ${getErrorMessage(suppliesError)}`);
-        }
+        const supplies = await fetchAllPaginated<SupplyRowMinimal>('approvisionnements', (from, to) =>
+            supabase
+                .from('supplies')
+                .select('id, product_id, quantity, created_at')
+                .eq('bar_id', barId)
+                .gte('created_at', targetISO)
+                .lte('created_at', nowISO)
+                .order('created_at', { ascending: true })
+                .range(from, to)
+        );
 
         // 3. Ajustements (Stock Adjustments)
-        const { data: adjustments, error: adjustmentsError } = await supabase
-            .from('stock_adjustments')
-            .select('id, product_id, delta, adjusted_at')
-            .eq('bar_id', barId)
-            .gte('adjusted_at', targetISO)
-            .lte('adjusted_at', nowISO);
-
-        if (adjustmentsError) {
-            throw new Error(`Erreur chargement ajustements: ${getErrorMessage(adjustmentsError)}`);
-        }
+        const adjustments = await fetchAllPaginated<StockAdjustmentRowMinimal>('ajustements', (from, to) =>
+            supabase
+                .from('stock_adjustments')
+                .select('id, product_id, delta, adjusted_at')
+                .eq('bar_id', barId)
+                .gte('adjusted_at', targetISO)
+                .lte('adjusted_at', nowISO)
+                .order('adjusted_at', { ascending: true })
+                .range(from, to)
+        );
 
         // 4. Retours (Returns) - Uniquement ceux qui ont RÉELLEMENT impacté le stock
-        // ✅ FIX CRITIQUE: Le trigger auto_restock s'active si status IN ('approved', 'restocked')
-        // La présence de restocked_at est la SEULE preuve fiable que le stock a été incrémenté.
-        const { data: returns, error: returnsError } = await supabase
-            .from('returns')
-            .select('id, product_id, quantity_returned, restocked_at')
-            .eq('bar_id', barId)
-            .not('restocked_at', 'is', null) // ✅ Inversion de tout ce qui a touché au stock
-            .gte('restocked_at', targetISO)
-            .lte('restocked_at', nowISO);
-
-        if (returnsError) {
-            throw new Error(`Erreur chargement retours: ${getErrorMessage(returnsError)}`);
-        }
+        const returns = await fetchAllPaginated<ReturnRowMinimal>('retours', (from, to) =>
+            supabase
+                .from('returns')
+                .select('id, product_id, quantity_returned, restocked_at')
+                .eq('bar_id', barId)
+                .not('restocked_at', 'is', null)
+                .gte('restocked_at', targetISO)
+                .lte('restocked_at', nowISO)
+                .order('restocked_at', { ascending: true })
+                .range(from, to)
+        );
 
         // 5. Consignations (Consignments) - UNIQUEMENT celles RÉCUPÉRÉES (claimed)
-        // ⚠️ FIX CRITIQUE: La création de consignation ne touche PAS product.stock
-        // Seul le CLAIM (récupération client) décrémente le stock
-        // Les consignations expired/forfeited retournent au stock vendable sans toucher product.stock
-        const { data: consignments, error: consignmentsError } = await supabase
-            .from('consignments')
-            .select('id, product_id, quantity, status, claimed_at')
-            .eq('bar_id', barId)
-            .eq('status', 'claimed')  // ✅ SEULES les consignations récupérées
-            .gte('claimed_at', targetISO)
-            .lte('claimed_at', nowISO);
+        const consignments = await fetchAllPaginated<ConsignmentRowMinimal>('consignations', (from, to) =>
+            supabase
+                .from('consignments')
+                .select('id, product_id, quantity, status, claimed_at')
+                .eq('bar_id', barId)
+                .eq('status', 'claimed')
+                .gte('claimed_at', targetISO)
+                .lte('claimed_at', nowISO)
+                .order('claimed_at', { ascending: true })
+                .range(from, to)
+        );
 
-        if (consignmentsError) {
-            throw new Error(`Erreur chargement consignations: ${getErrorMessage(consignmentsError)}`);
-        }
-
-        return {
-            sales: (sales || []) as unknown as SaleRowMinimal[],
-            supplies: (supplies || []) as SupplyRowMinimal[],
-            adjustments: (adjustments || []) as StockAdjustmentRowMinimal[],
-            returns: (returns || []) as ReturnRowMinimal[],
-            consignments: (consignments || []) as ConsignmentRowMinimal[]
-        };
+        return { sales, supplies, adjustments, returns, consignments };
     }, [barId]);
 
     /**

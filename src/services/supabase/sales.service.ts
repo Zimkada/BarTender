@@ -491,42 +491,72 @@ export class SalesService {
       ? SALES_SUMMARY_SELECT
       : SALES_DETAIL_SELECT;
 
-    let query = supabase
-      .from('sales')
-      .select(selectClause)
-      .eq('bar_id', barId)
-      .order('business_date', { ascending: false });
+    // PostgREST `max_rows = 1000` (cf. supabase/config.toml) tronque toute requête
+    // au-delà de 1000 lignes. Pour les plages de dates explicites on pagine
+    // automatiquement jusqu'à atteindre toutes les ventes (ou le plafond absolu).
+    const PAGE_SIZE = 1000;
+    const ABSOLUTE_CAP = 50000;
 
-    if (options?.status) query = query.eq('status', options.status);
-    if (options?.startDate) query = query.gte('business_date', options.startDate);
-    if (options?.endDate) query = query.lte('business_date', options.endDate);
+    const buildBaseQuery = () => {
+      let q = supabase
+        .from('sales')
+        .select(selectClause)
+        .eq('bar_id', barId)
+        .order('business_date', { ascending: false })
+        .order('created_at', { ascending: false }); // tri stable secondaire pour la pagination
 
-    // ✨ NOUVEAU: Recherche textuelle (Failover)
-    if (options?.searchTerm) {
-      // Échapper les caractères spéciaux PostgREST pour éviter filter injection
-      const sanitized = options.searchTerm.replace(/[%_,().*]/g, '');
-      if (sanitized.length > 0) {
-        const term = `%${sanitized}%`;
-        query = query.or(`id.ilike.${term},customer_name.ilike.${term},notes.ilike.${term}`);
+      if (options?.status) q = q.eq('status', options.status);
+      if (options?.startDate) q = q.gte('business_date', options.startDate);
+      if (options?.endDate) q = q.lte('business_date', options.endDate);
+
+      if (options?.searchTerm) {
+        const sanitized = options.searchTerm.replace(/[%_,().*]/g, '');
+        if (sanitized.length > 0) {
+          const term = `%${sanitized}%`;
+          q = q.or(`id.ilike.${term},customer_name.ilike.${term},notes.ilike.${term}`);
+        }
       }
+      return q;
+    };
+
+    // Cas 1 : limit explicite ou offset (caller maître du contrat) → une seule requête
+    if (options?.limit || options?.offset) {
+      let q = buildBaseQuery();
+      if (options.limit) q = q.limit(options.limit);
+      if (options.offset) {
+        const span = options.limit || PAGE_SIZE;
+        q = q.range(options.offset, options.offset + span - 1);
+      }
+      const { data, error } = await q;
+      if (error) throw new Error(handleSupabaseError(error));
+      return data as unknown as DBSale[];
     }
 
-    if (options?.limit) {
-      query = query.limit(options.limit);
-    } else if (!options?.startDate && !options?.endDate) {
-      // 🛡️ Garde-fou absolu : si aucun filtre de date ni limit explicite,
-      // imposer 200 enregistrements max pour éviter un full-scan accidentel
-      // ✨ NOUVEAU: Hard limit de sécurité (Protection Egress Supabase)
-      const finalLimit = options?.limit || 500;
-      query = query.limit(finalLimit);
+    // Cas 2 : aucune date ni limit → garde-fou egress 500 (évite full-scan accidentel)
+    if (!options?.startDate && !options?.endDate) {
+      const { data, error } = await buildBaseQuery().limit(500);
+      if (error) throw new Error(handleSupabaseError(error));
+      return data as unknown as DBSale[];
     }
 
-    if (options?.offset) query = query.range(options.offset, options.offset + (options?.limit || 500) - 1);
-
-    const { data, error } = await query;
-    if (error) throw new Error(handleSupabaseError(error));
-    // 🛡️ Fix V12: Strict typing
-    return data as unknown as DBSale[];
+    // Cas 3 : plage de dates explicite → pagination auto jusqu'à épuisement / plafond
+    const all: DBSale[] = [];
+    let from = 0;
+    // Boucle bornée pour éviter tout risque d'infini ; ABSOLUTE_CAP / PAGE_SIZE pages max.
+    for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+      const to = from + PAGE_SIZE - 1;
+      const { data, error } = await buildBaseQuery().range(from, to);
+      if (error) throw new Error(handleSupabaseError(error));
+      const chunk = (data || []) as unknown as DBSale[];
+      all.push(...chunk);
+      if (chunk.length < PAGE_SIZE) break; // dernière page
+      if (all.length >= ABSOLUTE_CAP) {
+        console.warn(`[SalesService] Plafond ABSOLUTE_CAP=${ABSOLUTE_CAP} atteint pour bar ${barId}, plage ${options.startDate}-${options.endDate}`);
+        break;
+      }
+      from += PAGE_SIZE;
+    }
+    return all;
   }
 
   static async getSaleById(saleId: string): Promise<Sale & {

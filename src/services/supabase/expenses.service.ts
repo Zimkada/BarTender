@@ -44,27 +44,42 @@ export class ExpensesService {
      */
     static async getExpenses(barId: string, options?: { startDate?: string; endDate?: string }): Promise<Expense[]> {
         try {
-            let query = supabase
-                .from('expenses')
-                .select(EXPENSES_LIST_SELECT)
-                .eq('bar_id', barId)
-                .order('expense_date', { ascending: false });
+            const buildQuery = () => {
+                let q = supabase
+                    .from('expenses')
+                    .select(EXPENSES_LIST_SELECT)
+                    .eq('bar_id', barId)
+                    .order('expense_date', { ascending: false });
+                if (options?.startDate) q = q.gte('expense_date', options.startDate);
+                if (options?.endDate) q = q.lte('expense_date', options.endDate);
+                return q;
+            };
 
-            if (options?.startDate) {
-                query = query.gte('expense_date', options.startDate);
-            }
-            if (options?.endDate) {
-                query = query.lte('expense_date', options.endDate);
-            }
-
-            // 🛡️ Garde-fou egress : si aucun filtre de date, limiter à 500
             if (!options?.startDate && !options?.endDate) {
-                query = query.limit(500);
+                // Garde-fou egress : pas de date → 500 lignes max.
+                const { data, error } = await buildQuery().limit(500);
+                if (error) throw error;
+                return data || [];
             }
 
-            const { data, error } = await query;
-            if (error) throw error;
-            return data || [];
+            // Pagination explicite (PostgREST tronquerait sinon à max_rows=1000).
+            const PAGE_SIZE = 1000;
+            const ABSOLUTE_CAP = 50000;
+            const all: Expense[] = [];
+            let from = 0;
+            for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+                const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+                if (error) throw error;
+                const chunk = (data || []) as Expense[];
+                all.push(...chunk);
+                if (chunk.length < PAGE_SIZE) break;
+                if (all.length >= ABSOLUTE_CAP) {
+                    console.warn(`[ExpensesService] Plafond atteint pour bar ${barId}`);
+                    break;
+                }
+                from += PAGE_SIZE;
+            }
+            return all;
         } catch (error) {
             throw new Error(handleSupabaseError(error));
         }

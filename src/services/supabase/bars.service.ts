@@ -511,13 +511,28 @@ export class BarsService {
       .eq('bar_id', barId)
       .eq('status', 'validated');
 
-    const { data: salesData } = await supabase
-      .from('sales')
-      .select('total')
-      .eq('bar_id', barId)
-      .eq('status', 'validated');
-
-    const totalRevenue = (salesData || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
+    // Pagination explicite (PostgREST `max_rows = 1000` tronquerait sinon le total).
+    const PAGE_SIZE = 1000;
+    const ABSOLUTE_CAP = 100000;
+    let totalRevenue = 0;
+    let from = 0;
+    for (let page = 0; page < ABSOLUTE_CAP / PAGE_SIZE; page++) {
+      const { data: salesData } = await supabase
+        .from('sales')
+        .select('total')
+        .eq('bar_id', barId)
+        .eq('status', 'validated')
+        .order('created_at', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      const chunk = salesData || [];
+      totalRevenue += chunk.reduce((sum, sale) => sum + (sale.total || 0), 0);
+      if (chunk.length < PAGE_SIZE) break;
+      if (totalRevenue && from + PAGE_SIZE >= ABSOLUTE_CAP) {
+        console.warn(`[getBarStatsLegacy] Plafond ABSOLUTE_CAP=${ABSOLUTE_CAP} atteint pour bar ${barId}`);
+        break;
+      }
+      from += PAGE_SIZE;
+    }
 
     const { count: pendingCount } = await supabase
       .from('sales')
