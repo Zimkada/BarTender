@@ -74,7 +74,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
     const { currentSession } = useAuth();
     const { showSuccess, showError } = useFeedback();
     const { data: orders, isLoading, refetch } = usePurchaseOrders(barId);
-    const { cancelOrder, markAsOrdered } = usePurchaseOrdersMutations(barId);
+    const { cancelOrder, markAsOrdered, closePartialOrder } = usePurchaseOrdersMutations(barId);
 
     const canManage = currentSession?.role === 'promoteur'
         || currentSession?.role === 'gerant'
@@ -84,6 +84,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
     const [creationMode, setCreationMode] = useState<CreationMode>('list');
     const [orderToCancel, setOrderToCancel] = useState<PurchaseOrderSummary | null>(null);
     const [orderToReceive, setOrderToReceive] = useState<PurchaseOrderSummary | null>(null);
+    const [orderToClose, setOrderToClose] = useState<PurchaseOrderSummary | null>(null);
 
     const handleNewOrder = () => setCreationMode('prep');
     const handleBackToList = () => setCreationMode('list');
@@ -116,6 +117,18 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
             showError('Impossible d\'annuler la commande.');
         } finally {
             setOrderToCancel(null);
+        }
+    };
+
+    const handleConfirmClose = async () => {
+        if (!orderToClose) return;
+        try {
+            await closePartialOrder.mutateAsync({ orderId: orderToClose.id });
+            showSuccess('Commande clôturée. Les quantités manquantes ont été abandonnées.');
+        } catch {
+            showError('Impossible de clôturer la commande.');
+        } finally {
+            setOrderToClose(null);
         }
     };
 
@@ -239,10 +252,12 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                     <div className="space-y-3">
                         {displayed.map(order => {
                             const cfg = STATUS_CONFIG[order.status];
-                            // RPC convert_purchase_order_to_supplies n'accepte que 'draft' | 'ordered'
-                            const canReceive = canManage && order.status === 'ordered';
+                            // RPC convert_purchase_order_to_supplies accepte 'draft' | 'ordered' | 'partially_received'
+                            const canReceive = canManage && (order.status === 'ordered' || order.status === 'partially_received');
+                            const canClose = canManage && order.status === 'partially_received';
                             const canSendToSupplier = canManage && order.status === 'draft';
                             const canCancel = canManage && (order.status === 'draft' || order.status === 'ordered');
+                            const receiveLabel = order.status === 'partially_received' ? 'Compléter la réception' : 'Réceptionner';
 
                             return (
                                 <motion.div
@@ -289,7 +304,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                     </div>
 
                                     {/* Actions */}
-                                    {(canReceive || canSendToSupplier || canCancel) && (
+                                    {(canReceive || canClose || canSendToSupplier || canCancel) && (
                                         <div className="border-t border-border px-4 py-2 flex items-center gap-2 flex-wrap">
                                             {canReceive && (
                                                 <Button
@@ -298,7 +313,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                                     className="gap-1.5"
                                                 >
                                                     <Truck size={14} />
-                                                    Réceptionner
+                                                    {receiveLabel}
                                                 </Button>
                                             )}
                                             {canSendToSupplier && (
@@ -312,6 +327,15 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                                     <CheckCircle2 size={14} />
                                                     Marquer comme envoyée
                                                 </Button>
+                                            )}
+                                            {canClose && (
+                                                <button
+                                                    onClick={() => setOrderToClose(order)}
+                                                    className="ml-auto flex items-center gap-1 text-caption text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 px-2 py-1 rounded-lg transition-all"
+                                                >
+                                                    <XCircle size={12} />
+                                                    Clôturer
+                                                </button>
                                             )}
                                             {canCancel && (
                                                 <button
@@ -331,7 +355,7 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                                                     }
                                                 </span>
                                             )}
-                                            {order.status !== 'received' && order.status !== 'cancelled' && order.status !== 'draft' && (
+                                            {order.status !== 'received' && order.status !== 'cancelled' && order.status !== 'draft' && order.status !== 'partially_received' && (
                                                 <span className="ml-auto flex items-center gap-1 text-caption text-muted-foreground">
                                                     <ChevronRight size={14} />
                                                 </span>
@@ -356,6 +380,18 @@ export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
                 cancelLabel="Garder"
                 isDestructive
                 isLoading={cancelOrder.isPending}
+            />
+
+            {/* Close-partial confirmation */}
+            <ConfirmationModal
+                isOpen={!!orderToClose}
+                onClose={() => setOrderToClose(null)}
+                onConfirm={handleConfirmClose}
+                title="Clôturer la commande partielle"
+                message="Les quantités déjà reçues restent en stock. Les quantités manquantes seront abandonnées et la commande sortira de la liste « En cours ». Cette action est irréversible."
+                confirmLabel={closePartialOrder.isPending ? 'Clôture…' : 'Confirmer la clôture'}
+                cancelLabel="Garder ouverte"
+                isLoading={closePartialOrder.isPending}
             />
 
             {/* Reception modal */}

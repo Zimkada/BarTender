@@ -59,6 +59,8 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
         );
     };
 
+    const isCompletion = order.status === 'partially_received';
+
     const totalReceived = fullOrder
         ? fullOrder.items.reduce((acc, item) => acc + (receivedQty[item.id] ?? 0), 0)
         : 0;
@@ -67,7 +69,22 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
         item => (receivedQty[item.id] ?? 0) >= item.quantity
     );
 
-    const hasAnythingToReceive = totalReceived > 0;
+    // En mode complétion, on doit recevoir AU MOINS quelque chose de nouveau
+    // (delta > 0) par rapport au déjà-reçu cumulé.
+    const previouslyReceived = fullOrder
+        ? fullOrder.items.reduce((acc, item) => acc + (item.receivedQuantity ?? 0), 0)
+        : 0;
+
+    const hasAnythingToReceive = isCompletion
+        ? totalReceived > previouslyReceived
+        : totalReceived > 0;
+
+    // Empêche de saisir moins que ce qui a déjà été reçu — la RPC refuse
+    // toute décroissance pour préserver l'historique stock.
+    const hasInvalidDecrease = fullOrder?.items.some(item => {
+        const prev = item.receivedQuantity ?? 0;
+        return (receivedQty[item.id] ?? 0) < prev;
+    }) ?? false;
 
     const handleConfirm = async () => {
         if (!fullOrder || !currentSession) return;
@@ -96,10 +113,10 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
         <Modal
             open={isOpen}
             onClose={onClose}
-            title="Réceptionner la livraison"
+            title={isCompletion ? 'Compléter la réception' : 'Réceptionner la livraison'}
             description={`Commande du ${order.createdAt.toLocaleDateString('fr-FR')}`}
-            icon={<Truck className="text-indigo-600" size={24} />}
-            headerClassName="bg-indigo-50/50"
+            icon={<Truck className="text-brand-primary" size={24} />}
+            headerClassName="bg-brand-subtle"
             size="lg"
         >
             {isLoading ? (
@@ -114,7 +131,12 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                     {/* Info banner */}
                     <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
                         <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
-                        <p>Saisissez les quantités réellement reçues. Le stock et la comptabilité seront mis à jour automatiquement.</p>
+                        <p>
+                            {isCompletion
+                                ? 'Saisissez le total cumulé reçu à ce jour pour chaque produit. Le stock sera ajusté uniquement pour la différence par rapport à la dernière réception.'
+                                : 'Saisissez les quantités réellement reçues. Le stock et la comptabilité seront mis à jour automatiquement.'
+                            }
+                        </p>
                     </div>
 
                     {/* Items list */}
@@ -177,10 +199,10 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                                     [item.id]: Math.max(0, parseInt(e.target.value) || 0),
                                                 }))}
                                                 className={cn(
-                                                    'w-20 px-2 py-1.5 text-center font-black text-base rounded-lg border outline-none focus:ring-2',
-                                                    isFull && 'border-green-300 bg-green-50 text-green-800 focus:ring-green-200',
-                                                    isPartial && 'border-amber-300 bg-amber-50 text-amber-800 focus:ring-amber-200',
-                                                    isMissing && 'border-border bg-muted text-foreground/80 focus:ring-brand-primary/20',
+                                                    'input-token w-20 px-2 py-1.5 text-center font-black text-base rounded-lg border',
+                                                    isFull && 'border-green-300 bg-green-50 text-green-800',
+                                                    isPartial && 'border-amber-300 bg-amber-50 text-amber-800',
+                                                    isMissing && 'border-border bg-muted text-foreground/80',
                                                 )}
                                             />
                                         </div>
@@ -226,6 +248,11 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                             {!allFullyReceived && totalReceived > 0 && (
                                 <p className="text-caption text-amber-600 dark:text-amber-400 font-medium mt-0.5">Livraison partielle</p>
                             )}
+                            {hasInvalidDecrease && (
+                                <p className="text-caption text-red-600 dark:text-red-400 font-medium mt-0.5">
+                                    Impossible de réduire les quantités déjà reçues.
+                                </p>
+                            )}
                         </div>
                         <div className="flex gap-2">
                             <Button variant="ghost" onClick={onClose} disabled={convertToSupplies.isPending}>
@@ -233,16 +260,17 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                             </Button>
                             <Button
                                 onClick={handleConfirm}
-                                disabled={!hasAnythingToReceive || convertToSupplies.isPending}
-                                className="gap-2 text-white"
-                                style={{ backgroundColor: '#6366F1', backgroundImage: 'none' }}
+                                disabled={!hasAnythingToReceive || hasInvalidDecrease || convertToSupplies.isPending}
+                                className="gap-2"
                             >
                                 <Truck size={16} />
                                 {convertToSupplies.isPending
-                                    ? 'Réception en cours…'
+                                    ? 'En cours…'
                                     : allFullyReceived
-                                        ? 'Confirmer la réception'
-                                        : 'Réception partielle'
+                                        ? 'Réceptionner'
+                                        : isCompletion
+                                            ? 'Compléter'
+                                            : 'Partielle'
                                 }
                             </Button>
                         </div>

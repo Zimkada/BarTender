@@ -67,9 +67,9 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                         <button
                             onClick={onConfirm}
                             disabled={isLoading}
-                            className={`px-4 py-2 text-white font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 ${isDestructive
-                                    ? 'bg-red-600 hover:bg-red-700 active:bg-red-800'
-                                    : 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800'
+                            className={`px-4 py-2 font-medium rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 ${isDestructive
+                                    ? 'text-white bg-red-600 hover:bg-red-700 active:bg-red-800'
+                                    : 'btn-brand'
                                 }`}
                         >
                             {isLoading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

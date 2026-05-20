@@ -61,5 +61,17 @@ export function usePurchaseOrdersMutations(barId: string | undefined) {
         retry: false,
     });
 
-    return { createOrder, markAsOrdered, cancelOrder, convertToSupplies };
+    const closePartialOrder = useMutation({
+        mutationFn: (params: { orderId: string; reason?: string }) =>
+            PurchaseOrdersService.closePartialOrder(params),
+        onSuccess: (_data, variables) => {
+            invalidateOrders();
+            queryClient.invalidateQueries({
+                queryKey: purchaseOrderKeys.detail(variables.orderId),
+            });
+        },
+        retry: false,
+    });
+
+    return { createOrder, markAsOrdered, cancelOrder, convertToSupplies, closePartialOrder };
 }

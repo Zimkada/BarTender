@@ -205,4 +205,21 @@ export class PurchaseOrdersService {
             suppliesCreated: result.supplies_created?.length ?? 0,
         };
     }
+
+    static async closePartialOrder(params: {
+        orderId: string;
+        reason?: string;
+    }): Promise<{ status: PurchaseOrderStatus }> {
+        const { data, error } = await supabase.rpc('close_partial_purchase_order', {
+            p_order_id: params.orderId,
+            p_reason: params.reason || undefined,
+        });
+
+        if (error) throw error;
+
+        const result = data as { success: boolean; status: string } | null;
+        if (!result?.success) throw new Error('Clôture échouée');
+
+        return { status: result.status as PurchaseOrderStatus };
+    }
 }

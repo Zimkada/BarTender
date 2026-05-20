@@ -1,3 +1,5 @@
+npm warn exec The following package was not found and will be installed: supabase@2.100.1
+Initialising login role...
 export type Json =
   | string
   | number
@@ -5097,6 +5099,10 @@ export type Database = {
       cleanup_old_refresh_alerts: { Args: never; Returns: number }
       cleanup_old_refresh_logs: { Args: never; Returns: number }
       cleanup_old_rls_violations: { Args: never; Returns: number }
+      close_partial_purchase_order: {
+        Args: { p_order_id: string; p_reason?: string }
+        Returns: Json
+      }
       complete_bar_onboarding: {
         Args: {
           p_bar_id: string
@@ -6107,7 +6113,7 @@ export type Database = {
         }[]
       }
       refresh_daily_sales_summary: { Args: never; Returns: undefined }
-      refresh_expenses_summary: { Args: never; Returns: string }
+      refresh_expenses_summary: { Args: never; Returns: undefined }
       refresh_materialized_view_with_logging: {
         Args: { p_triggered_by?: string; p_view_name: string }
         Returns: string
@@ -6394,3 +6400,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.100.1 (currently installed v)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
