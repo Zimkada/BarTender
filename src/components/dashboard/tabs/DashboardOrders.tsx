@@ -164,25 +164,15 @@ export function DashboardOrders({
                                         >
                                             <div className="p-3">
                                                 <div className="flex items-center justify-between gap-3">
-                                                    {/* Bloc info : prix dominant + ligne secondaire heure/articles cliquable */}
-                                                    <button
-                                                        onClick={() => toggleExpanded(sale.id)}
-                                                        className="flex-1 min-w-0 flex flex-col items-start text-left hover:opacity-80 active:opacity-70 transition-opacity"
-                                                        aria-expanded={isExpanded}
-                                                        aria-label={`${isExpanded ? 'Masquer' : 'Afficher'} les détails de la vente`}
-                                                    >
+                                                    {/* Bloc info : prix dominant + heure secondaire */}
+                                                    <div className="flex-1 min-w-0 flex flex-col items-start">
                                                         <span className="text-h3 font-semibold text-foreground tabular-nums leading-tight">
                                                             {formatPrice(sale.total)}
                                                         </span>
-                                                        <span className="flex items-center gap-1.5 text-caption text-muted-foreground mt-0.5 tabular-nums">
-                                                            <span>{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                            <span className="text-muted-foreground/40">•</span>
-                                                            <span>{totalItems} article{totalItems > 1 ? 's' : ''}</span>
-                                                            {isExpanded
-                                                                ? <ChevronUp size={12} className="text-muted-foreground" />
-                                                                : <ChevronDown size={12} className="text-muted-foreground" />}
+                                                        <span className="text-caption text-muted-foreground mt-0.5 tabular-nums">
+                                                            {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
-                                                    </button>
+                                                    </div>
 
                                                     {/* Actions — boutons cercles 44×44 (touch target a11y) */}
                                                     {(canValidate || canCancel) && (
@@ -218,6 +208,25 @@ export function DashboardOrders({
                                                         </div>
                                                     )}
                                                 </div>
+
+                                                {/* Bouton "Voir détails" — explicite + bien visible */}
+                                                <button
+                                                    onClick={() => toggleExpanded(sale.id)}
+                                                    className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-muted hover:bg-brand-subtle text-caption font-medium text-foreground/80 hover:text-brand-primary border border-border hover:border-brand-primary/40 transition-colors"
+                                                    aria-expanded={isExpanded}
+                                                >
+                                                    {isExpanded ? (
+                                                        <>
+                                                            <ChevronUp size={14} />
+                                                            <span>Masquer les détails</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <ChevronDown size={14} />
+                                                            <span>Voir les {totalItems} article{totalItems > 1 ? 's' : ''}</span>
+                                                        </>
+                                                    )}
+                                                </button>
                                             </div>
 
                                             <AnimatePresence>
