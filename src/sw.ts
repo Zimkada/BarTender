@@ -83,8 +83,11 @@ registerRoute(
     cacheName: 'supabase-storage-cache',
     plugins: [
       new ExpirationPlugin({
-        maxEntries: 50,
+        maxEntries: 200,
         maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+      }),
+      new CacheableResponsePlugin({
+        statuses: [200]
       })
     ]
   })

@@ -301,12 +301,15 @@ export class CatalogEnrichmentService {
         const newGlobalProduct = globalProductData as GlobalProductRow;
 
         // Mettre à jour le bar_product source
+        // is_custom_product passe à false : le produit est désormais lié au catalogue
+        // (ne pas le faire crée une incohérence — produit custom mais lié au global)
         const { data: updatedBarProductData, error: updateError } =
           await supabase
             .from('bar_products')
             .update({
               global_product_id: newGlobalProduct.id,
-              is_source_of_global: true
+              is_source_of_global: true,
+              is_custom_product: false,
             } as BarProductUpdate)
             .eq('id', barProductId)
             .select()

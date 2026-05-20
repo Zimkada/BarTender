@@ -163,11 +163,11 @@ export default defineConfig({
             options: {
               cacheName: 'supabase-storage-cache',
               expiration: {
-                maxEntries: 50,
+                maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24 * 30 // 30 jours
               },
               cacheableResponse: {
-                statuses: [0, 200]
+                statuses: [200]
               }
             }
           },
