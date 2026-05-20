@@ -150,6 +150,16 @@
     --brand-text: hsl(0, 0%, 90%);
   }
 
+  /* 🔒 Fix Autofill in Dark Mode */
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover, 
+  .dark input:-webkit-autofill:focus, 
+  .dark input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px hsl(220, 10%, 18%) inset !important;
+    -webkit-text-fill-color: hsl(0, 0%, 95%) !important;
+    caret-color: hsl(0, 0%, 95%) !important;
+  }
+
   /* ♿ Design System accessible (Targeting specific content grays instead of global override) */
   .text-accessible-gray {
     color: #4b5563 !important;

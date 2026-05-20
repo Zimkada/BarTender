@@ -46,9 +46,9 @@ const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m =>
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const { products, categories } = useStock();
+  const { products, categories, addProduct } = useStock();
   const { addCategory, updateCategory, linkCategory } = useAppContext();
-  const { addSupply, createProduct } = useStockMutations(currentBar?.id || '');
+  const { addSupply } = useStockMutations(currentBar?.id || '');
   const { showNotification } = useNotifications();
   const queryClient = useQueryClient();
 
@@ -261,8 +261,9 @@ function RootLayoutContent() {
                 showNotification('error', 'Aucun bar sélectionné');
                 return;
               }
-              // ✅ Attendre le résultat de la mutation avant de fermer
-              await createProduct.mutateAsync({ ...productData, barId: currentBar.id });
+              // ✅ Passe par addProduct (useStock) qui applique toDbProductForCreation
+              // (mapping camelCase → snake_case requis par ProductsService.createBarProduct)
+              await addProduct({ ...productData, barId: currentBar.id });
               // ✅ Fermer APRÈS succès
               closeModal();
               // 🛡️ Pas de toast manuel — useStockMutations gère le succès

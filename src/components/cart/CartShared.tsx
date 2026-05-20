@@ -54,11 +54,11 @@ export function CartShared({
                                 {/* MAIN CONTENT: Product + Qty (Bordured) */}
                                 <div className={`flex-1 p-1.5 flex items-center gap-2 bg-card rounded-2xl border-2 ${isMaxReached ? 'border-orange-200' : 'border-brand-primary'} shadow-sm overflow-hidden transition-colors duration-300`}>
                                     {/* 1. Thumbnail (Small) */}
-                                    <div className="w-9 h-9 rounded-xl bg-brand-subtle/50 flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
+                                    <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
                                         {item.product.image ? (
                                             <img
                                                 src={item.product.image}
-                                                className="w-6 h-6 object-contain mix-blend-multiply"
+                                                className="w-7 h-7 object-contain mix-blend-multiply"
                                                 alt=""
                                             />
                                         ) : (

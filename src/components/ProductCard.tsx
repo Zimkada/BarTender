@@ -87,7 +87,7 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       </div>
 
       {/* Image */}
-      <div className="aspect-square bg-muted dark:bg-slate-400 p-2 flex items-center justify-center relative group border-b border-border overflow-hidden">
+      <div className="aspect-square bg-white p-2 flex items-center justify-center relative group border-b border-border overflow-hidden">
         {isLowStock && !isStockEmpty && !isMaxReached && (
           <div className="absolute top-2 left-2 text-amber-600 dark:text-amber-400 bg-card/90 rounded-full p-1 shadow-sm">
             <AlertTriangle size={12} />

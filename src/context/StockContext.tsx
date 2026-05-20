@@ -10,10 +10,10 @@ interface StockContextType {
   products: Product[];
   categories: Category[];
   isLoading: boolean;
-  addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => void;
+  addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => Promise<unknown>;
   addProducts: (products: Omit<Product, 'id' | 'createdAt'>[]) => void; // Batch import
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<unknown>;
+  deleteProduct: (id: string) => Promise<unknown>;
 
   // Stock Info
   getProductStockInfo: (productId: string) => ProductStockInfo | null;
