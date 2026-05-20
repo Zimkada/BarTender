@@ -129,7 +129,7 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
             ) : (
                 <div className="space-y-4">
                     {/* Info banner */}
-                    <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800">
+                    <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300">
                         <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
                         <p>
                             {isCompletion
@@ -153,8 +153,8 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                     key={item.id}
                                     className={cn(
                                         'rounded-xl border p-3 transition-all',
-                                        isFull && 'border-green-200 bg-green-50/50',
-                                        isPartial && 'border-amber-200 bg-amber-50/50',
+                                        isFull && 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30',
+                                        isPartial && 'border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30',
                                         isMissing && 'border-border bg-card',
                                     )}
                                 >
@@ -162,8 +162,8 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                         {/* Status icon */}
                                         <div className={cn(
                                             'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
-                                            isFull && 'bg-green-100',
-                                            isPartial && 'bg-amber-100',
+                                            isFull && 'bg-green-100 dark:bg-green-900/50',
+                                            isPartial && 'bg-amber-100 dark:bg-amber-900/50',
                                             isMissing && 'bg-muted',
                                         )}>
                                             {isFull
@@ -200,8 +200,8 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
                                                 }))}
                                                 className={cn(
                                                     'input-token w-20 px-2 py-1.5 text-center font-black text-base rounded-lg border',
-                                                    isFull && 'border-green-300 bg-green-50 text-green-800',
-                                                    isPartial && 'border-amber-300 bg-amber-50 text-amber-800',
+                                                    isFull && 'border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950/50 dark:text-green-300',
+                                                    isPartial && 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
                                                     isMissing && 'border-border bg-muted text-foreground/80',
                                                 )}
                                             />
