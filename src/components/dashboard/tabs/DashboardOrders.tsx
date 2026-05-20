@@ -85,9 +85,12 @@ export function DashboardOrders({
         );
     }
 
+    // Affiche "Tout valider" uniquement s'il y a plusieurs serveurs (sinon "Valider lot" suffit)
+    const showTopValidateAll = showBulkValidation && sortedServerIds.length > 1;
+
     return (
         <div className="bg-card rounded-2xl p-5 sm:p-6 border border-border shadow-sm" data-guide="pending-sales">
-            {/* Header — titre + compteur + bulk action */}
+            {/* Header — titre + compteur + bulk action (seulement si plusieurs serveurs) */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                 <div>
                     <h3 className="text-h3 text-foreground">Commandes en attente</h3>
@@ -96,13 +99,13 @@ export function DashboardOrders({
                     </p>
                 </div>
 
-                {showBulkValidation && (
+                {showTopValidateAll && (
                     <EnhancedButton
                         onClick={() => onValidateAll(sales)}
                         size="sm"
                         variant="secondary"
                         icon={<CheckCheck size={16} />}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-card text-foreground hover:border-brand-primary hover:bg-brand-subtle hover:text-brand-primary text-body-sm font-semibold transition-colors whitespace-nowrap"
+                        className="text-body-sm font-semibold whitespace-nowrap"
                     >
                         Tout valider ({sales.length})
                     </EnhancedButton>
@@ -118,23 +121,26 @@ export function DashboardOrders({
                     return (
                         <div key={serverId}>
                             {/* En-tête serveur — sticky */}
-                            <div className="flex justify-between items-center mb-3 sticky top-0 z-20 bg-card py-2 -mx-1 px-1">
-                                <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center text-background">
+                            <div className="flex justify-between items-center gap-2 mb-3 sticky top-0 z-20 bg-card py-2 -mx-1 px-1">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center text-background flex-shrink-0">
                                         <User size={14} />
                                     </div>
-                                    <h4 className="text-body-sm font-semibold text-foreground">
-                                        {server?.name || 'Collaborateur inconnu'}
-                                    </h4>
-                                    <span className="text-caption text-muted-foreground tabular-nums">
-                                        {serverSales.length}
-                                    </span>
+                                    <div className="min-w-0">
+                                        <h4 className="text-body-sm font-semibold text-foreground truncate">
+                                            {server?.name || 'Collaborateur inconnu'}
+                                        </h4>
+                                        <p className="text-caption text-muted-foreground tabular-nums">
+                                            {serverSales.length} commande{serverSales.length > 1 ? 's' : ''}
+                                        </p>
+                                    </div>
                                 </div>
                                 {showBulkValidation && (
                                     <button
                                         onClick={() => onValidateAll(serverSales)}
-                                        className="px-3 py-1.5 rounded-lg border border-border bg-card text-foreground/80 hover:border-brand-primary hover:bg-brand-subtle hover:text-brand-primary text-caption font-medium transition-colors whitespace-nowrap"
+                                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-card text-foreground/80 hover:border-brand-primary hover:bg-brand-subtle hover:text-brand-primary text-caption font-medium transition-colors whitespace-nowrap flex-shrink-0"
                                     >
+                                        <CheckCheck size={14} />
                                         Valider lot ({serverSales.length})
                                     </button>
                                 )}
@@ -157,28 +163,28 @@ export function DashboardOrders({
                                             className="bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-all overflow-hidden"
                                         >
                                             <div className="p-3">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    {/* Info bloc — heure + prix + détails */}
-                                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                        <div className="flex flex-col flex-shrink-0">
-                                                            <span className="text-micro text-muted-foreground leading-none mb-1 tabular-nums">
-                                                                {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                            <p className="text-body font-semibold text-foreground tabular-nums leading-none">
-                                                                {formatPrice(sale.total).replace(/[\s]?FCFA/g, '')}
-                                                            </p>
-                                                        </div>
+                                                <div className="flex items-center justify-between gap-3">
+                                                    {/* Bloc info : prix dominant + ligne secondaire heure/articles cliquable */}
+                                                    <button
+                                                        onClick={() => toggleExpanded(sale.id)}
+                                                        className="flex-1 min-w-0 flex flex-col items-start text-left hover:opacity-80 active:opacity-70 transition-opacity"
+                                                        aria-expanded={isExpanded}
+                                                        aria-label={`${isExpanded ? 'Masquer' : 'Afficher'} les détails de la vente`}
+                                                    >
+                                                        <span className="text-h3 font-semibold text-foreground tabular-nums leading-tight">
+                                                            {formatPrice(sale.total)}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5 text-caption text-muted-foreground mt-0.5 tabular-nums">
+                                                            <span>{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                            <span className="text-muted-foreground/40">•</span>
+                                                            <span>{totalItems} article{totalItems > 1 ? 's' : ''}</span>
+                                                            {isExpanded
+                                                                ? <ChevronUp size={12} className="text-muted-foreground" />
+                                                                : <ChevronDown size={12} className="text-muted-foreground" />}
+                                                        </span>
+                                                    </button>
 
-                                                        <button
-                                                            onClick={() => toggleExpanded(sale.id)}
-                                                            className="flex items-center gap-1.5 text-caption font-medium text-foreground/80 hover:text-brand-primary transition-colors px-2.5 py-1 rounded-lg bg-muted hover:bg-brand-subtle"
-                                                        >
-                                                            <span>Détails ({totalItems})</span>
-                                                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Actions — boutons cercles */}
+                                                    {/* Actions — boutons cercles 44×44 (touch target a11y) */}
                                                     {(canValidate || canCancel) && (
                                                         <div className="flex items-center gap-2 flex-shrink-0">
                                                             {canValidate && (
@@ -186,10 +192,10 @@ export function DashboardOrders({
                                                                     onClick={() => onValidate(sale.id)}
                                                                     variant="success"
                                                                     size="sm"
-                                                                    className="w-9 h-9 !p-0 rounded-full shadow-sm active:scale-90 transition-transform flex items-center justify-center"
+                                                                    className="w-11 h-11 !p-0 rounded-full shadow-sm active:scale-90 transition-transform flex items-center justify-center"
                                                                     loading={processingId === sale.id}
                                                                     disabled={!!processingId}
-                                                                    icon={<Check size={16} strokeWidth={2.5} />}
+                                                                    icon={<Check size={18} strokeWidth={2.5} />}
                                                                     aria-label="Valider la vente"
                                                                 >
                                                                     {''}
@@ -200,10 +206,10 @@ export function DashboardOrders({
                                                                     onClick={() => onReject(sale.id)}
                                                                     variant="secondary"
                                                                     size="sm"
-                                                                    className="w-9 h-9 !p-0 bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400 rounded-full hover:bg-red-500 hover:text-white active:scale-90 transition-all flex items-center justify-center border border-red-100 dark:border-red-900/40"
+                                                                    className="w-11 h-11 !p-0 bg-red-50 dark:bg-red-950/40 text-red-500 dark:text-red-400 rounded-full hover:bg-red-500 hover:text-white active:scale-90 transition-all flex items-center justify-center border border-red-100 dark:border-red-900/40"
                                                                     loading={processingId === sale.id}
                                                                     disabled={!!processingId}
-                                                                    icon={<X size={16} strokeWidth={2.5} />}
+                                                                    icon={<X size={18} strokeWidth={2.5} />}
                                                                     aria-label="Annuler la vente"
                                                                 >
                                                                     {''}
@@ -223,25 +229,22 @@ export function DashboardOrders({
                                                         transition={{ duration: 0.2, ease: "easeOut" }}
                                                         className="border-t border-border bg-muted/50"
                                                     >
-                                                        <div className="p-3 space-y-2">
-                                                            <p className="text-micro text-muted-foreground">
-                                                                Articles ({sale.items.length})
-                                                            </p>
-                                                            <div className="space-y-1.5">
+                                                        <div className="p-3">
+                                                            <div className="space-y-2">
                                                                 {sale.items.map((item: SaleItem, index: number) => (
                                                                     <div key={index} className="flex items-center justify-between gap-2">
-                                                                        <div className="flex items-center gap-2 min-w-0">
-                                                                            <span className="w-6 h-6 flex items-center justify-center bg-card rounded-md text-caption font-semibold text-brand-primary border border-border tabular-nums flex-shrink-0">
-                                                                                {item.quantity}
+                                                                        <div className="flex items-baseline gap-2 min-w-0 flex-1">
+                                                                            <span className="text-caption font-semibold text-brand-primary tabular-nums flex-shrink-0">
+                                                                                {item.quantity}×
                                                                             </span>
-                                                                            <span className="text-caption font-medium text-foreground/90 truncate">
+                                                                            <span className="text-caption font-medium text-foreground truncate">
                                                                                 {item.product_name}
+                                                                                {item.product_volume && (
+                                                                                    <span className="text-muted-foreground font-normal ml-1">
+                                                                                        {item.product_volume}
+                                                                                    </span>
+                                                                                )}
                                                                             </span>
-                                                                            {item.product_volume && (
-                                                                                <span className="text-[10px] text-muted-foreground border border-border px-1.5 py-0.5 rounded flex-shrink-0">
-                                                                                    {item.product_volume}
-                                                                                </span>
-                                                                            )}
                                                                         </div>
                                                                         <span className="text-caption font-semibold text-foreground tabular-nums flex-shrink-0">
                                                                             {formatPrice(item.total_price)}

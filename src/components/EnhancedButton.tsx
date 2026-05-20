@@ -67,7 +67,7 @@ const buttonAnimations = {
 const getVariantStyles = (variant: ButtonVariant) => {
   const styles = {
     primary: 'btn-brand', // Uses var(--brand-gradient) for dynamic theming
-    secondary: 'bg-gray-200 text-foreground hover:bg-gray-300',
+    secondary: 'bg-muted text-foreground border border-border hover:bg-accent hover:border-brand-primary/40',
     success: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600',
     danger: 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600',
     warning: 'btn-brand', // Uses var(--brand-gradient) for dynamic theming
