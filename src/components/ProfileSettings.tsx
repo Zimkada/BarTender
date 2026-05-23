@@ -183,7 +183,6 @@ export function ProfileSettings() {
         ]}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as 'info' | 'password' | 'training')}
-        showBack={false}
         guideId="my-profile"
       />
 

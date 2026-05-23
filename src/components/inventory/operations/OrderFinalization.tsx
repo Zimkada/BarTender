@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../lib/utils';
-import { replaceAccents } from '../../../utils/stringFormatting';
+import { replaceAccents, buildWhatsAppMessage } from '../../../utils/stringFormatting';
 
 interface OrderFinalizationProps {
     onOrderSaved?: () => void;
@@ -57,34 +57,37 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
     const exportWhatsApp = () => {
         if (items.length === 0) return;
 
-        const dateStr = new Date().toLocaleDateString('fr-FR');
-        let msg = `*BON DE COMMANDE - ${dateStr}*\n\n`;
-
+        let body = '';
         items.forEach((item, idx) => {
             if (item.quantity > 0) {
-                msg += `${idx + 1}. *${item.productName}*\n`;
-                msg += `   Qté: ${item.quantity}`;
+                body += `${idx + 1}. *${item.productName}*\n`;
+                body += `   Qté: ${item.quantity}`;
                 if (item.lotSize > 1) {
                     const lots = Math.floor(item.quantity / item.lotSize);
                     const rest = item.quantity % item.lotSize;
-                    msg += ` (${lots} lots + ${rest})`;
+                    body += ` (${lots} lots + ${rest})`;
                 }
 
-                // Calcul Sous-total
                 const subtotal = (item.lotPrice > 0 && item.lotSize > 0)
                     ? (item.quantity / item.lotSize) * item.lotPrice
                     : item.quantity * item.unitPrice;
 
                 if (subtotal > 0) {
-                    msg += ` | Total: ${formatPrice(subtotal)}`;
+                    body += ` | Total: ${formatPrice(subtotal)}`;
                 }
 
-                if (item.supplier) msg += `\n   Fournisseur: ${item.supplier}`;
-                msg += `\n\n`;
+                if (item.supplier) body += `\n   Fournisseur: ${item.supplier}`;
+                body += `\n\n`;
             }
         });
 
-        msg += `*TOTAL ESTIMÉ: ${formatPrice(totals.totalCost)}*`;
+        body += `*TOTAL ESTIMÉ : ${formatPrice(totals.totalCost)}*`;
+
+        const msg = buildWhatsAppMessage({
+            barName: currentBar?.name || 'Mon Bar',
+            title: 'Bon de commande',
+            body,
+        });
 
         const url = `https://wa.me/?text=${encodeURIComponent(replaceAccents(msg))}`;
         window.open(url, '_blank');

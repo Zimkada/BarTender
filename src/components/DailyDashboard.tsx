@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
@@ -9,7 +8,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { Sale } from '../types';
 import { AnalyticsService } from '../services/supabase/analytics.service';
 import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
-import { replaceAccents } from '../utils/stringFormatting';
+import { replaceAccents, buildWhatsAppMessage } from '../utils/stringFormatting';
 
 // Hook & Sub-components
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
@@ -32,10 +31,8 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
-  const { showSuccess, showError, setLoading, isLoading } = useFeedback();
+  const { showSuccess, showError, setLoading } = useFeedback();
   const queryClient = useQueryClient();
-
-  const [cashClosed, setCashClosed] = useState(false);
 
   // Architecture: Data fetching & Business Logic centralized in Hook
   const analytics = useDashboardAnalytics(currentBar?.id);
@@ -70,46 +67,34 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
 
   const exportToWhatsApp = () => {
     const barName = currentBar?.name || 'Mon Bar';
-    const dateStr = analytics.todayDateStr
-      ? new Date(analytics.todayDateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-      : new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const reportDate = analytics.todayDateStr ? new Date(analytics.todayDateStr) : new Date();
 
-    let msg = `*RAPPORT JOURNALIER - ${barName.toUpperCase()}*\n`;
-    msg += `_${dateStr}_\n\n`;
+    let body = `*RÉSUMÉ FINANCIER*\n`;
+    body += `- Total (Net) : *${formatPrice(analytics.todayTotal)}*\n`;
+    body += `- Commandes : ${analytics.sales.length}\n`;
+    body += `- Articles vendus : ${analytics.totalItems}\n\n`;
 
-    msg += `---------------------------\n`;
-    msg += `*RESUME FINANCIER*\n`;
-    msg += `- Total (Net) : *${formatPrice(analytics.todayTotal)}*\n`;
-    msg += `- Commandes : ${analytics.sales.length}\n`;
-    msg += `- Articles vendus : ${analytics.totalItems}\n\n`;
-
-    msg += `*OPERATIONS*\n`;
-    msg += `- Retours traites : ${analytics.returns.length}\n`;
-    msg += `- Consignations actives : ${analytics.consignments.length}\n`;
+    body += `*OPÉRATIONS*\n`;
+    body += `- Retours traités : ${analytics.returns.length}\n`;
+    body += `- Consignations actives : ${analytics.consignments.length}\n`;
 
     if (analytics.topProductsList.length) {
-      msg += `\n*TOP PRODUITS*\n`;
+      body += `\n*TOP PRODUITS*\n`;
       analytics.topProductsList.slice(0, 3).forEach((p, i) => {
-        msg += `${i + 1}. ${p.name} : *${p.qty}*\n`;
+        body += `${i + 1}. ${p.name} : *${p.qty}*\n`;
       });
     }
 
-    msg += `---------------------------\n`;
-    msg += `_Genere via BarTender_`;
+    const msg = buildWhatsAppMessage({
+      barName,
+      title: 'Rapport journalier',
+      date: reportDate,
+      body,
+    });
 
     const asciiMsg = replaceAccents(msg);
     window.open(`https://wa.me/?text=${encodeURIComponent(asciiMsg)}`, '_blank');
     showSuccess('📱 Rapport exporté');
-  };
-
-  const closeCash = async () => {
-    if (!confirm('Fermer la caisse ?')) return;
-    setLoading('closeCash', true);
-    await new Promise(r => setTimeout(r, 1000));
-    setCashClosed(true);
-    showSuccess('✅ Caisse fermée');
-    setLoading('closeCash', false);
-    exportToWhatsApp();
   };
 
   if (!currentBar) return <div className="text-center py-20 text-gray-500">Sélectionnez un bar</div>;
@@ -141,9 +126,6 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
             formatPrice={formatPrice}
             onRefresh={handleRefresh}
             onExportWhatsApp={exportToWhatsApp}
-            onCloseCash={closeCash}
-            cashClosed={cashClosed}
-            isClosingCash={isLoading('closeCash')}
           />
         </motion.div>
       )}

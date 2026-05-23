@@ -57,8 +57,7 @@ export const EditSupplyMetadataModal: React.FC<EditSupplyMetadataModalProps> = (
                     ? `Édition des informations cosmétiques pour ${initial.productName}. Aucun impact sur le stock ni la comptabilité.`
                     : 'Édition des informations cosmétiques. Aucun impact sur le stock ni la comptabilité.'
             }
-            icon={<Pencil className="text-blue-600" size={24} />}
-            headerClassName="bg-blue-50/50"
+            icon={<Pencil className="text-brand-primary" size={24} />}
             footer={
                 <>
                     <Button variant="ghost" onClick={onClose} disabled={isLoading}>
@@ -66,7 +65,6 @@ export const EditSupplyMetadataModal: React.FC<EditSupplyMetadataModalProps> = (
                     </Button>
                     <Button
                         onClick={() => onSubmit(form)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
                         disabled={!isDirty || isLoading}
                     >
                         {isLoading ? 'Enregistrement…' : 'Enregistrer'}

@@ -421,7 +421,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       items={items}
                       onUpdateQuantity={updateQuantity}
                       onRemoveItem={removeFromCart}
-                      variant="desktop"
                       showTotalReductions={true}
                       maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity} // 🛡️ Fix Force Sale
                     />

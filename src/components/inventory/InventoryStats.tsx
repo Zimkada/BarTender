@@ -210,7 +210,7 @@ function InventorySummaryCards({ products, formatPrice, barSettings }: { product
                         <card.icon size={18} />
                     </div>
                     <div className="min-w-0 w-full">
-                        <div className="text-h2 text-foreground leading-tight tabular-nums truncate">
+                        <div className="text-lg sm:text-xl lg:text-h2 font-bold text-foreground leading-tight tabular-nums break-words">
                             {card.value}
                         </div>
                         <div className="text-micro text-muted-foreground mt-1">

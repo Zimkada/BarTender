@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import {
-    TrendingUp, DollarSign, ShoppingCart, Package, Lock,
+    TrendingUp, DollarSign, ShoppingCart, Package,
     AlertTriangle, RotateCcw, Archive, MessageCircle
 } from 'lucide-react';
 import { DataFreshnessIndicatorCompact } from '../../DataFreshnessIndicator';
@@ -31,9 +31,6 @@ interface DashboardSummaryProps {
     // Actions & States
     onRefresh: () => Promise<void>;
     onExportWhatsApp: () => void;
-    onCloseCash: () => void;
-    cashClosed: boolean;
-    isClosingCash: boolean;
 }
 
 export function DashboardSummary({
@@ -52,9 +49,6 @@ export function DashboardSummary({
     formatPrice,
     onRefresh,
     onExportWhatsApp,
-    onCloseCash,
-    cashClosed,
-    isClosingCash
 }: DashboardSummaryProps) {
     const navigate = useNavigate();
 
@@ -231,25 +225,6 @@ export function DashboardSummary({
                         <MessageCircle size={16} />
                         WhatsApp
                     </EnhancedButton>
-
-                    {!isServerRole && (
-                        !cashClosed ? (
-                            <EnhancedButton
-                                onClick={onCloseCash}
-                                loading={isClosingCash}
-                                variant="danger"
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 text-white rounded-lg text-body-sm font-semibold shadow-sm active:scale-[0.98] transition-all"
-                            >
-                                <Lock size={16} />
-                                Fermer caisse
-                            </EnhancedButton>
-                        ) : (
-                            <div className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 bg-muted text-muted-foreground rounded-lg text-body-sm font-medium border border-border cursor-not-allowed">
-                                <Lock size={16} />
-                                Caisse fermée
-                            </div>
-                        )
-                    )}
                 </div>
             </div>
         </div>

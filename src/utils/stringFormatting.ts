@@ -57,3 +57,32 @@ export function formatAddress(value: string | undefined | null): string {
     return value;
   }
 }
+
+/**
+ * Construit un message WhatsApp avec en-tête et pied de page harmonisés.
+ * Format commun à tous les exports (point du jour, bon de commande, etc.)
+ */
+export function buildWhatsAppMessage(opts: {
+  barName: string;
+  title: string;
+  date?: Date;
+  body: string;
+}): string {
+  const date = opts.date ?? new Date();
+  const dateStr = date.toLocaleDateString('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const separator = '---------------------------';
+  const header =
+    `*${opts.barName.toUpperCase()}*\n` +
+    `_${opts.title}_\n` +
+    `_${dateStr}_\n` +
+    `${separator}\n\n`;
+  const footer = `\n${separator}\n_Généré via BarTender_`;
+
+  return header + opts.body.trim() + footer;
+}

@@ -328,7 +328,7 @@ export function ServerMappingsManager({
                     placeholder="ex: Ahmed ou Serveur 1"
                     value={newServerName}
                     onChange={(e) => setNewServerName(e.target.value)}
-                    className="h-12 bg-muted border-border focus:bg-card rounded-xl text-body-sm font-medium"
+                    className="h-12 bg-muted border-border focus:bg-card rounded-xl text-body-sm text-foreground font-medium placeholder:text-muted-foreground"
                     disabled={saving}
                   />
                 </div>
@@ -339,7 +339,7 @@ export function ServerMappingsManager({
                     options={memberOptions}
                     value={newServerId}
                     onChange={(e) => setNewServerId(e.target.value)}
-                    className="h-12 bg-muted border-border rounded-xl text-body-sm font-medium"
+                    className="h-12 bg-muted border-border rounded-xl text-body-sm text-foreground font-medium"
                     disabled={saving}
                   />
                 </div>

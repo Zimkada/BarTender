@@ -1,13 +1,102 @@
+import { useState, useRef, useEffect } from 'react';
 import { Plus, Minus, Trash2, Tag, Package } from 'lucide-react';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { CalculatedItem } from '../../hooks/useCartLogic';
 import { motion, AnimatePresence } from 'framer-motion';
 
+interface QuantityControlProps {
+    quantity: number;
+    maxQty: number;
+    isMaxReached: boolean;
+    onUpdateQuantity: (quantity: number) => void;
+    onRemove: () => void;
+}
+
+function QuantityControl({ quantity, maxQty, isMaxReached, onUpdateQuantity, onRemove }: QuantityControlProps) {
+    const [isEditing, setIsEditing] = useState(false);
+    const [draft, setDraft] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (isEditing) {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+    }, [isEditing]);
+
+    const startEdit = () => {
+        setDraft(String(quantity));
+        setIsEditing(true);
+    };
+
+    const commit = () => {
+        const parsed = parseInt(draft, 10);
+        if (Number.isFinite(parsed) && parsed > 0) {
+            const clamped = Math.min(parsed, maxQty);
+            if (clamped !== quantity) onUpdateQuantity(clamped);
+        } else if (draft.trim() === '' || parsed === 0) {
+            onRemove();
+        }
+        setIsEditing(false);
+    };
+
+    const cancel = () => setIsEditing(false);
+
+    return (
+        <div className="flex items-center bg-muted rounded-lg p-0.5 gap-1.5 border border-border ml-auto">
+            <button
+                onClick={() => onUpdateQuantity(quantity - 1)}
+                className="w-6 h-6 rounded-md bg-card border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
+            >
+                <Minus size={12} strokeWidth={3} />
+            </button>
+
+            {isEditing ? (
+                <input
+                    ref={inputRef}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, ''))}
+                    onBlur={commit}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); commit(); }
+                        else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+                    }}
+                    className={`text-[11px] font-black font-mono w-10 text-center bg-card border border-brand-primary rounded outline-none ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}
+                    aria-label="Quantité"
+                />
+            ) : (
+                <button
+                    type="button"
+                    onClick={startEdit}
+                    className={`text-[11px] font-black font-mono w-10 text-center ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}
+                    aria-label={`Modifier la quantité (actuellement ${quantity})`}
+                >
+                    {quantity}
+                </button>
+            )}
+
+            <button
+                onClick={() => !isMaxReached && onUpdateQuantity(quantity + 1)}
+                disabled={isMaxReached}
+                className={`w-6 h-6 rounded-md flex items-center justify-center text-white transition-all shadow-sm ${isMaxReached
+                    ? 'bg-gray-300 cursor-not-allowed opacity-50'
+                    : 'bg-brand-primary active:scale-90'
+                    }`}
+                style={{ background: isMaxReached ? undefined : 'var(--brand-gradient)' }}
+            >
+                <Plus size={12} strokeWidth={3} />
+            </button>
+        </div>
+    );
+}
+
 interface CartSharedProps {
     items: CalculatedItem[];
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveItem: (productId: string) => void;
-    variant?: 'mobile' | 'desktop';
     showTotalReductions?: boolean;
     maxStockLookup?: (productId: string) => number; // 🛡️ Fix Force Sale
 }
@@ -23,12 +112,10 @@ export function CartShared({
     items,
     onUpdateQuantity,
     onRemoveItem,
-    variant = 'mobile',
     showTotalReductions = false,
     maxStockLookup
 }: CartSharedProps) {
     const { formatPrice } = useCurrencyFormatter();
-    const isMobile = variant === 'mobile';
 
     const totalReductions = items.reduce((sum, item) => sum + item.discount_amount, 0);
 
@@ -87,30 +174,13 @@ export function CartShared({
                                     </div>
 
                                     {/* 3. Controls (Compact Right) */}
-                                    <div className="flex items-center bg-muted rounded-lg p-0.5 gap-1.5 border border-border ml-auto">
-                                        <button
-                                            onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                                            className="w-6 h-6 rounded-md bg-card border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
-                                        >
-                                            <Minus size={12} strokeWidth={3} />
-                                        </button>
-
-                                        <span className={`text-[11px] font-black font-mono w-4 text-center ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}>
-                                            {item.quantity}
-                                        </span>
-
-                                        <button
-                                            onClick={() => !isMaxReached && onUpdateQuantity(item.product.id, item.quantity + 1)}
-                                            disabled={isMaxReached}
-                                            className={`w-6 h-6 rounded-md flex items-center justify-center text-white transition-all shadow-sm ${isMaxReached
-                                                ? 'bg-gray-300 cursor-not-allowed opacity-50'
-                                                : 'bg-brand-primary active:scale-90'
-                                                }`}
-                                            style={{ background: isMaxReached ? undefined : 'var(--brand-gradient)' }}
-                                        >
-                                            <Plus size={12} strokeWidth={3} />
-                                        </button>
-                                    </div>
+                                    <QuantityControl
+                                        quantity={item.quantity}
+                                        maxQty={maxQty}
+                                        isMaxReached={isMaxReached}
+                                        onUpdateQuantity={(q) => onUpdateQuantity(item.product.id, q)}
+                                        onRemove={() => onRemoveItem(item.product.id)}
+                                    />
                                 </div>
 
                                 {/* 4. Delete Button - ISOLATED (Outside Main Border) */}

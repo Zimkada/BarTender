@@ -88,7 +88,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           {...props}
         >
           {placeholder && (
-            <option value="" disabled>
+            <option value="" disabled className="bg-card text-foreground">
               {placeholder}
             </option>
           )}
@@ -97,6 +97,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               key={option.value}
               value={option.value}
               disabled={option.disabled}
+              className="bg-card text-foreground"
             >
               {option.label}
             </option>

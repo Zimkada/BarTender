@@ -52,11 +52,12 @@ export function StaleSalesCleanupBanner({ barId }: Props) {
                         </div>
                         <div>
                             <h3 className="font-bold text-orange-900 leading-tight">
-                                Stock bloqué par des ventes orphelines
+                                Ventes non validées de la veille
                             </h3>
                             <p className="text-sm text-orange-800/80 mt-1 max-w-xl">
-                                {staleSales.length} ventes en attente datant des jours précédents bloquent indûment votre stock.
-                                Un nettoyage automatique est recommandé pour corriger vos inventaires.
+                                {staleSales.length} vente{staleSales.length > 1 ? 's' : ''} en attente {staleSales.length > 1 ? 'datent' : 'date'} d'hier ou avant.
+                                {staleSales.length > 1 ? ' Elles bloquent' : ' Elle bloque'} le stock et {staleSales.length > 1 ? 'faussent' : 'fausse'} vos rapports du jour.
+                                Libérez le stock pour repartir sur un inventaire propre.
                             </p>
                         </div>
                     </div>
@@ -68,7 +69,7 @@ export function StaleSalesCleanupBanner({ barId }: Props) {
                                 className="w-full sm:w-auto px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-sm font-bold uppercase tracking-wider rounded-xl transition-colors shadow-lg shadow-orange-600/20 active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <RefreshCw size={16} />
-                                Nettoyer le stock
+                                Libérer le stock
                             </button>
                         ) : (
                             <div className="flex items-center gap-2 w-full sm:w-auto">

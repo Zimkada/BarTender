@@ -459,7 +459,7 @@ export function CreateConsignmentForm({
                                                     onChange={e => setQuantity(Number(e.target.value))}
                                                     max={maxQuantity}
                                                     min={1}
-                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-body font-semibold tabular-nums shadow-sm rounded-xl transition-all"
+                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-body text-foreground font-semibold tabular-nums shadow-sm rounded-xl transition-all"
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -469,7 +469,7 @@ export function CreateConsignmentForm({
                                                     value={expirationDays}
                                                     onChange={e => setExpirationDays(Number(e.target.value))}
                                                     min={1}
-                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-body font-semibold tabular-nums shadow-sm rounded-xl transition-all"
+                                                    className="bg-muted border border-border focus:bg-card focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 h-12 text-body text-foreground font-semibold tabular-nums shadow-sm rounded-xl transition-all"
                                                 />
                                             </div>
                                         </div>
@@ -506,9 +506,9 @@ export function CreateConsignmentForm({
 
                                 {/* PREMIUM REALISTIC TICKET */}
                                 <div className="lg:col-span-1">
-                                    <div className="relative bg-card shadow-xl shadow-gray-200/50 flex flex-col overflow-hidden">
-                                        {/* Serrated Top */}
-                                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,transparent_33.333%,#fff_33.333%,#fff_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#fff_33.333%,#fff_66.667%,transparent_66.667%)] bg-[length:12px_24px] bg-[position:0_-12px] rotate-180 transform translate-y-[-50%]" />
+                                    <div className="relative bg-card shadow-xl shadow-black/10 dark:shadow-black/40 flex flex-col overflow-hidden">
+                                        {/* Serrated Top — couleur du fond pour découpe naturelle en clair et sombre */}
+                                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-[linear-gradient(45deg,transparent_33.333%,hsl(var(--background))_33.333%,hsl(var(--background))_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,hsl(var(--background))_33.333%,hsl(var(--background))_66.667%,transparent_66.667%)] bg-[length:12px_24px] bg-[position:0_-12px] rotate-180 transform translate-y-[-50%]" />
 
                                         <div className="p-6 pt-8 text-center border-b border-dashed border-border">
                                             <div className="w-12 h-12 bg-amber-50 dark:bg-amber-950/30 rounded-full flex items-center justify-center mx-auto mb-3 border border-amber-100 dark:border-amber-900/40">
@@ -548,8 +548,8 @@ export function CreateConsignmentForm({
                                             </button>
                                         </div>
 
-                                        {/* Serrated Bottom */}
-                                        <div className="h-4 w-full bg-[linear-gradient(45deg,transparent_33.333%,#f9fafb_33.333%,#f9fafb_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,#f9fafb_33.333%,#f9fafb_66.667%,transparent_66.667%)] bg-[length:12px_24px] bg-[position:0_12px]" />
+                                        {/* Serrated Bottom — couleur du fond pour découpe naturelle en clair et sombre */}
+                                        <div className="h-4 w-full bg-[linear-gradient(45deg,transparent_33.333%,hsl(var(--background))_33.333%,hsl(var(--background))_66.667%,transparent_66.667%),linear-gradient(-45deg,transparent_33.333%,hsl(var(--background))_33.333%,hsl(var(--background))_66.667%,transparent_66.667%)] bg-[length:12px_24px] bg-[position:0_12px]" />
                                     </div>
                                 </div>
                             </div>
