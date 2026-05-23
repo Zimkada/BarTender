@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import React from 'react';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 /**
  * OnboardingProgressBar

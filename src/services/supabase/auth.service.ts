@@ -15,9 +15,8 @@ export interface AuthUser extends Omit<DbUser, 'password_hash'> {
   barName: string;
   allBarIds?: string[]; // IDs de tous les bars actifs (pour multi-bar support)
   factors?: Factor[]; // Add factors for MFA
-  has_completed_onboarding?: boolean | null; // ✅ Harmonisé avec DbUser
-  onboarding_completed_at?: string | null;
-  training_version_completed?: number | null;
+  // has_completed_onboarding, onboarding_completed_at, training_version_completed
+  // sont hérités de DbUser via Omit — ne pas les redéclarer ici
 }
 
 export interface LoginCredentials {
@@ -165,7 +164,7 @@ export class AuthService {
 
     // Récupère TOUS les bars actifs de l'utilisateur (support multi-bar)
     // ✅ FIX 2026-03-02: Include both member bars AND owned bars
-    const { data: memberships, error: membershipError } = await supabase
+    const { data: memberships } = await supabase
       .from('bar_members')
       .select(`
         role,
@@ -181,7 +180,7 @@ export class AuthService {
       .order('joined_at', { ascending: false }); // Plus récent en premier
 
     // ✅ FIX 2026-03-02: Also fetch bars where user is the owner
-    const { data: ownedBars, error: ownedBarsError } = await supabase
+    const { data: ownedBars } = await supabase
       .from('bars')
       .select('id, name, address, phone')
       .eq('owner_id', userId)

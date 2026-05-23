@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase'; // Import direct de supabase
 import { Alert } from './ui/Alert';
 
@@ -14,7 +14,7 @@ function ResetPasswordScreen() {
 
   useEffect(() => {
     // Écouter l'événement de récupération de mot de passe de Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsValidSession(true);
       }

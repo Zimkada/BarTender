@@ -3,9 +3,10 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePlan } from '../hooks/usePlan';
 import type { FeatureKey } from '../config/plans';
+import type { RolePermissions } from '../types';
 
 interface ProtectedRouteProps {
-  permission?: string;
+  permission?: keyof RolePermissions;
   /** Feature du plan requise — redirige vers / si le plan du bar ne l'inclut pas */
   feature?: FeatureKey;
 }

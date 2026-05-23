@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBar } from '../context/BarContext';
-import { useOnboarding } from '../context/OnboardingContext';
 import { OnboardingFlow } from '../components/onboarding/OnboardingFlow';
 import { TrainingFlow } from '../components/onboarding/TrainingFlow';
 
@@ -19,7 +18,6 @@ export const OnboardingPage: React.FC = () => {
   const location = useLocation();
   const { currentSession } = useAuth();
   const { currentBar, loading: barLoading } = useBar();
-  const { isComplete: onboardingComplete } = useOnboarding();
 
   // Redirect to login if not authenticated
   useEffect(() => {

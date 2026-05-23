@@ -116,7 +116,7 @@ export const BarDetailsStep: React.FC = () => {
         } as ExtendedBarSettings,
       };
 
-      await BarsService.updateBar(currentBar.id, updatePayload);
+      await BarsService.updateBar(currentBar.id, updatePayload as Parameters<typeof BarsService.updateBar>[1]);
 
       // 2. Save form data to context for UI state
       updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
@@ -346,7 +346,7 @@ export const BarDetailsStep: React.FC = () => {
                       } as ExtendedBarSettings,
                     };
 
-                    await BarsService.updateBar(currentBar.id, updatePayload);
+                    await BarsService.updateBar(currentBar.id, updatePayload as Parameters<typeof BarsService.updateBar>[1]);
 
                     updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
                     completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);

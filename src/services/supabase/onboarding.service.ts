@@ -12,12 +12,6 @@ const OnboardingAtomicResultSchema = z.object({
   error: z.string().optional(),
 });
 
-interface OnboardingAtomicResult {
-  success: boolean;
-  completed_at?: string;
-  error?: string;
-}
-
 /**
  * Onboarding Service
  * Handles all database operations for the onboarding workflow

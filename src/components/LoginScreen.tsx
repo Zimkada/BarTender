@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Building2, User as UserIcon, Lock, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { User as UserIcon, Lock } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { Input } from './ui/Input';
