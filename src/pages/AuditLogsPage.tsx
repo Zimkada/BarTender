@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
   Search, Filter, Download, Calendar, AlertTriangle, Info, AlertCircle, ChevronDown, ChevronUp, FileText, Package, RefreshCw
 } from 'lucide-react';
 import { AdminService } from '../services/supabase/admin.service';
-import type { AuditLog, AuditLogEvent, AuditLogSeverity, Bar, GlobalCatalogAuditLog } from '../types';
+import type { AuditLogEvent, AuditLogSeverity, Bar, GlobalCatalogAuditLog } from '../types';
+import type { AuditLogEntry } from '../services/supabase/admin.service';
 import { Alert } from '../components/ui/Alert';
 import { AdminPanelErrorBoundary } from '../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../components/AdminPanelSkeleton';
@@ -16,7 +17,7 @@ export default function AuditLogsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('system');
 
   // System logs state
-  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,8 +48,6 @@ export default function AuditLogsPage() {
 
   const systemTotalPages = Math.ceil(totalCount / logsPerPage);
   const catalogTotalPages = Math.ceil(catalogTotalCount / catalogLogsPerPage);
-
-  const totalPages = Math.ceil(totalCount / logsPerPage);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -120,7 +119,7 @@ export default function AuditLogsPage() {
     return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(date));
   };
 
-  const getSeverityIcon = (severity: AuditLogSeverity) => {
+  const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'critical':
         return <AlertCircle className="w-4 h-4 text-red-600" />;
@@ -131,7 +130,7 @@ export default function AuditLogsPage() {
     }
   };
 
-  const getSeverityColor = (severity: AuditLogSeverity) => {
+  const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
         return 'bg-red-50 border-red-200';

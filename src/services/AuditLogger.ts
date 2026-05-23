@@ -1,5 +1,5 @@
 // services/AuditLogger.ts - Service de logging et audit trail (Connected to Supabase)
-import { AuditLog, AuditLogEvent, AuditLogSeverity, UserRole } from '../types';
+import { AuditLogEvent, AuditLogSeverity, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface LogParams {

@@ -46,7 +46,6 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
     const [success, setSuccess] = useState(false);
 
     // États pour gestion bar
-    const [promoterCreated, setPromoterCreated] = useState(false);
     const [promoterId, setPromoterId] = useState<string | null>(null);
     const [barCreationFailed, setBarCreationFailed] = useState(false);
     const [barCreationError, setBarCreationError] = useState<string | null>(null);
@@ -163,15 +162,11 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
     const createBar = async (ownerId: string) => {
         try {
-            const barSettings = {
-                address: formData.barAddress.trim() || null,
-                phone: formData.barPhone.trim() || null,
-            };
-
             const result = await AuthService.setupPromoterBar(
                 ownerId,
                 formData.barName.trim(),
-                barSettings
+                formData.barAddress.trim() || null,
+                formData.barPhone.trim() || null
             );
 
             if (result.success) {

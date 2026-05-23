@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import {
   Shield,
   AlertTriangle,
@@ -13,7 +13,6 @@ import {
   Download,
   Bell,
   BellOff,
-  LayoutGrid,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -56,7 +55,7 @@ export default function SecurityDashboardPage() {
   const [refreshHistory, setRefreshHistory] = useState<MaterializedViewRefreshLog[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [previousAlertsCount, setPreviousAlertsCount] = useState(0);
-  const [barHealthData, setBarHealthData] = useState<BarHealthStatus[]>([]);
+  const [, setBarHealthData] = useState<BarHealthStatus[]>([]);
 
   const loadSecurityData = useCallback(async () => {
     if (currentSession?.role !== 'super_admin') return;
@@ -192,7 +191,7 @@ export default function SecurityDashboardPage() {
     await exportToExcel(exportData, `refresh_logs_${timestamp}`);
   };
 
-  const handleRefreshView = async (viewName: string) => {
+  const _handleRefreshView = async (viewName: string) => {
     try {
       setRefreshing(viewName);
       const result = await MaterializedViewService.refreshMaterializedView(viewName);

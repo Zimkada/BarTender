@@ -64,18 +64,28 @@ export interface PaginatedUsersResult {
   totalCount: number;
 }
 
+// Reflète exactement les colonnes retournées par le RPC get_paginated_audit_logs
+// (= json_agg(audit_logs.*), donc toutes les colonnes de la table audit_logs)
 interface AuditLogFromRPC {
   id: string;
   user_id: string | null;
   user_name: string;
+  user_role: string;
   bar_id: string | null;
   bar_name: string | null;
-  action: string;
+  event: string;
   description: string;
-  severity: 'critical' | 'warning' | 'info';
+  severity: string;
   timestamp: string;
   metadata: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  related_entity_id: string | null;
+  related_entity_type: string | null;
 }
+
+// Type retourné par getPaginatedAuditLogs : champs snake_case du RPC + timestamp converti en Date
+export type AuditLogEntry = Omit<AuditLogFromRPC, 'timestamp'> & { timestamp: Date };
 
 export interface GetPaginatedAuditLogsParams {
   page: number;
@@ -89,7 +99,7 @@ export interface GetPaginatedAuditLogsParams {
 }
 
 export interface PaginatedAuditLogsResult {
-  logs: AuditLog[];
+  logs: AuditLogEntry[];
   totalCount: number;
 }
 

@@ -90,7 +90,7 @@ export function useAdminNotifications() {
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const recentSales = sales.filter(s => new Date(s.date) >= sevenDaysAgo);
+    const recentSales = sales.filter(s => new Date(s.createdAt) >= sevenDaysAgo);
     const recentReturns = returns.filter(r =>
       r.status !== 'rejected' &&
       new Date(r.returnedAt) >= sevenDaysAgo
@@ -160,7 +160,7 @@ export function useAdminNotifications() {
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const recentSales = sales.filter(s => new Date(s.date) >= sevenDaysAgo);
+    const recentSales = sales.filter(s => new Date(s.createdAt) >= sevenDaysAgo);
 
     if (recentSales.length === 0) {
       alerts.push(createNotification({
@@ -248,7 +248,7 @@ export function useAdminNotifications() {
 
     sales.forEach(sale => {
       // Vérifier que total sale = sum(items)
-      const itemsTotal = sale.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const itemsTotal = sale.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
       const diff = Math.abs(sale.total - itemsTotal);
 
       if (diff > 1) { // Tolérance 1 FCFA
@@ -271,7 +271,7 @@ export function useAdminNotifications() {
 
       // Vérifier produits existent
       sale.items.forEach(item => {
-        const product = products.find(p => p.id === item.productId);
+        const product = products.find(p => p.id === item.product_id);
         if (!product) {
           alerts.push(createNotification({
             type: 'data_corruption',
@@ -279,10 +279,10 @@ export function useAdminNotifications() {
             barId: bar.id,
             barName: bar.name,
             title: 'PRODUIT MANQUANT',
-            message: `Vente ${sale.id} référence produit inexistant: ${item.productId}`,
+            message: `Vente ${sale.id} référence produit inexistant: ${item.product_id}`,
             metadata: {
               saleId: sale.id,
-              productId: item.productId,
+              productId: item.product_id,
             },
             actions: [],
           }));

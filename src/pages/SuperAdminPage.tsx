@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Users,
   Building2,
-  TrendingUp,
   ShieldCheck,
   ShoppingCart,
   DollarSign,
   CheckCircle,
   XCircle,
   UserCheck,
-  UserX,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AdminService, DashboardStats } from '../services/supabase/admin.service';

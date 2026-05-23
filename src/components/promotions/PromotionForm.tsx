@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, Calendar, Tag, Percent, DollarSign, Gift, Search, Wand2, ArrowLeft, Filter } from 'lucide-react';
+import { Save, Calendar, Tag, Percent, DollarSign, Gift, Search, Wand2, Filter } from 'lucide-react';
 import { useBarContext } from '../../context/BarContext';
-import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useUnifiedStock } from '../../hooks/pivots/useUnifiedStock';
 import { PromotionsService } from '../../services/supabase/promotions.service';
@@ -17,7 +16,6 @@ import { BackButton } from '../ui/BackButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 
 interface PromotionFormProps {
@@ -28,10 +26,9 @@ interface PromotionFormProps {
     onCancel: () => void; // Added onCancel
 }
 
-export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: PromotionFormProps) {
+export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel: _onCancel }: PromotionFormProps) {
     const { currentBar } = useBarContext();
-    const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
-    const { formatPrice } = useCurrencyFormatter(); // Added useCurrencyFormatter
+    const { products, categories } = useUnifiedStock(currentBar?.id);
     const { showNotification } = useNotifications();
     const { currentSession } = useAuth();
     // Form State

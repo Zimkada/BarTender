@@ -15,7 +15,6 @@ import {
   Bell,
 } from 'lucide-react';
 import type { AdminNotification, NotificationPriority } from '../types';
-import { useAuth } from '../context/AuthContext';
 import { useAdminNotifications } from '../hooks/useAdminNotifications';
 import { AdminPanelErrorBoundary } from '../components/AdminPanelErrorBoundary';
 
@@ -51,7 +50,6 @@ const priorityIcons: Record<NotificationPriority, string> = {
 };
 
 export default function AdminNotificationsPage() {
-  const { currentSession } = useAuth();
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'info'>('all');
 
   const {

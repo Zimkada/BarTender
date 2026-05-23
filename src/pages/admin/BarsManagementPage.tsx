@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
   Building2, Search, Filter, ChevronLeft, ChevronRight, History
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 import { Bar, BarMember, User } from '../../types';
 import { Select } from '../../components/ui/Select';
 import { Alert } from '../../components/ui/Alert';
@@ -17,8 +16,6 @@ import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { BarAuditLogsModal } from '../../components/admin/BarAuditLogsViewer';
 
 export default function BarsManagementPage() {
-  const { currentSession } = useAuth();
-
   const [bars, setBars] = useState<Bar[]>([]);
   const [allBarMembers, setAllBarMembers] = useState<(BarMember & { user: User })[]>([]);
   const [loading, setLoading] = useState(false);

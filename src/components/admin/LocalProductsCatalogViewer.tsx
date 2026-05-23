@@ -14,7 +14,6 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';
 import { Alert } from '../ui/Alert';
-import { LoadingButton } from '../ui/LoadingButton';
 import { EnrichCatalogModal } from './EnrichCatalogModal';
 
 interface LocalProductsCatalogViewerProps {

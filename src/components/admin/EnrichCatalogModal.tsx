@@ -29,7 +29,6 @@ import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Alert } from '../ui/Alert';
 import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
 import { Textarea } from '../ui/Textarea';
 import { Checkbox } from '../ui/Checkbox';
 import { LoadingButton } from '../ui/LoadingButton';
@@ -204,7 +203,7 @@ export function EnrichCatalogModal({
     try {
       setStatus('processing');
 
-      const result = await CatalogEnrichmentService.enrichGlobalCatalogWithLocal(
+      await CatalogEnrichmentService.enrichGlobalCatalogWithLocal(
         sourceProduct.barProductId,
         enrichmentData
       );
