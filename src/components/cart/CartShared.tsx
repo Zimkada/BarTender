@@ -101,13 +101,6 @@ interface CartSharedProps {
     maxStockLookup?: (productId: string) => number; // 🛡️ Fix Force Sale
 }
 
-const PROMO_TYPE_LABELS: Record<string, string> = {
-    'bundle': 'Lot',
-    'fixed_discount': '-Montant',
-    'percentage': '-%',
-    'special_price': 'Spécial',
-};
-
 export function CartShared({
     items,
     onUpdateQuantity,

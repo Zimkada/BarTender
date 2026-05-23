@@ -49,7 +49,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
 
   const handleRefresh = async () => {
     if (!currentBar) return;
-    setLoading(true);
+    setLoading('refresh', true);
     try {
       // 1. Rafraîchir la vue matérialisée en DB (daily_sales_summary, etc.)
       await AnalyticsService.refreshAllViews('manual');
@@ -61,7 +61,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
     } catch {
       showError('Erreur lors de l\'actualisation');
     } finally {
-      setLoading(false);
+      setLoading('refresh', false);
     }
   };
 
