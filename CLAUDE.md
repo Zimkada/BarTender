@@ -577,6 +577,11 @@ if (event === 'SIGNED_IN' && session && currentUser) {
 - **Problème**: `package-lock.json` Windows contient des binaires win32 (`@rollup/rollup-win32-x64-msvc`)
 - **Solution**: Supprimer le lock file avant push Vercel, laisser CI régénérer
 
+### Régénération de `database.types.ts`
+
+- **Problème**: `npx supabase gen types > database.types.ts` redirige aussi les messages parasites du CLI (`npm warn exec`, `A new version is available`, etc.) dans le fichier, ce qui casse TypeScript avec des erreurs `TS1434`.
+- **Solution**: Toujours utiliser **`npm run gen:types`** (script `scripts/gen-database-types.mjs`) qui filtre ces lignes automatiquement et garantit l'UTF-8. Ne **jamais** rediriger directement avec `>` depuis PowerShell ni bash.
+
 ---
 
 ## Build — Scripts personnalisés
