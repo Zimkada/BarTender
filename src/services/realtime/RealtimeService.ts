@@ -66,8 +66,6 @@ export class RealtimeService {
   private channels: Map<string, ChannelState> = new Map();
   private maxRetries: number = 5; // Only for initial subscription errors (bad config)
   private retryDelay: number = 1000;
-  private queryClient?: QueryClient;
-  private networkUnsubscribe?: () => void;
   private reconnectTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   // ⭐ Heartbeat monitoring state
@@ -77,7 +75,7 @@ export class RealtimeService {
 
   private constructor() {
     // 1. NetworkManager integration for validated network status
-    this.networkUnsubscribe = networkManager.subscribe((status) => {
+    networkManager.subscribe((status) => {
       if (status === 'online') this.reconnectAll();
       if (status === 'offline') this.handleOffline();
     });
@@ -96,8 +94,9 @@ export class RealtimeService {
   /**
    * Initialize with React Query client
    */
-  setQueryClient(queryClient: QueryClient) {
-    this.queryClient = queryClient;
+  // No-op kept for API compatibility — RealtimeService doesn't directly use queryClient,
+  // callbacks in subscribe() receive their own invalidation logic.
+  setQueryClient(_queryClient: QueryClient) {
     console.log('[Realtime] Initialized with React Query client');
   }
 

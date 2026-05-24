@@ -191,6 +191,9 @@ export default function SecurityDashboardPage() {
     await exportToExcel(exportData, `refresh_logs_${timestamp}`);
   };
 
+  // Handler de refresh manuel d'une vue matérialisée — actuellement non câblé à l'UI
+  // (conservé : prêt à être branché sur un futur bouton "Refresh now" par vue)
+  // @ts-expect-error TS6133: kept for future use, see comment above
   const _handleRefreshView = async (viewName: string) => {
     try {
       setRefreshing(viewName);

@@ -71,7 +71,7 @@ export interface SupabaseError {
   hint?: string;
 }
 
-function getSupabaseError(error: unknown): SupabaseError {
+export function getSupabaseError(error: unknown): SupabaseError {
   const message = getErrorMessage(error);
 
   if (typeof error === 'object' && error !== null) {
@@ -107,7 +107,7 @@ function isNetworkError(error: unknown): boolean {
 /**
  * Vérifie si une erreur mérite un retry
  */
-function shouldRetryError(error: unknown): boolean {
+export function shouldRetryError(error: unknown): boolean {
   if (isNetworkError(error)) {
     return true;
   }
@@ -135,7 +135,7 @@ function shouldRetryError(error: unknown): boolean {
  *
  * @param maxRetries Nombre max de tentatives (défaut: 2)
  */
-function mutationRetryFn(failureCount: number, error: unknown, maxRetries = 2): boolean {
+export function mutationRetryFn(failureCount: number, error: unknown, maxRetries = 2): boolean {
   if (failureCount >= maxRetries) return false;
 
   const errorCode = typeof error === 'object' && error !== null && 'code' in error

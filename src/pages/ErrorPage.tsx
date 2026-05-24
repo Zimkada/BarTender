@@ -1,5 +1,4 @@
 // src/pages/ErrorPage.tsx
-import React from 'react';
 import { useRouteError } from 'react-router-dom';
 
 export function ErrorPage() {

@@ -1,5 +1,5 @@
 import { filterByBusinessDateRange } from './businessDateHelpers';
-import { getSaleDate, isConfirmedReturn } from './saleHelpers';
+import { isConfirmedReturn } from './saleHelpers';
 import {
     type ValidatedCalculableSale,
     type ValidatedReturn,

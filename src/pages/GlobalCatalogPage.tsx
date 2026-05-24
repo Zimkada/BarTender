@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Globe, Layers, Package, Download } from 'lucide-react';
 import { GlobalCategoriesTab } from '../components/GlobalCategoriesTab';
 import { GlobalProductsTab } from '../components/GlobalProductsTab';

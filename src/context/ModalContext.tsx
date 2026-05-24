@@ -1,5 +1,5 @@
 // src/context/ModalContext.tsx
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import { createContext, useContext, useReducer, ReactNode } from 'react';
 import { Category, Product, Bar } from '../types';
 
 // Define the types of modals and their expected props
