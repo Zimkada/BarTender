@@ -16,6 +16,7 @@ const EXPENSES_LIST_SELECT = `
     description,
     notes,
     created_by,
+    date,
     expense_date,
     created_at
 `;

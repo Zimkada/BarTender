@@ -47,7 +47,7 @@ import { getErrorMessage } from '../utils/errorHandler';
 import toast from 'react-hot-toast';
 import type { ExpensesSummaryRow } from '../services/supabase/analytics.types';
 import type { UnifiedExpense } from '../hooks/pivots/useUnifiedExpenses';
-import type { Salary } from '../hooks/useSalaries';
+import type { Salary } from '../types';
 
 interface AccountingOverviewProps {
   period: AccountingPeriodProps;
@@ -241,7 +241,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   // ✨ Filtrage Centralisé Local des données unifiées
   const filteredSales = useMemo(() => {
     return unifiedSales.filter(s => {
-      const saleObj = s as Record<string, unknown>;
+      const saleObj = s as unknown as Record<string, unknown>;
       const rawDate = saleObj.businessDate || saleObj.business_date || saleObj.createdAt || saleObj.created_at || new Date();
       const date = rawDate instanceof Date ? rawDate : new Date(rawDate as string | number);
       return date >= periodStart && date <= periodEnd;
@@ -430,7 +430,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         let icon = data?.icon || '📝';
         if (exp.isSupply) { label = 'Approvisionnements'; icon = '📦'; }
         else if (exp.category === 'custom' && exp.customCategoryId) {
-          const cat = customExpenseCategories.find((c: { id: string; name: string; icon: string }) => c.id === exp.customCategoryId);
+          const cat = customExpenseCategories.find(c => c.id === exp.customCategoryId);
           label = cat?.name || 'Personnalisée';
           icon = cat?.icon || '📝';
         }
@@ -467,7 +467,6 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         description: data.description || 'Apport de capital',
         source: data.source,
         sourceDetails: data.sourceDetails,
-        createdBy: currentSession!.userId,
       });
       setShowCapitalContributionModal(false);
     } catch (error) {
@@ -518,7 +517,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
     // Ventes (détaillées avec items)
     const salesData = exportSalesDetailed.flatMap(sale => {
-      const saleObj = sale as Record<string, unknown>;
+      const saleObj = sale as unknown as Record<string, unknown>;
       const rawDate = saleObj.businessDate || saleObj.business_date || saleObj.createdAt || saleObj.created_at || new Date();
       const saleDate = rawDate instanceof Date ? rawDate : new Date(rawDate as string | number);
       return (sale.items || []).map(item => ({
@@ -551,7 +550,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       // Ventes (filteredSales déjà filtré par période via hook serveur + filtre local)
       const exportSales = filteredSales.filter(sale => sale.status === 'validated');
       exportSales.forEach(sale => {
-        const saleObj = sale as Record<string, unknown>;
+        const saleObj = sale as unknown as Record<string, unknown>;
         const rawCreatedAt = saleObj.createdAt || saleObj.created_at || new Date();
         const rawBusinessDate = saleObj.businessDate || saleObj.business_date;
         transactions.push({
@@ -596,7 +595,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         return d >= periodStart && d <= periodEnd;
       });
       exportReturns.forEach(r => {
-        const returnObj = r as Record<string, unknown>;
+        const returnObj = r as unknown as Record<string, unknown>;
         transactions.push({
           id: r.id,
           barId: currentBar.id,
