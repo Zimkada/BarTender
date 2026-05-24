@@ -189,28 +189,38 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
     );
   }, [activeConsignments, searchTerm, urgencyFilter]);
 
-  const handleClaim = (consignment: Consignment) => {
+  const handleClaim = async (consignment: Consignment) => {
     if (!window.confirm(
       `Valider la récupération de ${consignment.quantity} ${consignment.productName} par ${consignment.customerName} ?\n\nLe produit sera déduit du stock des consignes actives.`
     )) return;
 
-    const success = stockManager.claimConsignment(consignment.id);
-    if (success) {
+    const pending = stockManager.claimConsignment(consignment.id);
+    if (!pending) {
+      showError("Erreur lors de la récupération");
+      return;
+    }
+    try {
+      await pending;
       showSuccess(`Consignation récupérée: ${consignment.quantity} ${consignment.productName}`);
-    } else {
+    } catch {
       showError("Erreur lors de la récupération");
     }
   };
 
-  const handleForfeit = (consignment: Consignment) => {
+  const handleForfeit = async (consignment: Consignment) => {
     if (!window.confirm(
       `Confisquer la consignation de ${consignment.customerName} ?\n\nLe produit sera retiré du stock des consignes et redeviendra immédiatement vendable.`
     )) return;
 
-    const success = stockManager.forfeitConsignment(consignment.id);
-    if (success) {
+    const pending = stockManager.forfeitConsignment(consignment.id);
+    if (!pending) {
+      showError("Erreur lors de la confiscation");
+      return;
+    }
+    try {
+      await pending;
       showSuccess(`Consignation confisquée - ${consignment.quantity}x ${consignment.productName} remis en stock`);
-    } else {
+    } catch {
       showError("Erreur lors de la confiscation");
     }
   };

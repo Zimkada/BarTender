@@ -21,8 +21,11 @@ interface StockContextType {
   // Consignments
   consignments: Consignment[];
   createConsignment: (data: CreateConsignmentData) => Promise<unknown>;
-  claimConsignment: (consignmentId: string) => boolean;
-  forfeitConsignment: (consignmentId: string) => boolean;
+  // Retour : false si pré-condition KO (consignment introuvable / session manquante),
+  // sinon Promise qui résout après l'écriture DB. Le consommateur await la Promise
+  // et gère success/error via try/catch (cf. ConsignmentPage).
+  claimConsignment: (consignmentId: string) => false | Promise<unknown>;
+  forfeitConsignment: (consignmentId: string) => false | Promise<unknown>;
   getActiveConsignments: () => Consignment[];
 }
 

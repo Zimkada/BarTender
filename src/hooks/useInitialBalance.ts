@@ -37,8 +37,8 @@ export function useInitialBalance(barId?: string) {
             barId: data.bar_id,
             amount: Number(data.amount),
             date: new Date(data.date),
-            description: data.description || undefined,
-            createdBy: data.created_by,
+            description: data.description,
+            createdBy: data.created_by ?? 'system',
             createdAt: new Date(data.created_at),
             isLocked: data.is_locked,
           };
@@ -90,8 +90,8 @@ export function useInitialBalance(barId?: string) {
             barId: data.bar_id,
             amount: Number(data.amount),
             date: new Date(data.date),
-            description: data.description || undefined,
-            createdBy: data.created_by,
+            description: data.description,
+            createdBy: data.created_by ?? 'system',
             createdAt: new Date(data.created_at),
             isLocked: data.is_locked,
           };
@@ -140,8 +140,8 @@ export function useInitialBalance(barId?: string) {
             barId: data.bar_id,
             amount: Number(data.amount),
             date: new Date(data.date),
-            description: data.description || undefined,
-            createdBy: data.created_by,
+            description: data.description,
+            createdBy: data.created_by ?? 'system',
             createdAt: new Date(data.created_at),
             isLocked: data.is_locked,
           };
@@ -203,8 +203,8 @@ export function useInitialBalance(barId?: string) {
           barId: data.bar_id,
           amount: Number(data.amount),
           date: new Date(data.date),
-          description: data.description || undefined,
-          createdBy: data.created_by,
+          description: data.description,
+          createdBy: data.created_by ?? 'system',
           createdAt: new Date(data.created_at),
           isLocked: data.is_locked,
         };
