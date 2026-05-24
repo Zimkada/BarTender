@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 /**
  * Service Worker - Gestion Background Sync
  *
