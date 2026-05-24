@@ -1051,6 +1051,7 @@ export default function TeamManagementPage() {
         <ToastContainer
           toasts={toasts.map(t => ({
             ...t,
+            duration: t.duration ?? undefined,
           }))}
           onRemove={removeToast}
           position="top-right"

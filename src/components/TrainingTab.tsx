@@ -50,7 +50,7 @@ export function TrainingTab() {
                 setLatestVersion({
                     version: versionData.version,
                     changelog: versionData.changelog || '',
-                    releasedAt: versionData.released_at,
+                    releasedAt: versionData.released_at ?? '',
                 });
             } else {
                 console.warn(`No training version found for role: ${currentSession.role}`);

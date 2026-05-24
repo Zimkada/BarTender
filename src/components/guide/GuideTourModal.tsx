@@ -22,7 +22,7 @@ const modalVariants = {
     y: 0,
     transition: {
       duration: 0.4,
-      type: 'spring',
+      type: 'spring' as const,
       stiffness: 300,
       damping: 25,
     },
@@ -35,7 +35,7 @@ const contentVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.3, ease: 'easeOut' as const },
   },
 };
 

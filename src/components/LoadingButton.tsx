@@ -1,8 +1,8 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, type HTMLMotionProps } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
-interface LoadingButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface LoadingButtonProps extends Omit<HTMLMotionProps<'button'>, 'children'> {
     isLoading?: boolean;
     loadingText?: string;
     successAnimation?: boolean;

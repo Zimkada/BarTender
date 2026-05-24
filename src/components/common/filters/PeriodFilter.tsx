@@ -35,7 +35,7 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
 
     // Déterminer le label basé sur la taille d'écran
     const getLabel = (filter: string) => {
-        const config = TIME_RANGE_CONFIGS[filter as any];
+        const config = TIME_RANGE_CONFIGS[filter as keyof typeof TIME_RANGE_CONFIGS];
         if (!config) return filter;
 
         // Mobile très étroit (<sm): shortLabel si disponible

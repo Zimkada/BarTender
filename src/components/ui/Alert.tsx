@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 import { AlertCircle, CheckCircle, Info, XCircle } from 'lucide-react'; // Common alert icons
-import { motion, AnimatePresence } from 'framer-motion'; // For animation
+import { motion, AnimatePresence, type HTMLMotionProps } from 'framer-motion'; // For animation
 
 const alertVariants = cva(
   'relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
@@ -46,11 +46,12 @@ const AlertIcon: React.FC<AlertIconProps> = ({ variant, ...props }) => {
 };
 
 export interface AlertProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends Omit<HTMLMotionProps<'div'>, 'title' | 'children'>,
     VariantProps<typeof alertVariants> {
     title?: string; // Optional title for the alert
     icon?: React.ReactNode; // Optional custom icon
     show?: boolean; // For animation (if wrapped in AnimatePresence)
+    children?: React.ReactNode;
 }
 
 const Alert = React.forwardRef<
