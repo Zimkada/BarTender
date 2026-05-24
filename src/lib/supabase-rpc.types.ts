@@ -119,6 +119,17 @@ export interface RpcConsignmentActionResult {
 }
 
 /**
+ * Forme générique des RPCs qui renvoient { success, error? } en cas d'échec
+ * applicatif (validation métier) plutôt que par exception Postgres.
+ *
+ * Utilisé par : approve_return, reject_return, manual_restock_return.
+ */
+export interface RpcActionResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
  * Helper pour construire les paramètres RPC de vente
  * Convertit null en undefined pour la compatibilité Supabase RPC
  */

@@ -404,8 +404,11 @@ export default function ReturnsPage() {
         );
       }
 
-      // Update local state
-      updateReturn(returnId, result);
+      // Update local state — cast DBReturn → Partial<Return> ; le service ReturnsService.updateReturn
+      // accepte de toute façon Partial<DBReturn>, le mapping camel/snake est interne.
+      // TODO : ce 2e UPDATE est redondant (le RPC approve_return a déjà écrit en DB).
+      // Garder juste l'invalidation de cache (returnsMutations.updateReturn déclenche déjà invalidate).
+      updateReturn(returnId, result as unknown as Partial<Return>);
     } catch (error) {
       showError(`Erreur lors de l'approbation: ${getErrorMessage(error)}`);
     }
@@ -430,7 +433,7 @@ export default function ReturnsPage() {
       // ✨ Call atomic RPC for manual restock
       const result = await ReturnsService.manualRestockReturn(returnId, currentSession?.userId || '');
 
-      updateReturn(returnId, result);
+      updateReturn(returnId, result as unknown as Partial<Return>);
 
       showSuccess(
         `${returnItem.quantityReturned}x ${returnItem.productName} remis en stock`,
@@ -459,7 +462,7 @@ export default function ReturnsPage() {
       // ✨ Call atomic RPC for rejection
       const result = await ReturnsService.rejectReturn(returnId, currentSession?.userId || '');
 
-      updateReturn(returnId, result);
+      updateReturn(returnId, result as unknown as Partial<Return>);
 
       showSuccess("Retour rejeté");
     } catch (error) {

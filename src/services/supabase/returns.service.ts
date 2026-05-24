@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import type { RpcActionResult } from '../../lib/supabase-rpc.types';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
 import { generateUUID } from '../../utils/crypto';
@@ -297,8 +298,9 @@ export class ReturnsService {
 
             if (error) throw error;
 
-            if (data?.success === false) {
-                throw new Error(data?.error || 'Failed to approve return');
+            const result = data as RpcActionResult | null;
+            if (result?.success === false) {
+                throw new Error(result.error || 'Failed to approve return');
             }
 
             // Fetch and return the updated return record
@@ -327,8 +329,9 @@ export class ReturnsService {
 
             if (error) throw error;
 
-            if (data?.success === false) {
-                throw new Error(data?.error || 'Failed to reject return');
+            const result = data as RpcActionResult | null;
+            if (result?.success === false) {
+                throw new Error(result.error || 'Failed to reject return');
             }
 
             // Fetch and return the updated return record
@@ -357,8 +360,9 @@ export class ReturnsService {
 
             if (error) throw error;
 
-            if (data?.success === false) {
-                throw new Error(data?.error || 'Failed to restock return');
+            const result = data as RpcActionResult | null;
+            if (result?.success === false) {
+                throw new Error(result.error || 'Failed to restock return');
             }
 
             // Fetch and return the updated return record
