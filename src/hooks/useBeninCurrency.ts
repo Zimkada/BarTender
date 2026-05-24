@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import BeninCurrencyService, { PriceDisplayOptions, RoundingOption } from '../services/currency/BeninCurrencyService';
 
 interface CurrencyState {
-  selectedRounding: 'none' | 'nearest_5' | 'nearest_10' | 'nearest_25';
+  selectedRounding: 'none' | 'nearest_5' | 'nearest_10';
   showRoundingSuggestions: boolean;
 }
 
@@ -68,8 +68,6 @@ export function useBeninCurrency(): CurrencyState & CurrencyActions {
         return Math.round(exactAmount / 5) * 5;
       case 'nearest_10':
         return Math.round(exactAmount / 10) * 10;
-      case 'nearest_25':
-        return Math.round(exactAmount / 25) * 25;
       case 'none':
       default:
         return exactAmount;

@@ -117,11 +117,11 @@ export function useCapitalContributions(barId?: string) {
             id: data.id,
             barId: data.bar_id,
             amount: Number(data.amount),
-            source: data.source,
-            sourceDetails: data.source_details,
+            source: data.source as CapitalSource,
+            sourceDetails: data.source_details ?? undefined,
             description: data.description,
             date: new Date(data.date),
-            createdBy: data.created_by,
+            createdBy: data.created_by ?? 'system',
             createdAt: new Date(data.created_at),
           };
           setContributions([newContribution, ...contributions]);

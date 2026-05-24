@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { CartItem } from '../types';
+import { CartItem, PromotionType } from '../types';
 import { usePromotions } from './usePromotions';
 import { FEATURES } from '../config/features';
 
@@ -14,7 +14,7 @@ export interface CalculatedItem extends CartItem {
     original_unit_price: number;
     discount_amount: number;
     promotion_id?: string;
-    promotion_type?: 'bundle' | 'fixed_discount' | 'percentage' | 'special_price';
+    promotion_type?: PromotionType;
     promotion_name?: string;
     hasPromotion: boolean;
 }

@@ -48,7 +48,7 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
     retryCount: 0,
   });
 
-  const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   // Ref pour éviter les closures périmées sur le callback de réconciliation
   const onLateSuccessRef = useRef(onLateSuccess);
   onLateSuccessRef.current = onLateSuccess;

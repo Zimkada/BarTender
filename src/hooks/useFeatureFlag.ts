@@ -35,6 +35,6 @@ export const useFeatureFlag = (key: string) => {
         // Les flags changent rarement. On peut donc les garder en cache longtemps
         // pour éviter des appels réseau inutiles.
         staleTime: 1000 * 60 * 5, // 5 minutes
-        cacheTime: 1000 * 60 * 60, // 1 heure
+        gcTime: 1000 * 60 * 60, // 1 heure (v5: renommé depuis cacheTime)
     });
 };

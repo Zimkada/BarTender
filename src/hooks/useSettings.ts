@@ -4,7 +4,7 @@ import { AppSettings } from '../types';
 const defaultSettings: AppSettings = {
   currency: 'FCFA',
   currencySymbol: 'FCFA',
-  userRole: 'manager',
+  currentSession: null,
 };
 
 export function useSettings() {

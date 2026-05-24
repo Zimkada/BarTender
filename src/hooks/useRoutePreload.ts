@@ -42,7 +42,7 @@ export function useRoutePreload(
       return () => window.cancelIdleCallback(idleId);
     }
 
-    const timeout = window.setTimeout(preloadRoutes, 5000);
-    return () => window.clearTimeout(timeout);
+    const timeout = setTimeout(preloadRoutes, 5000);
+    return () => clearTimeout(timeout);
   }, [imports, enabled]);
 }
