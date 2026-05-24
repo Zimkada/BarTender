@@ -50,7 +50,7 @@ describe('ThemeContext', () => {
             if (config.preset === 'custom' && config.customColors) {
                 return config.customColors;
             }
-            return THEME_PRESETS[config.preset] || THEME_PRESETS.amber;
+            return (THEME_PRESETS as Record<string, typeof THEME_PRESETS.amber>)[config.preset] || THEME_PRESETS.amber;
         });
 
         updateThemeServiceMock.mockResolvedValue(undefined);
@@ -92,7 +92,7 @@ describe('ThemeContext', () => {
             currentSession: { role: 'super_admin' },
         });
 
-        const { result } = renderHook(() => useTheme(), {
+        renderHook(() => useTheme(), {
             wrapper: createWrapper({
                 currentBar: { id: 'bar-123', theme_config: JSON.stringify({ preset: 'rose' }) },
             }),

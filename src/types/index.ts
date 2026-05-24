@@ -826,7 +826,13 @@ export type AuditLogEvent =
   | 'BACKUP_CREATED'
   | 'SETTINGS_UPDATED'
   | 'SYNC_FAILED'
-  | 'SYNC_SUCCESS';
+  | 'SYNC_SUCCESS'
+  // Guide / Onboarding
+  | 'GUIDE_STARTED'
+  | 'GUIDE_STEP_VIEWED'
+  | 'GUIDE_COMPLETED'
+  | 'GUIDE_SKIPPED'
+  | 'GUIDE_RATED';
 
 export type AuditLogSeverity = 'info' | 'warning' | 'critical';
 

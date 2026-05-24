@@ -20,7 +20,7 @@ const GuideContext = createContext<GuideContextType | undefined>(undefined);
  */
 export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentSession } = useAuth();
-  const userId = currentSession?.user?.id;
+  const userId = currentSession?.userId;
 
   // State
   const [activeTour, setActiveTour] = useState<GuideTour | null>(null);
@@ -85,7 +85,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         auditLogger.log({
           event: 'GUIDE_STARTED',
           userId: userId,
-          userName: currentSession?.user?.email || 'Unknown',
+          userName: currentSession?.userName || 'Unknown',
           userRole: currentSession?.role || 'serveur',
           description: `Started guide: ${tourId}`,
           metadata: {
@@ -95,7 +95,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
     },
-    [userId, currentSession?.user?.email, currentSession?.role]
+    [userId, currentSession?.userName, currentSession?.role]
   );
 
   /**
@@ -113,7 +113,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         auditLogger.log({
           event: 'GUIDE_STEP_VIEWED',
           userId: userId,
-          userName: currentSession?.user?.email || 'Unknown',
+          userName: currentSession?.userName || 'Unknown',
           userRole: currentSession?.role || 'serveur',
           description: `Viewed step ${newIndex + 1} of guide: ${activeTour.id}`,
           metadata: {
@@ -123,7 +123,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
     }
-  }, [activeTour?.id, activeTour?.steps?.length, currentStepIndex, userId, currentSession?.user?.email, currentSession?.role]);
+  }, [activeTour?.id, activeTour?.steps?.length, currentStepIndex, userId, currentSession?.userName, currentSession?.role]);
 
   /**
    * Navigate to previous step
@@ -166,7 +166,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         auditLogger.log({
           event: 'GUIDE_COMPLETED',
           userId: userId,
-          userName: currentSession?.user?.email || 'Unknown',
+          userName: currentSession?.userName || 'Unknown',
           userRole: currentSession?.role || 'serveur',
           description: `Completed guide: ${activeTour.id}`,
           metadata: {
@@ -186,7 +186,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  }, [activeTour?.id, activeTour?.steps?.length, userId, currentSession?.user?.email, currentSession?.role]);
+  }, [activeTour?.id, activeTour?.steps?.length, userId, currentSession?.userName, currentSession?.role]);
 
   /**
    * Skip tour
@@ -213,7 +213,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         auditLogger.log({
           event: 'GUIDE_SKIPPED',
           userId: userId,
-          userName: currentSession?.user?.email || 'Unknown',
+          userName: currentSession?.userName || 'Unknown',
           userRole: currentSession?.role || 'serveur',
           description: `Skipped guide: ${activeTour.id} at step ${currentStepIndex + 1}`,
           metadata: {
@@ -228,7 +228,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err: any) {
       console.error('Failed to skip guide:', err);
     }
-  }, [activeTour?.id, userId, currentStepIndex, currentSession?.user?.email, currentSession?.role]);
+  }, [activeTour?.id, userId, currentStepIndex, currentSession?.userName, currentSession?.role]);
 
   /**
    * Rate tour (1-5 stars)
@@ -249,7 +249,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         auditLogger.log({
           event: 'GUIDE_RATED',
           userId: userId,
-          userName: currentSession?.user?.email || 'Unknown',
+          userName: currentSession?.userName || 'Unknown',
           userRole: currentSession?.role || 'serveur',
           description: `Rated guide: ${activeTour.id} with ${rating} stars`,
           metadata: {
@@ -264,7 +264,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Failed to rate guide:', err);
       }
     },
-    [activeTour?.id, userId, currentSession?.user?.email, currentSession?.role]
+    [activeTour?.id, userId, currentSession?.userName, currentSession?.role]
   );
 
   /**
