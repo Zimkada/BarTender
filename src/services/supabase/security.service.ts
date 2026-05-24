@@ -179,10 +179,13 @@ export const SecurityService = {
     errorMessage?: string
   ): Promise<void> {
     try {
+      // p_attempted_bar_id est typé UUID côté SQL — null accepté, mais pas '' (invalid UUID).
+      // Le type TS généré le marque 'string' strict, donc on by-pass avec un cast.
       const { error } = await supabase.rpc('log_rls_violation', {
         p_table_name: tableName,
         p_operation: operation,
-        p_attempted_bar_id: attemptedBarId ?? '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        p_attempted_bar_id: attemptedBarId as any,
         p_error_message: errorMessage,
       });
 
