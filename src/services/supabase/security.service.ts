@@ -113,7 +113,7 @@ export const SecurityService = {
         .order('hour', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as SecurityDashboardData[];
     } catch {
       // 🛡️ Silent Error: Avoid spamming if view is missing or permission denied
       console.warn('[Security] Dashboard unreachable (missing view or permissions)');
@@ -161,7 +161,7 @@ export const SecurityService = {
       if (error) throw error;
 
       return {
-        violations: data || [],
+        violations: (data || []) as unknown as RLSViolation[],
         totalCount: count || 0,
       };
     } catch (error) {
@@ -182,8 +182,8 @@ export const SecurityService = {
       const { error } = await supabase.rpc('log_rls_violation', {
         p_table_name: tableName,
         p_operation: operation,
-        p_attempted_bar_id: attemptedBarId,
-        p_error_message: errorMessage || null,
+        p_attempted_bar_id: attemptedBarId ?? '',
+        p_error_message: errorMessage,
       });
 
       if (error) throw error;
@@ -198,13 +198,15 @@ export const SecurityService = {
    */
   async getBarHealthStatus(): Promise<BarHealthStatus[]> {
     try {
+      // View not in generated types — cast table name to escape strict overload check
       const { data, error } = await supabase
-        .from('admin_bars_health_status')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('admin_bars_health_status' as any)
         .select('*')
         .order('last_heartbeat_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as BarHealthStatus[];
     } catch {
       // 🛡️ Silent Error: Avoid spamming if view is missing
       return [];
@@ -228,7 +230,7 @@ export const MaterializedViewService = {
         .order('last_refresh_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as MaterializedViewRefreshStats[];
     } catch {
       // 🛡️ Silent Error: Views might not exist
       return [];
@@ -251,7 +253,7 @@ export const MaterializedViewService = {
         .limit(limit);
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as MaterializedViewRefreshLog[];
     } catch {
       // 🛡️ Silent Error: Views might not exist
       return [];
@@ -311,13 +313,15 @@ export const MaterializedViewService = {
    */
   async getActiveRefreshAlerts(): Promise<ActiveRefreshAlert[]> {
     try {
+      // View not in generated types — cast table name to escape strict overload check
       const { data, error } = await supabase
-        .from('active_refresh_alerts')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('active_refresh_alerts' as any)
         .select('*')
         .order('consecutive_failures', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as ActiveRefreshAlert[];
     } catch {
       // 🛡️ Silent Error: Views might not exist
       return [];

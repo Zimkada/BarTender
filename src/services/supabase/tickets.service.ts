@@ -82,11 +82,11 @@ export class TicketsService {
       const { data, error } = await supabase.rpc('create_ticket', {
         p_bar_id: barId,
         p_created_by: createdBy,
-        p_notes: notes || null,
-        p_server_id: serverId || null,
+        p_notes: notes || undefined,
+        p_server_id: serverId || undefined,
         p_closing_hour: closingHour ?? 6,
-        p_table_number: tableNumber || null,
-        p_customer_name: customerName || null,
+        p_table_number: tableNumber || undefined,
+        p_customer_name: customerName || undefined,
         p_idempotency_key: idempotencyKey // ⭐ Protection doublon online (migration 20260303)
       }).single();
 

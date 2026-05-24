@@ -228,7 +228,6 @@ export class ServerMappingsService {
 
       if (normalizedMappings.length === 0) return [];
 
-      // @ts-expect-error - Table server_name_mappings non incluse dans les types générés
       const { data, error } = await supabase
         .from('server_name_mappings')
         .upsert(normalizedMappings, {
@@ -238,15 +237,7 @@ export class ServerMappingsService {
 
       if (error) throw error;
 
-      // ✅ Type-safe mapping with explicit interface
-      return (data || []).map((m: {
-        id: string;
-        bar_id: string;
-        user_id: string;
-        server_name: string;
-        created_at: string;
-        updated_at: string;
-      }) => ({
+      return (data || []).map(m => ({
         id: m.id,
         barId: m.bar_id,
         userId: m.user_id,
@@ -296,6 +287,7 @@ export class ServerMappingsService {
 
       // prepare mappings from the fetched bar members
       const mappingsToCreate = barMembers
+        .filter((bm): bm is { user_id: string } => bm.user_id !== null)
         .map(bm => ({
           bar_id: barId,
           server_name: (userNameMap.get(bm.user_id) || '').trim(),
@@ -309,7 +301,6 @@ export class ServerMappingsService {
       }
 
       // Upsert all mappings at once (creates if not exist, updates if exist)
-      // @ts-expect-error - Table server_name_mappings non incluse dans les types générés
       const { data, error: upsertError } = await supabase
         .from('server_name_mappings')
         .upsert(mappingsToCreate, {

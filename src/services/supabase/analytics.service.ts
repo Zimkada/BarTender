@@ -24,7 +24,8 @@ export interface DailySalesSummary {
     avg_basket_value: number;
     cash_revenue: number;
     mobile_revenue: number;
-    other_revenue: number;        // Card + ticket + cheque + etc.
+    card_revenue: number;         // Cartes bancaires
+    other_revenue: number;        // Ticket + cheque + etc.
     // Ajoutés par migration 20260324 — optionnels tant que non appliquée
     refunds_total?: number;
     net_revenue?: number;
@@ -184,10 +185,10 @@ export const AnalyticsService = {
             transaction_count: row.transaction_count,
             total_quantity: row.total_quantity,
             total_revenue: row.total_revenue,
-            total_quantity_returned: row.total_quantity_returned,
-            total_refunded: row.total_refunded,
+            total_quantity_returned: row.total_quantity_returned ?? undefined,
+            total_refunded: row.total_refunded ?? undefined,
             avg_unit_price: row.avg_unit_price,
-            profit: row.profit // ✨ NEW: Profit already calculated by RPC
+            profit: row.profit ?? undefined, // ✨ NEW: Profit already calculated by RPC
         }));
     },
 
@@ -270,7 +271,8 @@ export const AnalyticsService = {
 
         const dedicatedFn = dedicatedRefreshFns[viewName];
         if (dedicatedFn) {
-            const { data, error } = await supabase.rpc(dedicatedFn);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data, error } = await supabase.rpc(dedicatedFn as any);
             if (error) {
                 console.error(`Error refreshing view ${viewName}:`, error);
                 throw error;
@@ -348,7 +350,7 @@ export const AnalyticsService = {
             return [];
         }
 
-        return (data as MaterializedViewMetricsRow[]) || [];
+        return ((data || []) as unknown as MaterializedViewMetricsRow[]);
     },
 
     /**
