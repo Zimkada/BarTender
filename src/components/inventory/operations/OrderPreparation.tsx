@@ -146,6 +146,18 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
         }
     };
 
+    // Saisie directe au clavier — accepte une valeur arbitraire, clamp à [0, 9999]
+    // Si l'utilisateur vide le champ ou tape 0, on retire le produit du brouillon.
+    const handleSetQuantity = (productId: string, rawValue: string) => {
+        const parsed = parseInt(rawValue, 10);
+        if (isNaN(parsed) || parsed <= 0) {
+            removeItem(productId);
+            return;
+        }
+        const clamped = Math.min(parsed, 9999);
+        updateItem(productId, { quantity: clamped });
+    };
+
     const coverageDays = currentBar?.settings?.supplyFrequency ?? 7;
 
     // Filtrage visuel
@@ -336,7 +348,17 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                                         >
                                             <Minus size={14} />
                                         </button>
-                                        <span className="min-w-[1.5rem] text-center font-semibold text-brand-primary text-body-sm tabular-nums">{qty}</span>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            min={0}
+                                            max={9999}
+                                            value={qty}
+                                            onChange={(e) => handleSetQuantity(pid, e.target.value)}
+                                            onFocus={(e) => e.target.select()}
+                                            className="w-12 text-center font-semibold text-brand-primary text-body-sm tabular-nums bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-brand-primary/40 rounded-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            aria-label="Quantité"
+                                        />
                                         <button
                                             onClick={() => handleIncrement(item)}
                                             className="w-7 h-7 flex items-center justify-center rounded-full bg-brand-primary text-white hover:opacity-90 active:scale-95 transition-transform"
