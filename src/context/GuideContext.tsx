@@ -6,7 +6,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { GuideContextType, GuideTour, GuideStep, GuideProgress } from '@/types/guide';
+import { GuideContextType, GuideTour, GuideStep } from '@/types/guide';
 import { auditLogger } from '@/services/AuditLogger';
 import { supabase } from '@/lib/supabase';
 
@@ -28,7 +28,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [suggestedTours, setSuggestedTours] = useState<GuideTour[]>([]);
+  const [suggestedTours] = useState<GuideTour[]>([]);
 
   // Cache of completed guides (loaded once on mount)
   const [completedGuides, setCompletedGuides] = useState<Set<string>>(new Set());

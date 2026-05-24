@@ -31,6 +31,9 @@ export function InventoryList({
     onHistory,
     searchTerm
 }: InventoryListProps) {
+    // Map O(1) pour lookup categorie, evite O(N*M) dans le .map() produits.
+    const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
+    const getCategoryName = (categoryId: string) => categoryMap.get(categoryId) || 'Sans catégorie';
 
     if (products.length === 0) {
         return (
@@ -41,10 +44,6 @@ export function InventoryList({
             />
         );
     }
-
-    // 🛡️ Map O(1) pour lookup catégorie — évite O(N×M) dans le .map() produits
-    const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
-    const getCategoryName = (categoryId: string) => categoryMap.get(categoryId) || 'Sans catégorie';
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

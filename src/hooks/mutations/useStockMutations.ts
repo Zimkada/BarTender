@@ -29,8 +29,7 @@ const toAdjustmentReason = (reason: string): { reason: AdjustmentReason; autoNot
 // Helper: Centralized cache invalidation for stock queries
 const invalidateStockQuery = (
     queryClient: ReturnType<typeof useQueryClient>,
-    queryKey: readonly any[],
-    barId: string
+    queryKey: readonly any[]
 ) => {
     queryClient.invalidateQueries({
         queryKey: queryKey as any[],
@@ -38,7 +37,7 @@ const invalidateStockQuery = (
     });
 };
 
-export const useStockMutations = (barId?: string) => {
+export const useStockMutations = (_barId?: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
     const { currentBar } = useBarContext();
@@ -58,7 +57,7 @@ export const useStockMutations = (barId?: string) => {
                 toast.success('Produit créé avec succès');
             });
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
             }
         },
         onError: (error) => {
@@ -94,7 +93,7 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
             }
         },
         onError: (error) => {
@@ -129,7 +128,7 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
             }
         },
         onError: (error) => {
@@ -175,7 +174,7 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
                 queryClient.invalidateQueries({ queryKey: ['stock-adjustments', barId] });
             }
         },
@@ -243,8 +242,8 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
-                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId));
             }
         },
         onError: (error) => {
@@ -285,8 +284,8 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
-                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId));
             }
         },
         onError: (error) => {
@@ -338,7 +337,7 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId));
             }
         },
         onError: (error) => {
@@ -423,8 +422,8 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId));
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
             }
         },
         onError: (error) => {
@@ -436,7 +435,7 @@ export const useStockMutations = (barId?: string) => {
     });
 
     const claimConsignment = useMutation({
-        mutationFn: async ({ id, productId, quantity, claimedBy }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
+        mutationFn: async ({ id, claimedBy }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
             // ✅ ATOMIC RPC: Single transaction (UPDATE status + DECREMENT stock)
             return StockService.claimConsignmentAtomic(id, claimedBy);
         },
@@ -464,14 +463,14 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId));
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
             }
         },
     });
 
     const forfeitConsignment = useMutation({
-        mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number }) => {
+        mutationFn: async ({ id }: { id: string; productId: string; quantity: number }) => {
             // ✅ ATOMIC RPC: UPDATE status to 'forfeited'
             return StockService.forfeitConsignmentAtomic(id);
         },
@@ -481,8 +480,8 @@ export const useStockMutations = (barId?: string) => {
                 toast.success('Consignation abandonnée — article disponible à nouveau');
             });
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId));
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
             }
         },
     });
@@ -516,7 +515,7 @@ export const useStockMutations = (barId?: string) => {
             const { SalesService } = await import('../../services/supabase/sales.service');
             return SalesService.validateSale(id, validatedBy);
         },
-        onSuccess: (data, variables) => {
+        onSuccess: () => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Vente validée et stock décrémenté');
@@ -532,7 +531,7 @@ export const useStockMutations = (barId?: string) => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId));
                 // 🛡️ Fix: Retirer la vente du cache server-pending-sales pour éviter la double déduction
                 queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
             }

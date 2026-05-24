@@ -6,9 +6,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Bar,
   ResponsiveContainer,
 } from '../charts/RechartsWrapper';
+import { Bar } from 'recharts/es6/cartesian/Bar';
 import { ChartTooltip } from '../charts/ChartTooltip';
 
 interface TopProductData {

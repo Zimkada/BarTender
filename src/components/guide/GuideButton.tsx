@@ -9,7 +9,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGuide } from '@/context/GuideContext';
 import { useGuideSuggestions } from '@/hooks/useGuideSuggestions';
-import { Button } from '@/components/ui/Button';
 import { GuideTour } from '@/types/guide';
 
 /**

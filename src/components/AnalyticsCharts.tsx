@@ -13,12 +13,11 @@ import {
   Pie,
   Cell,
   BarChart,
-  Bar,
   ResponsiveContainer,
 } from './charts/RechartsWrapper';
+import { Bar } from 'recharts/es6/cartesian/Bar';
 
 import { ChartTooltip } from './charts/ChartTooltip';
-import { useViewport } from '../hooks/useViewport';
 
 interface AnalyticsChartsProps {
   data: any[];
@@ -50,7 +49,6 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => {
   const [timeRange, setTimeRange] = useState(12);
-  const { isMobile } = useViewport();
   const { themeConfig } = useTheme();
 
   const { chartColors, brandPrimary, brandAccent } = useMemo(() => {

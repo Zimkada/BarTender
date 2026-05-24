@@ -188,7 +188,7 @@ export const PromotionsService = {
 
             switch (promo.type) {
                 case 'lot':
-                case 'bundle':
+                case 'bundle': {
                     const bundleQty = promo.bundleQuantity || 0;
                     const bundlePrice = promo.bundlePrice || 0;
                     if (bundleQty > 0 && bundlePrice > 0 && quantity >= bundleQty) {
@@ -197,36 +197,42 @@ export const PromotionsService = {
                         calculatedPrice = bundles * bundlePrice + remaining * product.price;
                     }
                     break;
+                }
 
                 case 'prix_special':
-                case 'special_price':
+                case 'special_price': {
                     const specialPrice = promo.specialPrice || 0;
                     if (specialPrice > 0) calculatedPrice = specialPrice * quantity;
                     break;
+                }
 
                 case 'reduction_vente':
-                case 'fixed_discount':
+                case 'fixed_discount': {
                     const discountAmount = promo.discountAmount || 0;
                     if (discountAmount > 0) calculatedPrice = Math.max(0, originalPrice - discountAmount);
                     break;
+                }
 
                 case 'pourcentage':
-                case 'percentage':
+                case 'percentage': {
                     const discountPercentage = promo.discountPercentage || 0;
                     if (discountPercentage > 0 && discountPercentage <= 100) {
                         calculatedPrice = originalPrice * (1 - discountPercentage / 100);
                     }
                     break;
+                }
 
-                case 'reduction_produit':
+                case 'reduction_produit': {
                     const discountPerUnit = promo.discountAmount || 0;
                     if (discountPerUnit > 0) calculatedPrice = Math.max(0, originalPrice - (discountPerUnit * quantity));
                     break;
+                }
 
-                case 'majoration_produit':
+                case 'majoration_produit': {
                     const surchargePerUnit = promo.discountAmount || 0;
                     if (surchargePerUnit > 0) calculatedPrice = originalPrice + (surchargePerUnit * quantity);
                     break;
+                }
             }
 
             if (calculatedPrice < bestPrice ||

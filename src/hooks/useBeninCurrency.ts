@@ -92,10 +92,6 @@ export function useBeninCurrency(): CurrencyState & CurrencyActions {
     setShowRoundingSuggestions(prev => !prev);
   }, []);
 
-  const currencyConfig = useMemo(() => {
-    return BeninCurrencyService.getDefaultConfig();
-  }, []);
-
   return {
     selectedRounding,
     showRoundingSuggestions,

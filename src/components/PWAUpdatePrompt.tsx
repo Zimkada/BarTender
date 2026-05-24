@@ -5,7 +5,7 @@
  * Permet à l'utilisateur de choisir quand recharger (registerType: 'prompt')
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { RefreshCw, X } from 'lucide-react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 

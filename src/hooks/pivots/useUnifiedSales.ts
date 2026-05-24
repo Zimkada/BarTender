@@ -11,7 +11,6 @@ import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { useSalesMutations } from '../mutations/useSalesMutations';
 import { useBarContext } from '../../context/BarContext';
-import { supabase } from '../../lib/supabase';
 import { getCurrentBusinessDateString, calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import type { Sale, SaleItem } from '../../types';
 

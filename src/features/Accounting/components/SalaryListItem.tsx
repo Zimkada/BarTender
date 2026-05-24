@@ -29,7 +29,7 @@ export const SalaryListItem: React.FC<SalaryListItemProps> = ({
     onDelete,
     getMemberName,
     getMemberRole,
-    isMobile
+    isMobile: _isMobile
 }) => {
     const { formatPrice } = useCurrencyFormatter();
 

@@ -198,7 +198,7 @@ export function CreateConsignmentForm({
                 showSuccess(`Consignation créée pour ${customerName}`);
                 onSuccess();
             }
-        } catch (error) {
+        } catch {
             showError('Erreur lors de la création de la consignation');
         }
     };

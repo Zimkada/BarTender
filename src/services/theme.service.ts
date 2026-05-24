@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { supabase } from '../lib/supabase';
-import { ThemeConfig, THEME_PRESETS, DEFAULT_THEME_CONFIG } from '../types/theme';
+import { ThemeConfig, THEME_PRESETS } from '../types/theme';
 
 // Validation Schema
 export const ThemeConfigSchema = z.object({

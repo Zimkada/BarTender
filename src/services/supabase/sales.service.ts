@@ -1,7 +1,6 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import type { SyncOperationCreateSale } from '../../types/sync';
-import { ProductsService } from './products.service';
 import { auditLogger } from '../../services/AuditLogger';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';

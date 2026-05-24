@@ -114,7 +114,7 @@ export const SecurityService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
+    } catch {
       // 🛡️ Silent Error: Avoid spamming if view is missing or permission denied
       console.warn('[Security] Dashboard unreachable (missing view or permissions)');
       return [];
@@ -130,7 +130,7 @@ export const SecurityService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
+    } catch {
       // 🛡️ Silent Error: Avoid spamming if RPC is missing
       return [];
     }
@@ -205,7 +205,7 @@ export const SecurityService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
+    } catch {
       // 🛡️ Silent Error: Avoid spamming if view is missing
       return [];
     }
@@ -229,7 +229,7 @@ export const MaterializedViewService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
+    } catch {
       // 🛡️ Silent Error: Views might not exist
       return [];
     }
@@ -252,7 +252,7 @@ export const MaterializedViewService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
+    } catch {
       // 🛡️ Silent Error: Views might not exist
       return [];
     }
@@ -318,7 +318,7 @@ export const MaterializedViewService = {
 
       if (error) throw error;
       return data || [];
-    } catch (error) {
+    } catch {
       // 🛡️ Silent Error: Views might not exist
       return [];
     }

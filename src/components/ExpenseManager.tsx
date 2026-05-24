@@ -153,7 +153,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
       });
       showSuccess('Dépense enregistrée avec succès');
       setShowExpenseModal(false);
-    } catch (error) {
+    } catch {
       showError('Erreur lors de l\'ajout de la dépense');
     }
   };
@@ -163,7 +163,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
       addCustomExpenseCategory(data.name, data.icon, currentSession!.userId);
       showSuccess('Catégorie créée');
       setShowCategoryModal(false);
-    } catch (error) {
+    } catch {
       showError('Erreur lors de la création de la catégorie');
     }
   };

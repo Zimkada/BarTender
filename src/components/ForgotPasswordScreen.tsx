@@ -53,7 +53,7 @@ function ForgotPasswordScreen() {
       await resetPassword(email);
       setLastResetTime(Date.now());
       setSuccess('Si un compte BarTender existe avec cet email, vous recevrez un lien de réinitialisation dans 2-3 minutes. Vérifiez aussi vos spams.');
-    } catch (error: any) {
+    } catch {
       // On affiche un message de succès générique pour ne pas révéler si un email existe ou non
       setLastResetTime(Date.now());
       setSuccess('Si un compte BarTender existe avec cet email, vous recevrez un lien de réinitialisation dans 2-3 minutes. Vérifiez aussi vos spams.');

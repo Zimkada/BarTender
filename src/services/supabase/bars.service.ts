@@ -727,7 +727,7 @@ export class BarsService {
 
       if (error) return false;
       return !!data;
-    } catch (err) {
+    } catch {
       return false;
     }
   }

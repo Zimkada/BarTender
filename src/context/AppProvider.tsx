@@ -507,7 +507,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
     // --- SETTINGS ---
-    const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    const updateSettings = useCallback((_updates: Partial<AppSettings>) => {
         // TODO: Implement settings mutation
     }, []);
 

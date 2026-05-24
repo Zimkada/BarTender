@@ -1,7 +1,7 @@
 import { Trash2, Users, Check, Wallet, Receipt, Plus, ArrowRight, X, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useState } from 'react';
 import { EnhancedButton } from '../EnhancedButton';
-import { Select, SelectOption } from '../ui/Select';
+import { SelectOption } from '../ui/Select';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { PaymentMethodSelector, PaymentMethod, PAYMENT_METHODS } from './PaymentMethodSelector';
 import { motion, AnimatePresence } from 'framer-motion';

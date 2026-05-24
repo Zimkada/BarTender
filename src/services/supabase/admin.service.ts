@@ -1,7 +1,7 @@
 // src/services/supabase/admin.service.ts
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { Bar, User, AuditLog, GlobalCatalogAuditLog } from '../../types';
+import { Bar, User, GlobalCatalogAuditLog } from '../../types';
 
 export interface DashboardStats {
   total_revenue: number;

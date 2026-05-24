@@ -24,7 +24,7 @@ interface ExpenseListItemProps {
 }
 
 export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
-    categoryKey,
+    categoryKey: _categoryKey,
     data,
     items,
     isExpanded,
@@ -33,7 +33,7 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
     onReverseSupply,
     onEditSupplyMetadata,
     canManageSupplies = false,
-    isMobile
+    isMobile: _isMobile
 }) => {
     const { formatPrice } = useCurrencyFormatter();
 

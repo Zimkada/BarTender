@@ -15,7 +15,6 @@ export function FormStepper({ steps, currentStep, className = '', onStepClick }:
                 const stepNumber = index + 1;
                 const isCompleted = currentStep > stepNumber;
                 const isCurrent = currentStep === stepNumber;
-                const isPending = currentStep < stepNumber;
 
                 return (
                     <div key={stepNumber} className="flex items-center min-w-fit">

@@ -1,5 +1,4 @@
 import { useQuery, UseQueryOptions, UseQueryResult, QueryKey } from '@tanstack/react-query';
-import { useAuth } from '../../context/AuthContext';
 
 /**
  * Unified API query hook that automatically handles impersonation context
@@ -26,8 +25,6 @@ export function useApiQuery<TData = unknown, TError = Error>(
   queryFn: (impersonatingUserId?: string) => Promise<TData>,
   options?: UseApiQueryOptions<TData, TError>
 ): UseQueryResult<TData, TError> {
-  const { currentSession } = useAuth(); // Removed isImpersonating temporarily
-
   // Get impersonating user ID if in impersonation mode
   // TODO: Restore this when AuthContext supports impersonation
   const impersonatingUserId = undefined; // isImpersonating ? currentSession?.userId : undefined;

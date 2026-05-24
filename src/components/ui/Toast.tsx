@@ -57,7 +57,7 @@ const toastConfig = {
 };
 
 export const Toast: React.FC<ToastProps> = ({
-  id,
+  id: _id,
   message,
   variant = 'success',
   duration = 3000,

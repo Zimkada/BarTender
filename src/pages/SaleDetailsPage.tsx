@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Package, User, Calendar, CreditCard, Clock, CheckCircle, XCircle, Receipt } from 'lucide-react';
 import { SalesService } from '../services/supabase/sales.service';
-import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { Button } from '../components/ui/Button';
@@ -17,7 +16,6 @@ import { SimplePageHeader } from '../components/common/PageHeader/patterns/Simpl
 export default function SaleDetailsPage() {
   const { saleId } = useParams<{ saleId: string }>();
   const navigate = useNavigate();
-  const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
 
   const { data: sale, isLoading, error } = useQuery({

@@ -1,7 +1,6 @@
 import React from 'react';
 import {
     BarChart,
-    Bar,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -9,6 +8,7 @@ import {
     ResponsiveContainer,
     Cell
 } from '../charts/RechartsWrapper';
+import { Bar } from 'recharts/es6/cartesian/Bar';
 import { ChartTooltipShell } from '../charts/ChartTooltip';
 import { UserPerformanceStat } from '../../hooks/useTeamPerformance';
 

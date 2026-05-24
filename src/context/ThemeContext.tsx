@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { useBarContext } from './BarContext';
 import { useAuth } from './AuthContext';
 import { ThemeConfig, DEFAULT_THEME_CONFIG, THEME_PRESETS } from '../types/theme';
 import { ThemeService } from '../services/theme.service';
@@ -83,7 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                             : cachedBar.theme_config) as ThemeConfig;
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Ignore silent parsing errors
             }
         }

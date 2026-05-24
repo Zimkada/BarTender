@@ -83,7 +83,7 @@ export default function PromotionsPage() {
             await PromotionsService.deletePromotion(id);
             showNotification('success', 'Promotion supprimée');
             loadPromotions();
-        } catch (error) {
+        } catch {
             showNotification('error', 'Erreur lors de la suppression');
         }
     };
@@ -94,7 +94,7 @@ export default function PromotionsPage() {
             await PromotionsService.updatePromotion(promotion.id, { status: newStatus });
             showNotification('success', `Promotion ${newStatus === 'active' ? 'activée' : 'mise en pause'}`);
             loadPromotions();
-        } catch (error) {
+        } catch {
             showNotification('error', 'Erreur lors de la mise à jour du statut');
         }
     };

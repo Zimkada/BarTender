@@ -85,7 +85,7 @@ export const useAutoGuide = (
   shouldTrigger: boolean,
   options?: { delay?: number }
 ) => {
-  const { triggerGuide, isGuideActive } = useGuideTrigger(guideId);
+  const { triggerGuide } = useGuideTrigger(guideId);
   const { activeTour } = useGuide();
 
   useEffect(() => {

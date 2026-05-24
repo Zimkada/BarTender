@@ -4,7 +4,7 @@
  * Affiche un badge discret dans le header au lieu d'un banner pleine largeur
  */
 
-import { WifiOff, Wifi, Activity } from 'lucide-react';
+import { WifiOff, Activity } from 'lucide-react';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 export function NetworkBadge() {

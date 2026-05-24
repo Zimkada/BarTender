@@ -1,4 +1,4 @@
-import { Trash2, Users, Check, CreditCard, Award, TrendingUp, Trophy, Star } from 'lucide-react';
+import { Users, Award, TrendingUp, Trophy, Star } from 'lucide-react';
 import React from 'react';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { UserPerformanceStat } from '../../hooks/useTeamPerformance';
@@ -21,8 +21,7 @@ export function TeamPerformanceTable({
     filter,
     onFilterChange,
     title = "Performance Équipe",
-    subtitle = "Ventes nettes déduites",
-    compact = false
+    subtitle = "Ventes nettes déduites"
 }: TeamPerformanceTableProps) {
     const { formatPrice } = useCurrencyFormatter();
 

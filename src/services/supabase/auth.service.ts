@@ -395,7 +395,7 @@ export class AuthService {
           // The body might be a string, or already parsed if Content-Type is application/json
           const errorBody = typeof errCtx.body === 'string' ? JSON.parse(errCtx.body) : errCtx.body;
           errorMessage = errorBody.error || (typeof errCtx.body === 'string' ? errCtx.body : '') || getErrorMessage(error);
-        } catch (parseError) {
+        } catch {
           errorMessage = getErrorMessage(error); // Fallback
         }
       } else {
@@ -453,7 +453,7 @@ export class AuthService {
           const errCtx = error.context;
           const errorBody = typeof errCtx.body === 'string' ? JSON.parse(errCtx.body) : errCtx.body;
           errorMessage = errorBody.error || (typeof errCtx.body === 'string' ? errCtx.body : '') || getErrorMessage(error);
-        } catch (parseError) {
+        } catch {
           errorMessage = getErrorMessage(error);
         }
       } else {

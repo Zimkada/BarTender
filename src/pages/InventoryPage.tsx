@@ -55,7 +55,6 @@ export default function InventoryPage() {
         products,
         categories,
         getProductStockInfo,
-        getAverageCostPerUnit,
         getDisplayCostForProduct,
         isLoading: isLoadingProducts
     } = useUnifiedStock(currentBar?.id, { skipSupplies: viewMode === 'products' });

@@ -29,7 +29,7 @@ export function useInventoryExport({
     const exportToExcel = async (
         mode: 'current' | 'historical',
         targetDate?: Date,
-        authorName: string = 'Système'
+        _authorName: string = 'Système'
     ) => {
         if (!hasFeature('exports')) {
             showError('L\'export de données n\'est pas disponible avec votre plan actuel.');
@@ -45,22 +45,11 @@ export function useInventoryExport({
             }
 
             let data: ExportRow[] = [];
-            let title = '';
-            let subtitle = '';
-
             const now = new Date();
             const dateStr = dateToYYYYMMDD(now);
-            const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
             if (mode === 'historical' && targetDate) {
                 // --- MODE HISTORIQUE (TIME TRAVEL) ---
-                title = `INVENTAIRE HISTORIQUE RECONSTITUÉ`;
-
-                // ✅ FIX: Display actual target time, not hardcoded "06:00"
-                const targetDateStr = targetDate.toLocaleDateString('fr-FR');
-                const targetTimeStr = targetDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-                subtitle = `Date Cible : ${targetDateStr} ${targetTimeStr} | Généré le ${dateStr} à ${timeStr}`;
-
                 // 1. Lancer le calcul lourd
                 const historicalRecords = await calculateHistoricalStock(targetDate);
 
@@ -97,9 +86,6 @@ export function useInventoryExport({
 
             } else {
                 // --- MODE ACTUEL (SNAPSHOT) ---
-                title = `INVENTAIRE PHYSIQUE`;
-                subtitle = `Date : ${dateStr} | Heure : ${timeStr} | Par : ${authorName}`;
-
                 data = products.map(product => {
                     const category = categories.find(c => c.id === product.categoryId);
                     const stockInfo = getStockInfo(product.id);

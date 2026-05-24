@@ -10,12 +10,12 @@ import {
   AreaChart,
   Area,
   BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
 } from './RechartsWrapper';
+import { Bar } from 'recharts/es6/cartesian/Bar';
 
 interface RefreshLog {
   id: string;
