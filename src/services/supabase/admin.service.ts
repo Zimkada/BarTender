@@ -192,7 +192,8 @@ export class AdminService {
 
       if (Array.isArray(data) && data.length > 0) {
         const result = data[0];
-        const barsData = (Array.isArray(result.bars) ? result.bars : []).map((bar: BarFromRPC) => ({
+        const rawBars = (Array.isArray(result.bars) ? result.bars : []) as unknown as BarFromRPC[];
+        const barsData = rawBars.map(bar => ({
           id: bar.id,
           name: bar.name,
           address: bar.address,
@@ -205,7 +206,7 @@ export class AdminService {
         }));
 
         return {
-          bars: barsData,
+          bars: barsData as unknown as Bar[],
           totalCount: result.total_count || 0,
         };
       }
@@ -243,7 +244,8 @@ export class AdminService {
 
       if (Array.isArray(data) && data.length > 0) {
         const result = data[0];
-        const usersData = (Array.isArray(result.users) ? result.users : []).map((u: UserFromRPC) => ({
+        const rawUsers = (Array.isArray(result.users) ? result.users : []) as unknown as UserFromRPC[];
+        const usersData = rawUsers.map(u => ({
           id: u.id,
           username: u.username || '',
           password: '', // Ne jamais exposer
@@ -259,7 +261,7 @@ export class AdminService {
         }));
 
         return {
-          users: usersData,
+          users: usersData as unknown as (User & { roles: string[]; bars: { id: string; name: string; }[]; })[],
           totalCount: result.total_count || 0,
         };
       }
@@ -295,15 +297,16 @@ export class AdminService {
         p_severity_filter: severityFilter,
         p_event_filter: eventFilter,
         p_bar_filter: barFilter,
-        p_start_date: startDate ?? null,
-        p_end_date: endDate ?? null,
+        p_start_date: startDate ?? undefined,
+        p_end_date: endDate ?? undefined,
       });
 
       if (error) throw error;
 
       if (Array.isArray(data) && data.length > 0) {
         const result = data[0];
-        const logsData = (Array.isArray(result.logs) ? result.logs : []).map((log: AuditLogFromRPC) => ({
+        const rawLogs = (Array.isArray(result.logs) ? result.logs : []) as unknown as AuditLogFromRPC[];
+        const logsData = rawLogs.map(log => ({
           ...log,
           timestamp: new Date(log.timestamp),
         }));
@@ -341,10 +344,10 @@ export class AdminService {
         p_page: page,
         p_limit: limit,
         p_search_query: searchQuery,
-        p_action_filter: actionFilter === 'all' ? null : actionFilter,
-        p_entity_filter: entityFilter === 'all' ? null : entityFilter,
-        p_start_date: startDate || null,
-        p_end_date: endDate || null
+        p_action_filter: actionFilter,
+        p_entity_filter: entityFilter,
+        p_start_date: startDate || undefined,
+        p_end_date: endDate || undefined,
       };
 
       const { data, error } = await supabase.rpc('get_paginated_catalog_logs_for_admin', rpcParams);
@@ -357,7 +360,8 @@ export class AdminService {
         throw error;
       }
 
-      const logsData = (data || []).map((log: GlobalCatalogLogFromRPC) => ({
+      const rawLogs = (data || []) as unknown as GlobalCatalogLogFromRPC[];
+      const logsData = rawLogs.map(log => ({
         id: log.id,
         action: log.action as 'CREATE' | 'UPDATE' | 'DELETE',
         entityType: log.entity_type as 'PRODUCT' | 'CATEGORY',
@@ -372,7 +376,7 @@ export class AdminService {
       const totalCount = data?.[0]?.total_count ?? 0;
 
       return {
-        logs: logsData,
+        logs: logsData as unknown as GlobalCatalogAuditLog[],
         totalCount: Number(totalCount),
       };
     } catch (error) {

@@ -62,7 +62,7 @@ export const BarReportExcelButton: React.FC<BarReportExcelButtonProps> = ({ bar 
         throw new Error('Aucune donnée reçue du serveur');
       }
 
-      const report = data as BarReport;
+      const report = data as unknown as BarReport;
 
       // Créer un nouveau classeur
       const wb = XLSX.utils.book_new();
@@ -124,7 +124,7 @@ export const BarReportExcelButton: React.FC<BarReportExcelButtonProps> = ({ bar 
       XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
 
       // ===== ONGLET 3: Top 10 Produits =====
-      const topProductsData = [
+      const topProductsData: (string | number)[][] = [
         ['TOP 10 PRODUITS DU JOUR'],
         [],
         ['#', 'Produit', 'Volume', 'Quantité vendue', 'Chiffre d\'affaires (FCFA)']

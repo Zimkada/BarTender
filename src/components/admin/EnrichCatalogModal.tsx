@@ -115,10 +115,10 @@ export function EnrichCatalogModal({
       setFoundDuplicate(similar.length > 0);
 
       if (similar.length > 0) {
-        showNotification({
-          type: 'warning',
-          message: `⚠️ ${similar.length} produit(s) similaire(s) détecté(s). Vérifiez-les avant de continuer.`
-        });
+        showNotification(
+          'info',
+          `⚠️ ${similar.length} produit(s) similaire(s) détecté(s). Vérifiez-les avant de continuer.`
+        );
       }
     } catch (error) {
       console.error('Erreur détection doublons:', error);
@@ -139,10 +139,7 @@ export function EnrichCatalogModal({
       }
     } catch (error) {
       console.error('Erreur chargement catégories globales:', error);
-      showNotification({
-        type: 'error',
-        message: 'Erreur lors du chargement des catégories'
-      });
+      showNotification('error', 'Erreur lors du chargement des catégories');
     } finally {
       setCategoriesLoading(false);
     }
@@ -173,15 +170,12 @@ export function EnrichCatalogModal({
   async function handleEnrich() {
     // Validations
     if (!name.trim()) {
-      showNotification({ type: 'error', message: 'Le nom est requis' });
+      showNotification('error', 'Le nom est requis');
       return;
     }
 
     if (!image && !sourceProduct.localImage) {
-      showNotification({
-        type: 'error',
-        message: 'Une image est requise pour enrichir le catalogue'
-      });
+      showNotification('error', 'Une image est requise pour enrichir le catalogue');
       return;
     }
 
@@ -208,19 +202,13 @@ export function EnrichCatalogModal({
         enrichmentData
       );
 
-      showNotification({
-        type: 'success',
-        message: `✅ "${name}" a été enrichi au catalogue global !`
-      });
+      showNotification('success', `✅ "${name}" a été enrichi au catalogue global !`);
 
       onSuccess?.();
       onClose();
     } catch (error: any) {
       console.error('Enrichment error:', error);
-      showNotification({
-        type: 'error',
-        message: error.message || 'Erreur lors de l\'enrichissement'
-      });
+      showNotification('error', error.message || 'Erreur lors de l\'enrichissement');
     } finally {
       setStatus('idle');
     }
@@ -404,7 +392,7 @@ export function EnrichCatalogModal({
               {image || sourceProduct.localImage ? (
                 <div className="flex items-center gap-3">
                   <img
-                    src={image || sourceProduct.localImage}
+                    src={image || sourceProduct.localImage || undefined}
                     alt="Aperçu"
                     className="h-16 w-16 object-cover rounded"
                   />
@@ -489,7 +477,7 @@ export function EnrichCatalogModal({
             <div className="flex items-center gap-2 p-3 bg-green-50 rounded border border-green-200">
               <Checkbox
                 checked={linkSourceProduct}
-                onChange={e => setLinkSourceProduct(e.target.checked)}
+                onChange={e => setLinkSourceProduct((e.target as HTMLInputElement).checked)}
               />
               <label className="text-sm cursor-pointer">
                 <span className="font-medium">🔗 Lier automatiquement</span>
@@ -512,7 +500,7 @@ export function EnrichCatalogModal({
             onClick={handleEnrich}
             isLoading={status === 'processing' || status === 'checking'}
             disabled={status === 'checking' || !name.trim()}
-            variant="primary"
+            variant="default"
           >
             {status === 'processing' ? (
               <>

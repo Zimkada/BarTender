@@ -37,14 +37,14 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
     setError(null);
     try {
       const { data, error: rpcError } = await supabase.rpc('admin_get_bar_audit_logs', {
-        p_bar_id: barId || null,
+        p_bar_id: barId || undefined,
         p_limit: limit,
         p_offset: 0
       });
 
       if (rpcError) throw rpcError;
 
-      setLogs(data || []);
+      setLogs((data || []) as unknown as BarAuditLog[]);
     } catch (err: any) {
       console.error('Error loading audit logs:', err);
       setError(err.message || 'Impossible de charger les logs d\'audit');

@@ -3,11 +3,13 @@ import { Card, CardHeader, CardContent, CardFooter } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import type { User } from '../../types';
 
+type UserWithRolesAndBars = User & { roles: string[]; bars: Array<{ id: string; name: string }> };
+
 interface UserCardProps {
-  user: User & { roles: string[]; bars?: Array<{ id: string; name: string }> };
-  onEdit: (user: User & { roles: string[] }) => void;
-  onAddBar?: (user: User & { roles: string[] }) => void;
-  onPasswordAction: (user: User & { roles: string[] }) => void;
+  user: UserWithRolesAndBars;
+  onEdit: (user: UserWithRolesAndBars) => void;
+  onAddBar?: (user: UserWithRolesAndBars) => void;
+  onPasswordAction: (user: UserWithRolesAndBars) => void;
   isFictionalEmail: (email: string | undefined) => boolean;
 }
 

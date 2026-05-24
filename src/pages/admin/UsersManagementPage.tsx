@@ -110,7 +110,7 @@ export default function UsersManagementPage() {
   };
 
   // Function to handle adding a bar to an existing promoter
-  const handleAddBar = (user: User & { roles: string[] }) => {
+  const handleAddBar = (user: UserWithRolesAndBars) => {
     setSelectedPromoter(user);
     setShowAddBar(true);
   };

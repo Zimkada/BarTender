@@ -108,14 +108,13 @@ export interface CatalogEnrichmentAuditLog {
 /**
  * État de progression de l'enrichissement
  */
-export enum EnrichmentStatus {
-  Idle = 'idle',
-  Checking = 'checking', // Vérification des doublons
-  Validating = 'validating', // Validation des données
-  Processing = 'processing', // Création en cours
-  Success = 'success',
-  Error = 'error'
-}
+export type EnrichmentStatus =
+  | 'idle'
+  | 'checking'      // Vérification des doublons
+  | 'validating'    // Validation des données
+  | 'processing'    // Création en cours
+  | 'success'
+  | 'error';
 
 /**
  * Erreur d'enrichissement

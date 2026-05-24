@@ -62,10 +62,7 @@ export function LocalProductsCatalogViewer({
       });
       setProducts(allProducts);
     } catch (error: any) {
-      showNotification({
-        type: 'error',
-        message: error.message || 'Erreur lors du chargement des produits locaux'
-      });
+      showNotification('error', error.message || 'Erreur lors du chargement des produits locaux');
     } finally {
       setLoading(false);
     }
@@ -79,10 +76,7 @@ export function LocalProductsCatalogViewer({
   function handleEnrichmentSuccess() {
     setIsEnrichModalOpen(false);
     setSelectedProduct(null);
-    showNotification({
-      type: 'success',
-      message: 'Produit enrichi au catalogue global avec succès ! 🎉'
-    });
+    showNotification('success', 'Produit enrichi au catalogue global avec succès ! 🎉');
     loadLocalProducts(); // Recharger la liste
     onEnrichmentSuccess?.();
   }
@@ -129,7 +123,7 @@ export function LocalProductsCatalogViewer({
             placeholder="Rechercher un produit..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            prefix={<Search className="h-4 w-4" />}
+            leftIcon={<Search className="h-4 w-4" />}
           />
         </div>
 
@@ -209,7 +203,7 @@ export function LocalProductsCatalogViewer({
                 <Button
                   onClick={() => handleEnrichClick(product)}
                   className="w-full"
-                  variant="primary"
+                  variant="default"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Enrichir le catalogue
