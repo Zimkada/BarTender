@@ -23,8 +23,12 @@ export function usePlan() {
 
   const memberLimitMessage = useMemo(() => {
     if (canAddMember) return null;
-    return `Limite atteinte : ${plan.maxMembers} membre${plan.maxMembers > 1 ? 's' : ''} max (plan ${plan.label}). Contactez l'administrateur pour passer au plan supérieur.`;
-  }, [canAddMember, plan.maxMembers, plan.label]);
+    const nextPlan = plan.id === 'starter' ? 'Pro' : plan.id === 'pro' ? 'Max' : null;
+    if (nextPlan) {
+      return `Votre équipe grandit ! Pour ajouter une personne de plus, passez à la formule ${nextPlan}. Contactez votre administrateur.`;
+    }
+    return `Votre équipe a atteint ${plan.maxMembers} personnes. Pour étendre votre équipe au-delà, contactez-nous pour une formule sur mesure.`;
+  }, [canAddMember, plan.maxMembers, plan.id]);
 
   const hasFeature = useMemo(() => {
     return (feature: FeatureKey) => checkFeature(plan.id, feature);

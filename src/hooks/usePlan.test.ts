@@ -53,22 +53,23 @@ describe('usePlan Hook', () => {
   });
 
   describe('canAddMember', () => {
-    it('allows adding when under limit (starter, 1/2)', () => {
-      setupMock('starter', 1);
+    it('allows adding when under limit (starter, 2/3)', () => {
+      setupMock('starter', 2);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(true);
       expect(result.current.memberLimitMessage).toBeNull();
     });
 
-    it('blocks adding when at limit (starter, 2/2)', () => {
-      setupMock('starter', 2);
+    it('blocks adding when at limit (starter, 3/3)', () => {
+      setupMock('starter', 3);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(false);
-      expect(result.current.memberLimitMessage).toContain('2 membres max');
+      expect(result.current.memberLimitMessage).toContain('Pro');
+      expect(result.current.memberLimitMessage).toContain('Votre équipe grandit');
     });
 
-    it('blocks adding when over limit (starter, 3/2)', () => {
-      setupMock('starter', 3);
+    it('blocks adding when over limit (starter, 4/3)', () => {
+      setupMock('starter', 4);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(false);
     });
@@ -79,7 +80,7 @@ describe('usePlan Hook', () => {
       expect(result.current.canAddMember).toBe(true);
     });
 
-    it('allows adding when still below previous threshold (pro, 5/8)', () => {
+    it('allows adding when still below threshold (pro, 5/8)', () => {
       setupMock('pro', 5);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(true);
@@ -89,7 +90,8 @@ describe('usePlan Hook', () => {
       setupMock('pro', 8);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(false);
-      expect(result.current.memberLimitMessage).toContain('8 membres max');
+      expect(result.current.memberLimitMessage).toContain('Max');
+      expect(result.current.memberLimitMessage).toContain('Votre équipe grandit');
     });
 
     it('blocks adding when over limit (pro, 9/8)', () => {
@@ -99,31 +101,31 @@ describe('usePlan Hook', () => {
     });
 
     it('only counts active members', () => {
-      // 3 members total but only 1 active → under starter limit of 2
-      setupMock('starter', 3, [true, false, false]);
+      // 4 members total but only 2 active → under starter limit of 3
+      setupMock('starter', 4, [true, true, false, false]);
       const { result } = renderHook(() => usePlan());
-      expect(result.current.activeMemberCount).toBe(1);
+      expect(result.current.activeMemberCount).toBe(2);
       expect(result.current.canAddMember).toBe(true);
     });
   });
 
-  describe('hasFeature', () => {
-    it('starter has no features', () => {
+  describe('hasFeature (toutes les features sont actives dans tous les plans)', () => {
+    it('starter has all features', () => {
       setupMock('starter', 0);
       const { result } = renderHook(() => usePlan());
-      expect(result.current.hasFeature('accounting')).toBe(false);
-      expect(result.current.hasFeature('exports')).toBe(false);
-      expect(result.current.hasFeature('promotions')).toBe(false);
-      expect(result.current.hasFeature('forecasting')).toBe(false);
+      expect(result.current.hasFeature('accounting')).toBe(true);
+      expect(result.current.hasFeature('exports')).toBe(true);
+      expect(result.current.hasFeature('promotions')).toBe(true);
+      expect(result.current.hasFeature('forecasting')).toBe(true);
     });
 
-    it('pro has accounting, exports, promotions', () => {
+    it('pro has all features', () => {
       setupMock('pro', 0);
       const { result } = renderHook(() => usePlan());
       expect(result.current.hasFeature('accounting')).toBe(true);
       expect(result.current.hasFeature('exports')).toBe(true);
       expect(result.current.hasFeature('promotions')).toBe(true);
-      expect(result.current.hasFeature('forecasting')).toBe(false);
+      expect(result.current.hasFeature('forecasting')).toBe(true);
     });
 
     it('enterprise has all features', () => {

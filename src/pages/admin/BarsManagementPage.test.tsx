@@ -67,7 +67,7 @@ describe('BarsManagementPage', () => {
     mockUpdateBar.mockResolvedValue(undefined);
   });
 
-  it('updates plan and derived dataTier when admin changes a bar plan', async () => {
+  it('updates plan and keeps dataTier unified (balanced) when admin changes a bar plan', async () => {
     render(<BarsManagementPage />);
 
     expect(await screen.findByText('Bar A')).toBeTruthy();
@@ -80,7 +80,7 @@ describe('BarsManagementPage', () => {
         expect.objectContaining({
           settings: expect.objectContaining({
             plan: 'enterprise',
-            dataTier: 'enterprise',
+            dataTier: 'balanced',
           }),
         })
       );

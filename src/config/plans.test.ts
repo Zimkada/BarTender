@@ -6,7 +6,6 @@ import {
   PLANS,
   PLAN_ORDER,
   FEATURE_LABELS,
-  type PlanId,
   type FeatureKey,
 } from './plans';
 
@@ -34,17 +33,16 @@ describe('plans.ts', () => {
   describe('hasFeature', () => {
     const features: FeatureKey[] = ['accounting', 'exports', 'promotions', 'forecasting'];
 
-    it('starter has no features', () => {
+    it('starter has all features (segmentation par équipe, pas par features)', () => {
       features.forEach(f => {
-        expect(hasFeature('starter', f)).toBe(false);
+        expect(hasFeature('starter', f)).toBe(true);
       });
     });
 
-    it('pro has accounting, exports, promotions but not forecasting', () => {
-      expect(hasFeature('pro', 'accounting')).toBe(true);
-      expect(hasFeature('pro', 'exports')).toBe(true);
-      expect(hasFeature('pro', 'promotions')).toBe(true);
-      expect(hasFeature('pro', 'forecasting')).toBe(false);
+    it('pro has all features', () => {
+      features.forEach(f => {
+        expect(hasFeature('pro', f)).toBe(true);
+      });
     });
 
     it('enterprise has all features', () => {
@@ -53,23 +51,23 @@ describe('plans.ts', () => {
       });
     });
 
-    it('undefined plan defaults to starter (no features)', () => {
+    it('undefined plan defaults to starter (now has all features)', () => {
       features.forEach(f => {
-        expect(hasFeature(undefined, f)).toBe(false);
+        expect(hasFeature(undefined, f)).toBe(true);
       });
     });
   });
 
   describe('isMemberLimitReached', () => {
-    it('starter limit is 2', () => {
-      expect(isMemberLimitReached('starter', 1)).toBe(false);
-      expect(isMemberLimitReached('starter', 2)).toBe(true);
+    it('starter limit is 3 (promoteur + gérant + 1 serveur)', () => {
+      expect(isMemberLimitReached('starter', 2)).toBe(false);
       expect(isMemberLimitReached('starter', 3)).toBe(true);
+      expect(isMemberLimitReached('starter', 4)).toBe(true);
     });
 
     it('pro limit is 8', () => {
       expect(isMemberLimitReached('pro', 4)).toBe(false);
-      expect(isMemberLimitReached('pro', 5)).toBe(false);
+      expect(isMemberLimitReached('pro', 7)).toBe(false);
       expect(isMemberLimitReached('pro', 8)).toBe(true);
       expect(isMemberLimitReached('pro', 10)).toBe(true);
     });
@@ -79,9 +77,9 @@ describe('plans.ts', () => {
       expect(isMemberLimitReached('enterprise', 20)).toBe(true);
     });
 
-    it('undefined plan defaults to starter limit (2)', () => {
-      expect(isMemberLimitReached(undefined, 1)).toBe(false);
-      expect(isMemberLimitReached(undefined, 2)).toBe(true);
+    it('undefined plan defaults to starter limit (3)', () => {
+      expect(isMemberLimitReached(undefined, 2)).toBe(false);
+      expect(isMemberLimitReached(undefined, 3)).toBe(true);
     });
   });
 
@@ -101,10 +99,10 @@ describe('plans.ts', () => {
   });
 
   describe('plan definitions consistency', () => {
-    it('each plan has correct dataTier mapping', () => {
-      expect(PLANS.starter.dataTier).toBe('lite');
+    it('all plans share the same dataTier (balanced)', () => {
+      expect(PLANS.starter.dataTier).toBe('balanced');
       expect(PLANS.pro.dataTier).toBe('balanced');
-      expect(PLANS.enterprise.dataTier).toBe('enterprise');
+      expect(PLANS.enterprise.dataTier).toBe('balanced');
     });
 
     it('maxMembers increases with plan tier', () => {
@@ -112,23 +110,17 @@ describe('plans.ts', () => {
       expect(PLANS.pro.maxMembers).toBeLessThan(PLANS.enterprise.maxMembers);
     });
 
-    it('higher plans include all features of lower plans', () => {
-      const starterFeatures = Object.entries(PLANS.starter.features)
-        .filter(([, v]) => v).map(([k]) => k);
-      const proFeatures = Object.entries(PLANS.pro.features)
-        .filter(([, v]) => v).map(([k]) => k);
-      const enterpriseFeatures = Object.entries(PLANS.enterprise.features)
-        .filter(([, v]) => v).map(([k]) => k);
+    it('all plans expose the same features (segmentation par taille d\'équipe)', () => {
+      const starterFeatures = JSON.stringify(PLANS.starter.features);
+      const proFeatures = JSON.stringify(PLANS.pro.features);
+      const enterpriseFeatures = JSON.stringify(PLANS.enterprise.features);
 
-      // starter features are subset of pro
-      starterFeatures.forEach(f => {
-        expect(proFeatures).toContain(f);
-      });
+      expect(proFeatures).toEqual(starterFeatures);
+      expect(enterpriseFeatures).toEqual(starterFeatures);
+    });
 
-      // pro features are subset of enterprise
-      proFeatures.forEach(f => {
-        expect(enterpriseFeatures).toContain(f);
-      });
+    it('enterprise label is "Max" (renommage marketing)', () => {
+      expect(PLANS.enterprise.label).toBe('Max');
     });
   });
 });

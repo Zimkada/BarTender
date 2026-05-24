@@ -1,9 +1,17 @@
 /**
  * plans.ts — Définition centralisée des plans d'utilisation BarTender
  *
- * Chaque bar a un plan assigné par le SuperAdmin dans bars.settings.plan
- * Le plan contrôle : maxMembers, dataTier, features disponibles
- * Le mode opérationnel (full/simplified) reste indépendant du plan
+ * Chaque bar a un plan assigné par le SuperAdmin dans bars.settings.plan.
+ *
+ * SEGMENTATION : par taille d'équipe uniquement (promoteur inclus dans le compteur).
+ * - Toutes les fonctionnalités sont incluses dans tous les plans (anti-dette technique,
+ *   anti-lock-in, conformité légale SYSCOHADA).
+ * - La PlanId 'enterprise' reste la clé technique pour stabilité (label affiché : "Max").
+ *
+ * Pricing (cf. MARKETING.md §4) :
+ * - Starter 9 000 XOF/mois (300 FCFA/jour) — sas commercial, force upsell au 4ᵉ membre
+ * - Pro 15 000 XOF/mois (500 FCFA/jour) — tier vedette ICP, force upsell au 9ᵉ membre
+ * - Max 30 000 XOF/mois (1 000 FCFA/jour) — gros bars, limite dure (custom au-delà)
  */
 
 // =====================================================
@@ -34,45 +42,37 @@ export type FeatureKey = keyof PlanFeatures;
 // PLANS
 // =====================================================
 
+const ALL_FEATURES_ENABLED: PlanFeatures = {
+  accounting: true,
+  exports: true,
+  promotions: true,
+  forecasting: true,
+};
+
 export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: 'starter',
     label: 'Starter',
-    description: 'Ventes et stock basique — idéal pour démarrer',
-    maxMembers: 2,
-    dataTier: 'lite',
-    features: {
-      accounting: false,
-      exports: false,
-      promotions: false,
-      forecasting: false,
-    },
+    description: 'Bar qui démarre — équipe jusqu\'à 3 personnes (promoteur inclus)',
+    maxMembers: 3,
+    dataTier: 'balanced',
+    features: ALL_FEATURES_ENABLED,
   },
   pro: {
     id: 'pro',
     label: 'Pro',
-    description: 'Comptabilité, exports et promotions — pour les bars actifs',
+    description: 'Bar actif — équipe jusqu\'à 8 personnes (promoteur inclus)',
     maxMembers: 8,
     dataTier: 'balanced',
-    features: {
-      accounting: true,
-      exports: true,
-      promotions: true,
-      forecasting: false,
-    },
+    features: ALL_FEATURES_ENABLED,
   },
   enterprise: {
     id: 'enterprise',
-    label: 'Enterprise',
-    description: 'Toutes les fonctionnalités — pour les réseaux de bars',
+    label: 'Max',
+    description: 'Gros bar / réseau — équipe jusqu\'à 20 personnes (promoteur inclus)',
     maxMembers: 20,
-    dataTier: 'enterprise',
-    features: {
-      accounting: true,
-      exports: true,
-      promotions: true,
-      forecasting: true,
-    },
+    dataTier: 'balanced',
+    features: ALL_FEATURES_ENABLED,
   },
 } as const;
 
