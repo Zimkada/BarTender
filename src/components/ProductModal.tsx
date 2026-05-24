@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Globe, PenTool, Search, ChevronRight, PlusCircle, Edit } from 'lucide-react';
 import { ImageUpload } from './ImageUpload';
 import { ProductsService } from '../services/supabase/products.service';
+import type { Product, Category, GlobalProduct } from '../types';
 import { Modal } from './ui/Modal';
 import { Spinner } from './ui/Spinner';
 import { Button } from './ui/Button';

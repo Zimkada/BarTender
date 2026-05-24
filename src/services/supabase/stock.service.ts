@@ -1,6 +1,7 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import type { SaleItemDB } from '../../hooks/useInventoryHistory.types';
+import type { RpcConsignmentActionResult } from '../../lib/supabase-rpc.types';
 import { ADJUSTMENT_REASONS } from '../../types';
 import { dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 
@@ -605,19 +606,23 @@ export class StockService {
                 p_original_seller: data.originalSeller || undefined,
                 p_server_id: data.serverId || undefined,
                 p_created_by: data.createdBy,
-                p_business_date: data.businessDate ? new Date(data.businessDate) : undefined
+                p_business_date: data.businessDate || undefined,
             });
 
             if (error) throw error;
-            if (result?.success === false) {
-                throw new Error(result?.error || 'Failed to create consignment');
+            const rpcResult = result as RpcConsignmentActionResult | null;
+            if (rpcResult?.success === false) {
+                throw new Error(rpcResult.error || 'Failed to create consignment');
+            }
+            if (!rpcResult?.consignment_id) {
+                throw new Error('RPC create_consignment did not return consignment_id');
             }
 
             // Fetch and return the complete consignment
             const { data: consignment, error: fetchError } = await supabase
                 .from('consignments')
                 .select('*')
-                .eq('id', result?.consignment_id)
+                .eq('id', rpcResult.consignment_id)
                 .single();
 
             if (fetchError) throw fetchError;
@@ -642,8 +647,9 @@ export class StockService {
             });
 
             if (error) throw error;
-            if (result?.success === false) {
-                throw new Error(result?.error || 'Failed to claim consignment');
+            const rpcResult = result as RpcConsignmentActionResult | null;
+            if (rpcResult?.success === false) {
+                throw new Error(rpcResult.error || 'Failed to claim consignment');
             }
 
             // Fetch and return the updated consignment
@@ -671,8 +677,9 @@ export class StockService {
             });
 
             if (error) throw error;
-            if (result?.success === false) {
-                throw new Error(result?.error || 'Failed to forfeit consignment');
+            const rpcResult = result as RpcConsignmentActionResult | null;
+            if (rpcResult?.success === false) {
+                throw new Error(rpcResult.error || 'Failed to forfeit consignment');
             }
 
             // Fetch and return the updated consignment

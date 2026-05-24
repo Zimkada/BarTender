@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
 import { getErrorMessage } from '../../utils/errorHandler';
+import type { RpcCreateSupplyResult } from '../../lib/supabase-rpc.types';
 import type { AdjustmentReason } from '../../types';
 
 // Map legacy/unknown reason strings to valid RPC enum values
@@ -76,7 +77,7 @@ export const useStockMutations = (_barId?: string) => {
             if (!barId) throw new Error("No bar selected");
             return ProductsService.updateBarProduct(id, updates);
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Produit mis à jour');
@@ -111,7 +112,7 @@ export const useStockMutations = (_barId?: string) => {
             if (!barId) throw new Error("No bar selected");
             return ProductsService.deactivateProduct(id);
         },
-        onSuccess: (data, id) => {
+        onSuccess: (_data, id) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Produit supprimé');
@@ -157,7 +158,7 @@ export const useStockMutations = (_barId?: string) => {
                 notes: finalNotes
             });
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Stock mis à jour');
@@ -202,7 +203,7 @@ export const useStockMutations = (_barId?: string) => {
             supplier: string;
             created_by: string;
         }) => {
-            const rpcData = await StockService.createSupplyAndUpdateProduct({
+            const rpcRaw = await StockService.createSupplyAndUpdateProduct({
                 p_bar_id: data.bar_id,
                 p_product_id: data.product_id,
                 p_quantity: data.quantity,
@@ -212,13 +213,14 @@ export const useStockMutations = (_barId?: string) => {
                 p_created_by: data.created_by,
             });
 
-            if (rpcData && !rpcData.success) {
-                throw new Error(rpcData.message || 'Une erreur est survenue dans la base de données.');
+            const rpcData = rpcRaw as RpcCreateSupplyResult | null;
+            if (!rpcData || rpcData.success === false) {
+                throw new Error(rpcData?.message || 'Une erreur est survenue dans la base de données.');
             }
 
             return rpcData.supply;
         },
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Approvisionnement enregistré et CUMP mis à jour !');
@@ -439,7 +441,7 @@ export const useStockMutations = (_barId?: string) => {
             // ✅ ATOMIC RPC: Single transaction (UPDATE status + DECREMENT stock)
             return StockService.claimConsignmentAtomic(id, claimedBy);
         },
-        onSuccess: (consignment, variables) => {
+        onSuccess: (_consignment, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Consignation réclamée');

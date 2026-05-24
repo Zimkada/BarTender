@@ -570,7 +570,7 @@ export class ProductsService {
       }
 
       // Filtre client-side : comparaison colonne-à-colonne non supportée par PostgREST via .filter()
-      const lowStockData = (data || []).filter(p => p.stock <= (p.alert_threshold ?? 0));
+      const lowStockData = (data || []).filter(p => (p.stock ?? 0) <= (p.alert_threshold ?? 0));
 
       const enrichedProducts: BarProductWithDetails[] = lowStockData.map((product) => {
         const prod = product as BarProduct & {

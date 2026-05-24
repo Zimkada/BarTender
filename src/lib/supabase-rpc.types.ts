@@ -86,6 +86,39 @@ export interface CreateStockAdjustmentParams {
 }
 
 /**
+ * Retours typés des RPCs Supabase
+ *
+ * Les RPCs renvoient Json (forme inconnue par le client). Ces types décrivent
+ * la structure attendue après validation par le RPC lui-même.
+ *
+ * Usage : `data as RpcCreateSupplyResult`.
+ */
+
+/** Retour de create_supply_and_update_product */
+export interface RpcCreateSupplyResult {
+  success: boolean;
+  message?: string;
+  supply?: {
+    id: string;
+    bar_id: string;
+    product_id: string;
+    quantity: number;
+    lot_price: number;
+    lot_size: number;
+    supplier: string;
+    created_by: string;
+    created_at: string;
+  };
+}
+
+/** Retour des RPCs create_consignment / claim_consignment / forfeit_consignment */
+export interface RpcConsignmentActionResult {
+  success: boolean;
+  error?: string;
+  consignment_id?: string;
+}
+
+/**
  * Helper pour construire les paramètres RPC de vente
  * Convertit null en undefined pour la compatibilité Supabase RPC
  */

@@ -233,7 +233,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
           )}
 
           {/* Alerte rouge: prix très anormal (>10x) + demande confirmation */}
-          {priceRatio > 10 && currentPrice && (
+          {priceRatio > 10 && currentPrice && lastPrice && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
