@@ -355,7 +355,7 @@ export function CartFooter({
                                         <button
                                             key={opt.value}
                                             onClick={() => {
-                                                onBonChange(opt.value);
+                                                onBonChange?.(opt.value);
                                                 setShowBonSelection(false);
                                             }}
                                             className="w-full text-left p-3 rounded-xl border-l-4 border-t border-r border-b border-border bg-card shadow-sm flex items-center justify-between active:scale-95 transition-all"

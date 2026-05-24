@@ -497,8 +497,12 @@ export class SalesService {
     const ABSOLUTE_CAP = 50000;
 
     const buildBaseQuery = () => {
-      let q = supabase
-        .from('sales')
+      // Note: cast en any sur les étapes intermédiaires pour éviter TS2589
+      // — l'inférence du builder PostgREST explose au-delà de ~5 méthodes chaînées.
+      // Le typage strict est rétabli sur le retour (DBSale[]).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const base: any = supabase.from('sales');
+      let q = base
         .select(selectClause)
         .eq('bar_id', barId)
         .order('business_date', { ascending: false })

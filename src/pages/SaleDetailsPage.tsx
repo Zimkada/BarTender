@@ -69,14 +69,16 @@ export default function SaleDetailsPage() {
     }
   };
 
-  const saleDate = new Date(sale.created_at).toLocaleDateString('fr-FR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const saleDate = sale.created_at
+    ? new Date(sale.created_at).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : 'Date inconnue';
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -86,7 +88,7 @@ export default function SaleDetailsPage() {
         icon={<Receipt size={24} />}
         showBack
         onBack={() => navigate('/sales')}
-        actions={getStatusBadge(sale.status)}
+        actions={getStatusBadge(sale.status ?? 'pending')}
       />
 
       {/* Info Cards */}

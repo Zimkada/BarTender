@@ -205,7 +205,6 @@ export function CartDrawer({
                                 items={items}
                                 onUpdateQuantity={onUpdateQuantity}
                                 onRemoveItem={onRemoveItem}
-                                variant={isMobile ? 'mobile' : 'desktop'}
                                 showTotalReductions={true}
                                 maxStockLookup={maxStockLookup} // 🛡️ Fix Force Sale
                             />
