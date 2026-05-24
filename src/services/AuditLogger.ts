@@ -28,11 +28,11 @@ class AuditLoggerService {
       const { error } = await supabase.rpc('log_audit_event', {
         p_event: params.event,
         p_severity: params.severity || this.getDefaultSeverity(params.event),
-        p_bar_id: params.barId || null,
+        p_bar_id: params.barId || undefined,
         p_description: params.description,
         p_metadata: params.metadata || {},
-        p_related_entity_id: params.relatedEntityId || null,
-        p_related_entity_type: params.relatedEntityType || null
+        p_related_entity_id: params.relatedEntityId || undefined,
+        p_related_entity_type: params.relatedEntityType || undefined
       });
 
       if (error) {

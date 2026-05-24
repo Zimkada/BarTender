@@ -37,9 +37,10 @@ export const ThemeService = {
         const validatedConfig = this.validate(config);
 
         // 2. Update DB - Envoyer l'objet JSON pur, Supabase va le sérialiser pour jsonb
+        // ThemeConfig est une interface typée, on doit le convertir vers Json (opaque type Supabase)
         const { error } = await supabase
             .from('bars')
-            .update({ theme_config: validatedConfig })
+            .update({ theme_config: JSON.parse(JSON.stringify(validatedConfig)) })
             .eq('id', barId);
 
         if (error) throw error;

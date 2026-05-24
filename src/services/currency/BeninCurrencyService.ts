@@ -314,6 +314,5 @@ export class BeninCurrencyService {
   }
 }
 
-// Export des types et du service
+// Export du service (les types sont déjà exportés depuis leurs déclarations)
 export { BeninCurrencyService as default };
-export type { BeninCurrencyConfig, PriceDisplayOptions, RoundingOption };

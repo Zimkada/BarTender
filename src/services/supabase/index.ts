@@ -19,4 +19,4 @@ export type {
   BarProductWithDetails,
   CreateBarProductData,
 } from './products.service';
-export type { SaleItem, CreateSaleData, SaleWithDetails } from './sales.service';
+export type { CreateSaleData } from './sales.service';
