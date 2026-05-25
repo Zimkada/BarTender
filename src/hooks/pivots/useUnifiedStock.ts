@@ -36,7 +36,7 @@ export interface CreateConsignmentData {
     expirationDays?: number;
     originalSeller: string;
     serverId?: string;
-    businessDate: string | Date;
+    businessDate?: string | Date;
 }
 
 export interface UnifiedStockOptions {
@@ -335,7 +335,9 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             expirationDays: data.expirationDays || 7,
             originalSeller: data.originalSeller,
             serverId: data.serverId,
-            businessDate: typeof data.businessDate === 'string' ? data.businessDate : data.businessDate.toISOString().split('T')[0],
+            businessDate: data.businessDate
+                ? (typeof data.businessDate === 'string' ? data.businessDate : data.businessDate.toISOString().split('T')[0])
+                : undefined,
         };
 
         return mutations.createConsignment.mutateAsync(consignmentData);
