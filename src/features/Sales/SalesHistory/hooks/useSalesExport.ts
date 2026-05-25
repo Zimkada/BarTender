@@ -22,6 +22,7 @@ interface ExportRow {
     _sortTimestamp?: number; // internal, removed before export
 }
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
+import type { UnifiedSale } from '../../../../hooks/pivots/useUnifiedSales';
 import { Sale, SaleItem, Return, User, BarMember, Category, Product } from '../../../../types';
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { useNotifications } from '../../../../components/Notifications';
@@ -29,9 +30,9 @@ import { usePlan } from '../../../../hooks/usePlan';
 import { dateToYYYYMMDD } from '../../../../utils/businessDateHelpers';
 
 interface UseSalesExportProps {
-    filteredSales: Sale[];
+    filteredSales: Array<Sale | UnifiedSale>;
     filteredReturns: (Return | UnifiedReturn)[];
-    sales: Sale[]; // Needed to find original sale for returns/consignments
+    sales: Array<Sale | UnifiedSale>; // Needed to find original sale for returns/consignments
     returns: (Return | UnifiedReturn)[]; // Needed to find all returns related to sales
     products: Product[];
     categories: Category[];

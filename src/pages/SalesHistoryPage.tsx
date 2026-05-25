@@ -7,7 +7,8 @@ import {
     TrendingUp,
     LayoutGrid,
     List as ListIcon,
-    ChevronDown
+    ChevronDown,
+    type LucideIcon
 } from 'lucide-react';
 
 import { useBarContext } from '../context/BarContext';
@@ -15,7 +16,6 @@ import { useAuth } from '../context/AuthContext';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { getErrorMessage } from '../utils/errorHandler';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
-import { mapSalesData } from '../hooks/queries/useSalesQueries';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
@@ -24,7 +24,8 @@ import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useStock } from '../context/hooks/useStock';
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
-import { User, getPermissionsByRole } from '../types';
+import { User, getPermissionsByRole, Return } from '../types';
+import type { UnifiedReturn } from '../hooks/pivots/useUnifiedReturns';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { useSalesExport } from '../features/Sales/SalesHistory/hooks/useSalesExport';
@@ -139,7 +140,7 @@ export default function SalesHistoryPage() {
         filteredSales,
         filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
-        sales: unifiedSales as any, // Use unifiedSales
+        sales: unifiedSales,
         returns: unifiedReturns, // Use unifiedReturns
         currentSession,
         closeHour,
@@ -152,9 +153,9 @@ export default function SalesHistoryPage() {
 
     const { data: selectedSaleDetail } = useQuery({
         queryKey: ['sales', 'detail', selectedSaleId],
-        queryFn: async () => {
+        queryFn: async (): Promise<import('../types').Sale | null> => {
             const sale = await SalesService.getSaleById(selectedSaleId!);
-            return mapSalesData([sale as any])[0] ?? null;
+            return (sale as unknown as import('../types').Sale) ?? null;
         },
         enabled: !!selectedSaleId && !needsDetailedSalesList,
         staleTime: 60_000,
@@ -189,9 +190,9 @@ export default function SalesHistoryPage() {
 
     // HOOK: Export Logic
     const { exportSales } = useSalesExport({
-        filteredSales: filteredSales as any,
+        filteredSales,
         filteredReturns,
-        sales: unifiedSales as any,
+        sales: unifiedSales,
         returns: unifiedReturns,
         products,
         categories,
@@ -258,9 +259,9 @@ export default function SalesHistoryPage() {
 
     // ✨ FIX: Retours filtrés indexés par saleId — O(1) lookup per row
     const filteredReturnsBySaleMap = useMemo(() => {
-        const map = new Map<string, any[]>();
+        const map = new Map<string, Array<Return | UnifiedReturn>>();
         for (const r of filteredReturns) {
-            const saleId = (r as any).saleId;
+            const saleId = r.saleId;
             if (!saleId) continue;
             const existing = map.get(saleId);
             if (existing) {
@@ -286,7 +287,7 @@ export default function SalesHistoryPage() {
         { id: 'list', label: isMobile ? 'Tableau' : 'Tableau des ventes', icon: ListIcon },
         { id: 'cards', label: isMobile ? 'Détails' : 'Détails des ventes', icon: LayoutGrid },
         { id: 'analytics', label: isMobile ? 'Statistiques' : 'Statistiques & Analyses', icon: TrendingUp }
-    ] as { id: string; label: string; icon: any }[];
+    ] satisfies Array<{ id: string; label: string; icon: LucideIcon }>;
 
     return (
         <div className="min-h-screen bg-transparent pb-16 md:pb-0">

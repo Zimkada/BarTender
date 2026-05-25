@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
 import type { Sale, SaleItem, Return, UserSession } from '../../../../types';
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
+import type { UnifiedSale } from '../../../../hooks/pivots/useUnifiedSales';
 
 interface UseSalesFiltersProps {
-    sales: Sale[];
+    sales: Array<Sale | UnifiedSale>;
     returns?: (Return | UnifiedReturn)[];
     currentSession: UserSession | null;
     closeHour: number;
