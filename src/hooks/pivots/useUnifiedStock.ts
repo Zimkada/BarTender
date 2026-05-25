@@ -18,6 +18,7 @@ import { useNotifications } from '../../components/Notifications';
 import { toDbProduct, toDbProductForCreation } from '../../utils/productMapper';
 import { getDisplayCost, type DisplayCost } from '../../utils/costResolution';
 import type { Product, ProductStockInfo, Supply, Expense, BarSettings } from '../../types';
+import type { SaleItem as SyncSaleItem, SyncOperationCreateSale } from '../../types/sync';
 
 export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
 
@@ -120,8 +121,8 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
                 barId: barId
             });
             return ops
-                .filter((op: any) => op.type === 'CREATE_SALE')
-                .map((op: any) => op.payload);
+                .filter((op): op is SyncOperationCreateSale => op.type === 'CREATE_SALE')
+                .map(op => op.payload);
         },
         enabled: !!barId && !!session,
         staleTime: 30000,
@@ -148,8 +149,10 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
 
     // 🚀 Réactivité : Écoute des événements typés Pilier 0
     useEffect(() => {
-        const handleSync = (e: any) => {
-            if (e.detail?.barId === barId || !e.detail?.barId) {
+        const handleSync = (e: Event) => {
+            // CustomEvent emitted by SyncManager with optional barId scope
+            const detail = (e as CustomEvent<{ barId?: string } | undefined>).detail;
+            if (detail?.barId === barId || !detail?.barId) {
                 refetchOfflineSales();
                 // Products invalidation is now handled automatically by useSmartSync inside useProducts
                 // queryClient.invalidateQueries({ queryKey: stockKeys.products(barId || '') });
@@ -174,8 +177,8 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         return JSON.stringify({
             p: products.map(p => `${p.id}-${p.stock}`),
             c: consignments.filter(c => c.status === 'active').map(c => `${c.id}-${c.quantity}`),
-            o: offlineSales.map((s: any) => s.idempotency_key),
-            s: serverPendingSales.map((s: any) => s.id)
+            o: offlineSales.map(s => s.idempotency_key),
+            s: serverPendingSales.map(s => s.id)
         });
     }, [products, consignments, offlineSales, serverPendingSales]);
 
@@ -197,7 +200,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         const accountedIdempotencyKeys = new Set<string>();
 
         // 1. Deduct Offline Sales
-        offlineSales.forEach((sale: any) => {
+        offlineSales.forEach(sale => {
             if (sale.idempotency_key) {
                 // Skip si la vente a déjà été synchronisée (le stock DB reflète déjà cette vente).
                 // Scénario: sync terminé mais la queue offline n'a pas encore été nettoyée.
@@ -208,7 +211,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
                 accountedIdempotencyKeys.add(sale.idempotency_key);
             }
 
-            sale.items.forEach((item: any) => {
+            sale.items.forEach(item => {
                 if (infoMap[item.product_id]) {
                     infoMap[item.product_id].availableStock -= item.quantity;
                 }
@@ -225,7 +228,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
 
             accountedIdempotencyKeys.add(key);
 
-            synced.payload.items.forEach((item: any) => {
+            synced.payload.items.forEach(item => {
                 if (infoMap[item.product_id]) {
                     infoMap[item.product_id].availableStock -= item.quantity;
                 }
@@ -252,12 +255,14 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         });
 
         // 3. Deduct Server Pending Sales (The missing gap)
-        serverPendingSales.forEach((sale: any) => {
+        serverPendingSales.forEach(sale => {
             // Avoid double counting if it's still in the offline queue (unlikely but possible during sync)
             if (sale.idempotency_key && accountedIdempotencyKeys.has(sale.idempotency_key)) return;
 
-            const items = sale.items as any[];
-            items.forEach((item: any) => {
+            // sale.items is Json (jsonb column) — at runtime always an array of SyncSaleItem
+            // We narrow with a defensive Array.isArray check before iterating.
+            if (!Array.isArray(sale.items)) return;
+            (sale.items as unknown as SyncSaleItem[]).forEach(item => {
                 if (infoMap[item.product_id]) {
                     infoMap[item.product_id].availableStock -= item.quantity;
                 }
@@ -392,7 +397,9 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             supplier: supplyData.supplier
         };
 
-        return mutations.addSupply.mutateAsync(dbSupplyData).then((newSupply: any) => {
+        return mutations.addSupply.mutateAsync(dbSupplyData).then(newSupply => {
+            // mutationFn throws si newSupply absent — on a forcément un objet ici
+            if (!newSupply) throw new Error('Approvisionnement créé sans données retournées');
             onExpenseCreated({
                 category: 'supply',
                 amount: totalCost,
