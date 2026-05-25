@@ -9,6 +9,7 @@ import { OfflineStorage } from '../utils/offlineStorage';
 import { networkManager } from '../services/NetworkManager';
 import { notificationService } from '../services/NotificationService';
 import { setUserContext, clearUserContext } from '../lib/monitoring';
+import { getErrorMessage } from '../utils/errorHandler';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -257,7 +258,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { error: result.error };
       }
       return { error: 'Une erreur inattendue est survenue lors de la connexion.' };
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
       console.error('[AuthContext] Login failed:', error);
       auditLogger.log({
         event: 'LOGIN_FAILED',
@@ -265,10 +267,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userId: email,
         userName: email,
         userRole: 'serveur' as UserRole,
-        description: `Tentative de connexion échouée: ${error.message}`,
-        metadata: { email, error: error.message },
+        description: `Tentative de connexion échouée: ${errorMessage}`,
+        metadata: { email, error: errorMessage },
       });
-      return { error: error.message || 'Erreur lors de la connexion' };
+      return { error: errorMessage || 'Erreur lors de la connexion' };
     }
   }, [setCurrentSession]);
 
@@ -320,9 +322,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { error: result.error };
       }
       return { error: 'Une erreur inattendue est survenue lors de la vérification MFA.' };
-    } catch (error: any) {
+    } catch (error) {
       console.error('[AuthContext] MFA verification failed:', error);
-      return { error: error.message || 'Erreur lors de la vérification MFA' };
+      return { error: getErrorMessage(error) || 'Erreur lors de la vérification MFA' };
     }
   }, [setCurrentSession]);
 
@@ -496,9 +498,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         relatedEntityId: currentSession.userId,
         relatedEntityType: 'user',
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error('[AuthContext] Error changing password:', error);
-      throw new Error(error.message || 'Erreur lors du changement de mot de passe');
+      throw new Error(getErrorMessage(error) || 'Erreur lors du changement de mot de passe');
     }
   }, [currentSession, setCurrentSession]);
 
@@ -514,7 +516,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: `Demande de réinitialisation de mot de passe pour ${email}.`,
         metadata: { email },
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
       console.error('[AuthContext] Error requesting password reset:', error);
       auditLogger.log({
         event: 'PASSWORD_RESET_REQUEST_FAILED',
@@ -523,7 +526,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userName: email,
         userRole: 'serveur' as UserRole,
         description: `Échec de la demande de réinitialisation pour ${email}.`,
-        metadata: { email, error: error.message },
+        metadata: { email, error: errorMessage },
       });
       // Ne pas relancer l'erreur pour des raisons de sécurité
     }

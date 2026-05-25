@@ -46,10 +46,13 @@ export interface StepData {
     operatingMode: 'full' | 'simplifié';
     contact?: string;
   };
-  [OnboardingStep.OWNER_SETUP_STAFF]?: any;
-  [OnboardingStep.OWNER_ADD_PRODUCTS]?: any;
-  [OnboardingStep.OWNER_STOCK_INIT]?: any;
-  [OnboardingStep.MANAGER_TOUR]?: any;
+  // Les steps ci-dessous stockent des payloads variables selon le contexte.
+  // Le caller doit narrow via 'as TypeAttendu' avant lecture.
+  // unknown au lieu de any : force l'assertion explicite côté consommateur.
+  [OnboardingStep.OWNER_SETUP_STAFF]?: unknown;
+  [OnboardingStep.OWNER_ADD_PRODUCTS]?: unknown;
+  [OnboardingStep.OWNER_STOCK_INIT]?: unknown;
+  [OnboardingStep.MANAGER_TOUR]?: unknown;
 }
 
 /**
@@ -82,10 +85,10 @@ export interface OnboardingContextType extends OnboardingState {
   previousStep: () => void;
   skipStep: (step: OnboardingStep) => void;
   skipTour: () => void;
-  completeStep: (step: OnboardingStep, data?: any) => void;
+  completeStep: (step: OnboardingStep, data?: unknown) => void;
   completeOnboarding: () => void;
   completeTraining: () => Promise<void>;
-  updateStepData: (step: OnboardingStep, data: any) => void;
+  updateStepData: (step: OnboardingStep, data: unknown) => void;
   resetOnboarding: () => void;
   stepSequence: OnboardingStep[];
 }
@@ -391,7 +394,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     });
   };
 
-  const completeStep = (step: OnboardingStep, data?: any) => {
+  const completeStep = (step: OnboardingStep, data?: unknown) => {
     const newCompletedSteps = Array.from(new Set([...state.completedSteps, step]));
     updateState({
       completedSteps: newCompletedSteps,
@@ -468,7 +471,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     }
   };
 
-  const updateStepData = (step: OnboardingStep, data: any) => {
+  const updateStepData = (step: OnboardingStep, data: unknown) => {
     updateState({
       stepData: {
         ...state.stepData,
