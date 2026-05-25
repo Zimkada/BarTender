@@ -19,6 +19,7 @@ import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { ThemeSelector } from '../components/ThemeSelector';
 import { motion } from 'framer-motion';
+import { getErrorMessage } from '../utils/errorHandler';
 
 // Feature Flag
 const ENABLE_DYNAMIC_THEMING = import.meta.env.VITE_ENABLE_THEMING === 'true';
@@ -82,11 +83,12 @@ export default function SettingsPage() {
                     const totpFactor = data.all.find((f: Factor) => f.factor_type === 'totp' && f.status === 'verified');
                     setIsMfaEnabled(!!totpFactor);
                     if (totpFactor) setMfaFactorId(totpFactor.id);
-                } catch (err: any) {
-                    if (err.message?.includes('Auth session missing')) {
+                } catch (err) {
+                    const errMessage = getErrorMessage(err);
+                    if (errMessage.includes('Auth session missing')) {
                         setMfaError("Session expirée. Veuillez vous reconnecter.");
                     } else {
-                        setMfaError(err.message || "Erreur lors de la vérification MFA");
+                        setMfaError(errMessage || "Erreur lors de la vérification MFA");
                     }
                 }
             }
@@ -147,8 +149,9 @@ export default function SettingsPage() {
                         return hasChanged ? validMembers : prev;
                     });
                 }
-            } catch (error: any) {
-                if (error.name === 'AbortError') return;
+            } catch (error) {
+                // AbortError remonte quand la requête est annulée par le cleanup du useEffect
+                if (error instanceof Error && error.name === 'AbortError') return;
                 console.error('[SettingsPage] Error loading bar members:', error);
             }
         };
@@ -229,9 +232,10 @@ export default function SettingsPage() {
             setMfaFactorId(data.id);
             setMfaStep('verify');
             showNotification('success', 'Scannez le QR code et entrez le code de vérification.');
-        } catch (error: any) {
-            setMfaError(error.message);
-            showNotification('error', `Erreur d'inscription 2FA: ${error.message}`);
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            setMfaError(errorMessage);
+            showNotification('error', `Erreur d'inscription 2FA: ${errorMessage}`);
         } finally {
             setMfaLoading(false);
         }
@@ -253,9 +257,10 @@ export default function SettingsPage() {
             setMfaSecret(null);
             setVerifyCode('');
             showNotification('success', 'Authentification à deux facteurs activée avec succès !');
-        } catch (error: any) {
-            setMfaError(error.message);
-            showNotification('error', `Erreur de vérification 2FA: ${error.message}`);
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            setMfaError(errorMessage);
+            showNotification('error', `Erreur de vérification 2FA: ${errorMessage}`);
         } finally {
             setMfaLoading(false);
         }
@@ -275,9 +280,10 @@ export default function SettingsPage() {
             setMfaStep('idle');
             setMfaFactorId(null);
             showNotification('success', 'Authentification à deux facteurs désactivée.');
-        } catch (error: any) {
-            setMfaError(error.message);
-            showNotification('error', `Erreur de désactivation 2FA: ${error.message}`);
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            setMfaError(errorMessage);
+            showNotification('error', `Erreur de désactivation 2FA: ${errorMessage}`);
         } finally {
             setMfaLoading(false);
         }
@@ -342,7 +348,7 @@ export default function SettingsPage() {
                 icon={<SettingsIcon size={24} />}
                 tabs={tabs}
                 activeTab={activeTab}
-                onTabChange={(id) => setActiveTab(id as any)}
+                onTabChange={(id) => setActiveTab(id as 'bar' | 'operational' | 'security')}
                 guideId={settingsGuideId}
                 hideSubtitleOnMobile={true}
             />
