@@ -18,12 +18,22 @@ export function ChartTooltipShell({ title, children }: ChartTooltipShellProps) {
   );
 }
 
+// Recharts tooltip entries are typed loosely by the library — flexible shape needed
+interface ChartTooltipEntry {
+  name?: string;
+  value?: number | number[];
+  dataKey?: string;
+  color?: string;
+  fill?: string;
+  payload?: Record<string, number | string | undefined>;
+}
+
 interface ChartTooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: ChartTooltipEntry[];
   label?: React.ReactNode;
-  valueFormatter?: (value: number, entry?: any) => React.ReactNode;
-  nameFormatter?: (entry: any) => React.ReactNode;
+  valueFormatter?: (value: number, entry?: ChartTooltipEntry) => React.ReactNode;
+  nameFormatter?: (entry: ChartTooltipEntry) => React.ReactNode;
 }
 
 export function ChartTooltip({
@@ -43,8 +53,8 @@ export function ChartTooltip({
           if (Array.isArray(rawValue)) {
             rawValue = rawValue[1] - rawValue[0];
           }
-          if (rawValue === undefined || rawValue === null) {
-            rawValue = entry.payload?.[entry.dataKey];
+          if ((rawValue === undefined || rawValue === null) && entry.dataKey) {
+            rawValue = entry.payload?.[entry.dataKey] as number | number[] | undefined;
           }
           const value = Number(rawValue) || 0;
 

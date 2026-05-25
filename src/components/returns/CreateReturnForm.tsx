@@ -16,7 +16,10 @@ import {
   SaleItem,
   ReturnReason,
   ReturnReasonConfig,
+  type Consignment,
+  type Return,
 } from "../../types";
+import type { UnifiedReturn } from "../../hooks/pivots/useUnifiedReturns";
 import { OtherReasonDialog } from "./OtherReasonDialog";
 import { Textarea } from "../ui/Textarea";
 import { Label } from "../ui/Label";
@@ -42,8 +45,8 @@ interface CreateReturnFormProps {
   onSelectSale: (sale: Sale | null) => void;
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
-  consignments: any[];
-  getReturnsBySale: (saleId: string) => any[];
+  consignments: Consignment[];
+  getReturnsBySale: (saleId: string) => Array<Return | UnifiedReturn>;
 }
 
 export function CreateReturnForm({
@@ -190,7 +193,7 @@ export function CreateReturnForm({
           isRefunded: false,
           autoRestock: true,
           manualRestockRequired: false,
-        }, swapProduct, selectedSale.ticketId || (selectedSale as any).ticket_id); // ✅ Pass ticketId for chaining
+        }, swapProduct, selectedSale.ticketId || (selectedSale as Sale & { ticket_id?: string }).ticket_id); // ✅ Pass ticketId for chaining
         console.log('[CreateReturnForm] ✅ Exchange SUCCESS');
         showSuccess("✨ Échange Produit effectué avec succès !");
         onCancel(); // Close form on success

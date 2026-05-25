@@ -75,7 +75,7 @@ export function TeamPerformanceTable({
                             { value: 'management', label: 'Managers' },
                         ]}
                         value={filter}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onFilterChange(e.target.value as any)}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onFilterChange(e.target.value as 'all' | 'servers' | 'management')}
                         size="sm"
                         className="w-full sm:w-40 bg-card border-brand-subtle shadow-sm rounded-xl font-black uppercase text-[10px]"
                     />

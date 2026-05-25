@@ -64,7 +64,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                     // Fix TS error: explicit cast or check key existence safely
                     const presetKey = cacheData.preset as string;
                     if (presetKey && Object.keys(THEME_PRESETS).includes(presetKey)) {
-                        return { preset: presetKey as any } as ThemeConfig;
+                        return { preset: presetKey as import('../types/theme').ThemePreset } as ThemeConfig;
                     }
                 }
 
@@ -75,7 +75,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
                 if (rawBars && rawCurrentBarId) {
                     const bars = JSON.parse(rawBars);
-                    const cachedBar = bars.find((b: any) => b.id === rawCurrentBarId);
+                    const cachedBar = bars.find((b: { id: string; theme_config?: string | object }) => b.id === rawCurrentBarId);
                     if (cachedBar?.theme_config) {
                         return (typeof cachedBar.theme_config === 'string'
                             ? JSON.parse(cachedBar.theme_config)

@@ -55,7 +55,7 @@ class NotificationServiceClass {
 
       const stored = localStorage.getItem(key);
       if (stored) {
-        this.notifications = JSON.parse(stored).map((notif: any) => ({
+        this.notifications = JSON.parse(stored).map((notif: { timestamp: string | Date; [key: string]: unknown }) => ({
           ...notif,
           timestamp: new Date(notif.timestamp),
         }));

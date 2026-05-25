@@ -53,7 +53,8 @@ export default function AnalyticsPage() {
     sales
       .filter(s => s.status === 'validated')
       .forEach(sale => {
-        const date = new Date((sale as any).businessDate || (sale as any).createdAt || (sale as any).business_date || (sale as any).created_at);
+        const s = sale as typeof sale & { business_date?: string; created_at?: string };
+        const date = new Date(s.businessDate || s.createdAt || s.business_date || s.created_at || Date.now());
         const key = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
         if (months[key]) {
           months[key].revenue += sale.total;

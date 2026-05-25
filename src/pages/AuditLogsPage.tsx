@@ -4,7 +4,7 @@ import {
   Search, Filter, Download, Calendar, AlertTriangle, Info, AlertCircle, ChevronDown, ChevronUp, FileText, Package, RefreshCw
 } from 'lucide-react';
 import { AdminService } from '../services/supabase/admin.service';
-import type { AuditLogEvent, AuditLogSeverity, Bar, GlobalCatalogAuditLog } from '../types';
+import type { AuditLogEvent, AuditLogSeverity, GlobalCatalogAuditLog } from '../types';
 import type { AuditLogEntry } from '../services/supabase/admin.service';
 import { Alert } from '../components/ui/Alert';
 import { AdminPanelErrorBoundary } from '../components/AdminPanelErrorBoundary';
@@ -41,7 +41,7 @@ export default function AuditLogsPage() {
   const [endDate, setEndDate] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const [uniqueBars, setUniqueBars] = useState<Bar[]>([]);
+  const [uniqueBars, setUniqueBars] = useState<{ id: string; name: string; is_active: boolean }[]>([]);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [expandedCatalogLogId, setExpandedCatalogLogId] = useState<string | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -112,7 +112,7 @@ export default function AuditLogsPage() {
   }, [debouncedSearchQuery, severityFilter, eventFilter, barFilter, startDate, endDate]);
 
   useEffect(() => {
-    AdminService.getUniqueBars().then(data => setUniqueBars(data as any)).catch(err => console.error('Erreur chargement bars:', err));
+    AdminService.getUniqueBars().then(data => setUniqueBars(data)).catch(err => console.error('Erreur chargement bars:', err));
   }, []);
 
   const formatDate = (date: Date | string) => {

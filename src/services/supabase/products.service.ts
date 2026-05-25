@@ -4,7 +4,7 @@ import type { GlobalProduct as GlobalProductType } from '../../types';
 import { ProductNormalization } from '../../utils/productNormalization';
 
 type GlobalProductRow = Database['public']['Tables']['global_products']['Row'];
-type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
+export type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
 type BarProduct = Database['public']['Tables']['bar_products']['Row'];
 type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
 export type BarProductUpdate = Database['public']['Tables']['bar_products']['Update'];

@@ -33,6 +33,8 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
         );
     }
 
+    // Recharts tooltip props are typed loosely by the library
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const CustomTooltip = ({ active, payload, label: _label }: any) => {
         if (active && payload && payload.length) {
             const dataPoint = payload[0].payload;
@@ -79,7 +81,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                             tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
                             axisLine={false}
                             tickLine={false}
-                            tickFormatter={(value: any) => `${value}`} // Simplify axis labels, keep detail in tooltip
+                            tickFormatter={(value: number | string) => `${value}`} // Simplify axis labels, keep detail in tooltip
                         />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))', opacity: 0.35 }} />
                         <Bar

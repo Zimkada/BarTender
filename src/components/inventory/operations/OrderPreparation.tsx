@@ -114,18 +114,26 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
         return draftItems.find(i => i.productId === productId)?.quantity || 0;
     };
 
-    const handleIncrement = (product: any, suggestion?: number) => {
-        const currentQty = getDraftQuantity(product.productId || product.product_id);
-        // const increment = product.packSize || 1; // Par défaut 1, ou taille du pack si connue
+    // Product shape received from various sources (suggestions, drafts, supplies) — mixed snake/camelCase
+    interface OrderProduct {
+        productId?: string;
+        product_id?: string;
+        productName?: string;
+        product_name?: string;
+        product_volume?: string;
+        cost_price?: number;
+    }
+    const handleIncrement = (product: OrderProduct, suggestion?: number) => {
+        const pid = product.productId || product.product_id || '';
+        const currentQty = getDraftQuantity(pid);
 
         if (currentQty === 0) {
             // Premier ajout : pré-remplir avec le dernier approvisionnement connu
-            const pid = product.productId || product.product_id;
             const lastSupply = lastSupplies?.[pid];
             addItem({
                 productId: pid,
-                productName: product.productName || product.product_name,
-                productVolume: product.product_volume,
+                productName: product.productName || product.product_name || '',
+                productVolume: product.product_volume || '',
                 quantity: suggestion || 1,
                 unitPrice: lastSupply?.unitPrice ?? product.cost_price ?? 0,
                 lotSize: lastSupply?.lotSize,
@@ -133,7 +141,7 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                 supplier: lastSupply?.supplier,
             });
         } else {
-            updateItem(product.productId || product.product_id, { quantity: currentQty + 1 });
+            updateItem(pid, { quantity: currentQty + 1 });
         }
     };
 

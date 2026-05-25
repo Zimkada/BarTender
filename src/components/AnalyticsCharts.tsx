@@ -19,9 +19,15 @@ import { Bar } from 'recharts/es6/cartesian/Bar';
 
 import { ChartTooltip } from './charts/ChartTooltip';
 
+interface ExpenseCategoryEntry {
+  label: string;
+  amount: number;
+}
+
 interface AnalyticsChartsProps {
-  data: any[];
-  expensesByCategory: any;
+  // Data shape varies by caller (monthly, weekly aggregates) — kept flexible
+  data: Array<{ name: string } & Record<string, number | string>>;
+  expensesByCategory: Record<string, ExpenseCategoryEntry>;
 }
 
 const formatCurrency = (value: number) =>
@@ -33,6 +39,8 @@ const chartGridStroke = 'hsl(var(--border))';
 const chartCursorStroke = 'hsl(var(--border))';
 const chartCursorFill = 'hsl(var(--muted))';
 
+// Recharts Pie label callback signature — kept as any (recharts internal type is not exported cleanly)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 0.45; // Put slightly inside center
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -71,7 +79,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
 
   const expenseData = Object.entries(expensesByCategory)
     .filter(([key]) => key !== 'investment')
-    .map(([, value]) => ({ name: (value as any).label, value: (value as any).amount }));
+    .map(([, value]) => ({ name: value.label, value: value.amount }));
 
   return (
     <div className="space-y-8">

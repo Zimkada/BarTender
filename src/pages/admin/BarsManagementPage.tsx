@@ -107,7 +107,8 @@ export default function BarsManagementPage() {
     };
 
     try {
-      await BarService.updateBar(barId, { settings: updatedSettings as any });
+      // Supabase typegen represents jsonb columns as opaque Json — cast required
+      await BarService.updateBar(barId, { settings: updatedSettings as unknown as import('../../lib/database.types').Json });
       // Mettre à jour le state local
       setBars(prev => prev.map(b =>
         b.id === barId ? { ...b, settings: updatedSettings } : b

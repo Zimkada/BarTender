@@ -32,11 +32,11 @@ export interface CreateConsignmentData {
     customerName?: string;
     customerPhone?: string;
     notes?: string;
-    expiresAt: Date | string;
+    expiresAt?: Date | string;
     expirationDays?: number;
     originalSeller: string;
     serverId?: string;
-    businessDate: string;
+    businessDate: string | Date;
 }
 
 export interface UnifiedStockOptions {
@@ -329,11 +329,13 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             customerName: data.customerName,
             customerPhone: data.customerPhone,
             notes: data.notes,
-            expiresAt: typeof data.expiresAt === 'string' ? new Date(data.expiresAt) : data.expiresAt,
+            expiresAt: data.expiresAt
+                ? (typeof data.expiresAt === 'string' ? new Date(data.expiresAt) : data.expiresAt)
+                : new Date(Date.now() + (data.expirationDays || 7) * 86400000),
             expirationDays: data.expirationDays || 7,
             originalSeller: data.originalSeller,
             serverId: data.serverId,
-            businessDate: data.businessDate,
+            businessDate: typeof data.businessDate === 'string' ? data.businessDate : data.businessDate.toISOString().split('T')[0],
         };
 
         return mutations.createConsignment.mutateAsync(consignmentData);

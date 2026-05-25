@@ -208,7 +208,7 @@ export default function PromotionsPage() {
                                 <Select
                                     options={statusFilterOptions}
                                     value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                                    onChange={(e) => setStatusFilter(e.target.value as PromotionStatus | 'all')}
                                     className="border-border rounded-xl flex-1 h-11"
                                 />
                             </div>

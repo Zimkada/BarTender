@@ -143,7 +143,7 @@ export const CreateStockAdjustmentSchema = z.object({
     notes: z.string().nullable().optional(),
 });
 
-export const MutationSchemas: Record<string, z.ZodType<any>> = {
+export const MutationSchemas: Record<string, z.ZodType<unknown>> = {
     'CREATE_SALE': CreateSaleSchema,
     'CREATE_TICKET': CreateTicketSchema,
     'PAY_TICKET': PayTicketSchema,

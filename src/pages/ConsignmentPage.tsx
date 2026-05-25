@@ -325,7 +325,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 // ===== TAB 3: HISTORIQUE =====
 const HISTORY_PAGE_SIZE = 100;
 
-const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
+const HistoryTab: React.FC<{ stockManager: ReturnType<typeof useUnifiedStock> }> = ({ stockManager }) => {
   const { currentBar } = useBarContext();
 
   // 🛡️ Expert Fix: Filtre 60 jours

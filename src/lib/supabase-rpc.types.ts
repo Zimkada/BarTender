@@ -163,6 +163,6 @@ export function buildCreateSaleParams(
     p_notes: data.notes || undefined,
     p_business_date: data.business_date || undefined,
     p_ticket_id: data.ticket_id || undefined,
-    p_source_return_id: (data as any).source_return_id || (data as any).sourceReturnId || undefined,
+    p_source_return_id: data.source_return_id || (data as typeof data & { sourceReturnId?: string }).sourceReturnId || undefined,
   };
 }

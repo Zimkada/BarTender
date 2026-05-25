@@ -22,6 +22,8 @@ export function PromotionsAnalytics() {
     const { currentBar } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const [isLoading, setIsLoading] = useState(true);
+    // Stats shape comes from PromotionsService — too many ad-hoc fields to type strictly here.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [stats, setStats] = useState<any>(null);
 
     const {
@@ -194,7 +196,7 @@ export function PromotionsAnalytics() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {stats.topPromotions.map((promo: any, index: number) => (
+                                {stats.topPromotions.map((promo: { name: string; uses: number; revenue: number; netProfit: number; roi: number; costOfGoods: number; marginPercentage: number }, index: number) => (
                                     <tr key={index} className={`transition-colors ${promo.netProfit < 0 ? 'bg-red-50/50 hover:bg-red-50' : 'hover:bg-muted/50'}`}>
                                         <td className="px-5 py-4">
                                             <div className="flex items-center gap-3">

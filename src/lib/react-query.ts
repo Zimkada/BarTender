@@ -109,6 +109,8 @@ const asyncStoragePersister = createAsyncStoragePersister({
   throttleTime: 1000, // Sweet spot: réactivité vs charge (Vérifié par audit expert)
 });
 
+// React Query and persist-client-core type mismatch (different QueryClient versions in their dep trees)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 persistQueryClient({
   queryClient: queryClient as any,
   persister: asyncStoragePersister,

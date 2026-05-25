@@ -150,7 +150,7 @@ export function DashboardOrders({
                             <div className="space-y-2 pl-3 border-l-2 border-border ml-3">
                                 {serverSales.map((sale, idx) => {
                                     const isExpanded = expandedSales.has(sale.id);
-                                    const totalItems = sale.items_count ?? sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+                                    const totalItems = sale.items_count ?? sale.items.reduce((sum, item) => sum + item.quantity, 0);
                                     const canCancel = !isServerRole || canServerCancel(sale);
                                     const canValidate = !isServerRole;
 

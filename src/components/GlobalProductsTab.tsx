@@ -138,7 +138,7 @@ export function GlobalProductsTab() {
                 await ProductsService.updateGlobalProduct(editingProduct.id, payload);
                 showSuccess('Produit mis à jour');
             } else {
-                await ProductsService.createGlobalProduct(payload as any);
+                await ProductsService.createGlobalProduct(payload as import('../services/supabase/products.service').GlobalProductInsert);
                 showSuccess('Produit créé');
             }
             setIsModalOpen(false);

@@ -46,6 +46,8 @@ export interface DataStore {
  * Wrapper autour de localStorage avec gestion d'erreurs et événements
  */
 export class LocalStorageDataStore implements DataStore {
+  // Generic listener storage — callers cast on subscribe/notify
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private listeners = new Map<string, Set<(value: any) => void>>();
 
   constructor() {

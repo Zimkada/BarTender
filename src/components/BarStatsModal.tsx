@@ -65,9 +65,9 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
         if (liveAlerts.error) throw liveAlerts.error;
 
         setCombinedStats({
-          ...(financialStats.data as any),
+          ...(financialStats.data as unknown as Omit<CombinedStats, 'total_members' | 'top_products_json' | 'stock_alerts_count'>),
           total_members: ancillaryStats.data?.total_members ?? 0,
-          top_products_json: ancillaryStats.data?.top_products_json ?? [],
+          top_products_json: (ancillaryStats.data?.top_products_json ?? []) as CombinedStats['top_products_json'],
           stock_alerts_count: liveAlerts.data ?? 0,
         });
 

@@ -160,7 +160,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return categoryMutations.createCategory.mutateAsync({
             name: category.name,
             color: category.color,
-        }).then((data: any) => {
+        }).then((data) => {
             showNotification('success', `Catégorie "${category.name}" créée avec succès`, { duration: 3000 });
             // Mapping DB -> App Type
             const newCategory: Category = {
@@ -168,7 +168,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 name: data.custom_name || '',
                 color: data.custom_color || '#3B82F6',
                 barId: data.bar_id,
-                createdAt: new Date(data.created_at)
+                createdAt: data.created_at ? new Date(data.created_at) : new Date()
             };
             return newCategory;
         }).catch((error) => {
@@ -193,12 +193,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 categoryMutations.createCategory.mutateAsync({
                     name: cat.name,
                     color: cat.color,
-                }).then((data: any) => ({
+                }).then((data) => ({
                     id: data.id,
                     name: data.custom_name || '',
                     color: data.custom_color || '#3B82F6',
                     barId: data.bar_id,
-                    createdAt: new Date(data.created_at)
+                    createdAt: data.created_at ? new Date(data.created_at) : new Date()
                 } as Category))
             )
         )
@@ -368,7 +368,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
     }, [currentBar, currentSession, returnsMutations]);
 
-    const provideExchange = useCallback(async (returnData: Omit<Return, 'id' | 'barId'>, swapProduct: Product, ticketId?: string) => {
+    const provideExchange = useCallback(async (returnData: Pick<Return, 'saleId' | 'productId' | 'productName' | 'productVolume' | 'quantitySold' | 'quantityReturned' | 'reason' | 'returnedAt' | 'refundAmount' | 'isRefunded' | 'autoRestock' | 'manualRestockRequired'> & Partial<Return>, swapProduct: Product, ticketId?: string) => {
         if (!currentBar || !currentSession) return;
 
         // 🛡️ CONTRE-EXPERTISE : Génération d'IDs déterministes avant les appels

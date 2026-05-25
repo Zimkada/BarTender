@@ -137,7 +137,7 @@ export default function SaleDetailsPage() {
           <h2 className="font-semibold text-foreground">Détail des articles</h2>
         </div>
         <div className="divide-y divide-border">
-          {(sale.items as any[]).map((item, index) => (
+          {((sale.items ?? []) as Array<{ product_name: string; quantity: number; unit_price: number; total_price: number; discount_amount?: number }>).map((item, index) => (
             <div key={index} className="px-4 py-3 flex items-center justify-between">
               <div className="flex-1">
                 <p className="font-medium text-foreground">{item.product_name}</p>
@@ -147,8 +147,8 @@ export default function SaleDetailsPage() {
               </div>
               <div className="text-right">
                 <p className="font-semibold text-foreground">{formatPrice(item.total_price)}</p>
-                {item.discount_amount > 0 && (
-                  <p className="text-xs text-green-600">-{formatPrice(item.discount_amount)} promo</p>
+                {(item.discount_amount ?? 0) > 0 && (
+                  <p className="text-xs text-green-600">-{formatPrice(item.discount_amount ?? 0)} promo</p>
                 )}
               </div>
             </div>

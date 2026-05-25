@@ -1,7 +1,9 @@
 import { useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlusCircle, TruckIcon, FileSpreadsheet } from 'lucide-react';
-import { Product, ProductStockInfo, Category } from '../../types';
+import { Product, ProductStockInfo, Category, type Supply } from '../../types';
+
+type SupplyFormData = Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>;
 
 import { InventoryAddForm } from './operations/InventoryAddForm';
 import { InventorySupplyForm } from './operations/InventorySupplyForm';
@@ -14,8 +16,8 @@ interface InventoryOperationsProps {
     getProductStockInfo: (id: string) => ProductStockInfo | null;
     categories: Category[];
     products: Product[];
-    onSaveProduct: (data: any) => Promise<void> | void;
-    onSupply: (data: any) => Promise<void> | void;
+    onSaveProduct: (data: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Promise<void> | void;
+    onSupply: (data: SupplyFormData) => Promise<void> | void;
     isProductImportEnabled: boolean;
 }
 

@@ -435,7 +435,8 @@ export function AnalyticsView({
                   paddingAngle={2}
                   dataKey="value"
                   isAnimationActive={false}
-                  label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  label={((entry: { percentage: number }) => `${entry.percentage.toFixed(0)}%`) as any}
                   labelLine={{ stroke: 'hsl(var(--border))' }}
                 >
                   {categoryData.map((_entry, index) => (

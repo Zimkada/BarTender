@@ -40,6 +40,7 @@ interface TimelineEvent {
     details: string;
     price: number | null;
     notes: string | null;
+    status?: 'pending' | 'validated' | 'approved' | 'rejected' | 'restocked';
     // supply-specific
     supplyReversed?: boolean;
     supplyReversalOf?: string | null;
@@ -185,7 +186,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                                     <h4 className="text-body-sm font-semibold text-foreground capitalize">
                                                         {event.label}
                                                     </h4>
-                                                    {(event as any).status === 'pending' && (
+                                                    {event.status === 'pending' && (
                                                         <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-micro rounded">
                                                             En attente
                                                         </span>

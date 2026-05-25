@@ -30,7 +30,7 @@ import {
 
 interface CreateConsignmentFormProps {
     consignments: Consignment[];
-    onCreate: (data: any) => Promise<any>;
+    onCreate: (data: import('../../hooks/pivots/useUnifiedStock').CreateConsignmentData) => Promise<unknown>;
     onCancel: () => void;
     onSuccess: () => void;
 }
@@ -50,7 +50,7 @@ export function CreateConsignmentForm({
     const { showSuccess, showError } = useFeedback();
 
     const users = useMemo(() =>
-        Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) as UserType[] : [],
+        Array.isArray(barMembers) ? barMembers.map(m => m.user).filter(Boolean) as UserType[] : [],
         [barMembers]
     );
 

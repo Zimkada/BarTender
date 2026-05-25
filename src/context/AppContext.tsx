@@ -41,7 +41,7 @@ export interface AppContextType {
   addReturn: (returnData: Omit<Return, 'id' | 'barId'>) => void;
   updateReturn: (returnId: string, updates: Partial<Return>) => void;
   deleteReturn: (returnId: string) => void;
-  provideExchange: (returnData: any, swapProduct: Product, ticketId?: string) => Promise<void>;
+  provideExchange: (returnData: Pick<Return, 'saleId' | 'productId' | 'productName' | 'productVolume' | 'quantitySold' | 'quantityReturned' | 'reason' | 'returnedAt' | 'refundAmount' | 'isRefunded' | 'autoRestock' | 'manualRestockRequired'> & Partial<Return>, swapProduct: Product, ticketId?: string) => Promise<void>;
 
   // Dépenses (État géré par useUnifiedExpenses)
   customExpenseCategories: ExpenseCategoryCustom[];

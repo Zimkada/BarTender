@@ -129,7 +129,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const pendingOps = await offlineQueue.getOperations({ status: 'pending' });
       const barUpdates = pendingOps.filter(op => op.type === 'UPDATE_BAR');
 
-      const mergedBars = serverBars.map(bar => {
+      const mergedBars: Bar[] = serverBars.map(bar => {
         const barPendingUpdate = barUpdates.find(op => op.barId === bar.id);
         if (barPendingUpdate) {
           console.log(`[BarContext] Merging pending update for bar ${bar.id}`, barPendingUpdate.payload.updates);
@@ -143,7 +143,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               ...bar.settings,
               ...(barPendingUpdate.payload.updates.settings as Partial<BarSettings> || {})
             } as BarSettings
-          };
+          } as Bar;
         }
         return bar;
       });
@@ -355,11 +355,11 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         owner_id: ownerId,
         address: barData.address,
         phone: barData.phone,
-        settings: (barData.settings || {}) as unknown as Json,
+        settings: (barData.settings || {}) as unknown as Record<string, unknown>,
         closing_hour: barData.closingHour,
       };
 
-      const createdBar = await BarsService.createBar(newBarData as any);
+      const createdBar = await BarsService.createBar(newBarData);
       const newBar = createdBar;
 
       await refreshBars();
@@ -420,7 +420,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.log('[BarContext] Offline update - queuing changes');
         await offlineQueue.addOperation(
           'UPDATE_BAR',
-          { barId, updates: updates as any },
+          { barId, updates: updates as import('../types/sync').UpdateBarPayload['updates'] },
           barId,
           currentSession.userId
         );
@@ -435,7 +435,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (updates.settings) supabaseUpdates.settings = updates.settings as unknown as Json;
         if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
         if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
-        if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
+        if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config as Json;
 
         try {
           await BarsService.updateBar(barId, supabaseUpdates);

@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Category } from '../../../types';
+import { Category, type Product } from '../../../types';
 import { BackButton } from '../../ui/BackButton';
 
 // Lazy load
@@ -7,7 +7,7 @@ const ProductModal = lazy(() => import('../../ProductModal').then(m => ({ defaul
 
 interface InventoryAddFormProps {
     onClose: () => void;
-    onSave: (data: any) => Promise<void> | void;
+    onSave: (data: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Promise<void> | void;
     categories: Category[];
 }
 

@@ -9,7 +9,7 @@ import { getDisplayCost } from '../../utils/costResolution';
 
 interface InventoryStatsProps {
     products: Product[];
-    categoryStats: any[];
+    categoryStats: Array<{ categoryId: string; categoryName: string; categoryColor: string; totalProducts: number; alertsCount: number }>;
     productsWithAnomalies: ProductWithAnomaly[];
     lowStockCount: number;
     onNavigateToOperations: () => void;

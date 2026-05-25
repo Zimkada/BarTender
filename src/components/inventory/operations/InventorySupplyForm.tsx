@@ -1,5 +1,7 @@
 import { Suspense, lazy } from 'react';
-import { Product } from '../../../types';
+import { Product, type Supply } from '../../../types';
+
+type SupplyFormData = Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>;
 import { BackButton } from '../../ui/BackButton';
 
 // Lazy load
@@ -7,7 +9,7 @@ const SupplyModal = lazy(() => import('../../SupplyModal').then(m => ({ default:
 
 interface InventorySupplyFormProps {
     onClose: () => void;
-    onSave: (data: any) => Promise<void> | void;
+    onSave: (data: SupplyFormData) => Promise<void> | void;
     products: Product[];
     initialProductId?: string;
     initialQuantity?: number;

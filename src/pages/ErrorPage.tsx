@@ -2,18 +2,19 @@
 import { useRouteError } from 'react-router-dom';
 
 export function ErrorPage() {
-  const error: any = useRouteError();
+  const error = useRouteError();
   console.error(error);
 
   // Safely extract error message
   let errorText = 'Une erreur inconnue est survenue';
   try {
-    if (error?.statusText) {
-      errorText = String(error.statusText);
-    } else if (error?.message) {
-      errorText = String(error.message);
-    } else if (typeof error === 'string') {
-      errorText = error;
+    const err = error as { statusText?: string; message?: string } | string | null;
+    if (err && typeof err === 'object' && err.statusText) {
+      errorText = String(err.statusText);
+    } else if (err && typeof err === 'object' && err.message) {
+      errorText = String(err.message);
+    } else if (typeof err === 'string') {
+      errorText = err;
     }
   } catch {
     // If error can't be converted to string, use default

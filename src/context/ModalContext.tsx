@@ -13,15 +13,19 @@ type ModalTypes = {
   // Add other modal types as needed
 };
 
+// Modal props vary widely across modal types and are typed at the call site, not centrally
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ModalProps = any;
+
 // Define the state structure
 type ModalState = {
   type: keyof ModalTypes | null;
-  props: any;
+  props: ModalProps;
 };
 
 // Define the actions
 type ModalAction =
-  | { type: 'OPEN_MODAL'; modalType: keyof ModalTypes; modalProps?: any }
+  | { type: 'OPEN_MODAL'; modalType: keyof ModalTypes; modalProps?: ModalProps }
   | { type: 'CLOSE_MODAL' };
 
 // Reducer to manage modal state
