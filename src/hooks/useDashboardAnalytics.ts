@@ -64,21 +64,24 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     // 3. Filtered Data per Role (Restricted to TODAY'S sales via salesStats.sales)
     const todaySales = useMemo(() => {
-        return unifiedSales.filter((s: any) => {
-            // Helper pour extraire la date YYYY-MM-DD (local, pas UTC)
-            const getDay = (date: any) => {
-                if (!date) return '';
-                if (typeof date === 'string') return date.split('T')[0];
-                if (date instanceof Date) {
-                    const y = date.getFullYear();
-                    const m = String(date.getMonth() + 1).padStart(2, '0');
-                    const d = String(date.getDate()).padStart(2, '0');
-                    return `${y}-${m}-${d}`;
-                }
-                return '';
-            };
+        // Helper pour extraire la date YYYY-MM-DD (local, pas UTC)
+        const getDay = (date: Date | string | undefined): string => {
+            if (!date) return '';
+            if (typeof date === 'string') return date.split('T')[0];
+            if (date instanceof Date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+            return '';
+        };
 
-            const bDate = getDay(s.business_date || s.businessDate);
+        return unifiedSales.filter(s => {
+            // UnifiedSale a business_date (snake) + businessDate (camel),
+            // Sale (online) n'a que businessDate. Narrow via 'in' pour couvrir les deux.
+            const snake = 'business_date' in s ? s.business_date : undefined;
+            const bDate = getDay(snake || s.businessDate);
             // 🛡️ FIX P1: Comparer avec la date COMMERCIALE (todayDateStr) et non calendaire
             return bDate === todayDateStr;
         });
@@ -125,8 +128,8 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     // 5. Revenue: calculé localement depuis les données déjà chargées (évite duplication pivot hooks via useRevenueStats)
     const todayTotal = useMemo(() => {
         const grossRevenue = serverFilteredSales
-            .filter((s: any) => s.status === 'validated')
-            .reduce((sum: number, s: any) => sum + (s.total || 0), 0);
+            .filter(s => s.status === 'validated')
+            .reduce((sum, s) => sum + (s.total || 0), 0);
         const refundsTotal = serverFilteredReturns
             .filter(r => r.status === 'approved' || r.status === 'restocked')
             .reduce((sum, r) => sum + (r.refundAmount || 0), 0);
@@ -157,7 +160,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     }, [products, allProductsStockInfo, currentBar?.settings?.lowStockThreshold]);
 
     const totalItems = useMemo(() => {
-        return serverFilteredSales.reduce((sum: number, sale: any) => {
+        return serverFilteredSales.reduce((sum, sale) => {
             if (typeof sale.items_count === 'number') return sum + sale.items_count;
             if (!sale.items || !Array.isArray(sale.items)) return sum;
             return sum + sale.items.reduce((s: number, i: SaleItem) => s + (i.quantity || 0), 0);
