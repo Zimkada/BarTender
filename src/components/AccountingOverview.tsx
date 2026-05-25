@@ -319,7 +319,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         return dateStr.startsWith(expectedMonthPrefix);
       });
       // Fallback to gross_revenue if net_revenue is undefined (e.g., pending database view migration)
-      const monthRevenue = monthStats.reduce((sum, s) => sum + (Number(s.net_revenue ?? (s as any).gross_revenue ?? (s as any).total_revenue ?? 0) || 0), 0);
+      const monthRevenue = monthStats.reduce((sum, s) => sum + (Number(s.net_revenue ?? s.gross_revenue ?? 0) || 0), 0);
 
       const monthExpenseStats = chartExpenses.filter(e => {
         const dateStr = e.expense_date || e.expense_month || '';
@@ -357,8 +357,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     const previousRevenue = historicalRevenue;
 
     const previousCosts = unifiedExpenses
-      .filter((exp: any) => exp.date < periodStart)
-      .reduce((sum: number, exp: any) => sum + exp.amount, 0);
+      .filter(exp => exp.date < periodStart)
+      .reduce((sum, exp) => sum + exp.amount, 0);
 
     const previousReturnsRefunds = unifiedReturns
       .filter(r => {
@@ -443,7 +443,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   }, [filteredExpenses, customExpenseCategories]);
 
   // Handlers for Modals
-  const handleInitialBalanceSubmit = async (data: any) => {
+  const handleInitialBalanceSubmit = async (data: { amount: string; date: string; description?: string }) => {
     try {
       await initialBalanceHook.createInitialBalance({
         barId: currentBar!.id,
@@ -458,7 +458,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     }
   };
 
-  const handleCapitalContributionSubmit = async (data: any) => {
+  const handleCapitalContributionSubmit = async (data: { amount: string; date: string; description?: string; source: import('../types').CapitalSource; sourceDetails?: string }) => {
     try {
       await capitalContributionsHook.addContribution({
         barId: currentBar!.id,
@@ -807,10 +807,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         open={showCapitalContributionModal}
         onClose={() => setShowCapitalContributionModal(false)}
         onSubmit={handleCapitalContributionSubmit}
-        existingContributions={capitalContributionsHook.contributions.map(c => ({
-          ...c,
-          date: c.date instanceof Date ? c.date.toISOString() : c.date
-        }))}
+        existingContributions={capitalContributionsHook.contributions}
       />
 
     </div>

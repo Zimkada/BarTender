@@ -5,7 +5,15 @@ import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
-import { CapitalSource } from '../../../types';
+import { CapitalSource, type CapitalContribution } from '../../../types';
+
+interface CapitalContributionFormData {
+    amount: string;
+    date: string;
+    description: string;
+    source: CapitalSource;
+    sourceDetails: string;
+}
 import { useBarContext } from '../../../context/BarContext';
 import { CAPITAL_SOURCE_LABELS } from '../../../hooks/useCapitalContributions';
 import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers';
@@ -13,8 +21,8 @@ import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers
 interface CapitalContributionModalProps {
     open: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => void;
-    existingContributions: any[];
+    onSubmit: (data: CapitalContributionFormData) => void;
+    existingContributions: CapitalContribution[];
 }
 
 export const CapitalContributionModal: React.FC<CapitalContributionModalProps> = ({

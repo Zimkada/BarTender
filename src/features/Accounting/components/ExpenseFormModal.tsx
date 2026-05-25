@@ -6,7 +6,15 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Textarea } from '../../../components/ui/Textarea';
 import { Label } from '../../../components/ui/Label';
-import { ExpenseCategory } from '../../../types';
+import { ExpenseCategory, type ExpenseCategoryCustom } from '../../../types';
+
+interface ExpenseFormData {
+    amount: string;
+    category: ExpenseCategory;
+    customCategoryId: string;
+    date: string;
+    notes: string;
+}
 import { EXPENSE_CATEGORY_LABELS } from '../../../hooks/useExpenses';
 import { useBarContext } from '../../../context/BarContext';
 import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers';
@@ -14,8 +22,8 @@ import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers
 interface ExpenseFormModalProps {
     open: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => void;
-    customCategories: any[];
+    onSubmit: (data: ExpenseFormData) => void;
+    customCategories: ExpenseCategoryCustom[];
 }
 
 export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({

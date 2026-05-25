@@ -6,7 +6,8 @@ import {
   BarChart3,
   DollarSign,
   RotateCcw,
-  ChevronDown
+  ChevronDown,
+  type LucideIcon,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getMobileAnimationProps } from "../utils/disableAnimationsOnMobile";
@@ -117,7 +118,7 @@ export default function ReturnsPage() {
     filteredReturns: filteredReturnsByFilters,
   } = useSalesFilters({
     sales,
-    returns: returns as any[],
+    returns: returns,
     currentSession,
     closeHour,
     externalStartDate: startDate,
@@ -500,7 +501,7 @@ export default function ReturnsPage() {
       : []),
     { id: "list", label: isMobile ? "Liste" : "Liste des retours", icon: List },
     { id: "stats", label: "Statistiques", icon: BarChart3 },
-  ] as { id: string; label: string; icon: any }[];
+  ] satisfies Array<{ id: string; label: string; icon: LucideIcon }>;
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
@@ -645,7 +646,7 @@ export default function ReturnsPage() {
                 )}
               </div>
             ) : showStats ? (
-              <ReturnsStats returns={filteredReturnsByFilters as any} returnReasons={returnReasons} />
+              <ReturnsStats returns={filteredReturnsByFilters} returnReasons={returnReasons} />
             ) : (
               <div>
                 <CreateReturnForm
@@ -693,7 +694,7 @@ export default function ReturnsPage() {
                     {filteredReturns.map((returnItem) => (
                         <ReturnCard
                           key={returnItem.id}
-                          returnItem={returnItem as any}
+                          returnItem={returnItem}
                           returnReasons={returnReasons}
                           serverUser={getUserById(returnItem.serverId)}
                           initiatorUser={getUserById(returnItem.returnedBy)}
@@ -727,7 +728,7 @@ export default function ReturnsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
-                <ReturnsStats returns={filteredReturnsByFilters as any} returnReasons={returnReasons} />
+                <ReturnsStats returns={filteredReturnsByFilters} returnReasons={returnReasons} />
               </motion.div>
             ) : (
               <motion.div

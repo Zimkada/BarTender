@@ -9,10 +9,11 @@ import {
     CheckCircle2,
 } from "lucide-react";
 import { Return, ReturnReason, ReturnReasonConfig } from "../../types";
+import type { UnifiedReturn } from "../../hooks/pivots/useUnifiedReturns";
 import { AnimatedCounter } from "../AnimatedCounter";
 
 interface ReturnsStatsProps {
-    returns: Return[];
+    returns: Array<Return | UnifiedReturn>;
     returnReasons: Record<ReturnReason, ReturnReasonConfig>;
 }
 

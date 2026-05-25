@@ -1,9 +1,10 @@
 import { Package, X, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Return, ReturnReason, ReturnReasonConfig, User } from "../../types";
+import type { UnifiedReturn } from "../../hooks/pivots/useUnifiedReturns";
 
 interface ReturnCardProps {
-  returnItem: Return;
+  returnItem: Return | UnifiedReturn;
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
   serverUser: User | null;
   initiatorUser?: User | null; // ✨ Nouveau

@@ -6,16 +6,17 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Label } from '../../../components/ui/Label';
 import { formatPeriod } from '../../../utils/accounting';
+import type { BarMember, Salary } from '../../../types';
 
 interface SalaryFormModalProps {
     open: boolean;
     onClose: () => void;
     onSubmit: (data: { memberId: string; amount: string; period: string }) => void;
-    members: any[];
+    members: BarMember[];
     selectedPeriod: string;
     onPeriodChange: (period: string) => void;
     periodOptions: string[];
-    getSalaryForPeriod: (memberId: string, period: string) => any;
+    getSalaryForPeriod: (memberId: string, period: string) => Salary | undefined;
 }
 
 export const SalaryFormModal: React.FC<SalaryFormModalProps> = ({
@@ -97,7 +98,7 @@ export const SalaryFormModal: React.FC<SalaryFormModalProps> = ({
                                     { value: '', label: 'Sélectionner un membre...' },
                                     ...activeMembers.map(m => {
                                         const alreadyPaid = getSalaryForPeriod(m.id, form.period);
-                                        const name = m.user?.name || m.user?.userName || 'Membre';
+                                        const name = m.user?.name || m.user?.username || 'Membre';
                                         return {
                                             value: m.id,
                                             label: `${name} (${m.role})${alreadyPaid ? ' ✓ Payé' : ''}`,

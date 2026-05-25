@@ -141,11 +141,11 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     );
   };
 
-  const handleAddExpense = (data: any) => {
+  const handleAddExpense = (data: { amount: string; category: string; customCategoryId?: string; date: string; notes: string }) => {
     try {
       addExpense({
         amount: parseFloat(data.amount),
-        category: data.category,
+        category: data.category as import('../types').ExpenseCategory,
         customCategoryId: data.category === 'custom' ? data.customCategoryId : undefined,
         date: new Date(data.date),
         notes: data.notes.trim() || undefined,
@@ -302,8 +302,9 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
 
       if (!groups[key]) {
         // Fallback labels
-        let label = (EXPENSE_CATEGORY_LABELS as any)[exp.category]?.label || exp.category;
-        let icon = (EXPENSE_CATEGORY_LABELS as any)[exp.category]?.icon || '📝';
+        const catKey = exp.category as keyof typeof EXPENSE_CATEGORY_LABELS;
+        let label = EXPENSE_CATEGORY_LABELS[catKey]?.label || exp.category;
+        let icon = EXPENSE_CATEGORY_LABELS[catKey]?.icon || '📝';
 
         if (exp.isSupply) {
           label = 'Approvisionnements';
@@ -325,7 +326,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     });
 
     if (filteredSalaries.length > 0) {
-      const salaryMeta = (EXPENSE_CATEGORY_LABELS as any).salary;
+      const salaryMeta = EXPENSE_CATEGORY_LABELS.salary;
       groups['salary'] = {
         label: salaryMeta?.label || 'Salaires & RH',
         icon: salaryMeta?.icon || '👨‍💼',
