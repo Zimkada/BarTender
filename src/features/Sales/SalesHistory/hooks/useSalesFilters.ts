@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
-import type { Sale, SaleItem, Return } from '../../../../types';
+import type { Sale, SaleItem, Return, UserSession } from '../../../../types';
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 
 interface UseSalesFiltersProps {
     sales: Sale[];
     returns?: (Return | UnifiedReturn)[];
-    currentSession: any;
+    currentSession: UserSession | null;
     closeHour: number;
     statusFilter?: 'validated' | 'rejected' | 'cancelled' | 'all';
     searchTerm?: string;
@@ -98,8 +98,8 @@ export function useSalesFilters({
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
 
-            const dateA = new Date((a as any).returnedAt || (a as any).returned_at).getTime();
-            const dateB = new Date((b as any).returnedAt || (b as any).returned_at).getTime();
+            const dateA = new Date(String(('returned_at' in a ? a.returned_at : undefined) || a.returnedAt)).getTime();
+            const dateB = new Date(String(('returned_at' in b ? b.returned_at : undefined) || b.returnedAt)).getTime();
             return dateB - dateA;
         });
     }, [returns, externalStartDate, externalEndDate, currentSession, closeHour]);

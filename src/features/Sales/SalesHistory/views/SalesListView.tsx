@@ -1,7 +1,8 @@
 import { useCallback, useRef, useEffect, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { Eye } from 'lucide-react';
-import { Sale, User } from '../../../../types';
+import { Sale, User, Return } from '../../../../types';
+import type { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 import { getSaleDate, isConfirmedReturn } from '../../../../utils/saleHelpers';
 import { EnhancedButton } from '../../../../components/EnhancedButton';
 import { useViewport } from '../../../../hooks/useViewport';
@@ -14,7 +15,7 @@ interface SalesListViewProps {
     sales: Sale[];
     formatPrice: (price: number) => string;
     onViewDetails: (sale: Sale) => void;
-    getReturnsBySale: (saleId: string) => any[];
+    getReturnsBySale: (saleId: string) => Array<Return | UnifiedReturn>;
     users?: User[];
 }
 
@@ -23,7 +24,7 @@ function MobileSaleRow({ sale, formatPrice, onViewDetails, getReturnsBySale, use
     sale: Sale;
     formatPrice: (price: number) => string;
     onViewDetails: (sale: Sale) => void;
-    getReturnsBySale: (saleId: string) => any[];
+    getReturnsBySale: (saleId: string) => Array<Return | UnifiedReturn>;
     users?: User[];
     style?: React.CSSProperties;
 }) {

@@ -1,4 +1,26 @@
 import { useCallback } from 'react';
+
+// Row shape for export (Excel/CSV) with optional internal sort field
+interface ExportRow {
+    'Type': string;
+    'Mode': string;
+    'Date': string;
+    'Heure': string;
+    'ID Transaction': string;
+    'Produit': string;
+    'Catégorie': string;
+    'Volume': string;
+    'Quantité': number;
+    'Prix unitaire': number;
+    'Coût unitaire': number;
+    'Total': number;
+    'Bénéfice': number;
+    'Utilisateur': string;
+    'Rôle': string;
+    'Statut'?: string;
+    'Devise'?: string;
+    _sortTimestamp?: number; // internal, removed before export
+}
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 import { Sale, SaleItem, Return, User, BarMember, Category, Product } from '../../../../types';
 import { getSaleDate } from '../../../../utils/saleHelpers';
@@ -85,7 +107,7 @@ export function useSalesExport({
         }
 
         // Préparer les données avec la nouvelle structure: lignes pour ventes + lignes pour retours
-        const exportData: any[] = [];
+        const exportData: ExportRow[] = [];
 
         // 1. Ajouter toutes les ventes
         salesToExport.forEach(sale => {
@@ -185,14 +207,14 @@ export function useSalesExport({
 
         // ✅ Trier par date/heure décroissante (plus récent d'abord)
         exportData.sort((a, b) => {
-            const timestampA = (a as any)._sortTimestamp || 0;
-            const timestampB = (b as any)._sortTimestamp || 0;
+            const timestampA = a._sortTimestamp ?? 0;
+            const timestampB = b._sortTimestamp ?? 0;
             return timestampB - timestampA; // Décroissant (plus récent en premier)
         });
 
         // ✨ Supprimer le champ caché de tri avant d'exporter
         exportData.forEach(row => {
-            delete (row as any)._sortTimestamp;
+            delete row._sortTimestamp;
         });
 
         const fileName = `ventes_${dateToYYYYMMDD(new Date())}`;

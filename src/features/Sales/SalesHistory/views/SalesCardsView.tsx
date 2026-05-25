@@ -1,6 +1,7 @@
 import { RotateCcw, User as UserIcon, ArrowLeftRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Sale, User } from '../../../../types';
+import { Sale, User, Return } from '../../../../types';
+import type { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 import { isConfirmedReturn, getSaleDate } from '../../../../utils/saleHelpers';
 import { isToday } from 'date-fns';
 
@@ -8,7 +9,7 @@ interface SalesCardsViewProps {
     sales: Sale[];
     formatPrice: (price: number) => string;
     onViewDetails: (sale: Sale) => void;
-    getReturnsBySale: (saleId: string) => any[];
+    getReturnsBySale: (saleId: string) => Array<Return | UnifiedReturn>;
     users?: User[];
 }
 
@@ -46,7 +47,7 @@ export function SaleCard({
     sale: Sale;
     formatPrice: (price: number) => string;
     onViewDetails: () => void;
-    getReturnsBySale?: (saleId: string) => any[];
+    getReturnsBySale?: (saleId: string) => Array<Return | UnifiedReturn>;
     users?: User[];
 }) {
     // Calculer le montant des retours remboursés
@@ -100,7 +101,7 @@ export function SaleCard({
                         </span>
                     </div>
                     <div className="flex gap-1.5 flex-shrink-0">
-                        {(sale as any).sourceReturnId && (
+                        {sale.sourceReturnId && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-100">
                                 <ArrowLeftRight size={10} />
                                 Échange
@@ -116,24 +117,24 @@ export function SaleCard({
                 <div className="border-b border-dashed border-border my-3" />
 
                 {/* Lien vers retour source si échange */}
-                {(sale as any).sourceReturnId && (
+                {sale.sourceReturnId && (
                     <div className="bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 mb-3">
                         <p className="text-caption text-amber-700 font-medium flex items-center gap-1.5">
                             <ArrowLeftRight size={10} />
-                            Remplacement du retour #{((sale as any).sourceReturnId as string).slice(-6).toUpperCase()}
+                            Remplacement du retour #{sale.sourceReturnId.slice(-6).toUpperCase()}
                         </p>
                     </div>
                 )}
 
                 {/* Articles (preview) */}
                 <div className="space-y-1.5 min-h-[50px]">
-                    {sale.items.slice(0, 2).map((item: any, index) => (
+                    {sale.items.slice(0, 2).map((item, index) => (
                         <div key={index} className="flex justify-between items-center text-body-sm text-foreground/70 gap-2">
                             <span className="truncate min-w-0">
                                 <span className="font-semibold text-foreground mr-1 tabular-nums">{item.quantity}×</span>
-                                {item.product?.name || item.product_name}
+                                {item.product_name}
                             </span>
-                            <span className="tabular-nums flex-shrink-0">{formatPrice((item.product?.price || item.unit_price) * item.quantity)}</span>
+                            <span className="tabular-nums flex-shrink-0">{formatPrice(item.unit_price * item.quantity)}</span>
                         </div>
                     ))}
                     {sale.items.length > 2 && (

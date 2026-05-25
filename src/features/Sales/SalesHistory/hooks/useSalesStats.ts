@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
 import type { Sale, Bar } from '../../../../types';
+import type { UnifiedSale } from '../../../../hooks/pivots/useUnifiedSales';
 
 interface UseSalesStatsProps {
-    filteredSales: Sale[];
+    filteredSales: Array<Sale | UnifiedSale>;
     timeRange: string;
     startDate: Date;
     endDate: Date;
@@ -80,12 +81,15 @@ export function useSalesStats({
         // Le backend contient les ventes validées. 
         // L'offline contient les ventes pas encore synchronisées.
 
+        const isOptimistic = (s: Sale | UnifiedSale): boolean =>
+            'isOptimistic' in s && s.isOptimistic === true;
+
         const offlineAmount = filteredSales
-            .filter(s => (s as any).isOptimistic)
+            .filter(isOptimistic)
             .reduce((sum, s) => sum + s.total, 0);
 
         const offlineCount = filteredSales
-            .filter(s => (s as any).isOptimistic).length;
+            .filter(isOptimistic).length;
 
         // 1. Total des revenus (Backend + Offline en attente)
         const totalRevenue = (backendRevenue?.totalRevenue || 0) + offlineAmount;
