@@ -72,9 +72,10 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
 
     // 3. Sync Listeners
     useEffect(() => {
-        const handleSync = (e: any) => {
+        const handleSync = (e: Event) => {
+            const detail = (e as CustomEvent<{ barId?: string } | undefined>).detail;
             // Si c'est notre bar ou global
-            if (!e.detail?.barId || e.detail.barId === barId) {
+            if (!detail?.barId || detail.barId === barId) {
                 refetchOffline();
             }
         };

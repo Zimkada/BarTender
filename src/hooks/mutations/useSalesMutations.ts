@@ -98,7 +98,7 @@ const validateAndNormalizeSaleItems = (items: unknown[]): Record<string, unknown
     return validItems;
 };
 
-interface CreateSaleVariables extends Partial<Sale> {
+export interface CreateSaleVariables extends Partial<Sale> {
     items: SaleItem[];
     // Champs étendus pour la mutation
     customerName?: string;

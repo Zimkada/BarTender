@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSales, salesKeys } from '../queries/useSalesQueries';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
-import { useSalesMutations } from '../mutations/useSalesMutations';
+import { useSalesMutations, type CreateSaleVariables } from '../mutations/useSalesMutations';
 import { useBarContext } from '../../context/BarContext';
 import { getCurrentBusinessDateString, calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import type { Sale, SaleItem } from '../../types';
@@ -167,8 +167,9 @@ export const useUnifiedSales = (
 
     // 🚀 Réactivité : Écoute des événements locaux (Sync/Queue)
     useEffect(() => {
-        const handleSync = (e: any) => {
-            if (e.detail?.barId === barId || !e.detail?.barId) {
+        const handleSync = (e: Event) => {
+            const detail = (e as CustomEvent<{ barId?: string } | undefined>).detail;
+            if (detail?.barId === barId || !detail?.barId) {
                 refetchOffline();
                 queryClient.invalidateQueries({ queryKey: salesKeys.list(barId || '') });
                 queryClient.invalidateQueries({ queryKey: salesKeys.stats(barId || '') });
@@ -210,11 +211,13 @@ export const useUnifiedSales = (
         });
 
         // Fusionner et trier par date décroissante
-        const combined = [...filteredOffline, ...(onlineSales || [])];
+        // Note: combined contient à la fois des UnifiedSale (offline, snake_case + camelCase)
+        // et des Sale (online, camelCase only). Le fallback created_at -> createdAt couvre les deux.
+        const combined: Array<UnifiedSale | Sale> = [...filteredOffline, ...(onlineSales || [])];
 
-        return combined.sort((a: any, b: any) => {
-            const dateA = a.created_at || a.createdAt;
-            const dateB = b.created_at || b.createdAt;
+        return combined.sort((a, b) => {
+            const dateA = ('created_at' in a ? a.created_at : undefined) || a.createdAt;
+            const dateB = ('created_at' in b ? b.created_at : undefined) || b.createdAt;
             return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
     }, [salesHash]); // ← Dépendance STABLE via le hash
@@ -227,16 +230,19 @@ export const useUnifiedSales = (
         // Sinon les ventes après minuit ne sont pas comptées dans "Aujourd'hui"
         const today = getCurrentBusinessDateString(currentBar?.closingHour);
 
-        const todaySales = unifiedSales.filter((s: any) => {
+        const todaySales = unifiedSales.filter(s => {
             // Helper pour extraire la date YYYY-MM-DD (local, pas UTC)
-            const getDay = (date: any) => {
+            const getDay = (date: Date | string | undefined): string => {
                 if (!date) return '';
                 if (typeof date === 'string') return date.split('T')[0];
                 if (date instanceof Date) return dateToYYYYMMDD(date);
                 return '';
             };
 
-            const bDate = getDay(s.business_date || s.businessDate);
+            // Lecture défensive : UnifiedSale a business_date (snake) + businessDate (camel),
+            // mais Sale (online) n'a que businessDate. Le narrowing via 'in' couvre les deux cas.
+            const snake = 'business_date' in s ? s.business_date : undefined;
+            const bDate = getDay(snake || s.businessDate);
             // Comparaison sur date commerciale
             return bDate === today;
         });
@@ -257,7 +263,7 @@ export const useUnifiedSales = (
     // ... (rest of the logic remains same for memoized stats)
 
     // Mutations Wrappers
-    const addSale = useCallback(async (saleData: any) => {
+    const addSale = useCallback(async (saleData: CreateSaleVariables) => {
         return salesMutations.createSale.mutateAsync(saleData);
     }, [salesMutations]);
 

@@ -112,8 +112,9 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
 
     // 🚀 Réactivité : Écoute des événements typés
     useEffect(() => {
-        const handleSync = (e: any) => {
-            if (e.detail?.barId === barId || !e.detail?.barId) {
+        const handleSync = (e: Event) => {
+            const detail = (e as CustomEvent<{ barId?: string } | undefined>).detail;
+            if (detail?.barId === barId || !detail?.barId) {
                 refetchOffline();
                 queryClient.invalidateQueries({ queryKey: returnKeys.list(barId || '') });
             }
