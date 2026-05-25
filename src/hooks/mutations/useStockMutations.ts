@@ -9,6 +9,25 @@ import { broadcastService } from '../../services/broadcast/BroadcastService';
 import { getErrorMessage } from '../../utils/errorHandler';
 import type { RpcCreateSupplyResult } from '../../lib/supabase-rpc.types';
 import type { AdjustmentReason } from '../../types';
+import type { CreateBarProductData, BarProductUpdate } from '../../services/supabase/products.service';
+
+// Input shape for createConsignment mutation
+export interface CreateConsignmentInput {
+    saleId: string;
+    productId: string;
+    productName: string;
+    productVolume?: string;
+    quantity: number;
+    totalAmount?: number;
+    customerName?: string;
+    customerPhone?: string;
+    notes?: string;
+    expiresAt?: Date | string;
+    expirationDays?: number;
+    originalSeller?: string;
+    serverId?: string;
+    businessDate?: string;
+}
 
 // Map legacy/unknown reason strings to valid RPC enum values
 const VALID_REASONS: ReadonlyArray<AdjustmentReason> = [
@@ -30,10 +49,10 @@ const toAdjustmentReason = (reason: string): { reason: AdjustmentReason; autoNot
 // Helper: Centralized cache invalidation for stock queries
 const invalidateStockQuery = (
     queryClient: ReturnType<typeof useQueryClient>,
-    queryKey: readonly any[]
+    queryKey: readonly unknown[]
 ) => {
     queryClient.invalidateQueries({
-        queryKey: queryKey as any[],
+        queryKey: queryKey as unknown[],
         exact: true
     });
 };
@@ -47,7 +66,7 @@ export const useStockMutations = (_barId?: string) => {
 
     const createProduct = useMutation({
         meta: { suppressGlobalError: true }, // 🛡️ onError local gère le toast — évite le double toast de MutationCache
-        mutationFn: async (productData: any) => {
+        mutationFn: async (productData: CreateBarProductData) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
             return ProductsService.createBarProduct(productData);
@@ -72,7 +91,7 @@ export const useStockMutations = (_barId?: string) => {
 
     const updateProduct = useMutation({
         meta: { suppressGlobalError: true }, // 🛡️ onError local gère le toast
-        mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+        mutationFn: async ({ id, updates }: { id: string; updates: BarProductUpdate }) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
             return ProductsService.updateBarProduct(id, updates);
@@ -363,7 +382,7 @@ export const useStockMutations = (_barId?: string) => {
     // --- CONSIGNMENTS ---
 
     const createConsignment = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: CreateConsignmentInput) => {
             const barId = currentBar?.id;
             if (!currentSession?.userId || !barId) {
                 throw new Error('Utilisateur non connecté ou bar non sélectionné');

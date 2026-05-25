@@ -14,7 +14,8 @@ import { syncManager } from '../../services/SyncManager';
 import { dateToYYYYMMDD, filterByBusinessDateRange, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../constants/businessDay';
 import { useRealtimeReturns } from '../useRealtimeReturns';
-import type { Return } from '../../types';
+import type { Return, ReturnReason } from '../../types';
+import type { SyncOperationCreateReturn } from '../../types/sync';
 
 /**
  * Type pour les retours unifiés (online + offline)
@@ -70,37 +71,37 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
             });
 
             return ops
-                .filter(op => op.type === 'CREATE_RETURN')
+                .filter((op): op is SyncOperationCreateReturn => op.type === 'CREATE_RETURN')
                 .map(op => {
-                    const payload = op.payload as any;
+                    const payload = op.payload;
                     const returnedAt = new Date(op.timestamp).toISOString();
 
                     const unifiedReturn: UnifiedReturn = {
                         id: op.id,
                         barId: payload.bar_id || (barId as string),
-                        saleId: payload.sale_id,
-                        productId: payload.product_id,
-                        productName: payload.product_name,
-                        productVolume: payload.product_volume || '',
-                        quantitySold: payload.quantity_sold,
-                        quantityReturned: payload.quantity_returned,
-                        reason: payload.reason as any,
-                        returnedBy: payload.returned_by,
-                        serverId: payload.server_id,
+                        saleId: payload.sale_id ?? '',
+                        productId: payload.product_id ?? '',
+                        productName: payload.product_name ?? '',
+                        productVolume: payload.product_volume ?? '',
+                        quantitySold: payload.quantity_sold ?? 0,
+                        quantityReturned: payload.quantity_returned ?? 0,
+                        reason: (payload.reason || 'other') as ReturnReason,
+                        returnedBy: payload.returned_by ?? '',
+                        serverId: payload.server_id ?? undefined,
                         returned_at: returnedAt,
                         returnedAt: returnedAt, // Standardized
                         business_date: payload.business_date || returnedAt.split('T')[0],
                         businessDate: payload.business_date || returnedAt.split('T')[0], // Standardized
-                        refundAmount: payload.refund_amount,
-                        isRefunded: payload.is_refunded,
-                        status: (payload.status || 'pending') as any,
-                        autoRestock: payload.auto_restock || false,
-                        manualRestockRequired: payload.manual_restock_required || false,
-                        notes: payload.notes || undefined,
-                        customRefund: payload.custom_refund,
-                        customRestock: payload.custom_restock,
-                        originalSeller: payload.original_seller,
-                        operatingModeAtCreation: payload.operating_mode_at_creation,
+                        refundAmount: payload.refund_amount ?? 0,
+                        isRefunded: payload.is_refunded ?? false,
+                        status: (payload.status || 'pending') as Return['status'],
+                        autoRestock: payload.auto_restock ?? false,
+                        manualRestockRequired: payload.manual_restock_required ?? false,
+                        notes: payload.notes ?? undefined,
+                        customRefund: payload.custom_refund ?? undefined,
+                        customRestock: payload.custom_restock ?? undefined,
+                        originalSeller: payload.original_seller ?? undefined,
+                        operatingModeAtCreation: (payload.operating_mode_at_creation as 'full' | 'simplified' | null) ?? undefined,
                         isOptimistic: true
                     };
 
@@ -159,9 +160,9 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
         const combined = [...filteredOffline, ...onlineReturns];
 
         return combined.sort((a, b) => {
-            const dateA = (a as any).returned_at || (a as Return).returnedAt;
-            const dateB = (b as any).returned_at || (b as Return).returnedAt;
-            return new Date(dateB).getTime() - new Date(dateA).getTime();
+            const dateA = 'returned_at' in a ? a.returned_at : a.returnedAt;
+            const dateB = 'returned_at' in b ? b.returned_at : b.returnedAt;
+            return new Date(String(dateB)).getTime() - new Date(String(dateA)).getTime();
         });
     }, [returnsHash]); // ← Dépendance STABLE via le hash
 
@@ -197,10 +198,10 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
             return todayReturnsList.filter(r =>
                 r.returnedBy === session.userId ||
                 r.serverId === session.userId ||
-                (r as any).validatedBy === session.userId ||
-                (r as any).rejectedBy === session.userId ||
-                (r as any).validated_by === session.userId ||
-                (r as any).rejected_by === session.userId
+                r.validatedBy === session.userId ||
+                r.rejectedBy === session.userId ||
+                r.validated_by === session.userId ||
+                r.rejected_by === session.userId
             );
         }
 

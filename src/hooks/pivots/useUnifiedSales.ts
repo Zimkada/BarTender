@@ -146,7 +146,7 @@ export const useUnifiedSales = (
                         items: includeItems ? (payload.items as SaleItem[]) : [],
                         total: subtotal,
                         currency: 'XAF',
-                        status: payload.status as any,
+                        status: (payload.status || 'pending') as Sale['status'],
                         soldBy: payload.sold_by,
                         createdBy: payload.sold_by,
                         created_at: createdAt,
@@ -154,7 +154,7 @@ export const useUnifiedSales = (
                         business_date: payload.business_date || fallbackBusinessDate,
                         businessDate: payload.business_date || fallbackBusinessDate, // Standardized
                         idempotency_key: payload.idempotency_key,
-                        paymentMethod: payload.payment_method as any,
+                        paymentMethod: (payload.payment_method ?? undefined) as Sale['paymentMethod'],
                         items_count: payload.items.reduce((sum, item) => sum + (item.quantity || 0), 0),
                         isOptimistic: true
                     };

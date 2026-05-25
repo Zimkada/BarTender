@@ -1,5 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
+
+// Input shape for createExpense mutation (camelCase from domain)
+interface CreateExpenseInput {
+    barId: string;
+    category: string;
+    customCategoryId?: string;
+    amount: number;
+    description?: string;
+    createdBy: string;
+    date?: Date;
+}
 import { expenseKeys } from '../queries/useExpensesQueries';
 import { analyticsKeys } from '../queries/useAnalyticsQueries';
 
@@ -11,7 +22,7 @@ export const useExpensesMutations = (barId: string) => {
         // Un retry sur réponse perdue créerait une double dépense en comptabilité.
         // Réactiver quand l'idempotence backend sera en place (Layer 4C).
         retry: false,
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: CreateExpenseInput) => {
             // Mapping App -> DB
             const expenseData = {
                 bar_id: data.barId,

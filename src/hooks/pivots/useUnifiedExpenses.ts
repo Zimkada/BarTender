@@ -13,6 +13,25 @@ import { offlineQueue } from '../../services/offlineQueue';
 import { useBarContext } from '../../context/BarContext';
 import { calculateBusinessDate } from '../../utils/businessDateHelpers';
 import { ExpenseCategory } from '../../types';
+// Offline payload shapes as stored in IndexedDB (camelCase, not DB Insert types)
+interface OfflineExpensePayload {
+    amount: number;
+    category: string;
+    expense_date?: string;
+    customCategoryId?: string;
+    notes?: string;
+    created_by?: string;
+    createdBy?: string;
+}
+interface OfflineSupplyPayload {
+    lotPrice: number;
+    lotSize: number;
+    productName: string;
+    quantity: number;
+    supply_date?: string;
+    created_by?: string;
+    createdBy?: string;
+}
 
 export interface UnifiedExpense {
     id: string;
@@ -163,30 +182,35 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
 
         // Transform Offline Ops
         const mappedOffline: UnifiedExpense[] = offlineOps.map(op => {
-            const payload = op.payload as any;
             const isSupply = op.type === 'ADD_SUPPLY';
+            // Cast to local offline payload shapes (camelCase, IndexedDB runtime format)
+            const payload = op.payload as unknown as OfflineExpensePayload | OfflineSupplyPayload;
+            const supplyPayload = isSupply ? (payload as OfflineSupplyPayload) : null;
+            const expensePayload = !isSupply ? (payload as OfflineExpensePayload) : null;
             // Note: ADD_SALARY est filtré au fetch pour éviter le double optimisme
             // avec le hook useSalaries.
 
             // Date métier : payload.expense_date / supply_date si fourni (YYYY-MM-DD),
             // sinon recalcul depuis le timestamp local + closeHour (aligné trigger SQL).
-            const rawDate: string | undefined = isSupply ? payload.supply_date : payload.expense_date;
+            const rawDate: string | undefined = isSupply ? supplyPayload?.supply_date : expensePayload?.expense_date;
             const date = (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(rawDate))
                 ? new Date(rawDate + 'T00:00:00') // parse local (pas UTC)
                 : calculateBusinessDate(new Date(op.timestamp), closeHour);
 
             return {
                 id: op.id,
-                amount: isSupply ? (payload.lotPrice * payload.lotSize) : payload.amount,
+                amount: isSupply
+                    ? (supplyPayload!.lotPrice * supplyPayload!.lotSize)
+                    : (expensePayload!.amount),
                 date,
-                category: isSupply ? 'supply' : payload.category, // ADD_SALARY est filtré au fetch
-                customCategoryId: payload.customCategoryId,
-                notes: isSupply ? `${payload.productName} (Offline)` : payload.notes,
+                category: isSupply ? 'supply' : (expensePayload!.category), // ADD_SALARY est filtré au fetch
+                customCategoryId: expensePayload?.customCategoryId,
+                notes: isSupply ? `${supplyPayload!.productName} (Offline)` : expensePayload?.notes,
                 isSupply,
                 isOptimistic: true,
-                productName: isSupply ? payload.productName : undefined,
-                quantity: isSupply ? payload.quantity : undefined,
-                createdBy: payload.createdBy
+                productName: isSupply ? supplyPayload!.productName : undefined,
+                quantity: isSupply ? supplyPayload!.quantity : undefined,
+                createdBy: payload.createdBy ?? payload.created_by ?? ''
             };
         });
 

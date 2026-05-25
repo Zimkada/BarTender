@@ -7,7 +7,7 @@ type GlobalProductRow = Database['public']['Tables']['global_products']['Row'];
 type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
 type BarProduct = Database['public']['Tables']['bar_products']['Row'];
 type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
-type BarProductUpdate = Database['public']['Tables']['bar_products']['Update'];
+export type BarProductUpdate = Database['public']['Tables']['bar_products']['Update'];
 type BarCategory = Database['public']['Tables']['bar_categories']['Row'];
 
 export interface BarProductWithDetails extends BarProduct {

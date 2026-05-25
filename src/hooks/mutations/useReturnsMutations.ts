@@ -7,22 +7,31 @@ import { broadcastService } from '../../services/broadcast/BroadcastService';
 import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../constants/businessDay';
 import { getErrorMessage } from '../../utils/errorHandler';
+import type { Return } from '../../types';
+
+// Input shape for createReturn mutation (camelCase from domain, plus extra fields)
+type CreateReturnInput = Partial<Return> & {
+    barId: string;
+    returnedBy: string;
+    server_id?: string;
+    businessDate?: string;
+};
 
 export const useReturnsMutations = (barId: string) => {
     const queryClient = useQueryClient();
 
     const createReturn = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: CreateReturnInput) => {
             console.log('[useReturnsMutations] preparing return data:', data);
             const returnData = {
                 bar_id: data.barId,
-                sale_id: data.saleId,
-                product_id: data.productId,
-                product_name: data.productName,
-                product_volume: data.productVolume,
-                quantity_sold: data.quantitySold,
-                quantity_returned: data.quantityReturned,
-                reason: data.reason,
+                sale_id: data.saleId ?? '',
+                product_id: data.productId ?? '',
+                product_name: data.productName ?? '',
+                product_volume: data.productVolume ?? null,
+                quantity_sold: data.quantitySold ?? 0,
+                quantity_returned: data.quantityReturned ?? 0,
+                reason: data.reason ?? 'other',
                 returned_by: data.returnedBy,
                 server_id: data.serverId || data.server_id || null,
                 returned_at: data.returnedAt instanceof Date
@@ -40,10 +49,10 @@ export const useReturnsMutations = (barId: string) => {
                 // ✨ MODE SWITCHING SUPPORT: Store operating mode at creation
                 operating_mode_at_creation: data.operatingModeAtCreation || 'simplified',
                 business_date: data.businessDate || getCurrentBusinessDateString(BUSINESS_DAY_CLOSE_HOUR),
-                id: data.id, // ✨ Support ID pré-généré pour le Magic Swap
+                ...(data.id ? { id: data.id } : {}), // ✨ Support ID pré-généré pour le Magic Swap
             };
             console.log('[useReturnsMutations] calling ReturnsService.createReturn with:', returnData);
-            return ReturnsService.createReturn(returnData);
+            return ReturnsService.createReturn(returnData as Parameters<typeof ReturnsService.createReturn>[0]);
         },
         onSuccess: (newReturn) => {
             console.log('[useReturnsMutations] creation SUCCESS:', newReturn);
@@ -81,8 +90,9 @@ export const useReturnsMutations = (barId: string) => {
     });
 
     const updateReturn = useMutation({
-        mutationFn: ({ id, updates }: { id: string; updates: any }) =>
-            ReturnsService.updateReturn(id, updates),
+        mutationFn: ({ id, updates }: { id: string; updates: Partial<Return> }) =>
+            // Cast needed: ReturnsService.updateReturn accepts DB shape, we pass domain shape
+            ReturnsService.updateReturn(id, updates as Parameters<typeof ReturnsService.updateReturn>[1]),
         onSuccess: (updatedReturn) => {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Retour mis à jour');

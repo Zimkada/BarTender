@@ -5,6 +5,7 @@
  */
 
 import type { Product } from '../types';
+import type { CreateBarProductData } from '../services/supabase/products.service';
 
 /**
  * Maps frontend Product (camelCase) to database format (snake_case)
@@ -115,7 +116,7 @@ export function toFrontendProduct(dbProduct: Record<string, any>): Product {
 export function toDbProductForCreation(
   productData: Omit<Product, 'id' | 'createdAt'>,
   barId: string
-): Record<string, any> {
+): CreateBarProductData {
   // Determine if this is a custom product:
   // - If globalProductId is defined → custom = false (linked to catalog)
   // - If globalProductId is null/undefined → custom = true (custom product)
@@ -124,12 +125,12 @@ export function toDbProductForCreation(
   return {
     bar_id: barId,
     local_name: productData.name,
-    local_image: productData.image || null,
-    local_category_id: productData.categoryId || null,
+    local_image: productData.image || undefined,
+    local_category_id: productData.categoryId || undefined,
     price: productData.price,
     stock: productData.stock ?? 0,
     alert_threshold: productData.alertThreshold ?? 10,
-    global_product_id: productData.globalProductId || null,
+    global_product_id: productData.globalProductId || undefined,
     // CRITICAL: is_custom_product reflects whether it's linked to global catalog
     // If globalProductId exists → false (linked), else → true (custom)
     is_custom_product: productData.isCustomProduct !== undefined ? productData.isCustomProduct : isCustom,
