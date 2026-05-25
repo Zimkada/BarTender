@@ -62,6 +62,46 @@ type RefundLike = {
     refund_amount?: number | null;
 };
 
+/**
+ * Sale unifiée telle que reçue par useRevenueStats : peut venir du serveur (camelCase)
+ * ou du queue offline (snake_case + camelCase). On accepte les deux casings en lecture
+ * défensive pour éviter de casser les chemins déjà testés en prod.
+ */
+type SaleLikeRow = {
+    status?: string;
+    total?: number | string | null;
+    business_date?: string | null;
+    businessDate?: Date | string | null;
+    paymentMethod?: string | null;
+    payment_method?: string | null;
+    soldBy?: string | null;
+    sold_by?: string | null;
+    serverId?: string | null;
+    server_id?: string | null;
+    idempotency_key?: string | null;
+};
+
+/**
+ * Return unifié — même logique que SaleLikeRow.
+ */
+type ReturnLikeRow = {
+    status?: string;
+    business_date?: string | null;
+    businessDate?: Date | string | null;
+    returnedAt?: Date | string | null;
+    returned_at?: string | null;
+    refundAmount?: number | null;
+    refund_amount?: number | null;
+    returnedBy?: string | null;
+    returned_by?: string | null;
+    serverId?: string | null;
+    server_id?: string | null;
+    validatedBy?: string | null;
+    validated_by?: string | null;
+    rejectedBy?: string | null;
+    rejected_by?: string | null;
+};
+
 type RecentSyncPayload = {
     business_date?: string;
     payment_method?: string;
@@ -244,15 +284,19 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
     const calculateLocalStats = useCallback((): InternalStats => {
         const recentlySyncedMap = syncManager.getRecentlySyncedKeys() as Map<string, RecentSyncEntry>;
 
-        const filteredSales: RevenueSaleEntry[] = sales
-            .filter((sale: any) => sale.status === 'validated')
-            .filter((sale: any) => isDateInRange(
+        // Cast unique vers SaleLikeRow[] : sales arrive en union (UnifiedSale | Sale)
+        // dont les shapes diffèrent (snake/camelCase). SaleLikeRow expose les deux casings.
+        const salesAsRows = sales as unknown as SaleLikeRow[];
+
+        const filteredSales: RevenueSaleEntry[] = salesAsRows
+            .filter(sale => sale.status === 'validated')
+            .filter(sale => isDateInRange(
                 getDateFromUnknown(sale.business_date || sale.businessDate),
                 startDate,
                 endDate
             ))
-            .filter((sale: any) => !isServerRole || sale.soldBy === currentSession?.userId || sale.sold_by === currentSession?.userId || sale.serverId === currentSession?.userId || sale.server_id === currentSession?.userId)
-            .map((sale: any) => ({
+            .filter(sale => !isServerRole || sale.soldBy === currentSession?.userId || sale.sold_by === currentSession?.userId || sale.serverId === currentSession?.userId || sale.server_id === currentSession?.userId)
+            .map(sale => ({
                 total: Number(sale.total || 0),
                 payment_method: sale.paymentMethod || sale.payment_method,
                 business_date: getDateFromUnknown(sale.business_date || sale.businessDate),
@@ -260,9 +304,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             .filter(sale => Boolean(sale.business_date));
 
         const indexedKeys = new Set(
-            sales
-                .map((sale: any) => sale.idempotency_key)
-                .filter((key: string | undefined): key is string => Boolean(key))
+            salesAsRows
+                .map(sale => sale.idempotency_key)
+                .filter((key): key is string => Boolean(key))
         );
 
         const transitionSales = buildTransitionSales(
@@ -274,14 +318,16 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             currentSession?.userId
         );
 
-        const filteredReturns: RefundLike[] = returns
-            .filter(isConfirmedReturn)
-            .filter((ret: any) => isDateInRange(
+        // Cast unique vers ReturnLikeRow[] — même rationale que pour les ventes.
+        const returnsAsRows = returns.filter(isConfirmedReturn) as unknown as ReturnLikeRow[];
+
+        const filteredReturns: RefundLike[] = returnsAsRows
+            .filter(ret => isDateInRange(
                 getDateFromUnknown(ret.business_date || ret.businessDate),
                 startDate,
                 endDate
             ))
-            .filter((ret: any) =>
+            .filter(ret =>
                 !isServerRole ||
                 ret.returnedBy === currentSession?.userId ||
                 ret.returned_by === currentSession?.userId ||
@@ -292,9 +338,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
                 ret.rejectedBy === currentSession?.userId ||
                 ret.rejected_by === currentSession?.userId
             )
-            .map((ret: any) => ({
+            .map(ret => ({
                 business_date: getDateFromUnknown(ret.business_date || ret.businessDate) || null,
-                returned_at: ret.returnedAt || ret.returned_at || null,
+                returned_at: (ret.returnedAt || ret.returned_at || null) as string | null,
                 refund_amount: ret.refundAmount || ret.refund_amount || 0,
             }));
 
