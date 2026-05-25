@@ -39,15 +39,16 @@ export function useRealtimeReturns(config: UseRealtimeReturnsConfig) {
     // Don't subscribe if barId is not set
     const isConfigValid = barId && enabled;
 
-    const handleReturnsMessage = useCallback((payload: any) => {
+    const handleReturnsMessage = useCallback((payload: unknown) => {
+        const p = payload as { eventType?: string; new?: { id?: string }; old?: { id?: string } };
         console.log('[Realtime] Returns update received:', {
-            event: payload.eventType,
-            newData: payload.new?.id,
-            oldData: payload.old?.id,
+            event: p.eventType,
+            newData: p.new?.id,
+            oldData: p.old?.id,
         });
 
         // ⭐ Invalidate stock only on UPDATE (restocking puts items back)
-        if (payload.eventType === 'UPDATE') {
+        if (p.eventType === 'UPDATE') {
             queryClient.invalidateQueries({ queryKey: ['bar_products', barId] });
         }
     }, [queryClient, barId]);

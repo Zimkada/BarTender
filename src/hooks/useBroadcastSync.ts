@@ -83,7 +83,7 @@ export function useBroadcastSync(config: UseBroadcastSyncConfig) {
   return {
     isSupported: broadcastService.isSupported(),
     broadcast: useCallback(
-      (event: 'INSERT' | 'UPDATE' | 'DELETE', data?: any) => {
+      (event: 'INSERT' | 'UPDATE' | 'DELETE', data?: unknown) => {
         broadcastService.broadcast({
           event,
           table,

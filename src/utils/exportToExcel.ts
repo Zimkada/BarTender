@@ -4,7 +4,7 @@
  * @param data - Array of objects to export
  * @param filename - Filename without extension (e.g., "refresh_logs_2025-12-28")
  */
-export async function exportToExcel(data: any[], filename: string): Promise<void> {
+export async function exportToExcel(data: Record<string, unknown>[], filename: string): Promise<void> {
   if (!data || data.length === 0) {
     console.warn('No data to export');
     return;

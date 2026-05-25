@@ -37,7 +37,7 @@ export function useInventoryActions() {
         setShowProductModal(true);
     };
 
-    const handleSaveProduct = async (data: any) => {
+    const handleSaveProduct = async (data: Omit<Product, 'id' | 'createdAt' | 'barId'>) => {
         try {
             if (editingProduct) {
                 await updateProduct(editingProduct.id, { ...data, barId: editingProduct.barId });

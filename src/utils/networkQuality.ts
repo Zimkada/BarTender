@@ -21,7 +21,7 @@ interface NetworkConnection {
  * Falls back to 'fast' if Network Information API is not supported.
  */
 export function getNetworkQuality(): NetworkQuality {
-    const conn = (navigator as any).connection as NetworkConnection | undefined;
+    const conn = (navigator as Navigator & { connection?: NetworkConnection }).connection;
     if (!conn) return 'fast'; // API not supported — assume fast
 
     // User explicitly requested data saving

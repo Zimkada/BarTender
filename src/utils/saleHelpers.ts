@@ -60,12 +60,13 @@ export function formatSaleTime(sale: Sale, shortFormat = true): string {
  * @param ret - Objet retour (supporte snake_case de la DB et camelCase du frontend)
  * @returns true si le retour est confirmé
  */
-export function isConfirmedReturn(ret: any): boolean {
-  if (!ret) return false;
+export function isConfirmedReturn(ret: unknown): boolean {
+  if (!ret || typeof ret !== 'object') return false;
+  const r = ret as { isRefunded?: boolean; is_refunded?: boolean; reason?: string; status?: string };
 
-  const isRefunded = ret.isRefunded || ret.is_refunded;
-  const reason = ret.reason;
-  const status = ret.status;
+  const isRefunded = r.isRefunded || r.is_refunded;
+  const reason = r.reason;
+  const status = r.status;
 
   // Un retour est confirmé s'il est remboursé (cash) OU s'il s'agit d'un échange (Magic Swap)
   // ET qu'il est validé par un gérant.

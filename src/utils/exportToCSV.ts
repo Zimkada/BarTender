@@ -3,7 +3,7 @@
  * @param data - Array of objects to export
  * @param filename - Name of the CSV file (without extension)
  */
-export function exportToCSV(data: any[], filename: string): void {
+export function exportToCSV(data: Record<string, unknown>[], filename: string): void {
   if (!data || data.length === 0) {
     console.warn('No data to export');
     return;

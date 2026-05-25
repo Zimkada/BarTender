@@ -111,7 +111,7 @@ export function deleteAllBars(): void {
  * Helpers de développement exposés globalement (mode dev uniquement)
  */
 if (import.meta.env.DEV) {
-  (window as any).__bartender = {
+  (window as Window & { __bartender?: unknown }).__bartender = {
     createTestBar,
     listBars,
     deleteAllBars,

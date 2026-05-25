@@ -14,8 +14,9 @@ export const generateUUID = (): string => {
 
     // 2. Fallback to older crypto.getRandomValues
     if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
-        return (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: any) =>
-            (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
+        // Classic UUID v4 hack: number-as-string template, replaces 0/1/8 chars with random hex
+        return (([1e7] as unknown as string) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c: string) =>
+            (Number(c) ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (Number(c) / 4)))).toString(16)
         );
     }
 

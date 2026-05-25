@@ -120,23 +120,28 @@ export class ProductNormalization {
    * 2. Normalise le volume
    * 3. Convertit code-barres vide en null (clé unique)
    */
-  static normalizeGlobalProduct<T extends Record<string, any>>(data: T): T {
+  static normalizeGlobalProduct<T extends Record<string, unknown>>(data: T): T {
     // Éclater l'objet pour éviter de muter l'original et permettre les modifications
-    const normalized: any = { ...data };
+    const normalized: Record<string, unknown> = { ...data };
 
-    if (normalized.name) normalized.name = normalized.name.trim();
-    if (normalized.brand) normalized.brand = normalized.brand.trim();
-    if (normalized.manufacturer) normalized.manufacturer = normalized.manufacturer.trim();
-    if (normalized.subcategory) normalized.subcategory = normalized.subcategory.trim();
-    if (normalized.description) normalized.description = normalized.description.trim();
+    const trim = (key: string) => {
+      const v = normalized[key];
+      if (typeof v === 'string') normalized[key] = v.trim();
+    };
+    trim('name');
+    trim('brand');
+    trim('manufacturer');
+    trim('subcategory');
+    trim('description');
 
-    if (normalized.volume) {
+    if (typeof normalized.volume === 'string' && normalized.volume) {
       normalized.volume = this.normalizeVolume(normalized.volume);
     }
 
     // CRITICAL: Empty barcode must be null to respect UNIQUE constraint
     if (normalized.barcode !== undefined) {
-      const trimmedBarcode = normalized.barcode?.trim();
+      const barcode = normalized.barcode;
+      const trimmedBarcode = typeof barcode === 'string' ? barcode.trim() : barcode;
       normalized.barcode = trimmedBarcode || null;
     }
 

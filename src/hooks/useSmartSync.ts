@@ -23,12 +23,14 @@ import { getAdaptivePollingInterval } from '../utils/networkQuality';
  * 🛡️ DEFENSIVE: Safe debounce with fallback
  * If use-debounce library fails, falls back to direct callback
  */
-const useSafeDebounce = <T extends (...args: any[]) => any>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const useSafeDebounce = <T extends (...args: any[]) => unknown>(
   callback: T,
   delay: number
 ): T & { cancel?: () => void } => {
   try {
-    return useDebouncedCallback(callback, delay) as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return useDebouncedCallback(callback as (...args: any) => ReturnType<T>, delay) as unknown as T & { cancel?: () => void };
   } catch (error) {
     console.error('[SmartSync] Debounce library failed, using direct callback:', error);
     // Fallback: return callback as-is with noop cancel
@@ -102,16 +104,18 @@ export function useSmartSync(config: UseSmartSyncConfig) {
       enabled: isRealtimeEnabled,
       queryKeysToInvalidate: keys,
       fallbackPollingInterval: refetchInterval,
-      onMessage: (payload: any) => {
-        console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.eventType);
+      onMessage: (payload: unknown) => {
+        const p = payload as { eventType?: 'INSERT' | 'UPDATE' | 'DELETE'; new?: unknown; old?: unknown };
+        console.log(`[SmartSync] Realtime change detected for ${table}:`, p.eventType);
         // When Realtime message received, broadcast to other tabs
-        if (broadcastSupported) {
-          broadcast(payload.eventType === 'DELETE' ? 'DELETE' : payload.eventType, payload.new || payload.old);
+        if (broadcastSupported && p.eventType) {
+          broadcast(p.eventType === 'DELETE' ? 'DELETE' : p.eventType, p.new || p.old);
         }
         syncStatusRef.current = 'realtime';
       },
-      onError: (error: any) => {
-        console.warn(`[SmartSync] Realtime error for ${table}:`, error.message || error);
+      onError: (error: unknown) => {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(`[SmartSync] Realtime error for ${table}:`, msg);
         syncStatusRef.current = 'polling';
       },
     }
