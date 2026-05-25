@@ -146,8 +146,8 @@ export function useTeamPerformance({
                     };
                 }
 
-                const refundAmt = (ret as any).refundAmount || (ret as any).refund_amount || 0;
-                const quantRet = (ret as any).quantityReturned || (ret as any).quantity_returned || 0;
+                const refundAmt = ret.refundAmount || 0;
+                const quantRet = ret.quantityReturned || 0;
                 userStats[serverId].revenue -= Number(refundAmt);
                 userStats[serverId].items -= Number(quantRet);
             }

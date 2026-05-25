@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
-import type { Expense, ExpenseCategoryCustom } from '../../types';
+import type { Expense, ExpenseCategoryCustom, ExpenseCategory } from '../../types';
 
 
 export const expenseKeys = {
@@ -34,7 +34,7 @@ export const useExpenses = (barId: string | undefined, options?: { startDate?: s
             return dbExpenses.map(e => ({
                 id: e.id,
                 barId: e.bar_id,
-                category: e.category as any,
+                category: e.category as ExpenseCategory,
                 customCategoryId: e.custom_category_id || undefined,
                 relatedSupplyId: e.related_supply_id || undefined,
                 amount: e.amount,

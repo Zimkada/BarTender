@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { CapitalContribution, CapitalSource } from '../types';
+import type { Database } from '../lib/database.types';
+
+type CapitalContributionRow = Database['public']['Tables']['capital_contributions']['Row'];
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
@@ -61,15 +64,15 @@ export function useCapitalContributions(barId?: string) {
         }
 
         if (data) {
-          const mapped = data.map((row: any) => ({
+          const mapped = data.map((row: CapitalContributionRow) => ({
             id: row.id,
             barId: row.bar_id,
             amount: Number(row.amount),
             source: row.source as CapitalSource,
-            sourceDetails: row.source_details || undefined,
-            description: row.description || undefined,
+            sourceDetails: row.source_details ?? undefined,
+            description: row.description,
             date: new Date(row.date),
-            createdBy: row.created_by,
+            createdBy: row.created_by ?? '',
             createdAt: new Date(row.created_at),
           }));
           setContributions(mapped);

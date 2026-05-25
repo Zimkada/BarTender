@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { InitialBalance } from '../types';
+import type { Database } from '../lib/database.types';
 import { useAuth } from '../context/AuthContext';
 import { getErrorMessage } from '../utils/errorHandler';
 import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
+
+type InitialBalanceUpdate = Database['public']['Tables']['initial_balances']['Update'];
 
 export function useInitialBalance(barId?: string) {
   const [initialBalance, setInitialBalance] = useState<InitialBalance | null>(null);
@@ -118,7 +121,7 @@ export function useInitialBalance(barId?: string) {
       }
 
       try {
-        const updateData: any = {};
+        const updateData: InitialBalanceUpdate = {};
         if (updates.amount !== undefined) updateData.amount = updates.amount;
         if (updates.date !== undefined) updateData.date = dateToYYYYMMDD(updates.date);
         if (updates.description !== undefined) updateData.description = updates.description;

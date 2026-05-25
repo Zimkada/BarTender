@@ -55,7 +55,7 @@ export const useSales = (barId: string | undefined, options?: UseSalesOptions) =
     });
 
     return useQuery({
-        queryKey: [...salesKeys.list(barId || ''), options] as any,
+        queryKey: [...salesKeys.list(barId || ''), options] as unknown[],
         networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache même offline
         queryFn: async (): Promise<Sale[]> => {
             if (!barId) return [];

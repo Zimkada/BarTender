@@ -30,7 +30,7 @@ const isSupplyWithProduct = (supply: unknown): supply is SupplyWithProduct => {
         typeof s.bar_product === 'object' &&
         s.bar_product !== null &&
         'display_name' in s.bar_product &&
-        typeof (s.bar_product as any).display_name === 'string' // ✅ Type check added
+        typeof (s.bar_product as { display_name: unknown }).display_name === 'string' // ✅ Type check added
     );
 
     return (

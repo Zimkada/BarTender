@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ReturnsService, type DBReturn } from '../../services/supabase/returns.service';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
-import type { Return } from '../../types';
+import type { Return, ReturnReason } from '../../types';
 
 export const returnKeys = {
     all: ['returns'] as const,
@@ -26,7 +26,7 @@ export const useReturns = (barId: string | undefined, options?: { startDate?: st
     return useQuery({
         queryKey: [...returnKeys.list(barId || ''), { startDate: options?.startDate, endDate: options?.endDate }],
         networkMode: 'always', // 🛡️ Fix V11.6: Accès offline aux retours
-        placeholderData: (previousData: any) => previousData, // 🛡️ Fix V11.6: Anti-flash
+        placeholderData: (previousData: Return[] | undefined) => previousData, // 🛡️ Fix V11.6: Anti-flash
         queryFn: async (): Promise<Return[]> => {
             if (!barId) return [];
             const dbReturns = await ReturnsService.getReturns(
@@ -59,7 +59,7 @@ export const mapReturnData = (dbReturns: DBReturn[]): Return[] => {
         productVolume: r.product_volume,
         quantitySold: r.quantity_sold,
         quantityReturned: r.quantity_returned,
-        reason: r.reason as any,
+        reason: r.reason as ReturnReason,
         returnedBy: r.returned_by,
         serverId: r.server_id || undefined,
         server_id: r.server_id || undefined,
