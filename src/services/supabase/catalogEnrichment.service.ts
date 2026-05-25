@@ -105,21 +105,39 @@ export class CatalogEnrichmentService {
         }
       }
 
-      return (data || []).map((p: any) => ({
+      // Shape connu : les colonnes sélectionnées dans le query ci-dessus.
+      // Local row type to bypass PostgREST type computation complexity.
+      type LocalProductRow = {
+        id: string;
+        bar_id: string;
+        local_name: string | null;
+        local_image: string | null;
+        price: number | null;
+        stock: number | null;
+        volume: string | null;
+        local_category_id: string | null;
+        created_at: string | null;
+        is_custom_product: boolean | null;
+      };
+      const rows = (data || []) as unknown as LocalProductRow[];
+
+      // Coalescing des nullables DB vers les defaults sains attendus par
+      // LocalProductForEnrichment (non-null pour name/price/stock/isCustomProduct).
+      return rows.map(p => ({
         barProductId: p.id,
         barId: p.bar_id,
         barName: barNames[p.bar_id] || 'Bar inconnu',
-        localName: p.local_name,
+        localName: p.local_name ?? '',
         localImage: p.local_image,
-        price: p.price,
-        stock: p.stock,
-        volume: p.volume,
-        localCategoryId: p.local_category_id,
+        price: p.price ?? 0,
+        stock: p.stock ?? 0,
+        volume: p.volume ?? undefined,
+        localCategoryId: p.local_category_id ?? undefined,
         localCategoryName: 'Catégorie inconnue',
         createdAt: new Date(p.created_at || Date.now()),
-        isCustomProduct: p.is_custom_product
+        isCustomProduct: p.is_custom_product ?? false
       }));
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -172,7 +190,7 @@ export class CatalogEnrichmentService {
         .slice(0, 10);
 
       return similar;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -374,16 +392,20 @@ export class CatalogEnrichmentService {
             is_source_of_global: updatedBarProductData.is_source_of_global ?? false
           }
         };
-      } catch (dbError: any) {
+      } catch (dbError) {
         // =====================================================
         // LAYER 3 : RLS bloque si Layer 1 bypassé
         // =====================================================
-        if (dbError.code === '42501') {
+        const dbErrorCode =
+          typeof dbError === 'object' && dbError !== null && 'code' in dbError
+            ? String((dbError as { code: unknown }).code)
+            : '';
+        if (dbErrorCode === '42501') {
           throw new Error('❌ Permissions insuffisantes (sécurité RLS)');
         }
         throw dbError;
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
