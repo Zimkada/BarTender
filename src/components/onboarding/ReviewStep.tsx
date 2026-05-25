@@ -8,6 +8,7 @@ import { LoadingButton } from '../ui/LoadingButton';
 import { OnboardingService } from '../../services/supabase/onboarding.service';
 import { supabase } from '../../lib/supabase';
 import { formatAddress } from '../../utils/stringFormatting';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 
 export const ReviewStep: React.FC = () => {
@@ -145,9 +146,9 @@ export const ReviewStep: React.FC = () => {
       setTimeout(() => {
         navigate('/dashboard', { replace: true });
       }, 500);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur lors du lancement du bar:', error);
-      setErrors(error.message || 'Impossible de lancer le bar. Veuillez réessayer.');
+      setErrors(getErrorMessage(error) || 'Impossible de lancer le bar. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }

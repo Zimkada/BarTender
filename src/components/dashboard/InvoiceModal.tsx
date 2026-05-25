@@ -70,7 +70,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
 
                     setIsLoading(false);
                 })
-                .catch((e: any) => {
+                .catch((e: unknown) => {
                     if (!isMounted) return;
                     console.error('Erreur fetch facture:', e);
                     setIsLoading(false);

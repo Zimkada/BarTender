@@ -7,6 +7,7 @@ import { useBarContext } from '../context/BarContext';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
+import { getErrorMessage } from '../utils/errorHandler';
 
 interface ProductImportProps {
   isOpen: boolean;
@@ -177,8 +178,8 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
         // ✅ AJOUT AU BATCH (au lieu d'appeler addProduct immédiatement)
         validProductsToImport.push(productData);
 
-      } catch (e: any) {
-        showError(e.message);
+      } catch (e) {
+        showError(getErrorMessage(e));
         errorCount++;
       }
     });

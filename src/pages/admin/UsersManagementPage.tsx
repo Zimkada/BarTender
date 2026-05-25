@@ -17,6 +17,7 @@ import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordCo
 import { useFeedback } from '../../hooks/useFeedback';
 import { supabase } from '../../lib/supabase';
 import { UserCard } from '../../components/admin/UserCard';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 /**
  * ✅ Type pour les utilisateurs avec leurs rôles et bars (correspond à PaginatedUsersResult)
@@ -100,9 +101,9 @@ export default function UsersManagementPage() {
       }
 
       showSuccess(`Lien de réinitialisation envoyé à ${user.email}.`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur envoi lien réinitialisation:', error);
-      showError(`Erreur lors de l'envoi du lien à ${user.email}: ${error.message}`);
+      showError(`Erreur lors de l'envoi du lien à ${user.email}: ${getErrorMessage(error)}`);
     } finally {
       setLoading(false);
       setResetingPasswordForUser(null);

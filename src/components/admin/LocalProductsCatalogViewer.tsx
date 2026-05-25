@@ -9,6 +9,7 @@ import { Search, Package, Download, AlertCircle } from 'lucide-react';
 import { CatalogEnrichmentService } from '../../services/supabase/catalogEnrichment.service';
 import type { LocalProductForEnrichment } from '../../types/catalogEnrichment';
 import { useNotifications } from '../Notifications';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -61,8 +62,8 @@ export function LocalProductsCatalogViewer({
         limit: 100
       });
       setProducts(allProducts);
-    } catch (error: any) {
-      showNotification('error', error.message || 'Erreur lors du chargement des produits locaux');
+    } catch (error) {
+      showNotification('error', getErrorMessage(error) || 'Erreur lors du chargement des produits locaux');
     } finally {
       setLoading(false);
     }

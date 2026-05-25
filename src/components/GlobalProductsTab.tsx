@@ -13,6 +13,7 @@ import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { Button } from './ui/Button';
 import { Modal, ConfirmModal } from './ui/Modal';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function GlobalProductsTab() {
     const [products, setProducts] = useState<GlobalProduct[]>([]);
@@ -58,8 +59,8 @@ export function GlobalProductsTab() {
             ]);
             setProducts(productsData);
             setCategories(categoriesData);
-        } catch (error: any) {
-            showError(error.message);
+        } catch (error) {
+            showError(getErrorMessage(error));
         } finally {
             setLoading(false);
         }
@@ -142,15 +143,16 @@ export function GlobalProductsTab() {
             }
             setIsModalOpen(false);
             loadData();
-        } catch (error: any) {
+        } catch (error) {
             console.error('[GlobalProductsTab] Save error:', error);
-            const msg = (error.message || '').toLowerCase();
+            const errorMessage = getErrorMessage(error);
+            const msg = errorMessage.toLowerCase();
             if (msg.includes('unique_product') || (msg.includes('duplicate key') && msg.includes('name'))) {
                 showError('Un produit avec ce même nom, marque et volume existe déjà');
             } else if (msg.includes('barcode') || (msg.includes('duplicate key') && msg.includes('barcode'))) {
                 showError('Ce code-barres est déjà utilisé par un autre produit');
             } else {
-                showError(error.message || "Une erreur est survenue lors de l'enregistrement");
+                showError(errorMessage || "Une erreur est survenue lors de l'enregistrement");
             }
         }
     };
@@ -169,8 +171,8 @@ export function GlobalProductsTab() {
             setDeleteModalOpen(false);
             setProductToDelete(null);
             loadData();
-        } catch (error: any) {
-            showError(error.message);
+        } catch (error) {
+            showError(getErrorMessage(error));
         }
     };
 

@@ -9,6 +9,7 @@ import { useAuth } from './AuthContext';
 import { GuideContextType, GuideTour, GuideStep } from '@/types/guide';
 import { auditLogger } from '@/services/AuditLogger';
 import { supabase } from '@/lib/supabase';
+import { getErrorMessage } from '@/utils/errorHandler';
 
 /**
  * Create context
@@ -179,9 +180,9 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log('[GuideContext.completeTour] Closing tour');
       // Close modal ONLY if no error
       closeTour();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to complete guide:', err);
-      setError(err.message || 'Impossible de sauvegarder votre progression. Vérifiez votre connexion.');
+      setError(getErrorMessage(err) || 'Impossible de sauvegarder votre progression. Vérifiez votre connexion.');
       // ✅ Do NOT close modal on error - let user retry
     } finally {
       setIsLoading(false);
@@ -225,7 +226,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       console.log('[GuideContext.skipTour] Closing tour');
       closeTour();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to skip guide:', err);
     }
   }, [activeTour?.id, userId, currentStepIndex, currentSession?.userName, currentSession?.role]);
@@ -260,7 +261,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         // Close after rating
         setTimeout(() => closeTour(), 500);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Failed to rate guide:', err);
       }
     },

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileSpreadsheet, Loader } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import * as XLSX from 'xlsx';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface BarReportExcelButtonProps {
   bar: { id: string; name: string };
@@ -213,9 +214,9 @@ export const BarReportExcelButton: React.FC<BarReportExcelButtonProps> = ({ bar 
       XLSX.writeFile(wb, fileName);
 
       console.log('✅ Rapport Excel généré et téléchargé avec succès');
-    } catch (error: any) {
+    } catch (error) {
       console.error('❌ Erreur lors de la génération du rapport:', error);
-      alert(`Erreur: ${error.message || 'Impossible de générer le rapport'}`);
+      alert(`Erreur: ${getErrorMessage(error) || 'Impossible de générer le rapport'}`);
     } finally {
       setLoading(false);
     }

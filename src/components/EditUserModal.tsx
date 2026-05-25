@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, AlertCircle } from 'lucide-react';
 import { User } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
+import { getErrorMessage } from '../utils/errorHandler';
 
 interface EditUserModalProps {
     isOpen: boolean;
@@ -49,8 +50,8 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
 
             onSuccess();
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'Erreur lors de la mise à jour');
+        } catch (err) {
+            setError(getErrorMessage(err) || 'Erreur lors de la mise à jour');
         } finally {
             setLoading(false);
         }

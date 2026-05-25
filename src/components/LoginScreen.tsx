@@ -9,6 +9,7 @@ import { Alert } from './ui/Alert';
 
 import { useNavigate } from 'react-router-dom';
 import { useAuthNav } from '../layouts/AuthLayout';
+import { getErrorMessage } from '../utils/errorHandler';
 
 function LoginScreen() {
   const navigate = useNavigate();
@@ -91,8 +92,8 @@ function LoginScreen() {
       } else if (result.error) {
         setError(result.error);
       }
-    } catch (error: any) {
-      setError(error.message || 'Erreur lors de la connexion');
+    } catch (error) {
+      setError(getErrorMessage(error) || 'Erreur lors de la connexion');
     }
   };
 
@@ -120,8 +121,8 @@ function LoginScreen() {
       } else if (result.error) {
         setMfaError(result.error);
       }
-    } catch (error: any) {
-      setMfaError(error.message || 'Erreur lors de la vérification MFA.');
+    } catch (error) {
+      setMfaError(getErrorMessage(error) || 'Erreur lors de la vérification MFA.');
     }
   };
 
@@ -161,8 +162,8 @@ function LoginScreen() {
         // C'est le seul moment où on force l'onboarding même si le bar est déjà configuré
         navigate('/onboarding', { replace: true });
       }
-    } catch (error: any) {
-      setError(error.message || 'Erreur lors du changement de mot de passe');
+    } catch (error) {
+      setError(getErrorMessage(error) || 'Erreur lors du changement de mot de passe');
     }
   };
 

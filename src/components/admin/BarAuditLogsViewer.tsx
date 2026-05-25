@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { History, Loader, X, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface BarAuditLog {
   id: string;
@@ -45,9 +46,9 @@ export const BarAuditLogsViewer: React.FC<BarAuditLogsViewerProps> = ({
       if (rpcError) throw rpcError;
 
       setLogs((data || []) as unknown as BarAuditLog[]);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading audit logs:', err);
-      setError(err.message || 'Impossible de charger les logs d\'audit');
+      setError(getErrorMessage(err) || 'Impossible de charger les logs d\'audit');
     } finally {
       setLoading(false);
     }

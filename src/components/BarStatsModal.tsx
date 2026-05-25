@@ -71,7 +71,7 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
           stock_alerts_count: liveAlerts.data ?? 0,
         });
 
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error loading combined bar stats:', error);
         showError('Erreur lors du chargement des statistiques.');
         setCombinedStats(null);

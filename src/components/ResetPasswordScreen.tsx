@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase'; // Import direct de supabase
 import { Alert } from './ui/Alert';
+import { getErrorMessage } from '../utils/errorHandler';
 
 function ResetPasswordScreen() {
   const [password, setPassword] = useState('');
@@ -58,8 +59,8 @@ function ResetPasswordScreen() {
         window.location.reload();
       }, 3000);
 
-    } catch (error: any) {
-      setError(error.message || 'Erreur lors de la mise à jour du mot de passe.');
+    } catch (error) {
+      setError(getErrorMessage(error) || 'Erreur lors de la mise à jour du mot de passe.');
     } finally {
       setIsLoading(false);
     }

@@ -3,6 +3,7 @@ import { X, BarChart3, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-re
 import { Product, Category, ADJUSTMENT_REASONS, AdjustmentReason } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getErrorMessage } from '../utils/errorHandler';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -77,8 +78,8 @@ export function StockAdjustmentModal({
         notes: formData.notes || undefined
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'ajustement du stock');
+    } catch (err) {
+      setError(getErrorMessage(err) || 'Erreur lors de l\'ajustement du stock');
     } finally {
       setIsSubmitting(false);
     }

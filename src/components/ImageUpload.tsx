@@ -59,7 +59,7 @@ export function ImageUpload({
                 .getPublicUrl(fileName);
 
             onImageChange(publicUrl);
-        } catch (error: any) {
+        } catch (error) {
             showError('Erreur lors du téléchargement de l\'image');
             console.error('Upload error:', error);
         } finally {

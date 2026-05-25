@@ -13,6 +13,7 @@ import {
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { getErrorMessage } from '../utils/errorHandler';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
 import { mapSalesData } from '../hooks/queries/useSalesQueries';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
@@ -250,8 +251,8 @@ export default function SalesHistoryPage() {
         try {
             await cancelSale.mutateAsync({ id: saleId, reason });
             setSelectedSaleId(null);
-        } catch (error: any) {
-            showError(error.message || 'Erreur lors de l\'annulation');
+        } catch (error) {
+            showError(getErrorMessage(error) || 'Erreur lors de l\'annulation');
         }
     };
 

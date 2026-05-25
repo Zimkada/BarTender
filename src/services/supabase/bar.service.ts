@@ -18,7 +18,7 @@ export class BarService {
       if (error) {
         throw error;
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }

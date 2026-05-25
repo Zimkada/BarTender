@@ -3,6 +3,7 @@ import { Category } from '../types';
 import { CategoriesService } from '../services/supabase/categories.service';
 import { useFeedback } from './useFeedback';
 import { useBarContext } from '../context/BarContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 /**
  * Hook consolidé pour la gestion complète des catégories
@@ -70,8 +71,8 @@ export function useCategoryManagement() {
         showSuccess('Catégorie créée.');
       }
       closeAddEditModal();
-    } catch (error: any) {
-      showError(error.message);
+    } catch (error) {
+      showError(getErrorMessage(error));
     }
   };
 
@@ -87,8 +88,8 @@ export function useCategoryManagement() {
       await CategoriesService.linkGlobalCategory(currentBar.id, globalCategoryId);
       showSuccess('Catégorie globale liée.');
       closeAddEditModal();
-    } catch (error: any) {
-      showError(error.message);
+    } catch (error) {
+      showError(getErrorMessage(error));
     }
   };
 
@@ -101,14 +102,14 @@ export function useCategoryManagement() {
       await CategoriesService.deleteCategory(categoryToDelete.id);
       showSuccess('Catégorie supprimée.');
       closeDeleteModal();
-    } catch (error: any) {
-      const errorMessage = error.message?.toLowerCase();
+    } catch (error) {
+      const errorMessage = getErrorMessage(error).toLowerCase();
       if (errorMessage.includes('restrict') || errorMessage.includes('constraint')) {
         showError(
           'Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits. Supprimez d\'abord les produits qui la référencent ou transférez-les vers une autre catégorie.'
         );
       } else {
-        showError(error.message);
+        showError(getErrorMessage(error));
       }
     }
   };

@@ -32,6 +32,7 @@ import { Card } from '../ui/Card';
 import { Textarea } from '../ui/Textarea';
 import { Checkbox } from '../ui/Checkbox';
 import { LoadingButton } from '../ui/LoadingButton';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 interface EnrichCatalogModalProps {
   isOpen: boolean;
@@ -206,9 +207,9 @@ export function EnrichCatalogModal({
 
       onSuccess?.();
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Enrichment error:', error);
-      showNotification('error', error.message || 'Erreur lors de l\'enrichissement');
+      showNotification('error', getErrorMessage(error) || 'Erreur lors de l\'enrichissement');
     } finally {
       setStatus('idle');
     }

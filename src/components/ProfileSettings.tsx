@@ -29,6 +29,7 @@ import { TabbedPageHeader } from './common/PageHeader/patterns/TabbedPageHeader'
 import { useViewport } from '../hooks/useViewport';
 import { TrainingTab } from './TrainingTab';
 import { getRoleTheme } from '../theme/themeHelpers';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function ProfileSettings() {
   const { currentSession, changePassword, refreshSession } = useAuth();
@@ -121,8 +122,8 @@ export function ProfileSettings() {
       await refreshSession();
       setSuccessMessage('Informations mises à jour avec succès !');
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Erreur lors de la mise à jour');
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error) || 'Erreur lors de la mise à jour');
     }
   };
 
@@ -154,8 +155,8 @@ export function ProfileSettings() {
       setConfirmPassword('');
       setSuccessMessage('Mot de passe modifié avec succès !');
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Erreur lors du changement');
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error) || 'Erreur lors du changement');
     } finally {
       setLoading(false);
     }

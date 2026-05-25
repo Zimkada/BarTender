@@ -77,7 +77,7 @@ export function AdminSetPasswordModal({ isOpen, onClose, user, onSuccess }: Admi
       showSuccess(`Mot de passe mis à jour avec succès pour ${user.name}`);
       onSuccess();
       onClose();
-    } catch (error: any) {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Une erreur est survenue';
       setError(errorMessage);
       showError(errorMessage);

@@ -6,6 +6,7 @@ import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { BarsService } from '../../services/supabase/bars.service';
 import { formatAddress } from '../../utils/stringFormatting';
+import { getErrorMessage } from '../../utils/errorHandler';
 import type { BarSettings } from '../../types';
 
 /**
@@ -124,9 +125,9 @@ export const BarDetailsStep: React.FC = () => {
 
       // 3. Move to next step
       nextStep();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erreur lors de l\'enregistrement des détails du bar:', error);
-      setErrors({ submit: error.message || 'Impossible d\'enregistrer les détails du bar' });
+      setErrors({ submit: getErrorMessage(error) || 'Impossible d\'enregistrer les détails du bar' });
     } finally {
       setLoading(false);
     }
@@ -351,8 +352,8 @@ export const BarDetailsStep: React.FC = () => {
                     updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
                     completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
                     navigate('/dashboard');
-                  } catch (error: any) {
-                    setErrors({ submit: 'Erreur lors de la sauvegarde : ' + error.message });
+                  } catch (error) {
+                    setErrors({ submit: 'Erreur lors de la sauvegarde : ' + getErrorMessage(error) });
                   } finally {
                     setLoading(false);
                   }
