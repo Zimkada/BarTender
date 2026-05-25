@@ -6,7 +6,7 @@ export const ManagerCheckStaffStep: React.FC = () => {
   const { stepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
 
-  const staffData = stepData[OnboardingStep.OWNER_SETUP_STAFF] as any;
+  const staffData = stepData[OnboardingStep.OWNER_SETUP_STAFF] as { serverNames?: string[] } | undefined;
   const serverCount = staffData?.serverNames?.length || 0;
 
   const handleContinue = async (e: React.FormEvent) => {

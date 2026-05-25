@@ -78,7 +78,8 @@ export function ProfileSettings() {
               isActive: data.is_active ?? true,
               firstLogin: data.first_login ?? false,
               lastLoginAt: data.last_login_at ? new Date(data.last_login_at) : undefined,
-              role: (data as any).role || 'serveur',
+              // Note: users table has no role column — role comes from bar_members
+              role: ((data as unknown as { role?: string }).role || 'serveur') as UserType['role'],
               hasCompletedOnboarding: data.has_completed_onboarding ?? false,
               onboardingCompletedAt: data.onboarding_completed_at ? new Date(data.onboarding_completed_at) : undefined,
               trainingVersionCompleted: data.training_version_completed ?? 0,

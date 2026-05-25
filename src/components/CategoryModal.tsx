@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Globe, PenTool, Check, Info } from 'lucide-react';
-import { Category } from '../types';
+import { Category, type GlobalCategory } from '../types';
 import { motion } from 'framer-motion';
 import { CategoriesService } from '../services/supabase/categories.service';
 import { Modal } from './ui/Modal';
@@ -30,7 +30,7 @@ const colorOptions = [
 
 export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category }: CategoryModalProps) {
   const [mode, setMode] = useState<'custom' | 'global'>('custom');
-  const [globalCategories, setGlobalCategories] = useState<any[]>([]);
+  const [globalCategories, setGlobalCategories] = useState<GlobalCategory[]>([]);
   const [selectedGlobalId, setSelectedGlobalId] = useState<string | null>(null);
   const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
 

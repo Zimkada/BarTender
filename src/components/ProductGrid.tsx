@@ -1,14 +1,14 @@
 import { useBarContext } from '../context/BarContext';
 import { ProductCard } from './ProductCard';
 import { EmptyProductsState } from './EmptyProductsState';
-import { Product } from '../types';
+import { Product, type CartItem } from '../types';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { ProductGridSkeleton } from './skeletons';
 
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
-  cart?: any[];
+  cart?: CartItem[];
   isLoading?: boolean;
   isStockLoading?: boolean;
   getAvailableStock?: (productId: string) => number | undefined;

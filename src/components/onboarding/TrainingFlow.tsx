@@ -49,7 +49,7 @@ export const TrainingFlow: React.FC = () => {
 
         // Determine role and init
         const userBarMember = barMembers?.find(
-            (m: any) => String(m.userId) === String(currentSession.userId)
+            m => String(m.userId) === String(currentSession.userId)
         );
         const isBarOwner = String(currentBar.ownerId) === String(currentSession.userId);
 
@@ -66,7 +66,7 @@ export const TrainingFlow: React.FC = () => {
         initializeOnboarding(
             String(currentSession.userId),
             String(currentBar.id),
-            role as any,
+            role as import('../../context/OnboardingContext').UserRole,
             true // Force barIsAlreadySetup = true for Training Flow
         );
 

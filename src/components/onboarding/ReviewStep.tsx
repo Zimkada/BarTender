@@ -57,12 +57,12 @@ export const ReviewStep: React.FC = () => {
           .eq('is_active', true);
 
         // Use display_name for all products
-        const productNames = barProducts?.map((p: any) =>
-          p.display_name || 'Produit inconnu'
-        ) || [];
+        type BarProductSummary = { id: string; display_name: string | null; stock: number | null };
+        const products = (barProducts ?? []) as BarProductSummary[];
+        const productNames = products.map(p => p.display_name || 'Produit inconnu');
 
         // Get total stock from bar_products (current physical stock)
-        const totalStock = barProducts?.reduce((sum, p: any) => sum + (p.stock || 0), 0) || 0;
+        const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
         setRealData({
           managerCount: managersCount || 0,
@@ -79,7 +79,13 @@ export const ReviewStep: React.FC = () => {
   }, [currentBar?.id]);
 
   // Gather all step data for summary
-  const barDetails = stepData[OnboardingStep.OWNER_BAR_DETAILS] as any;
+  const barDetails = stepData[OnboardingStep.OWNER_BAR_DETAILS] as {
+    barName?: string;
+    location?: string;
+    contact?: string;
+    operatingMode?: string;
+    closingHour?: number;
+  } | undefined;
 
   const handleLaunch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +128,7 @@ export const ReviewStep: React.FC = () => {
        */
 
       // ATOMIC COMPLETION: All verification, mode update, and launch in one RPC call
-      const finalMode = barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'simplifié';
+      const finalMode = (barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'simplifié') as 'full' | 'simplifié';
 
       // Use the actual bar owner's ID for the RPC verification, 
       // as the RPC strictly checks bar.owner_id = p_owner_id.

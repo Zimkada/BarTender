@@ -116,7 +116,7 @@ export const OnboardingFlow: React.FC = () => {
 
     const isBarOwner = String(currentBar.ownerId) === String(currentSession.userId);
     const userBarMember = barMembers?.find(
-      (m: any) => String(m.userId) === String(currentSession.userId)
+      m => String(m.userId) === String(currentSession.userId)
     );
 
     // PERMISSION CHECK:

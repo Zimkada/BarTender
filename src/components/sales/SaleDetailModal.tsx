@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Receipt, Clock, User, CheckCircle2, AlertTriangle, Ban, RotateCcw } from 'lucide-react';
-import { Sale } from '../../types';
+import { Sale, type Return } from '../../types';
+import type { UnifiedReturn } from '../../hooks/pivots/useUnifiedReturns';
 import { Button } from '../ui/Button';
 
 interface SaleDetailModalProps {
@@ -13,7 +14,7 @@ interface SaleDetailModalProps {
     hasConsignments?: boolean; // ✨ NEW
     onCancelSale?: (saleId: string, reason: string) => Promise<void>;
     serverName?: string;
-    returns?: any[]; // ✨ NEW: Liste des retours pour calculer le montant net
+    returns?: Array<Return | UnifiedReturn>; // ✨ NEW: Liste des retours pour calculer le montant net
 }
 
 export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasReturns, hasConsignments, onCancelSale, serverName, returns }: SaleDetailModalProps) {
@@ -92,10 +93,10 @@ export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasRetu
                                         <span>Description</span>
                                         <span>Montant</span>
                                     </div>
-                                    {sale.items.map((item: any, index: number) => {
-                                        const name = item.product?.name || item.product_name || 'Produit';
-                                        const volume = item.product?.volume || item.product_volume || '';
-                                        const price = item.product?.price || item.unit_price || 0;
+                                    {sale.items.map((item, index: number) => {
+                                        const name = item.product_name || 'Produit';
+                                        const volume = item.product_volume || '';
+                                        const price = item.unit_price || 0;
 
                                         return (
                                             <div key={index} className="flex justify-between items-center group">

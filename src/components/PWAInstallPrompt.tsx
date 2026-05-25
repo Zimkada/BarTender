@@ -24,7 +24,7 @@ export function PWAInstallPrompt() {
   useEffect(() => {
     // Vérifier si déjà installé
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isInApp = (window.navigator as any).standalone === true;
+    const isInApp = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     if (isStandalone || isInApp) {
       setIsInstalled(true);

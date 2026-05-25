@@ -8,6 +8,10 @@ import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { getErrorMessage } from '../utils/errorHandler';
+import type { Category, Product } from '../types';
+
+// Pending product with category name for batch resolution
+type PendingProduct = Omit<Product, 'id' | 'createdAt'> & { categoryName?: string };
 
 interface ProductImportProps {
   isOpen: boolean;
@@ -21,7 +25,7 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
   const { products, categories, addProducts } = useUnifiedStock(currentBar?.id);
   const { addCategories } = useAppContext();
   const { showSuccess, showError } = useFeedback();
-  const [importedProducts, setImportedProducts] = useState<any[]>([]);
+  const [importedProducts, setImportedProducts] = useState<Record<string, unknown>[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
 
   const onDrop = async (acceptedFiles: File[]) => {
@@ -40,7 +44,7 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json = XLSX.utils.sheet_to_json(worksheet);
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
         setImportedProducts(json);
       } catch (e) {
         showError('Erreur lors de la lecture du fichier Excel.');
@@ -74,7 +78,7 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
     const newCategoryNames = new Set<string>();
     const localCategories = [...categories]; // Copie locale pour la session d'import
     const existingProducts = [...products]; // Pour détecter les doublons
-    const validProductsToImport: any[] = []; // ✅ Array pour batch import
+    const validProductsToImport: PendingProduct[] = []; // ✅ Array pour batch import
     const categoriesToCreate = new Set<string>(); // ✅ Collecter catégories à créer
     const categoryCache = new Map<string, string>(); // Map: nom → ID
 
@@ -86,7 +90,7 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
     // 1️⃣ PHASE VALIDATION: Collecter tous les produits valides
     importedProducts.forEach((product, index) => {
       try {
-        const normalizedProduct: any = {};
+        const normalizedProduct: Record<string, unknown> = {};
         Object.keys(product).forEach(key => {
           normalizedProduct[key.toLowerCase().trim()] = product[key];
         });
@@ -194,7 +198,7 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
       addCategories(categoriesToAdd)
         .then((createdCategories) => {
           // Mettre à jour le cache et localCategories
-          createdCategories.forEach((cat: any) => {
+          createdCategories.forEach((cat: Category) => {
             categoryCache.set(cat.name.toLowerCase(), cat.id);
             localCategories.push(cat);
             newCategoryNames.add(cat.name);

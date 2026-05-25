@@ -27,11 +27,41 @@ interface AggregatedItem {
     total: number;
 }
 
+// Flexible sale shape (handles snake_case from DB + camelCase from offline)
+interface InvoiceSale {
+    id: string;
+    total?: number;
+    payment_method?: string;
+    items?: Array<{
+        product_name?: string;
+        productName?: string;
+        quantity?: number;
+        unit_price?: number;
+        unitPrice?: number;
+        total_price?: number;
+        totalPrice?: number;
+    }>;
+    idempotency_key?: string;
+}
+
+interface InvoiceReturn {
+    sale_id?: string;
+    saleId?: string;
+    refund_amount?: number;
+    refundAmount?: number;
+    is_refunded?: boolean;
+    isRefunded?: boolean;
+    product_name?: string;
+    productName?: string;
+    quantity_returned?: number;
+    quantityReturned?: number;
+}
+
 export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, ticket, onClose }: InvoiceModalProps) {
     const { currentBar } = useBarContext();
     const { formatPrice } = useBeninCurrency();
-    const [sales, setSales] = useState<any[]>([]);
-    const [returns, setReturns] = useState<any[]>([]);
+    const [sales, setSales] = useState<InvoiceSale[]>([]);
+    const [returns, setReturns] = useState<InvoiceReturn[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -53,7 +83,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                     const filteredOffline = offlineData.filter(s => {
                         const idKey = s.idempotency_key;
                         if (idKey && recentlySyncedMap.has(idKey)) {
-                            return !onlineData.some((os: any) => os.idempotency_key === idKey);
+                            return !onlineData.some((os: InvoiceSale) => os.idempotency_key === idKey);
                         }
                         return true;
                     });
@@ -63,8 +93,8 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
 
                     // Filtrer les retours pour ne garder que ceux liés aux ventes de ce ticket
                     const saleIds = allSales.map(s => s.id);
-                    const relatedReturns = returnsData.filter((r: any) =>
-                        saleIds.includes(r.sale_id || r.saleId)
+                    const relatedReturns = returnsData.filter((r: InvoiceReturn) =>
+                        saleIds.includes(r.sale_id || r.saleId || '')
                     );
                     setReturns(relatedReturns);
 
@@ -106,7 +136,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
         grandTotal += (sale.total || 0);
         // Prioritize ticket payment method if available (passed as prop), otherwise fallback to sales payment methods
         if (sale.payment_method && sale.payment_method !== 'ticket') paymentMethods.add(sale.payment_method);
-        ; (sale.items || []).forEach((item: any) => {
+        ; (sale.items || []).forEach((item) => {
             const name = item.product_name || item.productName || 'Produit';
             const existing = allItems.find(i => i.name === name);
             if (existing) {

@@ -101,7 +101,7 @@ export function MobileSidebar({
   ];
 
   const visibleMenus = menuItems.filter(item =>
-    currentSession && item.roles.includes(currentSession.role as any)
+    currentSession && item.roles.includes(currentSession.role)
     && (!item.feature || hasFeature(item.feature))
   );
 

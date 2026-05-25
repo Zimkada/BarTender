@@ -105,7 +105,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   ];
 
   const navItems = allNavItems.filter(item =>
-    item.roles.includes(currentSession?.role as any)
+    currentSession?.role ? (item.roles as readonly string[]).includes(currentSession.role) : false
   );
 
   const displayedItems = navItems.slice(0, 5);
