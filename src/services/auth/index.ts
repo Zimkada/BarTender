@@ -13,6 +13,8 @@
  * ⚠️  Ne PAS confondre avec `src/services/supabase/auth.service.ts` (logique métier :
  *     login, signup, MFA business flow, gestion des membres). Ce wrapper ici expose
  *     uniquement les **primitives bas-niveau** de l'auth provider.
+ *
+ * 📘 LE JOUR DE LA MIGRATION : voir docs/MIGRATION_RUNBOOK.md (Phase 3 — Auth).
  */
 
 import { supabase } from '../../lib/supabase';

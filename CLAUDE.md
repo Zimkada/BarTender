@@ -13,7 +13,7 @@ Application POS (Point of Sale) multi-tenant SaaS pour la gestion de bars en Afr
 | Frontend | React 18.3, TypeScript 5.5, Vite 5.4 |
 | State serveur | TanStack React Query 5.90 |
 | State client | React Context API |
-| Backend | Supabase (PostgreSQL + Auth + Realtime) |
+| Backend | Supabase (PostgreSQL + Auth + Realtime) — voir `docs/MIGRATION_RUNBOOK.md` pour stratégie de migration future |
 | UI | Tailwind CSS 3.4 + Radix UI + Framer Motion |
 | Tests | Vitest 4 + Playwright + Storybook |
 | Monitoring | Sentry |

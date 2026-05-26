@@ -11,6 +11,8 @@
  *
  * Actuellement, un seul fichier UI utilise le storage directement (ImageUpload.tsx).
  * Migration future = changer ce wrapper, ImageUpload reste identique.
+ *
+ * 📘 LE JOUR DE LA MIGRATION : voir docs/MIGRATION_RUNBOOK.md (Phase 1 — Storage).
  */
 
 import { supabase } from '../../lib/supabase';
