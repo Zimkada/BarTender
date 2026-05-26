@@ -232,7 +232,7 @@ interface BarAuditLogsModalProps {
 
 export const BarAuditLogsModal: React.FC<BarAuditLogsModalProps> = ({ barId, onClose }) => {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000] p-4">
       <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">

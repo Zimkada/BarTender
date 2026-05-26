@@ -257,7 +257,7 @@ export function CreateReturnForm({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[60] bg-gray-900/50 p-4 sm:p-8 flex items-center justify-center"
+            className="fixed inset-0 z-[1000] bg-gray-900/50 p-4 sm:p-8 flex items-center justify-center"
           >
             <div className="w-full max-w-4xl h-[80vh]">
               <SwapProductSelector

@@ -63,7 +63,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-4 p-8 bg-card rounded-lg shadow-xl">
         <Spinner size={size} />
         {message && (

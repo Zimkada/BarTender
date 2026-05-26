@@ -209,11 +209,11 @@ export function DashboardSummary({
                 </div>
             </div>
 
-            {/* Actions de fin de journée */}
+            {/* Partage du rapport */}
             <div className="bg-card rounded-2xl p-5 border border-border shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                    <h4 className="text-h3 text-foreground">Actions de fin de journée</h4>
-                    <p className="text-body-sm text-muted-foreground mt-0.5">Rapport de vente et clôture sécurisée</p>
+                    <h4 className="text-h3 text-foreground">Partager le rapport du jour</h4>
+                    <p className="text-body-sm text-muted-foreground mt-0.5">Envoyez le résumé des ventes à votre équipe via WhatsApp</p>
                 </div>
 
                 <div className="flex flex-row gap-2 w-full sm:w-auto">

@@ -99,7 +99,7 @@ export const GuideTourModal: React.FC = () => {
           {/* Overlay */}
           <motion.div
             key="overlay"
-            className="fixed inset-0 bg-black/40 z-40"
+            className="fixed inset-0 bg-black/40 z-[1000]"
             variants={overlayVariants}
             initial="hidden"
             animate="visible"
@@ -110,7 +110,7 @@ export const GuideTourModal: React.FC = () => {
           {/* Modal */}
           <motion.div
             key="modal"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[1001] flex items-center justify-center p-4"
             variants={overlayVariants} // Use same timing as overlay
             initial="hidden"
             animate="visible"
