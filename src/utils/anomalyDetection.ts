@@ -86,16 +86,21 @@ export function detectProductAnomaly(
     }
 
     // Stock Dormant (Immobilisation)
-    // Basé sur barSettings.supplyFrequency (défaut 7 jours)
-    const frequency = (barSettings?.supplyFrequency || 7);
-    const lastUpdateDate = new Date(product.createdAt); // Faute de lastSoldAt, on utilise createdAt comme garde-fou
-    const daysSinceCreation = (Date.now() - lastUpdateDate.getTime()) / (1000 * 60 * 60 * 24);
+    // Heuristique de transition (en attendant un vrai champ last_sold_at en DB) :
+    // - On utilise updatedAt comme proxy de la dernière activité (approvisionnement, ajustement).
+    //   À défaut, on retombe sur createdAt.
+    // - Le seuil de stock est relatif au seuil d'alerte de réappro : si le stock est
+    //   encore largement au-dessus du seuil d'alerte, c'est que le produit ne tourne pas.
+    // - 3 cycles d'approvisionnement sans activité = considéré dormant.
+    const frequency = barSettings?.supplyFrequency || 7;
+    const lastActivity = product.updatedAt ?? product.createdAt;
+    const daysSinceActivity = (Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24);
+    const stockThreshold = Math.max(product.alertThreshold * 2, 1);
 
-    // Si le produit existe depuis plus de 2x la fréquence et a toujours beaucoup de stock sans mouvement (conceptuel ici)
-    if (stockInfo.physicalStock > 24 && daysSinceCreation > frequency * 2) {
+    if (stockInfo.physicalStock > stockThreshold && daysSinceActivity > frequency * 3) {
         return {
             type: 'DORMANT_STOCK',
-            label: `Stock dormant (> ${Math.floor(daysSinceCreation)}j sans rotation)`,
+            label: `Stock dormant (> ${Math.floor(daysSinceActivity)}j sans mouvement)`,
             severity: 'yellow'
         };
     }

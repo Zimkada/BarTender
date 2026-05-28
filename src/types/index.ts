@@ -106,6 +106,7 @@ export interface Product {
   image?: string;
   alertThreshold: number;
   createdAt: Date;
+  updatedAt?: Date;
   globalProductId?: string;
   isCustomProduct?: boolean;
   currentAverageCost?: number; // ✨ CUMP (Coût Unitaire Moyen Pondéré) - Updated when supplies arrive
