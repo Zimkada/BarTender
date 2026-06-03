@@ -20,7 +20,7 @@ export const ProductCardImage = ({
     src={src}
     alt={alt}
     priority={priority}
-    className="w-full h-full object-contain mix-blend-multiply max-w-full max-h-full"
+    className="w-full h-full object-cover mix-blend-multiply"
     sizes="(max-width: 640px) 120px, (max-width: 1024px) 150px, 180px"
   />
 );
