@@ -29,6 +29,7 @@ import type { FeatureKey } from '../config/plans';
 import { IconButton } from './ui/IconButton';
 import { networkManager } from '../services/NetworkManager';
 import { useNotifications } from './Notifications';
+import { ConfirmationModal } from './common/ConfirmationModal';
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -61,6 +62,7 @@ export function MobileSidebar({
 
   // 🛡️ Monitor network status
   const [isOffline, setIsOffline] = React.useState(!networkManager.isOnline());
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
 
   React.useEffect(() => {
     return networkManager.subscribe(() => {
@@ -69,10 +71,13 @@ export function MobileSidebar({
   }, []);
 
   const handleLogout = () => {
-    if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
-      logout();
-      onClose();
-    }
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
+    logout();
+    onClose();
   };
 
   const menuItems: MenuItem[] = [
@@ -196,6 +201,17 @@ export function MobileSidebar({
               </motion.button>
             </div>
           </motion.div>
+
+          <ConfirmationModal
+            isOpen={showLogoutConfirm}
+            onClose={() => setShowLogoutConfirm(false)}
+            onConfirm={confirmLogout}
+            title="Déconnexion"
+            message="Voulez-vous vraiment vous déconnecter ?"
+            confirmLabel="Déconnexion"
+            cancelLabel="Annuler"
+            isDestructive={true}
+          />
         </>
       )}
     </AnimatePresence>
