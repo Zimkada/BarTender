@@ -508,12 +508,12 @@ export function CreateReturnForm({
                   <div className="lg:col-span-2 space-y-6 p-5 sm:p-6 bg-card rounded-2xl border border-border shadow-sm">
                     {/* Product Header */}
                     <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center border border-border overflow-hidden flex-shrink-0">
+                      <div className="w-14 h-14 rounded-xl bg-white flex items-center justify-center border border-border overflow-hidden flex-shrink-0">
                         {products.find(p => p.id === selectedProduct.product_id)?.image ? (
                           <img
                             src={products.find(p => p.id === selectedProduct.product_id)?.image}
                             alt={selectedProduct.product_name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                           />
                         ) : (
                           <span className="text-xl">📦</span>
