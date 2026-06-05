@@ -44,17 +44,15 @@ export function toDbProduct(
     dbUpdates.alert_threshold = updates.alertThreshold;
   }
 
+  // ⭐ Invariant DB (chk_custom_product_consistency) : global_product_id fait foi.
+  // Quand il est présent dans l'update, is_custom_product en est TOUJOURS dérivé —
+  // on ignore un isCustomProduct contradictoire fourni par l'appelant pour ne jamais
+  // écrire l'état toxique (is_custom_product = true ET global_product_id NOT NULL).
   if (updates.globalProductId !== undefined) {
     dbUpdates.global_product_id = updates.globalProductId;
-    // ⚠️ CRITICAL: When globalProductId changes, auto-calculate is_custom_product
-    // This prevents the edge case where user changes product type during edit
-    // Only set is_custom_product if it wasn't explicitly provided
-    if (updates.isCustomProduct === undefined) {
-      dbUpdates.is_custom_product = !updates.globalProductId; // false if linked, true if custom
-    }
-  }
-
-  if (updates.isCustomProduct !== undefined) {
+    dbUpdates.is_custom_product = !updates.globalProductId; // false si lié, true si custom
+  } else if (updates.isCustomProduct !== undefined) {
+    // global_product_id non touché par cet update : on accepte la valeur explicite.
     dbUpdates.is_custom_product = updates.isCustomProduct;
   }
 

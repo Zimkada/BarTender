@@ -240,6 +240,11 @@ export class ProductsService {
         throw new Error('Un produit custom doit avoir un nom local');
       }
 
+      // ⭐ Invariant DB (chk_custom_product_consistency) : un produit lié au catalogue
+      // global ne peut pas être custom. On dérive is_custom_product de global_product_id
+      // au lieu de faire confiance à l'appelant, pour rendre l'état incohérent impossible.
+      const isCustomProduct = !data.global_product_id;
+
       const { data: newProduct, error } = await supabase
         .from('bar_products')
         .insert({
@@ -251,7 +256,7 @@ export class ProductsService {
           price: data.price,
           stock: data.stock || 0,
           alert_threshold: data.alert_threshold || 10,
-          is_custom_product: data.is_custom_product || false,
+          is_custom_product: isCustomProduct,
           is_active: true,
           volume: data.volume,
           display_name: data.local_name || 'Nouveau produit', // Champ requis en Insert
@@ -416,8 +421,13 @@ export class ProductsService {
         .select()
         .single();
 
-      if (error || !data) {
-        throw new Error('Erreur lors de la mise à jour du produit');
+      // ⭐ Préserver l'erreur Postgres réelle (code/message/details) au lieu d'un message générique
+      // sinon les violations RLS / contraintes / triggers sont indébogables côté client.
+      if (error) {
+        throw error;
+      }
+      if (!data) {
+        throw new Error('Mise à jour du produit : aucune ligne retournée (vérifier les droits RLS sur bar_products)');
       }
 
       return data;
