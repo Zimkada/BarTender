@@ -113,6 +113,11 @@ const mapProducts = (dbProducts: BarProductWithDetails[]): Product[] => {
         currentAverageCost: p.current_average_cost ?? 0, // ✨ CUMP field
         initialUnitCost: p.initial_unit_cost ?? 0,
         lastUnitCost: p.last_unit_cost ?? 0,
+        // ⭐ Préserver le lien catalogue : sans ces champs, l'édition d'un produit
+        // lié renvoie globalProductId=undefined → toDbProduct écrit is_custom_product=true
+        // sur une ligne ayant global_product_id → viole chk_custom_product_consistency.
+        ...(p.global_product_id && { globalProductId: p.global_product_id }),
+        ...(p.is_custom_product !== undefined && { isCustomProduct: p.is_custom_product }),
     }));
 };
 
