@@ -32,6 +32,8 @@ export interface PlanDefinition {
   label: string;
   description: string;
   maxMembers: number;
+  /** Prix mensuel en XOF (FCFA) — montant attendu de l'abonnement */
+  monthlyPriceXOF: number;
   dataTier: 'lite' | 'balanced' | 'enterprise';
   features: PlanFeatures;
 }
@@ -55,6 +57,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     label: 'Starter',
     description: 'Bar qui démarre — équipe jusqu\'à 3 personnes (promoteur inclus)',
     maxMembers: 3,
+    monthlyPriceXOF: 9000,
     dataTier: 'balanced',
     features: ALL_FEATURES_ENABLED,
   },
@@ -63,6 +66,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     label: 'Pro',
     description: 'Bar actif — équipe jusqu\'à 8 personnes (promoteur inclus)',
     maxMembers: 8,
+    monthlyPriceXOF: 15000,
     dataTier: 'balanced',
     features: ALL_FEATURES_ENABLED,
   },
@@ -71,6 +75,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     label: 'Max',
     description: 'Gros bar / réseau — équipe jusqu\'à 20 personnes (promoteur inclus)',
     maxMembers: 20,
+    monthlyPriceXOF: 30000,
     dataTier: 'balanced',
     features: ALL_FEATURES_ENABLED,
   },
@@ -91,6 +96,11 @@ export function getPlan(planId: string | undefined): PlanDefinition {
 /** Vérifier si une feature est disponible pour un plan donné */
 export function hasFeature(planId: string | undefined, feature: FeatureKey): boolean {
   return getPlan(planId).features[feature];
+}
+
+/** Prix mensuel en XOF du plan (fallback: starter) */
+export function getPlanPrice(planId: string | undefined): number {
+  return getPlan(planId).monthlyPriceXOF;
 }
 
 /** Vérifier si le nombre de membres actifs atteint la limite du plan */

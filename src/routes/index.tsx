@@ -48,6 +48,7 @@ const GlobalCatalogPage = lazyWithRetry(() => import('../pages/GlobalCatalogPage
 const AuditLogsPage = lazyWithRetry(() => import('../pages/AuditLogsPage'));
 const SecurityDashboardPage = lazyWithRetry(() => import('../pages/SecurityDashboardPage'));
 const AdminNotificationsPage = lazyWithRetry(() => import('../pages/AdminNotificationsPage'));
+const SubscriptionsPage = lazyWithRetry(() => import('../pages/admin/SubscriptionsPage'));
 
 export const router = createBrowserRouter([
   // =====================
@@ -64,6 +65,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <SuperAdminPage /> },
       { path: 'bars', element: <BarsManagementPage /> },
+      { path: 'subscriptions', element: <SubscriptionsPage /> },
       { path: 'users', element: <UsersManagementPage /> },
       { path: 'catalog', element: <GlobalCatalogPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },

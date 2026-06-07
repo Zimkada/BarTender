@@ -16,12 +16,14 @@ import {
   X,
   ShieldCheck,
   Shield,
-  Bell
+  Bell,
+  CreditCard
 } from 'lucide-react';
 
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { path: '/admin/bars', label: 'Gestion des Bars', icon: Building2 },
+  { path: '/admin/subscriptions', label: 'Abonnements', icon: CreditCard },
   { path: '/admin/users', label: 'Utilisateurs', icon: Users },
   { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
@@ -38,6 +40,7 @@ function AdminLayoutContent() {
   const isSuperAdmin = currentSession?.role === 'super_admin';
   useRoutePreload([
     () => import('../pages/admin/BarsManagementPage'),
+    () => import('../pages/admin/SubscriptionsPage'),
     () => import('../pages/admin/UsersManagementPage'),
     () => import('../pages/GlobalCatalogPage'),
     () => import('../pages/AuditLogsPage'),

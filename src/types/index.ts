@@ -60,6 +60,8 @@ export interface BarSettings {
   operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
   plan?: 'starter' | 'pro' | 'enterprise'; // Plan d'utilisation (contrôle membres, features, dataTier)
   dataTier?: 'lite' | 'balanced' | 'enterprise'; // Stratégie de chargement des données (dérivé du plan)
+  subscriptionStartDate?: string; // Date ISO du premier paiement d'abonnement
+  subscriptionDueDate?: string;   // Date ISO de la prochaine échéance d'abonnement
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
@@ -73,6 +75,42 @@ export interface BarSettings {
     customCategoryMappings?: Record<string, string>;
   };
   [key: string]: unknown; // Allow extra dynamic settings
+}
+
+// =====================================================
+// ABONNEMENTS (suivi des paiements — admin)
+// =====================================================
+
+export type SubscriptionPaymentMethod = 'momo' | 'cash' | 'bank' | 'other';
+
+export interface SubscriptionPayment {
+  id: string;
+  barId: string;
+  amount: number;           // Montant réel encaissé (XOF)
+  monthsCovered: number;    // Nombre de mois couverts par ce paiement
+  method: SubscriptionPaymentMethod;
+  paidAt: string;           // Date ISO de l'encaissement
+  periodStart: string;      // Date ISO début de période couverte
+  periodEnd: string;        // Date ISO fin de période couverte
+  recordedBy?: string;      // userId du super_admin qui a enregistré
+  notes?: string;
+  createdAt: string;
+}
+
+/** Statut d'abonnement dérivé de subscriptionDueDate (jamais stocké) */
+export type SubscriptionStatus = 'up_to_date' | 'due_soon' | 'overdue' | 'never_paid';
+
+export interface SubscriptionBarSummary {
+  bar: Bar;
+  status: SubscriptionStatus;
+  daysUntilDue: number | null;
+}
+
+export interface SubscriptionOverview {
+  bars: SubscriptionBarSummary[];
+  totalCount: number;
+  mrr: number;
+  counts: Record<SubscriptionStatus, number>;
 }
 
 export interface BarMember {

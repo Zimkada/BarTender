@@ -1,7 +1,15 @@
 // src/services/supabase/admin.service.ts
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { Bar, User, GlobalCatalogAuditLog } from '../../types';
+import {
+  Bar,
+  User,
+  GlobalCatalogAuditLog,
+  SubscriptionOverview,
+  SubscriptionPayment,
+  SubscriptionPaymentMethod,
+  SubscriptionStatus,
+} from '../../types';
 
 export interface DashboardStats {
   total_revenue: number;
@@ -399,4 +407,158 @@ export class AdminService {
       throw new Error(handleSupabaseError(error));
     }
   }
+
+  // =====================================================
+  // ABONNEMENTS (suivi des paiements)
+  // =====================================================
+
+  /**
+   * Vue paginée exacte des abonnements, triée/filtrée côté serveur.
+   */
+  static async getSubscriptionOverview(params: {
+    page: number;
+    limit: number;
+    searchQuery?: string;
+    statusFilter?: 'all' | SubscriptionStatus;
+  }): Promise<SubscriptionOverview> {
+    try {
+      const { data, error } = await supabase.rpc('get_subscription_overview', {
+        p_page: params.page,
+        p_limit: params.limit,
+        p_search_query: params.searchQuery ?? '',
+        p_status_filter: params.statusFilter ?? 'all',
+      });
+
+      if (error) throw error;
+      return mapSubscriptionOverview(
+        (data as SubscriptionOverviewRow[] | null)?.[0]
+      );
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Enregistre un paiement d'abonnement et avance l'échéance du bar (atomique côté RPC).
+   * RLS + RPC garantissent l'accès super_admin uniquement.
+   */
+  static async recordSubscriptionPayment(params: {
+    barId: string;
+    amount: number;
+    monthsCovered: number;
+    method: SubscriptionPaymentMethod;
+    notes?: string;
+  }): Promise<SubscriptionPayment> {
+    try {
+      const { data, error } = await supabase.rpc('record_subscription_payment', {
+        p_bar_id: params.barId,
+        p_amount: params.amount,
+        p_months_covered: params.monthsCovered,
+        p_method: params.method,
+        p_notes: params.notes || undefined,
+      });
+
+      if (error) throw error;
+      if (!data) throw new Error('Aucun paiement retourné par le serveur');
+      return mapSubscriptionPayment(data as SubscriptionPaymentRow);
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /** Historique des paiements d'un bar (le plus récent d'abord). */
+  static async getSubscriptionPayments(barId: string): Promise<SubscriptionPayment[]> {
+    try {
+      const { data, error } = await supabase
+        .from('subscription_payments')
+        .select('*')
+        .eq('bar_id', barId)
+        .order('paid_at', { ascending: false });
+
+      if (error) throw error;
+      return (data as SubscriptionPaymentRow[] | null)?.map(mapSubscriptionPayment) ?? [];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+}
+
+// Reflète les colonnes de la table subscription_payments (snake_case)
+interface SubscriptionPaymentRow {
+  id: string;
+  bar_id: string;
+  amount: number;
+  months_covered: number;
+  method: SubscriptionPaymentMethod;
+  paid_at: string;
+  period_start: string;
+  period_end: string;
+  recorded_by: string | null;
+  notes: string | null;
+  created_at: string;
+}
+
+interface SubscriptionOverviewBarRow extends BarFromRPC {
+  subscription_status: SubscriptionStatus;
+  days_until_due: number | null;
+}
+
+interface SubscriptionOverviewRow {
+  bars: SubscriptionOverviewBarRow[] | null;
+  total_count: number | string | null;
+  mrr: number | string | null;
+  overdue_count: number | string | null;
+  due_soon_count: number | string | null;
+  never_paid_count: number | string | null;
+  up_to_date_count: number | string | null;
+}
+
+function toNumber(value: number | string | null | undefined): number {
+  return Number(value ?? 0);
+}
+
+function mapSubscriptionOverview(row: SubscriptionOverviewRow | undefined): SubscriptionOverview {
+  const rawBars = Array.isArray(row?.bars) ? row.bars : [];
+
+  return {
+    bars: rawBars.map((bar) => ({
+      bar: {
+        id: bar.id,
+        name: bar.name,
+        address: bar.address ?? undefined,
+        phone: bar.phone ?? undefined,
+        ownerId: bar.owner_id ?? '',
+        createdAt: new Date(bar.created_at),
+        isActive: bar.is_active,
+        closingHour: bar.closing_hour,
+        settings: (bar.settings ?? {}) as Bar['settings'],
+      },
+      status: bar.subscription_status,
+      daysUntilDue: bar.days_until_due,
+    })),
+    totalCount: toNumber(row?.total_count),
+    mrr: toNumber(row?.mrr),
+    counts: {
+      overdue: toNumber(row?.overdue_count),
+      due_soon: toNumber(row?.due_soon_count),
+      never_paid: toNumber(row?.never_paid_count),
+      up_to_date: toNumber(row?.up_to_date_count),
+    },
+  };
+}
+
+function mapSubscriptionPayment(row: SubscriptionPaymentRow): SubscriptionPayment {
+  return {
+    id: row.id,
+    barId: row.bar_id,
+    amount: Number(row.amount),
+    monthsCovered: row.months_covered,
+    method: row.method,
+    paidAt: row.paid_at,
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    recordedBy: row.recorded_by ?? undefined,
+    notes: row.notes ?? undefined,
+    createdAt: row.created_at,
+  };
 }

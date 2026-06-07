@@ -3394,6 +3394,98 @@ export type Database = {
           },
         ]
       }
+      subscription_payments: {
+        Row: {
+          amount: number
+          bar_id: string
+          created_at: string
+          id: string
+          method: string
+          months_covered: number
+          notes: string | null
+          paid_at: string
+          period_end: string
+          period_start: string
+          recorded_by: string | null
+        }
+        Insert: {
+          amount: number
+          bar_id: string
+          created_at?: string
+          id?: string
+          method: string
+          months_covered: number
+          notes?: string | null
+          paid_at?: string
+          period_end: string
+          period_start: string
+          recorded_by?: string | null
+        }
+        Update: {
+          amount?: number
+          bar_id?: string
+          created_at?: string
+          id?: string
+          method?: string
+          months_covered?: number
+          notes?: string | null
+          paid_at?: string
+          period_end?: string
+          period_start?: string
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplies: {
         Row: {
           bar_id: string
@@ -5846,6 +5938,23 @@ export type Database = {
           users: Json
         }[]
       }
+      get_subscription_overview: {
+        Args: {
+          p_limit?: number
+          p_page?: number
+          p_search_query?: string
+          p_status_filter?: string
+        }
+        Returns: {
+          bars: Json
+          due_soon_count: number
+          mrr: number
+          never_paid_count: number
+          overdue_count: number
+          total_count: number
+          up_to_date_count: number
+        }[]
+      }
       get_supplies_paginated: {
         Args: { p_bar_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -6093,6 +6202,34 @@ export type Database = {
               isSetofReturn: false
             }
           }
+      record_subscription_payment: {
+        Args: {
+          p_amount: number
+          p_bar_id: string
+          p_method: string
+          p_months_covered: number
+          p_notes?: string
+        }
+        Returns: {
+          amount: number
+          bar_id: string
+          created_at: string
+          id: string
+          method: string
+          months_covered: number
+          notes: string | null
+          paid_at: string
+          period_end: string
+          period_start: string
+          recorded_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       refresh_all_materialized_views: {
         Args: { p_triggered_by?: string }
         Returns: {
@@ -6398,4 +6535,3 @@ export const Constants = {
     },
   },
 } as const
-
