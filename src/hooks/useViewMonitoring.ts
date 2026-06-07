@@ -20,14 +20,15 @@ export function useCacheWarming(enabled: boolean = true) {
         if (!enabled || warmingComplete) return;
 
         // Vues matérialisées attendues — DOIT correspondre exactement à la liste dans
-        // refresh_all_materialized_views (migration 20260227000000_fix_refresh_infrastructure.sql).
+        // refresh_all_materialized_views (migration 20260607160000_optimize_materialized_view_refresh.sql).
         // ⚠️ Si la liste SQL change, mettre à jour ici en même temps.
         // salaries_summary exclu intentionnellement (vue normale, toujours fraîche).
+        // top_products_by_period exclu le 2026-06-07 (vue morte : dashboard via RPC
+        //   get_top_products_aggregated qui lit les tables brutes, jamais cette vue).
         const EXPECTED_VIEWS = [
             'product_sales_stats',
             'daily_sales_summary',
             'expenses_summary',
-            'top_products_by_period',
             'bar_stats_multi_period',
             'bar_ancillary_stats',
         ];
