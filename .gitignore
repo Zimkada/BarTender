@@ -55,3 +55,10 @@ unpushed_commits_*.txt
 vite.config.ts.timestamp-*.mjs
 vite.config.ts.timestamp-*.js
 
+# Marketing — stratégie commerciale confidentielle (repo public, ne pas exposer)
+# Sauvegarder ces fichiers hors git (Drive, repo privé séparé).
+marketing/
+MARKETING.md
+MARKETING.docx
+Plan_Marketing_BarTender_Pro.doc
+
