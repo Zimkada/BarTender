@@ -29,10 +29,13 @@ const PARASITE_PATTERNS = [
 
 const isParasite = (line) => PARASITE_PATTERNS.some((p) => p.test(line));
 
+const isWin = process.platform === 'win32';
 const proc = spawn(
-  process.platform === 'win32' ? 'npx.cmd' : 'npx',
+  isWin ? 'npx.cmd' : 'npx',
   ['supabase', 'gen', 'types', 'typescript', '--linked'],
-  { stdio: ['inherit', 'pipe', 'inherit'] }
+  // shell: true requis sur Windows — Node récent refuse de spawn un .cmd
+  // directement (EINVAL) sans passer par le shell.
+  { stdio: ['inherit', 'pipe', 'inherit'], shell: isWin }
 );
 
 let stdout = '';
