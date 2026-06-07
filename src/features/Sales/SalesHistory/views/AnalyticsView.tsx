@@ -101,7 +101,32 @@ export function AnalyticsView({
   const safeBarMembers = barMembers || [];
 
   const { currentBar } = useBarContext();
-  const { sales: allSales } = useUnifiedSales(currentBar?.id);
+  // ⚡ Egress: ne charger que la période analysée + la période précédente (pour les
+  // comparaisons de tendance), au lieu des 6 mois du défaut dataTier. La fenêtre
+  // = [startDate - durée ; endDate], soit 2× la durée de la période courante.
+  // includeItems requis pour le top produits (cf. sale.items plus bas).
+  const analyticsSalesFilters = useMemo(() => {
+    const currentDuration = endDate.getTime() - startDate.getTime();
+    // Garde-fou 1 : si période invalide, on borne au moins à la période courante.
+    let fetchStart = currentDuration > 0
+      ? new Date(startDate.getTime() - currentDuration)
+      : startDate;
+    // Garde-fou 2 : plafonner la fenêtre de fetch à 12 mois max en amont de endDate.
+    // Évite tout fetch massif accidentel si l'utilisateur compare une période très
+    // longue (ex: 2 ans). Au-delà, la comparaison de tendance perd de sa pertinence
+    // métier et le coût egress deviendrait disproportionné.
+    const MAX_FETCH_WINDOW_MS = 366 * 24 * 60 * 60 * 1000; // ~12 mois
+    const earliestAllowed = new Date(endDate.getTime() - MAX_FETCH_WINDOW_MS);
+    if (fetchStart < earliestAllowed) {
+      fetchStart = earliestAllowed;
+    }
+    return {
+      startDate: dateToYYYYMMDD(fetchStart),
+      endDate: dateToYYYYMMDD(endDate),
+      includeItems: true,
+    };
+  }, [startDate, endDate]);
+  const { sales: allSales } = useUnifiedSales(currentBar?.id, analyticsSalesFilters);
   const { themeConfig } = useTheme();
 
   // Génération dynamique des couleurs du graphique basée sur le thème actif
