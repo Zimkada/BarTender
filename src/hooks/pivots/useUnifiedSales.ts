@@ -90,15 +90,19 @@ export const useUnifiedSales = (
         // 🔴 CALCUL PIVOT SUR BUSINESS DATE (Fin de décalage minuit-6h)
         const businessDatePivot = calculateBusinessDate(new Date(), closeHour);
 
+        // ⚡ Egress: ces fenêtres ne servent QUE de garde-fou quand un appelant ne
+        // fournit pas de dates explicites. Depuis l'optimisation egress (cf.
+        // EGRESS_OPTIMIZATION_REPORT.md), tous les appelants passent des bornes
+        // précises — ces valeurs sont volontairement resserrées pour limiter tout
+        // fetch accidentel non borné.
         if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
-            // FIX: Prevent undefined which causes unbounded fetches.
-            // Lite tier is restricted to the last 7 days to protect egress bandwidth.
+            // Lite tier : 7 derniers jours.
             businessDatePivot.setDate(businessDatePivot.getDate() - 7);
         } else if (currentBar.settings.dataTier === 'balanced') {
-            // 6 mois glissants depuis la date commerciale
-            businessDatePivot.setMonth(businessDatePivot.getMonth() - 6);
+            // 60 jours glissants (resserré depuis 6 mois — garde-fou egress).
+            businessDatePivot.setDate(businessDatePivot.getDate() - 60);
         } else if (currentBar.settings.dataTier === 'enterprise') {
-            // 30 jours glissants depuis la date commerciale
+            // 30 jours glissants depuis la date commerciale.
             businessDatePivot.setDate(businessDatePivot.getDate() - 30);
         }
 
