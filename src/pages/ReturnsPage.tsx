@@ -54,7 +54,18 @@ export default function ReturnsPage() {
   const { addReturn, updateReturn } = useAppContext();
   const { currentBar, barMembers, operatingMode } = useBarContext();
   const { consignments } = useUnifiedStock(currentBar?.id);
-  const { sales } = useUnifiedSales(currentBar?.id);
+  // ⚡ Egress: les retours ne portent que sur les ventes de la journée active
+  // (cf. getReturnableSales + createReturn qui filtrent sur currentBusinessDate).
+  // On borne le fetch à aujourd'hui côté serveur au lieu de charger 6 mois.
+  const returnsSalesDay = useMemo(
+    () => getCurrentBusinessDateString(currentBar?.closingHour),
+    [currentBar?.closingHour]
+  );
+  const { sales } = useUnifiedSales(currentBar?.id, {
+    startDate: returnsSalesDay,
+    endDate: returnsSalesDay,
+    includeItems: true, // items requis : sélection de l'article à retourner
+  });
   const { returns, getReturnsBySale } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
   const users = Array.isArray(barMembers)
     ? (barMembers.map((m) => m.user).filter(Boolean) as User[])

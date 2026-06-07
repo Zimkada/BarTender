@@ -43,7 +43,18 @@ export function CreateConsignmentForm({
 }: CreateConsignmentFormProps) {
     const { isMobile } = useViewport();
     const { currentBar, barMembers } = useBarContext();
-    const { sales: allSales } = useUnifiedSales(currentBar?.id);
+    // ⚡ Egress: seules les ventes de la journée active sont consignables (cf. filtre
+    // sur currentBusinessDate plus bas). On borne donc le fetch à aujourd'hui côté
+    // serveur au lieu de charger 6 mois (défaut dataTier) et filtrer en local.
+    const todayStr = useMemo(
+        () => getCurrentBusinessDateString(currentBar?.closingHour),
+        [currentBar?.closingHour]
+    );
+    const { sales: allSales } = useUnifiedSales(currentBar?.id, {
+        startDate: todayStr,
+        endDate: todayStr,
+        includeItems: true, // items requis : sélection produit dans le ticket
+    });
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession: session } = useAuth();
     const { getReturnsBySale } = useUnifiedReturns(currentBar?.id);
