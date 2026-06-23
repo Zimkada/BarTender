@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { AuthService } from '../services/supabase/auth.service';
 import { Alert } from './ui/Alert';
+import { validatePassword } from '../utils/validation';
 
 interface CreatePromoteurData {
     email: string;
@@ -109,8 +110,9 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
         // password
         if (!formData.password) {
             errors.password = 'Le mot de passe est requis';
-        } else if (formData.password.length < 8) {
-            errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
+        } else {
+            const passwordError = validatePassword(formData.password);
+            if (passwordError) errors.password = passwordError;
         }
 
         setFormErrors(errors);

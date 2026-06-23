@@ -30,6 +30,7 @@ import { useViewport } from '../hooks/useViewport';
 import { TrainingTab } from './TrainingTab';
 import { getRoleTheme } from '../theme/themeHelpers';
 import { getErrorMessage } from '../utils/errorHandler';
+import { validatePassword } from '../utils/validation';
 
 export function ProfileSettings() {
   const { currentSession, changePassword, refreshSession } = useAuth();
@@ -133,8 +134,9 @@ export function ProfileSettings() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (newPassword.length < 8) {
-      setErrorMessage('Le mot de passe doit contenir au moins 8 caractères (standard de sécurité)');
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setErrorMessage(passwordError);
       return;
     }
 

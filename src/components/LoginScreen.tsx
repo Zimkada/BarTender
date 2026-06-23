@@ -10,6 +10,7 @@ import { Alert } from './ui/Alert';
 import { useNavigate } from 'react-router-dom';
 import { useAuthNav } from '../layouts/AuthLayout';
 import { getErrorMessage } from '../utils/errorHandler';
+import { validatePassword } from '../utils/validation';
 
 function LoginScreen() {
   const navigate = useNavigate();
@@ -132,8 +133,9 @@ function LoginScreen() {
     e.preventDefault();
     setError('');
 
-    if (newPassword.length < 4) {
-      setError('Le mot de passe doit contenir au moins 4 caractères');
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -242,7 +244,7 @@ function LoginScreen() {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Minimum 4 caractères"
+              placeholder="Minimum 8 caractères"
               autoFocus
             />
 

@@ -4,6 +4,7 @@ import { Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase'; // Import direct de supabase
 import { Alert } from './ui/Alert';
 import { getErrorMessage } from '../utils/errorHandler';
+import { validatePassword } from '../utils/validation';
 
 function ResetPasswordScreen() {
   const [password, setPassword] = useState('');
@@ -36,8 +37,9 @@ function ResetPasswordScreen() {
       setError('Veuillez remplir tous les champs.');
       return;
     }
-    if (password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères.');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError + '.');
       return;
     }
     if (password !== confirmPassword) {
@@ -104,7 +106,7 @@ function ResetPasswordScreen() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent outline-none"
-              placeholder="Minimum 6 caractères"
+              placeholder="Minimum 8 caractères"
               disabled={!!success}
               autoFocus
             />

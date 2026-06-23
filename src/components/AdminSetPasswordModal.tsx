@@ -7,6 +7,7 @@ import { Input } from './ui/Input';
 import { Alert } from './ui/Alert';
 import { useFeedback } from '../hooks/useFeedback';
 import { supabase } from '../lib/supabase';
+import { validatePassword } from '../utils/validation';
 
 interface AdminSetPasswordModalProps {
   isOpen: boolean;
@@ -32,8 +33,9 @@ export function AdminSetPasswordModal({ isOpen, onClose, user, onSuccess }: Admi
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -142,7 +144,7 @@ export function AdminSetPasswordModal({ isOpen, onClose, user, onSuccess }: Admi
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Minimum 6 caractères"
+                placeholder="Minimum 8 caractères"
                 disabled={loading}
                 autoFocus
               />

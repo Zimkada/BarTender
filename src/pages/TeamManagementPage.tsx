@@ -23,6 +23,7 @@ import { useRobustOperation } from '../hooks/useRobustOperation';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { BarsService } from '../services/supabase/bars.service';
 import { getErrorMessage } from '../utils/errorHandler';
+import { validatePassword } from '../utils/validation';
 import { FEATURES } from '../config/features';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
@@ -339,8 +340,9 @@ export default function TeamManagementPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setError('Le mot de passe doit contenir au moins 8 caractères');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 

@@ -2029,7 +2029,7 @@ export const PROFILE_GUIDE: GuideTour = {
       emoji: '🛡️',
       title: 'Conseils de Sécurité pour votre Mot de Passe',
       description:
-        'Un encadré bleu affiche les **4 critères minimums** pour un mot de passe sûr :\n\n• **Minimum 8 caractères**\n• **Majuscules & Minuscules** (ex: AaBbCc)\n• **Chiffres & Signes** (ex: 123 !@#)\n• **Différent du précédent** (sécurité renforcée)',
+        'Un encadré bleu affiche les **4 conseils** pour un mot de passe sûr :\n\n• **Minimum 8 caractères** (seul critère obligatoire)\n• **Majuscules & Minuscules** (ex: AaBbCc) — recommandé\n• **Chiffres & Signes** (ex: 123 !@#) — recommandé\n• **Différent du précédent** (sécurité renforcée)',
       visibleFor: ['serveur', 'gerant', 'promoteur'],
       tips: [
         '💪 Suivez ces 4 critères pour un mot de passe vraiment sûr',

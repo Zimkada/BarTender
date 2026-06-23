@@ -6,6 +6,28 @@ export type ValidationResult = {
   errors: Record<string, string>;
 };
 
+// 🛡️ Longueur minimale de mot de passe — source de vérité unique.
+// Toutes les frontières (login 1ère connexion, reset, profil, création membre,
+// création promoteur) doivent l'utiliser. Avant 2026-06-23 les seuils étaient
+// incohérents (4 / 6 / 8 selon l'écran). Cf. finding audit #2.
+export const PASSWORD_MIN_LENGTH = 8;
+export const PASSWORD_MAX_LENGTH = 100;
+
+/**
+ * Valide un mot de passe (longueur uniquement — pas de contrainte de complexité).
+ * Retourne un message d'erreur français, ou null si valide.
+ * À utiliser partout où l'utilisateur saisit/modifie un mot de passe.
+ */
+export function validatePassword(password: string | undefined | null): string | null {
+  if (!password || password.length < PASSWORD_MIN_LENGTH) {
+    return `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caractères`;
+  }
+  if (password.length > PASSWORD_MAX_LENGTH) {
+    return `Le mot de passe ne peut pas dépasser ${PASSWORD_MAX_LENGTH} caractères`;
+  }
+  return null;
+}
+
 /**
  * Valide un objet utilisateur
  */
@@ -32,10 +54,9 @@ export function validateUser(data: {
 
   // Password
   if (data.password !== undefined) {
-    if (!data.password || data.password.length < 4) {
-      errors.password = 'Le mot de passe doit contenir au moins 4 caractères';
-    } else if (data.password.length > 100) {
-      errors.password = 'Le mot de passe ne peut pas dépasser 100 caractères';
+    const passwordError = validatePassword(data.password);
+    if (passwordError) {
+      errors.password = passwordError;
     }
   }
 
