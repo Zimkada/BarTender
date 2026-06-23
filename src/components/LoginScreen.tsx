@@ -144,24 +144,16 @@ function LoginScreen() {
 
     try {
       // Changer le mot de passe via AuthService (Supabase Auth)
+      // ⭐ changePassword utilise supabase.auth.updateUser() → la session courante
+      // reste valide et AuthContext pose déjà firstLogin: false. Pas de re-login
+      // nécessaire (l'ancien re-login visait @bartender.local inexistant et échouait
+      // silencieusement, bloquant l'onboarding employé).
       await changePassword(newPassword);
 
-      // Re-login automatique avec le nouveau mot de passe
-      // Support login par nom d'utilisateur pour le re-login aussi
-      let loginEmail = email;
-      if (!email.includes('@')) {
-        loginEmail = `${email}@bartender.local`;
-      }
-
-      const result = await login(loginEmail, newPassword);
-
-      if (result.user) {
-        // Connexion réussie
-        setIsFirstLogin(false);
-        // ✨ Redirection forcée vers l'onboarding pour le parcours éducatif (Gérants/Serveurs)
-        // C'est le seul moment où on force l'onboarding même si le bar est déjà configuré
-        navigate('/onboarding', { replace: true });
-      }
+      setIsFirstLogin(false);
+      // ✨ Redirection forcée vers l'onboarding pour le parcours éducatif (Gérants/Serveurs)
+      // C'est le seul moment où on force l'onboarding même si le bar est déjà configuré
+      navigate('/onboarding', { replace: true });
     } catch (error) {
       setError(getErrorMessage(error) || 'Erreur lors du changement de mot de passe');
     }
