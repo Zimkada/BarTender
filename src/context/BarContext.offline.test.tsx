@@ -17,7 +17,6 @@ vi.mock('../services/offlineQueue', () => ({
 vi.mock('../services/supabase/bars.service', () => ({
     BarsService: {
         updateBar: vi.fn(),
-        getUserBars: vi.fn(),
         getMyBars: vi.fn(),
         getBarStats: vi.fn(),
     },
