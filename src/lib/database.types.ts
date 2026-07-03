@@ -4968,27 +4968,16 @@ export type Database = {
         }
         Returns: Json
       }
-      admin_as_get_bar_sales_cursor:
-        | {
-            Args: {
-              p_acting_as_user_id: string
-              p_bar_id: string
-              p_cursor_date?: string
-              p_cursor_id?: string
-              p_limit?: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_acting_as_user_id: string
-              p_bar_id: string
-              p_cursor_date?: string
-              p_cursor_id?: string
-              p_limit?: number
-            }
-            Returns: Json
-          }
+      admin_as_get_bar_sales_cursor: {
+        Args: {
+          p_acting_as_user_id: string
+          p_bar_id: string
+          p_cursor_date?: string
+          p_cursor_id?: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
       admin_as_get_sales_stats: {
         Args: {
           p_acting_as_user_id: string
@@ -5297,112 +5286,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      create_sale_with_promotions:
-        | {
-            Args: {
-              p_bar_id: string
-              p_business_date?: string
-              p_customer_name?: string
-              p_customer_phone?: string
-              p_items: Json
-              p_notes?: string
-              p_payment_method: string
-              p_server_id?: string
-              p_sold_by: string
-              p_status?: string
-              p_ticket_id?: string
-              p_validated_by?: string
-            }
-            Returns: {
-              applied_promotions: Json | null
-              bar_id: string
-              business_date: string
-              cancel_reason: string | null
-              cancelled_at: string | null
-              cancelled_by: string | null
-              created_at: string | null
-              created_by: string | null
-              customer_name: string | null
-              customer_phone: string | null
-              discount_total: number | null
-              id: string
-              idempotency_key: string | null
-              items: Json
-              items_count: number
-              notes: string | null
-              operating_mode_at_creation: string | null
-              payment_method: string
-              rejected_at: string | null
-              rejected_by: string | null
-              server_id: string | null
-              sold_by: string
-              source_return_id: string | null
-              status: string | null
-              subtotal: number
-              ticket_id: string | null
-              total: number
-              updated_at: string | null
-              validated_at: string | null
-              validated_by: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "sales"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_bar_id: string
-              p_business_date?: string
-              p_customer_name?: string
-              p_customer_phone?: string
-              p_items: Json
-              p_notes?: string
-              p_payment_method: string
-              p_sold_by: string
-              p_status?: string
-            }
-            Returns: {
-              applied_promotions: Json | null
-              bar_id: string
-              business_date: string
-              cancel_reason: string | null
-              cancelled_at: string | null
-              cancelled_by: string | null
-              created_at: string | null
-              created_by: string | null
-              customer_name: string | null
-              customer_phone: string | null
-              discount_total: number | null
-              id: string
-              idempotency_key: string | null
-              items: Json
-              items_count: number
-              notes: string | null
-              operating_mode_at_creation: string | null
-              payment_method: string
-              rejected_at: string | null
-              rejected_by: string | null
-              server_id: string | null
-              sold_by: string
-              source_return_id: string | null
-              status: string | null
-              subtotal: number
-              ticket_id: string | null
-              total: number
-              updated_at: string | null
-              validated_at: string | null
-              validated_by: string | null
-            }
-            SetofOptions: {
-              from: "*"
-              to: "sales"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
       create_sales_batch: {
         Args: { p_bar_id: string; p_sales: Json }
         Returns: Json
@@ -5440,135 +5323,40 @@ export type Database = {
         }
         Returns: Json
       }
-      create_ticket:
-        | {
-            Args: {
-              p_bar_id: string
-              p_created_by: string
-              p_notes?: string
-              p_server_id?: string
-            }
-            Returns: {
-              bar_id: string
-              created_at: string
-              created_by: string
-              customer_name: string | null
-              id: string
-              idempotency_key: string | null
-              notes: string | null
-              paid_at: string | null
-              paid_by: string | null
-              payment_method: string | null
-              server_id: string | null
-              status: string
-              table_number: number | null
-              ticket_number: number
-            }
-            SetofOptions: {
-              from: "*"
-              to: "tickets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_bar_id: string
-              p_closing_hour?: number
-              p_created_by: string
-              p_notes?: string
-              p_server_id?: string
-            }
-            Returns: {
-              bar_id: string
-              created_at: string
-              created_by: string
-              customer_name: string | null
-              id: string
-              idempotency_key: string | null
-              notes: string | null
-              paid_at: string | null
-              paid_by: string | null
-              payment_method: string | null
-              server_id: string | null
-              status: string
-              table_number: number | null
-              ticket_number: number
-            }
-            SetofOptions: {
-              from: "*"
-              to: "tickets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_bar_id: string
-              p_closing_hour?: number
-              p_created_by: string
-              p_customer_name?: string
-              p_notes?: string
-              p_server_id?: string
-              p_table_number?: number
-            }
-            Returns: {
-              bar_id: string
-              created_at: string
-              created_by: string
-              customer_name: string | null
-              id: string
-              idempotency_key: string | null
-              notes: string | null
-              paid_at: string | null
-              paid_by: string | null
-              payment_method: string | null
-              server_id: string | null
-              status: string
-              table_number: number | null
-              ticket_number: number
-            }
-            SetofOptions: {
-              from: "*"
-              to: "tickets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_bar_id: string
-              p_closing_hour?: number
-              p_created_by: string
-              p_customer_name?: string
-              p_idempotency_key?: string
-              p_notes?: string
-              p_server_id?: string
-              p_table_number?: number
-            }
-            Returns: {
-              bar_id: string
-              created_at: string
-              created_by: string
-              customer_name: string | null
-              id: string
-              idempotency_key: string | null
-              notes: string | null
-              paid_at: string | null
-              paid_by: string | null
-              payment_method: string | null
-              server_id: string | null
-              status: string
-              table_number: number | null
-              ticket_number: number
-            }
-            SetofOptions: {
-              from: "*"
-              to: "tickets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      create_ticket: {
+        Args: {
+          p_bar_id: string
+          p_closing_hour?: number
+          p_created_by: string
+          p_customer_name?: string
+          p_idempotency_key?: string
+          p_notes?: string
+          p_server_id?: string
+          p_table_number?: number
+        }
+        Returns: {
+          bar_id: string
+          created_at: string
+          created_by: string
+          customer_name: string | null
+          id: string
+          idempotency_key: string | null
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_method: string | null
+          server_id: string | null
+          status: string
+          table_number: number | null
+          ticket_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_user_profile: {
         Args: {
           p_email: string
@@ -5758,59 +5546,32 @@ export type Database = {
           total_revenue: number
         }[]
       }
-      get_bar_sales_cursor:
-        | {
-            Args: {
-              p_bar_id: string
-              p_cursor_date?: string
-              p_cursor_id?: string
-              p_limit?: number
-            }
-            Returns: {
-              bar_id: string
-              business_date: string
-              created_at: string
-              created_by: string
-              cursor_date: string
-              cursor_id: string
-              id: string
-              items: Json
-              payment_method: string
-              seller_name: string
-              sold_by: string
-              status: string
-              total: number
-              updated_at: string
-              validated_by: string
-              validator_name: string
-            }[]
-          }
-        | {
-            Args: {
-              p_bar_id: string
-              p_cursor_date?: string
-              p_cursor_id?: string
-              p_limit?: number
-            }
-            Returns: {
-              bar_id: string
-              business_date: string
-              created_at: string
-              created_by: string
-              cursor_date: string
-              cursor_id: string
-              id: string
-              items: Json
-              payment_method: string
-              seller_name: string
-              sold_by: string
-              status: string
-              total: number
-              updated_at: string
-              validated_by: string
-              validator_name: string
-            }[]
-          }
+      get_bar_sales_cursor: {
+        Args: {
+          p_bar_id: string
+          p_cursor_date?: string
+          p_cursor_id?: string
+          p_limit?: number
+        }
+        Returns: {
+          bar_id: string
+          business_date: string
+          created_at: string
+          created_by: string
+          cursor_date: string
+          cursor_id: string
+          id: string
+          items: Json
+          payment_method: string
+          seller_name: string
+          sold_by: string
+          status: string
+          total: number
+          updated_at: string
+          validated_by: string
+          validator_name: string
+        }[]
+      }
       get_consignments_paginated: {
         Args: { p_bar_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -6023,54 +5784,12 @@ export type Database = {
           name: string
         }[]
       }
-      get_user_bars:
-        | {
-            Args: never
-            Returns: {
-              bar_id: string
-            }[]
-          }
-        | {
-            Args: { p_user_id: string }
-            Returns: {
-              address: string
-              closing_hour: number
-              created_at: string
-              id: string
-              is_active: boolean
-              is_setup_complete: boolean
-              name: string
-              owner_id: string
-              phone: string
-              settings: Json
-              setup_completed_at: string
-            }[]
-          }
-        | {
-            Args: { p_impersonating_user_id?: string; p_user_id: string }
-            Returns: {
-              address: string | null
-              closing_hour: number | null
-              created_at: string | null
-              id: string
-              is_active: boolean | null
-              is_setup_complete: boolean | null
-              logo_url: string | null
-              name: string
-              owner_id: string | null
-              phone: string | null
-              settings: Json | null
-              setup_completed_at: string | null
-              theme_config: Json | null
-              updated_at: string | null
-            }[]
-            SetofOptions: {
-              from: "*"
-              to: "bars"
-              isOneToOne: false
-              isSetofReturn: true
-            }
-          }
+      get_user_bars: {
+        Args: never
+        Returns: {
+          bar_id: string
+        }[]
+      }
       get_user_role: { Args: { bar_id_param: string }; Returns: string }
       get_view_freshness: {
         Args: { p_view_name: string }
@@ -6147,61 +5866,35 @@ export type Database = {
         Args: { p_restocked_by: string; p_return_id: string }
         Returns: Json
       }
-      pay_ticket:
-        | {
-            Args: { p_paid_by: string; p_ticket_id: string }
-            Returns: {
-              bar_id: string
-              created_at: string
-              created_by: string
-              customer_name: string | null
-              id: string
-              idempotency_key: string | null
-              notes: string | null
-              paid_at: string | null
-              paid_by: string | null
-              payment_method: string | null
-              server_id: string | null
-              status: string
-              table_number: number | null
-              ticket_number: number
-            }
-            SetofOptions: {
-              from: "*"
-              to: "tickets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
-        | {
-            Args: {
-              p_paid_by: string
-              p_payment_method: string
-              p_ticket_id: string
-            }
-            Returns: {
-              bar_id: string
-              created_at: string
-              created_by: string
-              customer_name: string | null
-              id: string
-              idempotency_key: string | null
-              notes: string | null
-              paid_at: string | null
-              paid_by: string | null
-              payment_method: string | null
-              server_id: string | null
-              status: string
-              table_number: number | null
-              ticket_number: number
-            }
-            SetofOptions: {
-              from: "*"
-              to: "tickets"
-              isOneToOne: true
-              isSetofReturn: false
-            }
-          }
+      pay_ticket: {
+        Args: {
+          p_paid_by: string
+          p_payment_method: string
+          p_ticket_id: string
+        }
+        Returns: {
+          bar_id: string
+          created_at: string
+          created_by: string
+          customer_name: string | null
+          id: string
+          idempotency_key: string | null
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_method: string | null
+          server_id: string | null
+          status: string
+          table_number: number | null
+          ticket_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_subscription_payment: {
         Args: {
           p_amount: number
@@ -6259,7 +5952,9 @@ export type Database = {
       reject_multiple_sales: {
         Args: { p_reason?: string; p_rejector_id: string; p_sale_ids: string[] }
         Returns: {
+          failed_sale_ids: string[]
           failure_count: number
+          failure_reasons: string[]
           success_count: number
         }[]
       }
@@ -6267,15 +5962,10 @@ export type Database = {
         Args: { p_rejected_by: string; p_return_id: string }
         Returns: Json
       }
-      reject_sale:
-        | {
-            Args: { p_rejected_by: string; p_sale_id: string }
-            Returns: undefined
-          }
-        | {
-            Args: { p_note?: string; p_rejected_by: string; p_sale_id: string }
-            Returns: undefined
-          }
+      reject_sale: {
+        Args: { p_note?: string; p_rejected_by: string; p_sale_id: string }
+        Returns: undefined
+      }
       remove_bar_member_v2: {
         Args: {
           p_bar_id: string
@@ -6335,22 +6025,6 @@ export type Database = {
           p_supply_id: string
         }
         Returns: Json
-      }
-      validate_and_get_impersonate_data: {
-        Args: {
-          p_bar_id: string
-          p_impersonated_user_id: string
-          p_super_admin_id: string
-        }
-        Returns: {
-          bar_id: string
-          error_message: string
-          expires_at: string
-          impersonated_user_email: string
-          impersonated_user_id: string
-          impersonated_user_role: string
-          success: boolean
-        }[]
       }
       validate_sale: {
         Args: { p_sale_id: string; p_validated_by: string }
