@@ -126,7 +126,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel: _o
             };
 
             if (type === 'pourcentage' || type === 'percentage') promotionData.discountPercentage = discountPercentage;
-            if (type === 'reduction_vente' || type === 'fixed_discount' || type === 'reduction_produit' || type === 'majoration_produit') {
+            if (type === 'reduction_vente' || type === 'fixed_discount' || type === 'reduction_produit') {
                 promotionData.discountAmount = discountAmount;
             }
             if (type === 'prix_special' || type === 'special_price') promotionData.specialPrice = specialPrice;
@@ -175,7 +175,6 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel: _o
         { id: 'lot', label: 'Offre Groupée', description: 'Ex: 3 pour 2000', icon: <Gift size={20} /> },
         { id: 'prix_special', label: 'Prix Fixe', description: 'Nouveau prix', icon: <Tag size={20} /> },
         { id: 'reduction_vente', label: 'Sur Vente', description: 'Remise panier total', icon: <DollarSign size={20} /> },
-        { id: 'majoration_produit', label: 'Majoration', description: 'Prix augmenté', icon: <DollarSign size={20} /> },
     ];
 
     if (!isOpen) return null;
@@ -296,7 +295,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel: _o
                                         </div>
                                     )}
 
-                                    {(type === 'reduction_vente' || type === 'fixed_discount' || type === 'reduction_produit' || type === 'majoration_produit') && (
+                                    {(type === 'reduction_vente' || type === 'fixed_discount' || type === 'reduction_produit') && (
                                         <div className="flex items-center gap-4">
                                             <input
                                                 type="number"
@@ -554,12 +553,11 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel: _o
                                             {(type === 'pourcentage' || type === 'percentage') && `-${discountPercentage}%`}
                                             {(type === 'reduction_vente' || type === 'fixed_discount') && `-${discountAmount} F`}
                                             {type === 'reduction_produit' && `-${discountAmount} F`}
-                                            {type === 'majoration_produit' && `+${discountAmount} F`}
                                             {(type === 'prix_special' || type === 'special_price') && `${specialPrice} F`}
                                             {(type === 'lot' || type === 'bundle') && `${bundleQuantity} pts / ${bundlePrice} F`}
                                         </div>
                                         <div className="text-xs font-bold text-muted-foreground mt-2 uppercase">
-                                            {type === 'reduction_produit' || type === 'majoration_produit' || type === 'prix_special' ? 'Par unité' : 'Sur votre achat'}
+                                            {type === 'reduction_produit' || type === 'prix_special' ? 'Par unité' : 'Sur votre achat'}
                                         </div>
                                     </div>
 

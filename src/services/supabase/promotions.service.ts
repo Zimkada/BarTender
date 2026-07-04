@@ -227,12 +227,6 @@ export const PromotionsService = {
                     if (discountPerUnit > 0) calculatedPrice = Math.max(0, originalPrice - (discountPerUnit * quantity));
                     break;
                 }
-
-                case 'majoration_produit': {
-                    const surchargePerUnit = promo.discountAmount || 0;
-                    if (surchargePerUnit > 0) calculatedPrice = originalPrice + (surchargePerUnit * quantity);
-                    break;
-                }
             }
 
             if (calculatedPrice < bestPrice ||

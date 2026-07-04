@@ -116,8 +116,7 @@ export default function PromotionsPage() {
             case 'percentage': return <Percent size={18} />;
             case 'reduction_vente':
             case 'fixed_discount':
-            case 'reduction_produit':
-            case 'majoration_produit': return <DollarSign size={18} />;
+            case 'reduction_produit': return <DollarSign size={18} />;
             case 'lot':
             case 'bundle': return <Gift size={18} />;
             case 'prix_special':
@@ -132,7 +131,6 @@ export default function PromotionsPage() {
             case 'reduction_vente':
             case 'fixed_discount': return 'Réduction sur vente';
             case 'reduction_produit': return 'Réduction par unité';
-            case 'majoration_produit': return 'Majoration par unité';
             case 'lot':
             case 'bundle': return 'Offre groupée';
             case 'prix_special':
@@ -312,7 +310,6 @@ export default function PromotionsPage() {
                                                                 {(promo.type === 'pourcentage' || promo.type === 'percentage') && `-${promo.discountPercentage}%`}
                                                                 {(promo.type === 'reduction_vente' || promo.type === 'fixed_discount') && `-${promo.discountAmount} FCFA total`}
                                                                 {promo.type === 'reduction_produit' && `-${promo.discountAmount} FCFA/unité`}
-                                                                {promo.type === 'majoration_produit' && `+${promo.discountAmount} FCFA/unité`}
                                                                 {(promo.type === 'prix_special' || promo.type === 'special_price') && `${promo.specialPrice} FCFA/unité`}
                                                                 {(promo.type === 'lot' || promo.type === 'bundle') && `${promo.bundleQuantity} pour ${promo.bundlePrice} FCFA`}
                                                             </div>

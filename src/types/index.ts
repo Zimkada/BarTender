@@ -905,7 +905,9 @@ export type PromotionType =
   | 'pourcentage'        // Réduction pourcentage (ex: -10%)
   | 'prix_special'       // Prix spécial avec horaires optionnels (ex: Happy Hour)
   | 'reduction_produit'  // Réduction par unité × quantité (ex: -20 FCFA/unité)
-  | 'majoration_produit' // Majoration par unité × quantité (ex: +30 FCFA/unité)
+  // ⚠️ 'majoration_produit' RETIRÉ (2026-07-04) : jamais fonctionnel (le moteur
+  //    calculateBestPrice ne retient que ce qui BAISSE le prix). Une majoration
+  //    de prix sera une fonctionnalité DÉDIÉE, séparée des promotions.
   // Types anglais (anciens, rétro-compatibilité)
   | 'bundle'
   | 'fixed_discount'
