@@ -13,7 +13,7 @@
 
 import { useEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRealtimeSubscription } from './useRealtimeSubscription';
+import { useRealtimeSubscription, type RealtimeChangePayload } from './useRealtimeSubscription';
 import { useBroadcastSync } from './useBroadcastSync';
 import { broadcastService } from '../services/broadcast/BroadcastService';
 import { useDebouncedCallback } from 'use-debounce';
@@ -58,6 +58,19 @@ interface UseSmartSyncConfig {
    * Useful for SyncManager integration (e.g. 'sales-synced', 'stock-synced').
    */
   windowEvents?: string[];
+
+  /**
+   * ⚡ Egress: patch ciblé du cache à partir du payload Realtime (au lieu
+   * d'invalider + refetcher la liste complète). Retourner `true` si l'événement
+   * a été appliqué au cache ; `false` pour retomber sur l'invalidation classique.
+   * `throttledInvalidate` (anti-burst 1/clé/s) est fourni pour les invalidations
+   * partielles que le patcher déclenche lui-même. La réconciliation reste garantie
+   * par : invalidation à la reconnexion Realtime, retour réseau (RootLayout), et staleTime.
+   */
+  applyChange?: (
+    payload: RealtimeChangePayload,
+    throttledInvalidate: (keys: readonly (readonly unknown[])[]) => void,
+  ) => boolean;
 }
 
 /**
@@ -72,6 +85,7 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     enabled = true,
     refetchInterval = 30000, // ⭐ Default 30s (was 5s — too aggressive for 2G/3G)
     queryKeysToInvalidate,
+    applyChange,
   } = config;
 
   const queryClient = useQueryClient();
@@ -103,6 +117,7 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     {
       enabled: isRealtimeEnabled,
       queryKeysToInvalidate: keys,
+      applyChange,
       fallbackPollingInterval: refetchInterval,
       onMessage: (payload: unknown) => {
         const p = payload as { eventType?: 'INSERT' | 'UPDATE' | 'DELETE'; new?: unknown; old?: unknown };

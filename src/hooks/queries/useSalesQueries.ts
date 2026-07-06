@@ -1,9 +1,12 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { SalesService, type DBSale } from '../../services/supabase/sales.service';
 import type { Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
+import type { RealtimeChangePayload } from '../useRealtimeSubscription';
+import { applySaleEventToList, coerceSaleRowNumerics, applyPendingSaleEvent, type PendingStockSale } from '../../utils/realtimeCachePatch';
 import { z } from 'zod';
 
 // 🛡️ Fix V12: Runtime Validation
@@ -39,6 +42,130 @@ export interface UseSalesOptions {
 
 export const useSales = (barId: string | undefined, options?: UseSalesOptions) => {
     const isEnabled = !!barId && (options?.enabled ?? true);
+    const queryClient = useQueryClient();
+
+    // ⚡ Egress: patch ciblé du cache ventes depuis le payload Realtime.
+    // Chaque variante de liste en cache ([...salesKeys.list(barId), options]) est
+    // patchée selon ses propres filtres (fenêtre business_date, status). Les variantes
+    // avec searchTerm (ilike serveur, non évaluable localement) sont invalidées
+    // individuellement. Évite de refetcher 7-60 jours de ventes à chaque événement.
+    const applySaleChange = useCallback((
+        payload: RealtimeChangePayload,
+        throttledInvalidate: (keys: readonly (readonly unknown[])[]) => void,
+    ): boolean => {
+        const listPrefix = salesKeys.list(barId || '');
+        // Index des options dérivé du préfixe (résiste à un changement de forme de salesKeys.list)
+        const optionsIndex = listPrefix.length;
+        const entries = queryClient.getQueriesData<Sale[]>({ queryKey: listPrefix });
+
+        // Contrat queryKeysToInvalidate : le patch ne reconstruit jamais les stats →
+        // on invalide toujours cette clé (no-op tant qu'aucune query n'y est attachée,
+        // future-proof si l'une s'y attache un jour). Via le throttle anti-burst :
+        // une rafale realtime (ex: replay offline) ne produit qu'1 invalidation/s.
+        throttledInvalidate([salesKeys.stats(barId || '')]);
+
+        // ----------------------------------------------------
+        // ⚡ Patch additionnel pour la requête de stock (serverPendingSales)
+        // Permet au calcul de 'availableStock' d'être instantané sur tous les appareils
+        // ----------------------------------------------------
+        const pendingStockKey = ['server-pending-sales-for-stock', barId || ''];
+        const pendingSales = queryClient.getQueryData<PendingStockSale[]>(pendingStockKey);
+
+        // ⚠️ Race condition (garde-fou anti-survente) : si la query initiale de
+        // useUnifiedStock n'a pas encore résolu (cache undefined) au moment où cet
+        // événement arrive, le patch est ignoré silencieusement — la query initiale,
+        // lancée AVANT cet événement, peut alors écrire une liste qui ne contient
+        // pas cette vente pending. availableStock resterait temporairement trop
+        // haut. Repli conservateur (même principe que payload.old absent) :
+        // invalidation ciblée et throttlée dès qu'un événement pending-relevant
+        // survient sans cache exploitable.
+        if (pendingSales === undefined) {
+            throttledInvalidate([pendingStockKey]);
+        } else {
+            const rawSale = payload.new as { id?: string; status?: string; items?: unknown; idempotency_key?: string } | undefined;
+            const saleId = rawSale?.id || (payload.old as { id?: string } | undefined)?.id;
+            const result = applyPendingSaleEvent(pendingSales, {
+                eventType: payload.eventType,
+                id: saleId,
+                status: rawSale?.status,
+                items: rawSale?.items,
+                idempotency_key: rawSale?.idempotency_key,
+            });
+            if ('refetch' in result) {
+                // items illisible pour une vente pending : un patch écrirait items:[]
+                // et sous-déduirait silencieusement availableStock → refetch ciblé.
+                throttledInvalidate([pendingStockKey]);
+            } else if (result.next !== null) {
+                queryClient.setQueryData(pendingStockKey, result.next);
+            }
+        }
+
+        // ----------------------------------------------------
+        // Patch de la liste principale des ventes
+        // ----------------------------------------------------
+        if (entries.length === 0) return true; // rien en cache → rien à resynchroniser
+
+        if (payload.eventType === 'DELETE') {
+            const id = (payload.old as { id?: string } | undefined)?.id;
+            if (!id) return false;
+            entries.forEach(([key, data]) => {
+                if (!data) return;
+                const opts = (key[optionsIndex] ?? {}) as UseSalesOptions;
+                // Variante plafonnée serveur (pas de dates → limit(500)) ET pleine :
+                // retirer localement laisserait 499 lignes sans récupérer la 500e
+                // suivante → refetch ciblé de cette variante (throttlé anti-burst).
+                if (!opts.startDate && !opts.endDate && data.length >= 500 && data.some(s => s.id === id)) {
+                    throttledInvalidate([key]);
+                    return;
+                }
+                const next = applySaleEventToList(data, { type: 'DELETE', id }, {});
+                if (next !== data) queryClient.setQueryData(key, next);
+            });
+            return true;
+        }
+
+        const raw = payload.new as DBSale | undefined;
+        if (!raw?.id || !raw.business_date) return false;
+
+        // ⚠️ Realtime sérialise les colonnes NUMERIC en chaînes (PostgREST renvoie
+        // des nombres) → coercition obligatoire avant d'injecter dans le cache,
+        // sinon les sommes de CA concatènent des strings.
+        const row = coerceSaleRowNumerics(raw);
+        const mapped = mapSalesData([row])[0];
+        // .slice(0,10) : business_date est de type `date` (déjà YYYY-MM-DD) —
+        // durcissement zéro-risque si le type de colonne évoluait.
+        const businessDate = String(row.business_date).slice(0, 10);
+
+        for (const [key, data] of entries) {
+            const opts = (key[optionsIndex] ?? {}) as UseSalesOptions;
+
+            if (opts.searchTerm) {
+                // ilike côté serveur — non évaluable localement → refetch ciblé de
+                // cette variante, via le throttle anti-burst (rafales realtime)
+                throttledInvalidate([key]);
+                continue;
+            }
+            if (!data) continue;
+
+            const saleForVariant = opts.includeItems === false
+                ? { ...mapped, items: [] }
+                : mapped;
+
+            const next = applySaleEventToList(
+                data,
+                { type: payload.eventType, sale: saleForVariant, businessDate },
+                {
+                    startDate: opts.startDate,
+                    endDate: opts.endDate,
+                    status: opts.status,
+                    // Variante sans bornes de dates → le serveur cape à 500 (getBarSales Cas 2)
+                    limit: (!opts.startDate && !opts.endDate) ? 500 : undefined,
+                },
+            );
+            if (next !== data) queryClient.setQueryData(key, next);
+        }
+        return true;
+    }, [barId, queryClient]);
 
     // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
     const smartSync = useSmartSync({
@@ -50,8 +177,14 @@ export const useSales = (barId: string | undefined, options?: UseSalesOptions) =
         refetchInterval: 30000,
         queryKeysToInvalidate: [
             salesKeys.list(barId || ''),
-            salesKeys.stats(barId || '')
-        ]
+            salesKeys.stats(barId || ''),
+            // Couvre la réconciliation-reconnexion pour le patch pendingStockKey
+            // ci-dessus (garde-fou anti-survente) — sans cette clé, un événement
+            // manqué pendant une coupure du canal Realtime (zombie websocket,
+            // channel error...) n'était jamais rattrapé par ce mécanisme.
+            ['server-pending-sales-for-stock', barId || '']
+        ],
+        applyChange: applySaleChange // ⚡ Egress: patch au lieu de refetch
     });
 
     return useQuery({
