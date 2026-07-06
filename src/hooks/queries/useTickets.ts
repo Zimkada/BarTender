@@ -77,6 +77,8 @@ export interface TicketWithSummary extends Ticket {
     serverName?: string;
     /** Indicateur de ticket créé offline */
     isOptimistic?: boolean;
+    /** Interne : true si le bon a eu des ventes, toutes rejetées/annulées (filtré avant retour) */
+    isGhost?: boolean;
 }
 
 /**
@@ -217,13 +219,19 @@ export function useTickets(barId: string | undefined) {
             customerName: t.customer_name || undefined,
             isOptimistic: (t as TicketRowWithOptimistic).isOptimistic
         }));
-    }, [serverTickets, pendingTickets, pendingPayouts]);
+    }, [serverTickets, pendingTickets, pendingPayouts, isServerRole, currentSession?.userId]);
 
     // Derive ticketsWithSummary — join client-side contre les ventes en cache + offline
     const ticketsWithSummary: TicketWithSummary[] = useMemo(() => {
         const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
 
-        return tickets.map(ticket => {
+        const allTickets = tickets.map(ticket => {
+            // 0. Le bon a-t-il déjà reçu au moins une vente (peu importe son statut) ?
+            // Sert à distinguer un bon neuf (jamais utilisé, à garder) d'un bon
+            // vidé de tout contenu actif (toutes ses ventes rejetées/annulées, à masquer).
+            const hasEverHadSales = sales.some(s => s.ticketId === ticket.id)
+                || offlineQueueSales.some(s => (s.ticketId || s.ticket_id) === ticket.id);
+
             // 1. Filtrer les ventes online validées pour ce ticket
             const onlineTicketSales = sales.filter(
                 s => s.ticketId === ticket.id && s.status !== 'rejected' && s.status !== 'cancelled'
@@ -303,9 +311,16 @@ export function useTickets(barId: string | undefined) {
                 productSummary,
                 totalAmount: Math.max(0, totalAmount), // Sécurité anti-négatif
                 salesCount: allTicketSales.length,
-                serverName
+                serverName,
+                // 🛡️ Bon vide fantôme : toutes ses ventes ont été rejetées/annulées.
+                // Masqué des bons ouverts (dashboard + sélecteur panier) — il ne reste
+                // plus rien à payer. Un bon neuf jamais utilisé (hasEverHadSales=false)
+                // est conservé pour rester sélectionnable.
+                isGhost: hasEverHadSales && allTicketSales.length === 0
             };
         });
+
+        return allTickets.filter(ticket => !ticket.isGhost);
     }, [tickets, sales, mappings, offlineQueueSales, returns]);
 
     const refetchTickets = async () => {
