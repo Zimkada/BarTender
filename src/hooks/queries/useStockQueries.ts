@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { ProductsService, type BarProductWithDetails } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
@@ -6,6 +7,12 @@ import { useApiQuerySimple } from './useApiQuery';
 import type { Product, Supply, Consignment, Category } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
+import type { RealtimeChangePayload } from '../useRealtimeSubscription';
+import {
+    mergeProductRowIntoList,
+    removeProductFromList,
+    type BarProductRow,
+} from '../../utils/realtimeCachePatch';
 import type { Database } from '../../lib/database.types';
 
 /**
@@ -68,6 +75,48 @@ export const stockKeys = {
 
 export const useProducts = (barId: string | undefined, options: { enabled?: boolean } = {}) => {
     const { enabled = true } = options;
+    const queryClient = useQueryClient();
+
+    // ⚡ Egress: patch ciblé du cache produits depuis le payload Realtime.
+    // Un UPDATE (décrément stock à chaque vente, CUMP après appro...) est fusionné
+    // dans la ligne en cache au lieu de refetcher tout le catalogue via get_bar_products.
+    // Tout cas non patchable (INSERT avec jointures, invariant catalogue divergent,
+    // produit absent du cache) retourne false → invalidation classique.
+    const applyProductChange = useCallback((
+        payload: RealtimeChangePayload,
+        _throttledInvalidate: (keys: readonly (readonly unknown[])[]) => void,
+    ): boolean => {
+        const key = stockKeys.products(barId || '');
+
+        if (payload.eventType === 'UPDATE') {
+            const row = payload.new as BarProductRow | undefined;
+            if (!row?.id) return false;
+            const current = queryClient.getQueryData<Product[]>(key);
+            if (!current) return false;
+            // oldRow (REPLICA IDENTITY FULL) permet de détecter les transitions
+            // display_name/local_image dans CET événement — cf. mergeProductRowIntoList
+            const next = mergeProductRowIntoList(
+                current,
+                row,
+                payload.old as Partial<BarProductRow> | undefined,
+            );
+            if (next === null) return false;
+            queryClient.setQueryData(key, next);
+            return true;
+        }
+
+        if (payload.eventType === 'DELETE') {
+            const id = (payload.old as { id?: string } | undefined)?.id;
+            if (!id) return false;
+            const current = queryClient.getQueryData<Product[]>(key);
+            if (!current) return false;
+            queryClient.setQueryData(key, removeProductFromList(current, id));
+            return true;
+        }
+
+        return false; // INSERT → display_name/image dépendent des jointures → refetch
+    }, [barId, queryClient]);
+
     // 🔧 PHASE 1-2: SmartSync branché - Hybride Broadcast + Realtime + Polling adaptatif
     const smartSync = useSmartSync({
         table: 'bar_products',
@@ -77,6 +126,7 @@ export const useProducts = (barId: string | undefined, options: { enabled?: bool
         staleTime: CACHE_STRATEGY.products.staleTime,
         refetchInterval: REALTIME_FALLBACK_INTERVALS.products,
         queryKeysToInvalidate: [stockKeys.products(barId || '')], // 🚀 FIX: Invalidate specific stock keys
+        applyChange: applyProductChange, // ⚡ Egress: patch au lieu de refetch
         // windowEvents: ['stock-synced'] // 🚫 REMOVED: Managed by SyncManager OR Realtime (avoid double invalidation)
     });
 
