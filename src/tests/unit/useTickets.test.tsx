@@ -14,11 +14,11 @@ import type { Sale } from '../../types';
 
 // ===== Mocks des dépendances =====
 
-const mockGetOpenTickets = vi.fn<[], Promise<TicketRow[]>>();
+const mockGetOpenTickets = vi.fn<() => Promise<TicketRow[]>>();
 
 vi.mock('../../services/supabase/tickets.service', () => ({
   TicketsService: {
-    getOpenTickets: (...args: unknown[]) => mockGetOpenTickets(...(args as [])),
+    getOpenTickets: () => mockGetOpenTickets(),
   },
 }));
 

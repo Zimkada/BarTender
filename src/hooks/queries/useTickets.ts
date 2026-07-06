@@ -219,7 +219,7 @@ export function useTickets(barId: string | undefined) {
             customerName: t.customer_name || undefined,
             isOptimistic: (t as TicketRowWithOptimistic).isOptimistic
         }));
-    }, [serverTickets, pendingTickets, pendingPayouts]);
+    }, [serverTickets, pendingTickets, pendingPayouts, isServerRole, currentSession?.userId]);
 
     // Derive ticketsWithSummary — join client-side contre les ventes en cache + offline
     const ticketsWithSummary: TicketWithSummary[] = useMemo(() => {
