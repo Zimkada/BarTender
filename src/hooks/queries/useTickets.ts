@@ -10,6 +10,8 @@ import { SalesService, type OfflineSale } from '../../services/supabase/sales.se
 import { syncManager } from '../../services/SyncManager';
 import { offlineQueue } from '../../services/offlineQueue';
 import { useUnifiedReturns } from '../pivots/useUnifiedReturns';
+import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
+import { BUSINESS_DAY_CLOSE_HOUR } from '../../config/constants';
 
 // ===== Type-Safe Declarations =====
 
@@ -91,8 +93,35 @@ export function useTickets(barId: string | undefined) {
     const { currentSession } = useAuth();
     const isServerRole = currentSession?.role === 'serveur';
 
+    // ⚡ Egress + cohérence : fenêtre commerciale PARTAGÉE (journée courante +
+    // veille) appliquée aux DEUX requêtes — bons ouverts (created_at) et ventes
+    // (business_date). Les bons sont un outil de point journalier sans portée
+    // financière (les ventes restent la vérité comptable) ; la veille est gardée
+    // pour un client qui consomme à cheval sur deux journées commerciales.
+    // Invariant anti "bon vide fantôme" : tout bon visible a forcément ses ventes
+    // dans la fenêtre chargée — un bon ne peut plus afficher "Bon vide / 0" parce
+    // que ses ventes seraient plus anciennes que la fenêtre. Ne jamais borner
+    // l'une sans l'autre (test dédié dans useTickets.test.tsx).
+    // Sans borne sur les ventes, useSales tombait dans le Cas 2 de getBarSales
+    // (bar_id seul, sans filtre business_date) : scan de TOUT l'historique du bar
+    // (items jsonb inclus) plafonné à 500 lignes — coûteux en egress car le tri
+    // sur l'historique complet précède la troncature. items reste nécessaire ici
+    // (résumé produits du bon, ligne ~277).
+    const businessWindow = useMemo(() => {
+        const pivot = calculateBusinessDate(new Date(), BUSINESS_DAY_CLOSE_HOUR);
+        pivot.setDate(pivot.getDate() - 1); // veille commerciale
+        return {
+            // Borne ventes : business_date >= veille (YYYY-MM-DD)
+            salesStartDate: dateToYYYYMMDD(pivot),
+            // Borne bons : la journée commerciale de la veille démarre à closeHour
+            ticketsCreatedAfter: new Date(
+                pivot.getFullYear(), pivot.getMonth(), pivot.getDate(),
+                BUSINESS_DAY_CLOSE_HOUR
+            ).toISOString(),
+        };
+    }, []);
     // Ventes déjà dans le cache — used pour le join client-side
-    const { data: sales = [] } = useSales(barId);
+    const { data: sales = [] } = useSales(barId, { startDate: businessWindow.salesStartDate });
 
     // Mappings serveurs pour résoudre les noms
     const { mappings = [] } = useServerMappings(barId);
@@ -179,7 +208,7 @@ export function useTickets(barId: string | undefined) {
         queryKey: ticketKeys.open(barId || ''),
         queryFn: async (): Promise<TicketRow[]> => {
             if (!barId) return [];
-            return await TicketsService.getOpenTickets(barId);
+            return await TicketsService.getOpenTickets(barId, businessWindow.ticketsCreatedAfter);
         },
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,

@@ -11,20 +11,22 @@ import { ReactNode } from 'react';
 import { useTickets } from '../../hooks/queries/useTickets';
 import type { TicketRow } from '../../services/supabase/tickets.service';
 import type { Sale } from '../../types';
+import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 
 // ===== Mocks des dépendances =====
 
-const mockGetOpenTickets = vi.fn<() => Promise<TicketRow[]>>();
+const mockGetOpenTickets = vi.fn<(...args: unknown[]) => Promise<TicketRow[]>>();
 
 vi.mock('../../services/supabase/tickets.service', () => ({
   TicketsService: {
-    getOpenTickets: () => mockGetOpenTickets(),
+    getOpenTickets: (...args: unknown[]) => mockGetOpenTickets(...args),
   },
 }));
 
 let mockSales: Partial<Sale>[] = [];
+const mockUseSales = vi.fn(() => ({ data: mockSales }));
 vi.mock('../../hooks/queries/useSalesQueries', () => ({
-  useSales: vi.fn(() => ({ data: mockSales })),
+  useSales: (...args: unknown[]) => mockUseSales(...(args as [])),
 }));
 
 vi.mock('../../hooks/useServerMappings', () => ({
@@ -101,6 +103,61 @@ const makeSale = (overrides: Partial<Sale> = {}): Sale => ({
 
 describe('useTickets — filtrage des bons fantômes', () => {
   const barId = 'bar-123';
+
+  // ⚡ Egress: useTickets DOIT borner sa fenêtre de dates. Sans startDate,
+  // getBarSales tombe dans le Cas 2 (bar_id seul, sans filtre business_date) :
+  // scan de tout l'historique de ventes du bar (items jsonb inclus) plafonné à
+  // 500 lignes — coûteux car le tri sur l'historique complet précède la
+  // troncature. Ce test fige la borne pour éviter une régression silencieuse.
+  it('appelle useSales avec une fenêtre de dates bornée (pas un fetch nu sans options)', async () => {
+    mockGetOpenTickets.mockResolvedValue([]);
+    mockSales = [];
+    mockUseSales.mockClear();
+
+    renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(mockUseSales).toHaveBeenCalled());
+    const callArgs = mockUseSales.mock.calls[0] as unknown as [string, { startDate?: string }];
+    const options = callArgs[1];
+    expect(options).toBeDefined();
+    expect(options.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  // 🛡️ Invariant anti "bon vide fantôme" : les bons ouverts et les ventes sont
+  // bornés à la MÊME fenêtre commerciale (journée courante + veille). Tout bon
+  // visible a donc forcément ses ventes dans la fenêtre chargée — sinon un bon
+  // ancien s'afficherait "Bon vide / 0" alors qu'il porte des ventes réelles.
+  // Ce test échoue si l'une des deux bornes est modifiée sans l'autre.
+  it('borne les bons ouverts et les ventes à la même fenêtre commerciale (courante + veille)', async () => {
+    mockGetOpenTickets.mockResolvedValue([]);
+    mockSales = [];
+    mockUseSales.mockClear();
+    mockGetOpenTickets.mockClear();
+
+    renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(mockGetOpenTickets).toHaveBeenCalled());
+
+    // 1. Les bons ouverts sont bornés par created_at (ISO valide)
+    const ticketArgs = mockGetOpenTickets.mock.calls[0] as [string, string?];
+    const createdAfter = ticketArgs[1];
+    expect(createdAfter).toBeDefined();
+    const cutoff = new Date(createdAfter!);
+    expect(Number.isNaN(cutoff.getTime())).toBe(false);
+
+    // 2. La fenêtre des ventes couvre la journée commerciale du cutoff des bons :
+    // la business date du plus ancien bon visible >= startDate des ventes.
+    const salesArgs = mockUseSales.mock.calls[0] as unknown as [string, { startDate?: string }];
+    const salesStartDate = salesArgs[1]?.startDate;
+    expect(salesStartDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const cutoffBusinessDate = dateToYYYYMMDD(calculateBusinessDate(cutoff));
+    expect(cutoffBusinessDate >= salesStartDate!).toBe(true);
+
+    // 3. La veille est couverte (un client peut consommer à cheval sur deux
+    // journées commerciales successives) : cutoff <= il y a ~24h.
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    expect(cutoff.getTime()).toBeLessThanOrEqual(oneDayAgo.getTime());
+  });
 
   it('masque un bon dont l\'unique vente a été rejetée', async () => {
     mockGetOpenTickets.mockResolvedValue([makeTicketRow({ id: 'ticket-1' })]);

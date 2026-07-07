@@ -152,16 +152,23 @@ export class TicketsService {
   }
 
   /**
-   * Récupérer tous les bons ouverts d'un bar
+   * Récupérer les bons ouverts d'un bar.
+   * @param createdAfter Borne basse (ISO) sur created_at — les bons sont un outil
+   * de point journalier sans portée financière (les ventes restent la vérité
+   * comptable) : les bons plus anciens que la fenêtre commerciale sont exclus
+   * pour rester alignés avec la fenêtre de ventes chargée par useTickets.
    */
-  static async getOpenTickets(barId: string): Promise<TicketRow[]> {
+  static async getOpenTickets(barId: string, createdAfter?: string): Promise<TicketRow[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tickets')
         .select('*')
         .eq('bar_id', barId)
-        .eq('status', 'open')
-        .order('created_at', { ascending: true });
+        .eq('status', 'open');
+
+      if (createdAfter) query = query.gte('created_at', createdAfter);
+
+      const { data, error } = await query.order('created_at', { ascending: true });
 
       if (error) throw new Error('Erreur lors de la récupération des bons');
 
