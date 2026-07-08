@@ -477,6 +477,26 @@ export class SalesService {
     return data || [];
   }
 
+  /**
+   * Ventes (avec items) rattachées à une liste de bons, SANS borne de date —
+   * utilisé pour les bons ouverts plus anciens que la fenêtre commerciale de
+   * useSales (cf. useTickets.ts). Un bon reste payable/consultable quel que
+   * soit son âge : pay_ticket propage payment_method à ses ventes ('ticket' →
+   * moyen réel), les laisser hors de portée bloquerait ce règlement.
+   */
+  static async getSalesByTicketIds(ticketIds: string[], barId: string): Promise<DBSale[]> {
+    if (ticketIds.length === 0) return [];
+    const { data, error } = await supabase
+      .from('sales')
+      .select(SALES_DETAIL_SELECT)
+      .eq('bar_id', barId)
+      .in('ticket_id', ticketIds)
+      .order('created_at', { ascending: true });
+
+    if (error) throw new Error(handleSupabaseError(error));
+    return (data || []) as unknown as DBSale[];
+  }
+
   static async getBarSales(barId: string, options?: {
     status?: string;
     startDate?: string;

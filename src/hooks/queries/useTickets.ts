@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { TicketsService, type TicketRow } from '../../services/supabase/tickets.service';
-import { useSales } from './useSalesQueries';
+import { useSales, mapSalesData } from './useSalesQueries';
 import type { Ticket, Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useServerMappings } from '../useServerMappings';
@@ -93,35 +93,21 @@ export function useTickets(barId: string | undefined) {
     const { currentSession } = useAuth();
     const isServerRole = currentSession?.role === 'serveur';
 
-    // ⚡ Egress + cohérence : fenêtre commerciale PARTAGÉE (journée courante +
-    // veille) appliquée aux DEUX requêtes — bons ouverts (created_at) et ventes
-    // (business_date). Les bons sont un outil de point journalier sans portée
-    // financière (les ventes restent la vérité comptable) ; la veille est gardée
-    // pour un client qui consomme à cheval sur deux journées commerciales.
-    // Invariant anti "bon vide fantôme" : tout bon visible a forcément ses ventes
-    // dans la fenêtre chargée — un bon ne peut plus afficher "Bon vide / 0" parce
-    // que ses ventes seraient plus anciennes que la fenêtre. Ne jamais borner
-    // l'une sans l'autre (test dédié dans useTickets.test.tsx).
-    // Sans borne sur les ventes, useSales tombait dans le Cas 2 de getBarSales
-    // (bar_id seul, sans filtre business_date) : scan de TOUT l'historique du bar
-    // (items jsonb inclus) plafonné à 500 lignes — coûteux en egress car le tri
-    // sur l'historique complet précède la troncature. items reste nécessaire ici
-    // (résumé produits du bon, ligne ~277).
-    const businessWindow = useMemo(() => {
+    // ⚡ Egress: fenêtre bornée à journée courante + veille (garde-fou egress —
+    // évite le Cas 2 full-scan de getBarSales, items jsonb inclus, cap 500).
+    // Les BONS OUVERTS, eux, ne sont volontairement PAS bornés par date (cf.
+    // TicketsService.getOpenTickets) : un bon reste payable quel que soit son
+    // âge (pay_ticket propage payment_method aux ventes rattachées). Pour un
+    // bon dont created_at précède cette fenêtre, ses ventes sont récupérées à
+    // part par ticket_id (staleSales ci-dessous) — cas rare, fetch ciblé et
+    // léger, jamais un scan complet.
+    const salesWindowStart = useMemo(() => {
         const pivot = calculateBusinessDate(new Date(), BUSINESS_DAY_CLOSE_HOUR);
-        pivot.setDate(pivot.getDate() - 1); // veille commerciale
-        return {
-            // Borne ventes : business_date >= veille (YYYY-MM-DD)
-            salesStartDate: dateToYYYYMMDD(pivot),
-            // Borne bons : la journée commerciale de la veille démarre à closeHour
-            ticketsCreatedAfter: new Date(
-                pivot.getFullYear(), pivot.getMonth(), pivot.getDate(),
-                BUSINESS_DAY_CLOSE_HOUR
-            ).toISOString(),
-        };
+        pivot.setDate(pivot.getDate() - 1);
+        return dateToYYYYMMDD(pivot);
     }, []);
     // Ventes déjà dans le cache — used pour le join client-side
-    const { data: sales = [] } = useSales(barId, { startDate: businessWindow.salesStartDate });
+    const { data: sales = [] } = useSales(barId, { startDate: salesWindowStart });
 
     // Mappings serveurs pour résoudre les noms
     const { mappings = [] } = useServerMappings(barId);
@@ -208,12 +194,40 @@ export function useTickets(barId: string | undefined) {
         queryKey: ticketKeys.open(barId || ''),
         queryFn: async (): Promise<TicketRow[]> => {
             if (!barId) return [];
-            return await TicketsService.getOpenTickets(barId, businessWindow.ticketsCreatedAfter);
+            return await TicketsService.getOpenTickets(barId);
         },
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
     });
+
+    // 🛡️ Bons ouverts plus anciens que salesWindowStart : leurs ventes ne sont
+    // pas dans `sales` (hors fenêtre). Fetch ciblé par ticket_id — rare (bon
+    // oublié, jour de fermeture) et léger (quelques bons, jamais un scan bar
+    // entier) — pour que totalAmount/productSummary restent exacts et que le
+    // bon reste réglable. Sans ça, un bon ancien mais réellement non-vide
+    // s'afficherait "Bon vide / 0 XOF" (cf. commentaire getOpenTickets).
+    const staleTicketIds = useMemo(() => {
+        const cutoff = new Date(salesWindowStart + 'T00:00:00');
+        return serverTickets
+            .filter(t => new Date(t.created_at) < cutoff)
+            .map(t => t.id);
+    }, [serverTickets, salesWindowStart]);
+
+    const { data: staleSales = [] } = useQuery({
+        queryKey: [...ticketKeys.open(barId || ''), 'stale-sales', staleTicketIds],
+        queryFn: async (): Promise<Sale[]> => {
+            if (!barId || staleTicketIds.length === 0) return [];
+            const dbSales = await SalesService.getSalesByTicketIds(staleTicketIds, barId);
+            return mapSalesData(dbSales);
+        },
+        enabled: !!barId && staleTicketIds.length > 0,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
+    });
+
+    // Ventes utilisées pour le join : fenêtre récente + ventes ciblées des bons anciens
+    const allRelevantSales = useMemo(() => [...sales, ...staleSales], [sales, staleSales]);
 
     // 🔄 Transformation des données avec injection Offline
     const tickets: Ticket[] = useMemo(() => {
@@ -258,11 +272,11 @@ export function useTickets(barId: string | undefined) {
             // 0. Le bon a-t-il déjà reçu au moins une vente (peu importe son statut) ?
             // Sert à distinguer un bon neuf (jamais utilisé, à garder) d'un bon
             // vidé de tout contenu actif (toutes ses ventes rejetées/annulées, à masquer).
-            const hasEverHadSales = sales.some(s => s.ticketId === ticket.id)
+            const hasEverHadSales = allRelevantSales.some(s => s.ticketId === ticket.id)
                 || offlineQueueSales.some(s => (s.ticketId || s.ticket_id) === ticket.id);
 
             // 1. Filtrer les ventes online validées pour ce ticket
-            const onlineTicketSales = sales.filter(
+            const onlineTicketSales = allRelevantSales.filter(
                 s => s.ticketId === ticket.id && s.status !== 'rejected' && s.status !== 'cancelled'
             );
 
@@ -350,7 +364,7 @@ export function useTickets(barId: string | undefined) {
         });
 
         return allTickets.filter(ticket => !ticket.isGhost);
-    }, [tickets, sales, mappings, offlineQueueSales, returns]);
+    }, [tickets, allRelevantSales, mappings, offlineQueueSales, returns]);
 
     const refetchTickets = async () => {
         // 1. Force refresh offline data immediately (no debounce) but don't block

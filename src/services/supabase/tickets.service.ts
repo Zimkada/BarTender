@@ -152,23 +152,23 @@ export class TicketsService {
   }
 
   /**
-   * Récupérer les bons ouverts d'un bar.
-   * @param createdAfter Borne basse (ISO) sur created_at — les bons sont un outil
-   * de point journalier sans portée financière (les ventes restent la vérité
-   * comptable) : les bons plus anciens que la fenêtre commerciale sont exclus
-   * pour rester alignés avec la fenêtre de ventes chargée par useTickets.
+   * Récupérer TOUS les bons ouverts d'un bar (aucune borne de date).
+   * ⚠️ Volontairement non filtré par created_at : pay_ticket() propage le
+   * moyen de paiement réel aux ventes rattachées (payment_method='ticket' →
+   * cash/mobile_money/...), qui restent sinon comptées en caisse (5711) même
+   * une fois le bon effectivement réglé. Un bon doit donc rester trouvable et
+   * payable quel que soit son âge — le coût egress de cette requête (quelques
+   * lignes sans items) est de toute façon négligeable face à la fenêtre
+   * appliquée aux ventes (cf. useTickets.ts).
    */
-  static async getOpenTickets(barId: string, createdAfter?: string): Promise<TicketRow[]> {
+  static async getOpenTickets(barId: string): Promise<TicketRow[]> {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('tickets')
         .select('*')
         .eq('bar_id', barId)
-        .eq('status', 'open');
-
-      if (createdAfter) query = query.gte('created_at', createdAfter);
-
-      const { data, error } = await query.order('created_at', { ascending: true });
+        .eq('status', 'open')
+        .order('created_at', { ascending: true });
 
       if (error) throw new Error('Erreur lors de la récupération des bons');
 
