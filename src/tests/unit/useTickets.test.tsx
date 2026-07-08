@@ -4,8 +4,8 @@
  * vs conservation des bons neufs jamais utilisés.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useTickets } from '../../hooks/queries/useTickets';
@@ -63,6 +63,20 @@ vi.mock('../../services/offlineQueue', () => ({
 vi.mock('../../hooks/pivots/useUnifiedReturns', () => ({
   useUnifiedReturns: vi.fn(() => ({ returns: [] })),
 }));
+
+// 🕐 Contrôle de la journée commerciale : par défaut délègue à l'implémentation
+// réelle (les tests existants restent inchangés) ; les tests de bascule de
+// journée fixent businessDateOverride pour simuler le passage du temps.
+let businessDateOverride: Date | null = null;
+vi.mock('../../utils/businessDateHelpers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/businessDateHelpers')>();
+  return {
+    ...actual,
+    // Retourne une copie : le caller mute la date retournée (setDate -1)
+    calculateBusinessDate: (date: Date, closeHour?: number) =>
+      businessDateOverride ? new Date(businessDateOverride) : actual.calculateBusinessDate(date, closeHour),
+  };
+});
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -261,6 +275,122 @@ describe('useTickets — filtrage des bons fantômes', () => {
       expect(ticket).toBeDefined();
       expect(ticket?.salesCount).toBe(0);
       expect(ticket?.productSummary).toBe('Bon vide');
+    });
+  });
+});
+
+// 🛡️ Régression fenêtre figée (08/07/2026) : salesWindowStart était calculé une
+// seule fois au montage (useMemo []). Un onglet POS resté ouvert d'un jour à
+// l'autre gardait la fenêtre de la veille — la portée réelle de useSales
+// s'élargissait silencieusement au fil des jours (dérive egress). La fenêtre
+// doit être recalculée quand la journée commerciale bascule pendant que le
+// composant reste monté.
+describe('useTickets — rafraîchissement de la fenêtre commerciale', () => {
+  const barId = 'bar-123';
+
+  const lastUseSalesStartDate = (): string | undefined => {
+    const calls = mockUseSales.mock.calls as unknown as [string, { startDate?: string }][];
+    return calls[calls.length - 1]?.[1]?.startDate;
+  };
+
+  afterEach(() => {
+    businessDateOverride = null;
+  });
+
+  it('recalcule salesWindowStart quand la journée commerciale bascule (session longue sans reload)', async () => {
+    businessDateOverride = new Date('2026-07-07T00:00:00'); // journée commerciale du 7 juillet
+    mockGetOpenTickets.mockResolvedValue([]);
+    mockSales = [];
+    mockUseSales.mockClear();
+
+    renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(mockUseSales).toHaveBeenCalled());
+    expect(lastUseSalesStartDate()).toBe('2026-07-06'); // veille de la journée courante
+
+    // Le composant reste monté, la journée commerciale passe au 8 juillet
+    businessDateOverride = new Date('2026-07-08T00:00:00');
+    act(() => {
+      window.dispatchEvent(new Event('focus')); // retour de focus → recheck
+    });
+
+    await waitFor(() => expect(lastUseSalesStartDate()).toBe('2026-07-07'));
+  });
+
+  it('garde une valeur stable tant que la journée n\'a pas changé (pas de refetch parasite)', async () => {
+    businessDateOverride = new Date('2026-07-07T00:00:00');
+    mockGetOpenTickets.mockResolvedValue([]);
+    mockSales = [];
+    mockUseSales.mockClear();
+
+    renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+    await waitFor(() => expect(mockUseSales).toHaveBeenCalled());
+    expect(lastUseSalesStartDate()).toBe('2026-07-06');
+
+    // Rechecks répétés sans bascule de journée : la valeur ne doit pas bouger
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    expect(lastUseSalesStartDate()).toBe('2026-07-06');
+  });
+
+  it('déplace la borne beforeDate de staleSales quand la fenêtre avance (frontière récent/ancien cohérente)', async () => {
+    businessDateOverride = new Date('2026-07-07T00:00:00');
+    const oldTicketId = 'ticket-old-window';
+    mockGetOpenTickets.mockResolvedValue([
+      makeTicketRow({ id: oldTicketId, created_at: '2026-07-01T12:00:00' }),
+    ]);
+    mockSales = [];
+    mockGetSalesByTicketIds.mockClear();
+    mockGetSalesByTicketIds.mockResolvedValue([]);
+
+    renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(mockGetSalesByTicketIds).toHaveBeenCalled());
+    let callArgs = mockGetSalesByTicketIds.mock.calls.at(-1) as [string[], string, string];
+    expect(callArgs[2]).toBe('2026-07-06'); // beforeDate = fenêtre initiale
+
+    // Bascule de journée : la frontière récent/ancien doit suivre — staleSales
+    // refetch avec le nouveau beforeDate = nouveau startDate de useSales
+    // (ensembles toujours disjoints, cf. getSalesByTicketIds).
+    businessDateOverride = new Date('2026-07-08T00:00:00');
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => {
+      callArgs = mockGetSalesByTicketIds.mock.calls.at(-1) as [string[], string, string];
+      expect(callArgs[2]).toBe('2026-07-07');
+    });
+  });
+
+  // 🛡️ Pendant la bascule, useSales garde l'ancienne fenêtre en placeholderData
+  // le temps de son refetch alors que staleSales peut déjà avoir résolu avec le
+  // nouveau beforeDate : une même vente peut transiter dans les deux sources.
+  // Le merge doit dédoublonner par id — jamais de double-comptage financier.
+  it('ne compte pas deux fois une vente présente dans la fenêtre récente ET staleSales (transition)', async () => {
+    businessDateOverride = new Date('2026-07-07T00:00:00');
+    const mixedTicketId = 'ticket-transition';
+    mockGetOpenTickets.mockResolvedValue([
+      makeTicketRow({ id: mixedTicketId, created_at: '2026-07-01T12:00:00' }),
+    ]);
+    // sale-dup présent des deux côtés (placeholder ancienne fenêtre + staleSales frais)
+    mockSales = [makeSale({ id: 'sale-dup', ticketId: mixedTicketId, status: 'validated', total: 1000 })];
+    mockGetSalesByTicketIds.mockClear();
+    mockGetSalesByTicketIds.mockResolvedValue([
+      { ...makeSale({ id: 'sale-dup', ticketId: mixedTicketId, status: 'validated', total: 1000 }), ticket_id: mixedTicketId } as unknown as Partial<Sale>,
+      { ...makeSale({ id: 'sale-old', ticketId: mixedTicketId, status: 'validated', total: 1500 }), ticket_id: mixedTicketId } as unknown as Partial<Sale>,
+    ]);
+
+    const { result } = renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      const ticket = result.current.tickets.find(t => t.id === mixedTicketId);
+      expect(ticket).toBeDefined();
+      expect(ticket?.salesCount).toBe(2); // sale-dup UNE fois + sale-old
+      expect(ticket?.totalAmount).toBe(2500); // 1000 + 1500, jamais 3500
     });
   });
 });

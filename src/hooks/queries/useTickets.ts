@@ -68,6 +68,18 @@ export const ticketKeys = {
     open: (barId: string) => [...ticketKeys.all, 'open', barId] as const,
 };
 
+// ===== Fenêtre commerciale =====
+
+/** Début de fenêtre = veille de la journée commerciale courante (YYYY-MM-DD) */
+function computeSalesWindowStart(): string {
+    const pivot = calculateBusinessDate(new Date(), BUSINESS_DAY_CLOSE_HOUR);
+    pivot.setDate(pivot.getDate() - 1);
+    return dateToYYYYMMDD(pivot);
+}
+
+/** Fréquence de revérification du changement de journée commerciale */
+const SALES_WINDOW_RECHECK_MS = 5 * 60 * 1000;
+
 export interface TicketWithSummary extends Ticket {
     /** Label pour le sélecteur : "2 Bières Flag, 1 Whisky" ou "Bon vide" */
     productSummary: string;
@@ -101,10 +113,34 @@ export function useTickets(barId: string | undefined) {
     // bon dont created_at précède cette fenêtre, ses ventes sont récupérées à
     // part par ticket_id (staleSales ci-dessous) — cas rare, fetch ciblé et
     // léger, jamais un scan complet.
-    const salesWindowStart = useMemo(() => {
-        const pivot = calculateBusinessDate(new Date(), BUSINESS_DAY_CLOSE_HOUR);
-        pivot.setDate(pivot.getDate() - 1);
-        return dateToYYYYMMDD(pivot);
+    //
+    // La fenêtre doit SUIVRE la journée commerciale : l'écran POS reste monté
+    // des heures, parfois d'un jour à l'autre sans reload. Figée au montage,
+    // elle s'élargirait silencieusement au fil des jours — la dérive egress que
+    // cette borne vise justement à empêcher. State + revérification périodique
+    // et au retour de focus : la valeur (string primitive) ne change que si la
+    // journée commerciale a réellement basculé, donc query keys stables et
+    // aucun refetch entre deux bascules.
+    const [salesWindowStart, setSalesWindowStart] = useState(computeSalesWindowStart);
+    useEffect(() => {
+        const recheck = () => {
+            // setState fonctionnel + bail-out React : valeur identique → no-op
+            setSalesWindowStart(prev => {
+                const next = computeSalesWindowStart();
+                return next === prev ? prev : next;
+            });
+        };
+        const intervalId = setInterval(recheck, SALES_WINDOW_RECHECK_MS);
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') recheck();
+        };
+        window.addEventListener('focus', recheck);
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => {
+            clearInterval(intervalId);
+            window.removeEventListener('focus', recheck);
+            document.removeEventListener('visibilitychange', handleVisibility);
+        };
     }, []);
     // Ventes déjà dans le cache — used pour le join client-side
     const { data: sales = [] } = useSales(barId, { startDate: salesWindowStart });
@@ -232,8 +268,17 @@ export function useTickets(barId: string | undefined) {
 
     // Ventes utilisées pour le join : fenêtre récente (business_date >= salesWindowStart)
     // + ventes ciblées des bons anciens (business_date < salesWindowStart, cf. staleSales
-    // ci-dessus) — ensembles disjoints par construction, jamais de double-comptage.
-    const allRelevantSales = useMemo(() => [...sales, ...staleSales], [sales, staleSales]);
+    // ci-dessus) — ensembles disjoints par construction en régime établi.
+    // 🛡️ Exception transitoire : à la bascule de journée commerciale, `sales`
+    // conserve l'ancienne fenêtre (plus large) en placeholderData pendant son
+    // refetch, alors que staleSales peut déjà avoir résolu avec le nouveau
+    // beforeDate → une même vente peut apparaître dans les deux quelques
+    // secondes. Dédoublonnage par id : disjonction structurelle, no-op sinon.
+    const allRelevantSales = useMemo(() => {
+        if (staleSales.length === 0) return sales;
+        const recentSaleIds = new Set(sales.map(s => s.id));
+        return [...sales, ...staleSales.filter(s => !recentSaleIds.has(s.id))];
+    }, [sales, staleSales]);
 
     // 🔄 Transformation des données avec injection Offline
     const tickets: Ticket[] = useMemo(() => {
