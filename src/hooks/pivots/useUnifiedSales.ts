@@ -41,6 +41,30 @@ export interface UseUnifiedSalesOptions {
     enabled?: boolean;
 }
 
+/**
+ * Début (YYYY-MM-DD) de la fenêtre de tiering par défaut — le garde-fou egress
+ * appliqué quand un appelant ne fournit pas de startDate explicite.
+ * Exporté pour que les consommateurs (ex: fallback local de useRevenueStats)
+ * puissent CLAMPER leurs bornes à cette fenêtre sans dupliquer les constantes.
+ */
+export function getTieringWindowStart(
+    dataTier: string | undefined,
+    closeHour: number,
+): string {
+    const businessDatePivot = calculateBusinessDate(new Date(), closeHour);
+    if (!dataTier || dataTier === 'lite') {
+        // Lite tier : 7 derniers jours.
+        businessDatePivot.setDate(businessDatePivot.getDate() - 7);
+    } else if (dataTier === 'balanced') {
+        // 60 jours glissants (resserré depuis 6 mois — garde-fou egress).
+        businessDatePivot.setDate(businessDatePivot.getDate() - 60);
+    } else if (dataTier === 'enterprise') {
+        // 30 jours glissants depuis la date commerciale.
+        businessDatePivot.setDate(businessDatePivot.getDate() - 30);
+    }
+    return dateToYYYYMMDD(businessDatePivot);
+}
+
 export const useUnifiedSales = (
     barId: string | undefined,
     options: UseUnifiedSalesOptions = {}
@@ -87,28 +111,18 @@ export const useUnifiedSales = (
             return { startDate: defaultStartDate, endDate, status, searchTerm, includeItems };
         }
 
-        // 🔴 CALCUL PIVOT SUR BUSINESS DATE (Fin de décalage minuit-6h)
-        const businessDatePivot = calculateBusinessDate(new Date(), closeHour);
-
         // ⚡ Egress: ces fenêtres ne servent QUE de garde-fou quand un appelant ne
         // fournit pas de dates explicites. Depuis l'optimisation egress (cf.
         // EGRESS_OPTIMIZATION_REPORT.md), tous les appelants passent des bornes
         // précises — ces valeurs sont volontairement resserrées pour limiter tout
         // fetch accidentel non borné.
-        if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
-            // Lite tier : 7 derniers jours.
-            businessDatePivot.setDate(businessDatePivot.getDate() - 7);
-        } else if (currentBar.settings.dataTier === 'balanced') {
-            // 60 jours glissants (resserré depuis 6 mois — garde-fou egress).
-            businessDatePivot.setDate(businessDatePivot.getDate() - 60);
-        } else if (currentBar.settings.dataTier === 'enterprise') {
-            // 30 jours glissants depuis la date commerciale.
-            businessDatePivot.setDate(businessDatePivot.getDate() - 30);
-        }
+        // 🔴 Pivot sur BUSINESS DATE (fin de décalage minuit-6h), par palier de
+        // tiering — logique extraite dans getTieringWindowStart (partagée avec
+        // le clamp du fallback local de useRevenueStats).
 
         // ✨ HYBRID FILTERING: Propagate filters to backend
         return {
-            startDate: startDate || dateToYYYYMMDD(businessDatePivot),
+            startDate: startDate || getTieringWindowStart(currentBar?.settings?.dataTier, closeHour),
             endDate,
             status,
             searchTerm,

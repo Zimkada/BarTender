@@ -8,11 +8,12 @@ import { SalesService } from '../services/supabase/sales.service';
 import { ReturnsService, DBReturn } from '../services/supabase/returns.service';
 import { isConfirmedReturn } from '../utils/saleHelpers';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
+import { BUSINESS_DAY_CLOSE_HOUR } from '../config/constants';
 import { statsKeys } from './queries/useStatsQueries';
 import { CACHE_STRATEGY } from '../lib/cache-strategy';
 import { syncManager } from '../services/SyncManager';
 
-import { useUnifiedSales } from './pivots/useUnifiedSales';
+import { useUnifiedSales, getTieringWindowStart } from './pivots/useUnifiedSales';
 import { useUnifiedReturns } from './pivots/useUnifiedReturns';
 
 /** Ventilation d'un jour pour les vues comptables. */
@@ -268,8 +269,6 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
     const queryClient = useQueryClient();
     const { currentBar, operatingMode } = useBarContext();
     const { currentSession } = useAuth();
-    const { sales } = useUnifiedSales(currentBar?.id, { includeItems: false });
-    const { returns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
 
     const currentBarId = currentBar?.id || '';
     const isServerRole = currentSession?.role === 'serveur';
@@ -280,6 +279,34 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         endDate = todayStr,
         enabled = true
     } = options;
+
+    // ⚡ Egress (diagnostic 07/07/2026) : ces ventes n'alimentent QUE le fallback
+    // local (calculateLocalStats — placeholder 1er rendu + panne serveur/offline).
+    // Avant : useUnifiedSales sans dates → fenêtre de tiering 7-60j SUMMARY
+    // montée en PERMANENCE via le Header (qui n'affiche que le total du jour).
+    // Maintenant : fenêtre = intersection [startDate, endDate] ∩ [tiering, +∞) —
+    // exactement les lignes que calculateLocalStats retenait déjà (il filtre à
+    // la plage demandée, et le fetch d'avant ne remontait jamais plus loin que
+    // le tiering). Données de fallback identiques, egress strictement inférieur :
+    // Header → 1 jour au lieu de 7-60. Ne PAS passer les bornes brutes :
+    // l'appelant historique (AccountingOverview, startDate 2020-01-01)
+    // déclencherait un fetch paginé de tout l'historique du bar.
+    const tieringStart = getTieringWindowStart(
+        currentBar?.settings?.dataTier,
+        currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR
+    );
+    const fallbackStartDate = startDate > tieringStart ? startDate : tieringStart;
+    // Intersection vide (plage entièrement plus ancienne que le tiering) : le
+    // fetch d'avant ne contribuait aucune ligne à cette plage → désactiver.
+    const fallbackWindowEmpty = fallbackStartDate > endDate;
+
+    const { sales } = useUnifiedSales(currentBar?.id, {
+        includeItems: false,
+        startDate: fallbackStartDate,
+        endDate,
+        enabled: enabled && !fallbackWindowEmpty,
+    });
+    const { returns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
 
     const calculateLocalStats = useCallback((): InternalStats => {
         const recentlySyncedMap = syncManager.getRecentlySyncedKeys() as Map<string, RecentSyncEntry>;

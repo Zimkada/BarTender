@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { SalesService } from '../../services/supabase/sales.service';
 import { AnalyticsService } from '../../services/supabase/analytics.service';
-import { salesKeys } from '../queries/useSalesQueries';
+import { salesKeys, patchSalesListVariants } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
 import { analyticsKeys } from '../queries/useAnalyticsQueries';
@@ -131,6 +131,66 @@ export const useSalesMutations = (barId: string, options?: {
         if (barId) {
             await queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) });
         }
+    };
+
+    // ⚡ Egress (vague 3, diagnostic 07/07/2026) : les onSuccess ci-dessous ne
+    // font PLUS d'invalidation par préfixe de salesKeys.list(barId) — elle
+    // refetchait TOUTES les variantes actives (fenêtres 7-60j, items jsonb
+    // inclus) à chaque vente, court-circuitant le patch Realtime. À la place :
+    // patch ciblé des variantes en cache (patchSalesListVariants, même logique
+    // que le flux Realtime), avec repli invalidation préfixe quand on ne peut
+    // pas construire la vente à jour localement. L'événement Realtime de la
+    // mutation (délivré aussi à cet appareil) re-patchera ensuite avec la ligne
+    // serveur autoritative — applySaleEventToList est idempotent (dédup par id).
+
+    /** Invalidation ciblée d'une variante non patchable (searchTerm, plafond 500). */
+    const invalidateSalesVariants = (keys: readonly (readonly unknown[])[]) => {
+        keys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+    };
+
+    /** Repli intégral : comportement historique (refetch de toutes les variantes). */
+    const invalidateAllSalesLists = () => {
+        queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+    };
+
+    /**
+     * YYYY-MM-DD depuis Sale.businessDate. Les Sale mappées portent une Date
+     * construite depuis la string DB 'YYYY-MM-DD' (parsée UTC minuit) →
+     * toISOString() est l'inverse exact, sans dérive de fuseau.
+     */
+    const saleBusinessDateStr = (sale: Sale): string =>
+        new Date(sale.businessDate).toISOString().slice(0, 10);
+
+    /** Retrouve une vente dans n'importe quelle variante de liste en cache. */
+    const findCachedSale = (saleId: string): Sale | undefined => {
+        const entries = queryClient.getQueriesData<Sale[]>({ queryKey: salesKeys.list(barId) });
+        for (const [, data] of entries) {
+            const found = data?.find(s => s.id === saleId);
+            if (found) return found;
+        }
+        return undefined;
+    };
+
+    /**
+     * Patch UPDATE d'un changement de statut : clone la vente en cache avec les
+     * champs mutés. Introuvable en cache → repli invalidation préfixe (une
+     * variante filtrée sur le nouveau statut pourrait devoir l'inclure sans
+     * qu'on puisse la construire). Retourne true si le patch a été appliqué.
+     */
+    const patchSaleStatusOrInvalidate = (saleId: string, mutate: (s: Sale) => Sale): boolean => {
+        const cached = findCachedSale(saleId);
+        if (!cached) {
+            invalidateAllSalesLists();
+            return false;
+        }
+        const updated = mutate(cached);
+        patchSalesListVariants(
+            queryClient,
+            barId,
+            { type: 'UPDATE', sale: updated, businessDate: saleBusinessDateStr(updated) },
+            invalidateSalesVariants,
+        );
+        return true;
     };
 
     const isNetworkError = (error: unknown): boolean => {
@@ -287,7 +347,21 @@ export const useSalesMutations = (barId: string, options?: {
                 broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }
 
-            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            if (isOptimistic) {
+                // Vente offline : elle vit dans l'overlay offlineSales de
+                // useUnifiedSales (id 'sync_...'), pas dans le cache serveur —
+                // la patcher y injecterait un id fantôme. Comportement historique.
+                invalidateAllSalesLists();
+            } else {
+                // ⚡ Egress : patch avec la ligne retournée par la RPC au lieu de
+                // refetcher toutes les variantes (2 cascades/vente en mode complet).
+                patchSalesListVariants(
+                    queryClient,
+                    barId,
+                    { type: 'INSERT', sale, businessDate: saleBusinessDateStr(sale) },
+                    invalidateSalesVariants,
+                );
+            }
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             if (sale.status === 'validated' && !isOptimistic) {
@@ -314,7 +388,15 @@ export const useSalesMutations = (barId: string, options?: {
                 broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'validated' } });
                 broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }
-            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            // validate_sale (RPC) ne retourne pas la ligne → clone du cache.
+            // validatedAt local ≈ serveur : l'événement Realtime re-patchera
+            // avec le timestamp autoritative dans la foulée.
+            patchSaleStatusOrInvalidate(variables.id, s => ({
+                ...s,
+                status: 'validated',
+                validatedBy: variables.validatorId,
+                validatedAt: new Date(),
+            }));
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             await refreshDailySalesSummary();
             // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
@@ -330,7 +412,12 @@ export const useSalesMutations = (barId: string, options?: {
             if (broadcastService.isSupported()) {
                 broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'rejected' } });
             }
-            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            patchSaleStatusOrInvalidate(variables.id, s => ({
+                ...s,
+                status: 'rejected',
+                rejectedBy: variables.rejectorId,
+                rejectedAt: new Date(),
+            }));
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
@@ -348,7 +435,10 @@ export const useSalesMutations = (barId: string, options?: {
                 broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'cancelled' } });
                 broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }
-            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            patchSaleStatusOrInvalidate(variables.id, s => ({
+                ...s,
+                status: 'cancelled',
+            }));
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
@@ -364,7 +454,9 @@ export const useSalesMutations = (barId: string, options?: {
             if (broadcastService.isSupported()) {
                 broadcastService.broadcast({ event: 'DELETE', table: 'sales', barId, data: { id: saleId } });
             }
-            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            // Suppression connue par id — la garde variante plafonnée (500) est
+            // gérée dans patchSalesListVariants (invalidation ciblée si besoin).
+            patchSalesListVariants(queryClient, barId, { type: 'DELETE', id: saleId }, invalidateSalesVariants);
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
@@ -383,13 +475,30 @@ export const useSalesMutations = (barId: string, options?: {
             }
             return { attempted: saleIds.length, failed: result.failed, success: result.success };
         },
-        onSuccess: (result) => {
+        onSuccess: (result, variables) => {
             if (result.failed > 0) {
                 toast.success(`${result.success} ventes rejetées, ${result.failed} échecs.`);
             } else {
                 toast.success('Toutes les ventes orphelines ont été rejetées et le stock libéré.');
             }
-            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            if (result.failed > 0) {
+                // Le RPC batch ne dit pas QUELS ids ont échoué → patcher tous les
+                // ids en 'rejected' marquerait à tort les échecs. Repli intégral.
+                invalidateAllSalesLists();
+            } else {
+                for (const saleId of variables.saleIds) {
+                    // ⚠️ Ne PAS `break` sur un id introuvable en cache : invalidateAllSalesLists()
+                    // (appelé par patchSaleStatusOrInvalidate en repli) est asynchrone et ne répare
+                    // rien immédiatement — un id suivant présent en cache reste patchable en O(1),
+                    // l'ignorer le laisserait affiché avec son statut périmé jusqu'au refetch.
+                    patchSaleStatusOrInvalidate(saleId, s => ({
+                        ...s,
+                        status: 'rejected',
+                        rejectedBy: variables.rejectorId,
+                        rejectedAt: new Date(),
+                    }));
+                }
+            }
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
@@ -427,5 +536,9 @@ const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
         customerPhone: rowExtended.customer_phone || undefined,
         notes: rowExtended.notes || undefined,
         sourceReturnId: rowExtended.source_return_id || undefined, // 🛡️ FIX P2: Magic Swap traçabilité
+        // ⚡ Nécessaire au dédoublonnage du patch de cache (applySaleEventToList
+        // dédoublonne par id OU idempotency_key) quand l'événement Realtime de
+        // cette même vente arrive après le patch mutation.
+        idempotencyKey: savedSaleRow.idempotency_key || undefined,
     };
 };

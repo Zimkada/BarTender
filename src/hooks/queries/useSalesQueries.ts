@@ -1,12 +1,12 @@
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { SalesService, type DBSale } from '../../services/supabase/sales.service';
 import type { Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
 import type { RealtimeChangePayload } from '../useRealtimeSubscription';
-import { applySaleEventToList, coerceSaleRowNumerics, applyPendingSaleEvent, type PendingStockSale } from '../../utils/realtimeCachePatch';
+import { applySaleEventToList, coerceSaleRowNumerics, applyPendingSaleEvent, type PendingStockSale, type SalesListPatch } from '../../utils/realtimeCachePatch';
 import { z } from 'zod';
 
 // 🛡️ Fix V12: Runtime Validation
@@ -40,6 +40,82 @@ export interface UseSalesOptions {
     enabled?: boolean;
 }
 
+/**
+ * ⚡ Egress : applique un patch (INSERT/UPDATE/DELETE d'une vente) à TOUTES les
+ * variantes de `salesKeys.list(barId)` en cache, chacune selon ses propres
+ * filtres (fenêtre business_date, status, includeItems, plafond 500).
+ *
+ * Source unique de vérité du patch de liste — utilisée par le flux Realtime
+ * (applySaleChange ci-dessous) ET par les onSuccess de useSalesMutations (à la
+ * place de l'invalidation par préfixe qui refetchait toutes les fenêtres 7-60j
+ * à chaque vente — cf. diagnostic egress 07/07/2026).
+ *
+ * Cas non patchables → `invalidateVariants([key])` (refetch ciblé de CETTE
+ * variante uniquement) :
+ *  - variante avec `searchTerm` (ilike serveur, non évaluable localement) ;
+ *  - DELETE sur une variante sans bornes de dates ET pleine (500) : retirer
+ *    localement laisserait 499 lignes sans récupérer la 500e suivante.
+ */
+export function patchSalesListVariants(
+    queryClient: QueryClient,
+    barId: string,
+    patch: SalesListPatch,
+    invalidateVariants: (keys: readonly (readonly unknown[])[]) => void,
+): void {
+    const listPrefix = salesKeys.list(barId);
+    // Index des options dérivé du préfixe (résiste à un changement de forme de salesKeys.list)
+    const optionsIndex = listPrefix.length;
+    const entries = queryClient.getQueriesData<Sale[]>({ queryKey: listPrefix });
+    if (entries.length === 0) return; // rien en cache → rien à resynchroniser
+
+    if (patch.type === 'DELETE') {
+        entries.forEach(([key, data]) => {
+            if (!data) return;
+            const opts = (key[optionsIndex] ?? {}) as UseSalesOptions;
+            // Variante plafonnée serveur (pas de dates → limit(500)) ET pleine :
+            // retirer localement laisserait 499 lignes sans récupérer la 500e
+            // suivante → refetch ciblé de cette variante.
+            if (!opts.startDate && !opts.endDate && data.length >= 500 && data.some(s => s.id === patch.id)) {
+                invalidateVariants([key]);
+                return;
+            }
+            const next = applySaleEventToList(data, patch, {});
+            if (next !== data) queryClient.setQueryData(key, next);
+        });
+        return;
+    }
+
+    const { sale, businessDate } = patch;
+    for (const [key, data] of entries) {
+        const opts = (key[optionsIndex] ?? {}) as UseSalesOptions;
+
+        if (opts.searchTerm) {
+            // ilike côté serveur — non évaluable localement → refetch ciblé de
+            // cette variante uniquement
+            invalidateVariants([key]);
+            continue;
+        }
+        if (!data) continue;
+
+        const saleForVariant = opts.includeItems === false
+            ? { ...sale, items: [] }
+            : sale;
+
+        const next = applySaleEventToList(
+            data,
+            { type: patch.type, sale: saleForVariant, businessDate },
+            {
+                startDate: opts.startDate,
+                endDate: opts.endDate,
+                status: opts.status,
+                // Variante sans bornes de dates → le serveur cape à 500 (getBarSales Cas 2)
+                limit: (!opts.startDate && !opts.endDate) ? 500 : undefined,
+            },
+        );
+        if (next !== data) queryClient.setQueryData(key, next);
+    }
+}
+
 export const useSales = (barId: string | undefined, options?: UseSalesOptions) => {
     const isEnabled = !!barId && (options?.enabled ?? true);
     const queryClient = useQueryClient();
@@ -53,11 +129,6 @@ export const useSales = (barId: string | undefined, options?: UseSalesOptions) =
         payload: RealtimeChangePayload,
         throttledInvalidate: (keys: readonly (readonly unknown[])[]) => void,
     ): boolean => {
-        const listPrefix = salesKeys.list(barId || '');
-        // Index des options dérivé du préfixe (résiste à un changement de forme de salesKeys.list)
-        const optionsIndex = listPrefix.length;
-        const entries = queryClient.getQueriesData<Sale[]>({ queryKey: listPrefix });
-
         // Contrat queryKeysToInvalidate : le patch ne reconstruit jamais les stats →
         // on invalide toujours cette clé (no-op tant qu'aucune query n'y est attachée,
         // future-proof si l'une s'y attache un jour). Via le throttle anti-burst :
@@ -102,25 +173,13 @@ export const useSales = (barId: string | undefined, options?: UseSalesOptions) =
 
         // ----------------------------------------------------
         // Patch de la liste principale des ventes
+        // (logique partagée avec les onSuccess de useSalesMutations —
+        // cf. patchSalesListVariants, source unique de vérité)
         // ----------------------------------------------------
-        if (entries.length === 0) return true; // rien en cache → rien à resynchroniser
-
         if (payload.eventType === 'DELETE') {
             const id = (payload.old as { id?: string } | undefined)?.id;
             if (!id) return false;
-            entries.forEach(([key, data]) => {
-                if (!data) return;
-                const opts = (key[optionsIndex] ?? {}) as UseSalesOptions;
-                // Variante plafonnée serveur (pas de dates → limit(500)) ET pleine :
-                // retirer localement laisserait 499 lignes sans récupérer la 500e
-                // suivante → refetch ciblé de cette variante (throttlé anti-burst).
-                if (!opts.startDate && !opts.endDate && data.length >= 500 && data.some(s => s.id === id)) {
-                    throttledInvalidate([key]);
-                    return;
-                }
-                const next = applySaleEventToList(data, { type: 'DELETE', id }, {});
-                if (next !== data) queryClient.setQueryData(key, next);
-            });
+            patchSalesListVariants(queryClient, barId || '', { type: 'DELETE', id }, throttledInvalidate);
             return true;
         }
 
@@ -136,34 +195,12 @@ export const useSales = (barId: string | undefined, options?: UseSalesOptions) =
         // durcissement zéro-risque si le type de colonne évoluait.
         const businessDate = String(row.business_date).slice(0, 10);
 
-        for (const [key, data] of entries) {
-            const opts = (key[optionsIndex] ?? {}) as UseSalesOptions;
-
-            if (opts.searchTerm) {
-                // ilike côté serveur — non évaluable localement → refetch ciblé de
-                // cette variante, via le throttle anti-burst (rafales realtime)
-                throttledInvalidate([key]);
-                continue;
-            }
-            if (!data) continue;
-
-            const saleForVariant = opts.includeItems === false
-                ? { ...mapped, items: [] }
-                : mapped;
-
-            const next = applySaleEventToList(
-                data,
-                { type: payload.eventType, sale: saleForVariant, businessDate },
-                {
-                    startDate: opts.startDate,
-                    endDate: opts.endDate,
-                    status: opts.status,
-                    // Variante sans bornes de dates → le serveur cape à 500 (getBarSales Cas 2)
-                    limit: (!opts.startDate && !opts.endDate) ? 500 : undefined,
-                },
-            );
-            if (next !== data) queryClient.setQueryData(key, next);
-        }
+        patchSalesListVariants(
+            queryClient,
+            barId || '',
+            { type: payload.eventType, sale: mapped, businessDate },
+            throttledInvalidate,
+        );
         return true;
     }, [barId, queryClient]);
 
