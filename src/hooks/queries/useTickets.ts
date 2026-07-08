@@ -78,7 +78,7 @@ function computeSalesWindowStart(): string {
 }
 
 /** Fréquence de revérification du changement de journée commerciale */
-const SALES_WINDOW_RECHECK_MS = 5 * 60 * 1000;
+export const SALES_WINDOW_RECHECK_MS = 5 * 60 * 1000;
 
 export interface TicketWithSummary extends Ticket {
     /** Label pour le sélecteur : "2 Bières Flag, 1 Whisky" ou "Bon vide" */

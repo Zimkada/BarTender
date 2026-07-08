@@ -8,7 +8,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
-import { useTickets } from '../../hooks/queries/useTickets';
+import { useTickets, SALES_WINDOW_RECHECK_MS } from '../../hooks/queries/useTickets';
 import type { TicketRow } from '../../services/supabase/tickets.service';
 import type { Sale } from '../../types';
 
@@ -334,6 +334,67 @@ describe('useTickets — rafraîchissement de la fenêtre commerciale', () => {
     });
 
     expect(lastUseSalesStartDate()).toBe('2026-07-06');
+  });
+
+  // 🛡️ Couverture du chemin setInterval seul (tablette kiosque toujours au
+  // premier plan : jamais de 'focus'/'visibilitychange', seul le minuteur
+  // périodique peut détecter la bascule de journée). Les 4 tests précédents ne
+  // déclenchent recheck() que via des événements DOM — une régression qui
+  // casserait uniquement l'enregistrement du setInterval (ligne supprimée,
+  // mauvaise constante, cleanup prématuré) ne serait détectée par aucun d'eux.
+  it('recalcule salesWindowStart via le minuteur périodique seul, sans focus/visibilitychange', async () => {
+    // shouldAdvanceTime: le setInterval enregistré par le composant doit être
+    // un fake timer dès le montage pour que advanceTimersByTime puisse
+    // l'atteindre ; shouldAdvanceTime laisse néanmoins avancer l'horloge réelle
+    // en tâche de fond pour que waitFor (basé sur de vraies micro-attentes)
+    // continue de fonctionner normalement.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      businessDateOverride = new Date('2026-07-07T00:00:00');
+      mockGetOpenTickets.mockResolvedValue([]);
+      mockSales = [];
+      mockUseSales.mockClear();
+
+      renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+      await waitFor(() => expect(mockUseSales).toHaveBeenCalled());
+      expect(lastUseSalesStartDate()).toBe('2026-07-06');
+
+      // La journée commerciale bascule pendant que l'écran reste au premier
+      // plan sans jamais perdre le focus (aucun dispatchEvent ici).
+      businessDateOverride = new Date('2026-07-08T00:00:00');
+      act(() => {
+        vi.advanceTimersByTime(SALES_WINDOW_RECHECK_MS);
+      });
+
+      expect(lastUseSalesStartDate()).toBe('2026-07-07');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('ne recalcule pas avant l\'échéance du minuteur (pas de recheck anticipé)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      businessDateOverride = new Date('2026-07-07T00:00:00');
+      mockGetOpenTickets.mockResolvedValue([]);
+      mockSales = [];
+      mockUseSales.mockClear();
+
+      renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+      await waitFor(() => expect(mockUseSales).toHaveBeenCalled());
+      expect(lastUseSalesStartDate()).toBe('2026-07-06');
+
+      businessDateOverride = new Date('2026-07-08T00:00:00');
+      act(() => {
+        vi.advanceTimersByTime(SALES_WINDOW_RECHECK_MS - 1000);
+      });
+
+      // La journée a changé côté horloge simulée, mais le minuteur n'a pas
+      // encore atteint son échéance : la fenêtre ne doit pas bouger.
+      expect(lastUseSalesStartDate()).toBe('2026-07-06');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('déplace la borne beforeDate de staleSales quand la fenêtre avance (frontière récent/ancien cohérente)', async () => {
