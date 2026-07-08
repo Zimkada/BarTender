@@ -215,10 +215,14 @@ export function useTickets(barId: string | undefined) {
     }, [serverTickets, salesWindowStart]);
 
     const { data: staleSales = [] } = useQuery({
-        queryKey: [...ticketKeys.open(barId || ''), 'stale-sales', staleTicketIds],
+        queryKey: [...ticketKeys.open(barId || ''), 'stale-sales', staleTicketIds, salesWindowStart],
         queryFn: async (): Promise<Sale[]> => {
             if (!barId || staleTicketIds.length === 0) return [];
-            const dbSales = await SalesService.getSalesByTicketIds(staleTicketIds, barId);
+            // ⚠️ beforeDate = salesWindowStart : borne obligatoire pour que
+            // staleSales et `sales` (fenêtre récente) restent des ensembles
+            // DISJOINTS. Sans elle, une vente récente d'un bon ancien serait
+            // comptée deux fois dans allRelevantSales (double-comptage financier).
+            const dbSales = await SalesService.getSalesByTicketIds(staleTicketIds, barId, salesWindowStart);
             return mapSalesData(dbSales);
         },
         enabled: !!barId && staleTicketIds.length > 0,
@@ -226,7 +230,9 @@ export function useTickets(barId: string | undefined) {
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
     });
 
-    // Ventes utilisées pour le join : fenêtre récente + ventes ciblées des bons anciens
+    // Ventes utilisées pour le join : fenêtre récente (business_date >= salesWindowStart)
+    // + ventes ciblées des bons anciens (business_date < salesWindowStart, cf. staleSales
+    // ci-dessus) — ensembles disjoints par construction, jamais de double-comptage.
     const allRelevantSales = useMemo(() => [...sales, ...staleSales], [sales, staleSales]);
 
     // 🔄 Transformation des données avec injection Offline

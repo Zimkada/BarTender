@@ -478,23 +478,45 @@ export class SalesService {
   }
 
   /**
-   * Ventes (avec items) rattachées à une liste de bons, SANS borne de date —
-   * utilisé pour les bons ouverts plus anciens que la fenêtre commerciale de
-   * useSales (cf. useTickets.ts). Un bon reste payable/consultable quel que
-   * soit son âge : pay_ticket propage payment_method à ses ventes ('ticket' →
-   * moyen réel), les laisser hors de portée bloquerait ce règlement.
+   * Ventes (avec items) rattachées à une liste de bons, bornées à
+   * business_date < beforeDate — utilisé pour les bons ouverts plus anciens
+   * que la fenêtre commerciale de useSales (cf. useTickets.ts). Le caller doit
+   * passer le MÊME beforeDate que le startDate de sa requête useSales : les
+   * deux ensembles de ventes doivent rester disjoints (aucun chevauchement),
+   * sinon une vente présente dans les deux résultats serait comptée deux fois
+   * côté client (total, salesCount).
+   * Un bon reste payable/consultable quel que soit son âge : pay_ticket
+   * propage payment_method à ses ventes ('ticket' → moyen réel), les laisser
+   * hors de portée bloquerait ce règlement. limit() : même garde-fou anti
+   * full-scan que getBarSales Cas 2 — un bon oublié pendant des semaines ne
+   * doit jamais déclencher une requête non bornée.
    */
-  static async getSalesByTicketIds(ticketIds: string[], barId: string): Promise<DBSale[]> {
+  static async getSalesByTicketIds(ticketIds: string[], barId: string, beforeDate: string): Promise<DBSale[]> {
     if (ticketIds.length === 0) return [];
+    const LIMIT = 500;
     const { data, error } = await supabase
       .from('sales')
       .select(SALES_DETAIL_SELECT)
       .eq('bar_id', barId)
       .in('ticket_id', ticketIds)
-      .order('created_at', { ascending: true });
+      .lt('business_date', beforeDate)
+      .order('created_at', { ascending: true })
+      .limit(LIMIT);
 
     if (error) throw new Error(handleSupabaseError(error));
-    return (data || []) as unknown as DBSale[];
+    const rows = (data || []) as unknown as DBSale[];
+
+    // ⚠️ Troncature silencieuse possible : la requête porte sur TOUS les
+    // ticketIds combinés, triée par created_at. Si le total cumulé dépasse
+    // LIMIT, les ventes les plus récentes du lot (mais < beforeDate) sont
+    // coupées sans qu'aucun bon ne le signale — totalAmount/salesCount
+    // redeviendraient sous-évalués pour les bons dont les ventes tombent
+    // après la coupure. Même pattern d'alerte que getBarSales/ABSOLUTE_CAP.
+    if (rows.length >= LIMIT) {
+      console.warn(`[SalesService] Plafond LIMIT=${LIMIT} atteint pour getSalesByTicketIds (bar ${barId}, ${ticketIds.length} bons anciens) — des ventes ont pu être tronquées.`);
+    }
+
+    return rows;
   }
 
   static async getBarSales(barId: string, options?: {

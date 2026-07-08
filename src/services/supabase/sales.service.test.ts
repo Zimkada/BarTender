@@ -202,4 +202,74 @@ describe('SalesService', () => {
             );
         });
     });
+
+    describe('getSalesByTicketIds', () => {
+        // Mock chaîné minimal reproduisant .from().select().eq().in().lt().order().limit()
+        interface MockQueryChain {
+            select: ReturnType<typeof vi.fn>;
+            eq: ReturnType<typeof vi.fn>;
+            in: ReturnType<typeof vi.fn>;
+            lt: ReturnType<typeof vi.fn>;
+            order: ReturnType<typeof vi.fn>;
+            limit: ReturnType<typeof vi.fn>;
+        }
+
+        const mockQueryResult = (result: { data: unknown[]; error: null }): MockQueryChain => {
+            const chain = {} as MockQueryChain;
+            chain.select = vi.fn(() => chain);
+            chain.eq = vi.fn(() => chain);
+            chain.in = vi.fn(() => chain);
+            chain.lt = vi.fn(() => chain);
+            chain.order = vi.fn(() => chain);
+            chain.limit = vi.fn(() => Promise.resolve(result));
+            (supabase.from as unknown as ReturnType<typeof vi.fn>).mockReturnValue(chain);
+            return chain;
+        };
+
+        // 🛡️ Garantie anti-double-comptage (useTickets.ts) : `sales` (fenêtre
+        // récente, .gte business_date) et `staleSales` (ce fetch, .lt business_date)
+        // doivent rester des ensembles disjoints sur la MÊME colonne/valeur.
+        // Ce test vérifie la VRAIE requête Supabase, pas un résultat mocké déjà
+        // "propre" — une régression sur la clause .lt ne serait sinon détectée
+        // par aucun test (cf. audit du 08/07/2026).
+        it('filtre par business_date < beforeDate (pas une autre colonne/opérateur)', async () => {
+            const chain = mockQueryResult({ data: [], error: null });
+
+            await SalesService.getSalesByTicketIds(['t1', 't2'], 'bar-1', '2026-07-06');
+
+            expect(supabase.from).toHaveBeenCalledWith('sales');
+            expect(chain.eq).toHaveBeenCalledWith('bar_id', 'bar-1');
+            expect(chain.in).toHaveBeenCalledWith('ticket_id', ['t1', 't2']);
+            expect(chain.lt).toHaveBeenCalledWith('business_date', '2026-07-06');
+            expect(chain.limit).toHaveBeenCalledWith(500);
+        });
+
+        it('retourne [] sans appeler Supabase si ticketIds est vide', async () => {
+            const result = await SalesService.getSalesByTicketIds([], 'bar-1', '2026-07-06');
+
+            expect(result).toEqual([]);
+            expect(supabase.from).not.toHaveBeenCalled();
+        });
+
+        it('avertit (console.warn) quand le plafond de 500 lignes est atteint', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const fiveHundredRows = Array.from({ length: 500 }, (_, i) => ({ id: `s${i}` }));
+            mockQueryResult({ data: fiveHundredRows, error: null });
+
+            await SalesService.getSalesByTicketIds(['t1'], 'bar-1', '2026-07-06');
+
+            expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('Plafond LIMIT=500'));
+            warnSpy.mockRestore();
+        });
+
+        it('n\'avertit pas quand le résultat est sous le plafond', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            mockQueryResult({ data: [{ id: 's1' }], error: null });
+
+            await SalesService.getSalesByTicketIds(['t1'], 'bar-1', '2026-07-06');
+
+            expect(warnSpy).not.toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+    });
 });

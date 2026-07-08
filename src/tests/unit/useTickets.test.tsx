@@ -162,12 +162,48 @@ describe('useTickets — filtrage des bons fantômes', () => {
 
     const { result } = renderHook(() => useTickets(barId), { wrapper: createWrapper() });
 
-    await waitFor(() => expect(mockGetSalesByTicketIds).toHaveBeenCalledWith([oldTicketId], barId));
+    await waitFor(() => expect(mockGetSalesByTicketIds).toHaveBeenCalled());
+    // 3e argument = beforeDate, obligatoire pour garder staleSales disjoint de `sales`
+    const callArgs = mockGetSalesByTicketIds.mock.calls[0] as [string[], string, string];
+    expect(callArgs[0]).toEqual([oldTicketId]);
+    expect(callArgs[1]).toBe(barId);
+    expect(callArgs[2]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
     await waitFor(() => {
       const ticket = result.current.tickets.find(t => t.id === oldTicketId);
       expect(ticket).toBeDefined();
       expect(ticket?.totalAmount).toBe(2500);
       expect(ticket?.productSummary).not.toBe('Bon vide');
+    });
+  });
+
+  // 🛡️ Régression contre-analyse #2 (08/07/2026) : un bon ancien avec une
+  // vente RÉCENTE ne doit JAMAIS compter cette vente deux fois. `sales`
+  // (fenêtre récente) et `staleSales` (fetch ciblé par ticket_id) doivent
+  // rester des ensembles disjoints — sinon totalAmount/salesCount doublent,
+  // un risque direct de surfacturation client à l'encaissement.
+  it('ne compte pas deux fois une vente récente d\'un bon ancien (pas de double-comptage)', async () => {
+    const mixedTicketId = 'ticket-mixed';
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+    mockGetOpenTickets.mockResolvedValue([
+      makeTicketRow({ id: mixedTicketId, created_at: threeDaysAgo }),
+    ]);
+    // La vente récente arrive via `sales` (fenêtre courante), comme en prod
+    mockSales = [makeSale({ id: 'sale-recent', ticketId: mixedTicketId, status: 'validated', total: 1000 })];
+    mockGetSalesByTicketIds.mockClear();
+    // Le mock simule bien la borne beforeDate : ne retourne QUE la vente ancienne
+    mockGetSalesByTicketIds.mockResolvedValue([
+      { ...makeSale({ id: 'sale-old', ticketId: mixedTicketId, status: 'validated', total: 1500 }), ticket_id: mixedTicketId } as unknown as Partial<Sale>,
+    ]);
+
+    const { result } = renderHook(() => useTickets(barId), { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      const ticket = result.current.tickets.find(t => t.id === mixedTicketId);
+      expect(ticket).toBeDefined();
+      expect(ticket?.salesCount).toBe(2); // sale-recent + sale-old, chacune UNE fois
+      expect(ticket?.totalAmount).toBe(2500); // 1000 + 1500, jamais 3500 ou plus
     });
   });
 
