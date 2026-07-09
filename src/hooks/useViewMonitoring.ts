@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { AnalyticsService } from '../services/supabase/analytics.service';
+import { EXPECTED_MATERIALIZED_VIEWS } from '../config/constants';
 
 interface ViewFreshness {
     view_name: string;
@@ -19,20 +20,6 @@ export function useCacheWarming(enabled: boolean = true) {
     useEffect(() => {
         if (!enabled || warmingComplete) return;
 
-        // Vues matérialisées attendues — DOIT correspondre exactement à la liste dans
-        // refresh_all_materialized_views (migration 20260607160000_optimize_materialized_view_refresh.sql).
-        // ⚠️ Si la liste SQL change, mettre à jour ici en même temps.
-        // salaries_summary exclu intentionnellement (vue normale, toujours fraîche).
-        // top_products_by_period exclu le 2026-06-07 (vue morte : dashboard via RPC
-        //   get_top_products_aggregated qui lit les tables brutes, jamais cette vue).
-        const EXPECTED_VIEWS = [
-            'product_sales_stats',
-            'daily_sales_summary',
-            'expenses_summary',
-            'bar_stats_multi_period',
-            'bar_ancillary_stats',
-        ];
-
         const warmCache = async () => {
             setIsWarming(true);
             setError(null);
@@ -49,7 +36,7 @@ export function useCacheWarming(enabled: boolean = true) {
                 // Vue absente du log = jamais rafraîchie → stale
                 // metrics.some() ne voit pas les vues sans aucune entrée dans le log
                 const refreshedViews = new Set(metrics.map(m => m.view_name));
-                const hasMissingView = EXPECTED_VIEWS.some(v => !refreshedViews.has(v));
+                const hasMissingView = EXPECTED_MATERIALIZED_VIEWS.some(v => !refreshedViews.has(v));
 
                 if (hasMissingView || hasStaleMetric || metrics.length === 0) {
                     console.log('[Cache Warming] Refreshing stale views...');

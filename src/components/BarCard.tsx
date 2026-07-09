@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bar, BarMember, User } from '../types';
 import { BarActionButtons } from './BarActionButtons';
+import { Select } from './ui/Select';
 import { PLANS, PLAN_ORDER, getPlan, type PlanId } from '../config/plans';
 
 interface BarCardProps {
@@ -87,20 +88,20 @@ export const BarCard = React.memo<BarCardProps>(
                 </div>
 
                 {/* Plan selector */}
-                <div className="flex items-center gap-2 mb-3 text-xs">
-                    <span className="font-semibold text-foreground/70">Plan :</span>
-                    <select
-                        value={currentPlan.id}
-                        onChange={handlePlanChange}
-                        disabled={changingPlan}
-                        className="flex-1 px-2 py-1 border border-border rounded text-xs bg-card focus:ring-1 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50"
-                    >
-                        {PLAN_ORDER.map(planId => (
-                            <option key={planId} value={planId}>
-                                {PLANS[planId].label} — {PLANS[planId].maxMembers} membres, {PLANS[planId].description}
-                            </option>
-                        ))}
-                    </select>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-3 text-xs">
+                    <span className="font-semibold text-foreground/70 flex-shrink-0">Plan :</span>
+                    <div className="w-full sm:flex-1 min-w-0">
+                        <Select
+                            size="sm"
+                            value={currentPlan.id}
+                            onChange={handlePlanChange}
+                            disabled={changingPlan}
+                            options={PLAN_ORDER.map(planId => ({
+                                value: planId,
+                                label: `${PLANS[planId].label} — ${PLANS[planId].maxMembers} membres, ${PLANS[planId].description}`,
+                            }))}
+                        />
+                    </div>
                 </div>
 
                 {/* Actions */}

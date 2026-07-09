@@ -31,6 +31,7 @@ import { exportToCSV } from '../utils/exportToCSV';
 import { exportToExcel } from '../utils/exportToExcel';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
+import { EXPECTED_MATERIALIZED_VIEWS } from '../config/constants';
 
 // Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
 const RefreshHistoryChart = lazy(() =>
@@ -76,7 +77,13 @@ export default function SecurityDashboardPage() {
       setBarHealthData(barHealth);
       setSecurityDashboard(dashboard);
       setRecentViolations(violations);
-      setRefreshStats(stats);
+      // Filtrer sur les vues réellement gérées par le cron — exclut les entrées
+      // orphelines (ex: tests manuels ratés référençant une vue jamais créée).
+      setRefreshStats(
+        stats.filter((s) =>
+          (EXPECTED_MATERIALIZED_VIEWS as readonly string[]).includes(s.view_name)
+        )
+      );
 
       // Detect new alerts for notifications
       if (notificationsEnabled && alerts.length > previousAlertsCount) {
@@ -556,9 +563,9 @@ export default function SecurityDashboardPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <Database className="w-4 h-4 text-foreground/70" />
-                              <span className="font-medium text-sm">{stat.view_name}</span>
+                              <span className="font-medium text-sm text-foreground">{stat.view_name}</span>
                               {needsRefresh && (
-                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                                <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 rounded-full text-xs font-semibold flex items-center gap-1">
                                   <AlertTriangle className="w-3 h-3" />
                                   Needs Refresh
                                 </span>
@@ -642,10 +649,10 @@ export default function SecurityDashboardPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           <Database className="w-4 h-4 text-foreground/70" />
-                          <span className="font-semibold text-sm">{stat.view_name}</span>
+                          <span className="font-semibold text-sm text-foreground">{stat.view_name}</span>
                         </div>
                         {needsRefresh && (
-                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                          <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 rounded-full text-xs font-semibold flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />
                             Needs Refresh
                           </span>
