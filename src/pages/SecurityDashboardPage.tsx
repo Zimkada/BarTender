@@ -309,17 +309,19 @@ export default function SecurityDashboardPage() {
       {/* Onglet Database (Ancien contenu) */}
       {activeTab === 'database' && (
         <>
-          {/* Warning Banner */}
-          <Alert show={true} variant="warning" className="mb-6">
+          {/* Info Banner — état réel de l'instrumentation (audit 10/07/2026) */}
+          <Alert show={true} variant="info" className="mb-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-amber-900 mb-1">
-                  ⚠️ Fonctionnalité en développement
+                <p className="font-semibold text-blue-900 mb-1">
+                  Monitoring partiellement instrumenté
                 </p>
-                <p className="text-sm text-amber-800">
-                  Cette page nécessite une infrastructure backend avancée (tables de monitoring, triggers RLS, RPCs de refresh)
-                  qui n'est pas encore déployée. Les métriques afficheront 0 jusqu'à l'implémentation complète du système de monitoring.
+                <p className="text-sm text-blue-800">
+                  Les statistiques de refresh des vues matérialisées (échecs, durées, historique) et les
+                  alertes d'échecs consécutifs sont opérationnelles. En revanche, le compteur « RLS Violations »
+                  n'est pas encore alimenté : aucun code n'appelle <code>log_rls_violation</code> — il restera
+                  à 0 tant que les erreurs 403 ne sont pas instrumentées côté client.
                 </p>
               </div>
             </div>
