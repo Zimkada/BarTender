@@ -5430,6 +5430,7 @@ export type Database = {
       extract_server_name_safe: { Args: { p_notes: string }; Returns: string }
       force_refresh_view: { Args: { p_view_name: string }; Returns: string }
       forfeit_consignment: { Args: { p_consignment_id: string }; Returns: Json }
+      get_active_devices_count: { Args: { p_bar_id?: string }; Returns: number }
       get_all_bar_members: {
         Args: never
         Returns: {
@@ -5616,7 +5617,7 @@ export type Database = {
       }
       get_current_business_date: { Args: { p_bar_id: string }; Returns: string }
       get_dashboard_stats: {
-        Args: { p_cache_buster?: string; p_period?: string }
+        Args: { p_bar_id?: string; p_end_date: string; p_start_date: string }
         Returns: {
           active_bars_count: number
           active_users_count: number

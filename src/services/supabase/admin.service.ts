@@ -1,6 +1,5 @@
 // src/services/supabase/admin.service.ts
 import { supabase, handleSupabaseError } from '../../lib/supabase';
-import { v4 as uuidv4 } from 'uuid';
 import {
   Bar,
   User,
@@ -144,12 +143,12 @@ export class AdminService {
    * Récupère les statistiques agrégées pour le dashboard superadmin.
    * @param period 'today' | '7d' | '30d'
    */
-  static async getDashboardStats(period: string): Promise<DashboardStats> {
+  static async getDashboardStats(startDate: string, endDate: string, barId?: string): Promise<DashboardStats> {
     try {
-      const cacheBuster = uuidv4();
       const { data, error } = await supabase.rpc('get_dashboard_stats', {
-        p_period: period,
-        p_cache_buster: cacheBuster,
+        p_start_date: startDate,
+        p_end_date: endDate,
+        p_bar_id: barId ?? undefined,
       });
 
       if (error) {
@@ -165,6 +164,25 @@ export class AdminService {
         total_revenue: 0, sales_count: 0, active_users_count: 0, new_users_count: 0, bars_count: 0, active_bars_count: 0,
       };
 
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Nombre d'appareils avec un heartbeat actif (< 15 min) en ce moment.
+   * Instantané, indépendant de tout filtre de période — cf. getBarHealthStatus
+   * pour le détail par bar. Filtre optionnel par bar, cohérent avec le
+   * sélecteur de bar de SuperAdminPage.
+   */
+  static async getActiveDevicesCount(barId?: string): Promise<number> {
+    try {
+      const { data, error } = await supabase.rpc('get_active_devices_count', {
+        p_bar_id: barId ?? undefined,
+      });
+
+      if (error) throw error;
+      return data ?? 0;
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

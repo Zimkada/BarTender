@@ -17,24 +17,24 @@ interface DashboardStatCardProps {
 
 const gradientClasses: Record<GradientVariant, { bg: string; border: string; text: string }> = {
     green: {
-        bg: 'from-green-50 to-emerald-100',
-        border: 'border-green-200',
-        text: 'text-green-600',
+        bg: 'from-green-50 to-emerald-100 dark:from-green-950/40 dark:to-emerald-900/30',
+        border: 'border-green-200 dark:border-green-900/40',
+        text: 'text-green-600 dark:text-green-400',
     },
     blue: {
-        bg: 'from-blue-50 to-sky-100',
-        border: 'border-blue-200',
-        text: 'text-blue-600',
+        bg: 'from-blue-50 to-sky-100 dark:from-blue-950/40 dark:to-sky-900/30',
+        border: 'border-blue-200 dark:border-blue-900/40',
+        text: 'text-blue-600 dark:text-blue-400',
     },
     purple: {
-        bg: 'from-indigo-50 to-purple-100',
-        border: 'border-indigo-200',
-        text: 'text-indigo-600',
+        bg: 'from-indigo-50 to-purple-100 dark:from-indigo-950/40 dark:to-purple-900/30',
+        border: 'border-indigo-200 dark:border-indigo-900/40',
+        text: 'text-indigo-600 dark:text-indigo-400',
     },
     amber: {
-        bg: 'from-amber-50 to-yellow-100',
-        border: 'border-amber-200',
-        text: 'text-amber-600',
+        bg: 'from-amber-50 to-yellow-100 dark:from-amber-950/40 dark:to-yellow-900/30',
+        border: 'border-amber-200 dark:border-amber-900/40',
+        text: 'text-amber-600 dark:text-amber-400',
     },
 };
 
@@ -47,7 +47,7 @@ export const DashboardStatCard = React.memo<DashboardStatCardProps>(
                 <div className="flex items-center gap-4">
                     <Icon className={`w-8 h-8 ${classes.text} flex-shrink-0`} />
                     <div>
-                        <p className="text-gray-600 text-sm mb-1">{label}</p>
+                        <p className="text-foreground/70 text-sm mb-1">{label}</p>
                         <p className={`text-3xl font-bold ${classes.text}`}>
                             {typeof value === 'number' ? value.toLocaleString('fr-FR') : value}
                             {subValue && <span className="text-xl"> {subValue}</span>}

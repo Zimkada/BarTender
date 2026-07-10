@@ -68,7 +68,7 @@ function AdminLayoutContent() {
 
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-muted">
       {/* Mobile Header - Hamburger LEFT + Title RIGHT */}
       <header className="lg:hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -88,7 +88,7 @@ function AdminLayoutContent() {
         <aside
           className={`
             fixed lg:static inset-y-0 left-0 z-50
-            w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
+            w-64 bg-card shadow-lg transform transition-transform duration-300 ease-in-out
             lg:transform-none
             flex flex-col h-screen
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -121,8 +121,8 @@ function AdminLayoutContent() {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg transition-all
                     ${isActive
-                      ? 'bg-purple-100 text-purple-700 font-semibold'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 font-semibold'
+                      : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                     }
                   `}
                 >
@@ -134,21 +134,21 @@ function AdminLayoutContent() {
           </nav>
 
           {/* User Info & Logout */}
-          <div className="p-4 border-t bg-gray-50 flex-shrink-0">
+          <div className="p-4 border-t border-border bg-muted/50 flex-shrink-0">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">
+                <p className="font-medium text-foreground truncate">
                   {currentSession?.userName || 'Super Admin'}
                 </p>
-                <p className="text-xs text-gray-500">Super Administrateur</p>
+                <p className="text-xs text-muted-foreground">Super Administrateur</p>
               </div>
             </div>
             <button
               onClick={() => logout()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
             >
               <LogOut className="w-4 h-4" />
               <span>Déconnexion</span>
