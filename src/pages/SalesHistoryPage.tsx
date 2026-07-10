@@ -19,7 +19,6 @@ import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
-import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useStock } from '../context/hooks/useStock';
@@ -484,13 +483,6 @@ export default function SalesHistoryPage() {
 
                 {/* ==================== CONTENT AREA ==================== */}
                 <div className="flex-1 overflow-y-auto p-4 bg-muted/30">
-                    <div className="flex items-center justify-between mb-4">
-                        <DataFreshnessIndicatorCompact
-                            viewName="sales_history"
-                            onRefreshComplete={() => showSuccess('Données actualisées')}
-                        />
-                    </div>
-
                     {filteredSales.length === 0 ? (
                         <div className="text-center py-20 bg-card rounded-2xl border border-border shadow-sm">
                             <ShoppingCart size={48} className="text-muted-foreground/60 mx-auto mb-4" />
