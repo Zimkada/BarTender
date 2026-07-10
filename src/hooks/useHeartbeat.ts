@@ -4,6 +4,7 @@ import { offlineQueue } from '../services/offlineQueue';
 import { getDeviceId } from '../utils/deviceId';
 import { networkManager } from '../services/NetworkManager';
 import { getAppVersion } from '../utils/appVersion';
+import { connectionQualityTracker } from '../services/ConnectionQualityTracker';
 
 /** Intervalle d'émission du heartbeat (5 min — le RPC classe online < 15 min, warning < 60 min). */
 const HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000;
@@ -57,6 +58,9 @@ export function useHeartbeat(barId: string | undefined) {
             try {
                 const stats = await offlineQueue.getStats(barId);
                 const appVersion = await getAppVersion();
+                // peek (pas reset) : les compteurs ne sont effacés qu'après
+                // confirmation d'écriture réussie, cf. tracker.reset() plus bas.
+                const quality = connectionQualityTracker.peek();
 
                 if (cancelled) return;
 
@@ -65,13 +69,20 @@ export function useHeartbeat(barId: string | undefined) {
                     p_device_id: getDeviceId(),
                     p_app_version: appVersion,
                     p_unsynced_count: stats.pendingCount,
+                    p_recent_sale_timeouts: quality.saleTimeouts,
+                    p_recent_network_drops: quality.networkDrops,
                     // battery_level : optionnel côté RPC. La Battery Status API est
                     // dépréciée/absente sur la plupart des navigateurs mobiles → omis.
                 });
 
                 if (error) {
                     // Non bloquant : le heartbeat est de l'observabilité, jamais du chemin critique.
+                    // Compteurs NON acquittés : ils seront renvoyés (cumulés) au prochain tick.
                     console.warn('[useHeartbeat] log_heartbeat failed (non-blocking):', error.message);
+                } else {
+                    // Acquitte exactement ce qui a été transmis (pas un reset absolu) —
+                    // préserve tout événement survenu pendant l'appel réseau du RPC.
+                    connectionQualityTracker.acknowledge(quality);
                 }
             } catch (err) {
                 console.warn('[useHeartbeat] heartbeat error (non-blocking):', err);

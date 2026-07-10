@@ -26,8 +26,17 @@ export interface BarHealthStatus {
   last_heartbeat_at: string | null;
   unsynced_count: number;
   battery_level: number | null;
+  /** Présence : dernier heartbeat < 15 min / < 60 min / au-delà. */
   status: 'online' | 'warning' | 'offline';
   minutes_since_heartbeat: number;
+  /** Tentatives de vente échouées pour cause réseau depuis le heartbeat précédent. */
+  recent_sale_timeouts: number;
+  /** Transitions réseau vers unstable/offline depuis le heartbeat précédent. */
+  recent_network_drops: number;
+  /** Qualité de connexion — indépendante de `status` : un appareil "online"
+   *  peut avoir une connexion 'degraded' (coupures fréquentes entre deux
+   *  heartbeats). 'unknown' si l'appareil n'a jamais émis de signal. */
+  connection_quality: 'good' | 'degraded' | 'unknown';
 }
 
 export interface SecurityDashboardData {

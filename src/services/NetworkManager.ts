@@ -2,6 +2,7 @@
 // Architecture: Event-driven avec ping server pour validation réelle
 
 import type { NetworkStatus } from '../types/sync';
+import { connectionQualityTracker } from './ConnectionQualityTracker';
 
 /**
  * Type de callback pour les listeners
@@ -207,6 +208,16 @@ class NetworkManagerService {
       const oldStatus = this.status;
       this.status = newStatus;
       console.log(`[NetworkManager] Status changed: ${oldStatus} → ${newStatus}`);
+
+      // 📡 Signal qualité connexion : une DÉGRADATION (transition vers unstable
+      // ou offline) est un symptôme réel de connexion qui coupe, remonté au
+      // prochain heartbeat. On ne compte que les entrées dans ces états, pas
+      // les sorties ('checking'→'online') pour éviter de compter double sur
+      // les rebonds unstable→offline→unstable pendant une même coupure prolongée.
+      if (newStatus === 'unstable' || (newStatus === 'offline' && oldStatus !== 'unstable')) {
+        connectionQualityTracker.recordNetworkDrop();
+      }
+
       this.notifyListeners();
     }
   }

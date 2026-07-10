@@ -292,7 +292,7 @@ export default function SecurityDashboardPage() {
         <div className="space-y-6">
           <Alert show={true} variant="info">
             <p className="text-sm">
-              <span className="font-semibold">Info :</span> La vue "Santé des Bars" permet de voir en temps réel quels établissements sont connectés et synchronisés. Un bar apparaît "En ligne" si un appareil a émis un signal dans les 15 dernières minutes.
+              <span className="font-semibold">Info :</span> La vue "Santé des Bars" permet de voir en temps réel quels établissements sont connectés et synchronisés. Un bar apparaît "En ligne" si un appareil a émis un signal dans les 15 dernières minutes. Le badge <span className="font-semibold">Connexion dégradée</span> signale un appareil qui répond mais dont les ventes échouent ou dont le réseau coupe par intermittence — utile pour confirmer un signalement "l'app ne marche pas" même quand le bar apparaît "En ligne".
             </p>
           </Alert>
 
@@ -313,10 +313,12 @@ export default function SecurityDashboardPage() {
                   offline: { label: 'Hors ligne', dot: 'bg-red-500', text: 'text-red-700 dark:text-red-400', ring: 'border-red-200 dark:border-red-900/40' },
                 }[bar.status] ?? { label: bar.status, dot: 'bg-gray-400', text: 'text-foreground/70', ring: 'border-border' };
 
+                const isDegraded = bar.connection_quality === 'degraded';
+
                 return (
                   <div
                     key={`${bar.bar_id}-${bar.device_id ?? 'none'}`}
-                    className={`bg-card rounded-2xl shadow-sm border p-5 ${statusConfig.ring}`}
+                    className={`bg-card rounded-2xl shadow-sm border p-5 ${isDegraded ? 'border-orange-300 dark:border-orange-800/60' : statusConfig.ring}`}
                   >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <h3 className="font-bold text-foreground leading-tight">{bar.bar_name}</h3>
@@ -325,6 +327,13 @@ export default function SecurityDashboardPage() {
                         {statusConfig.label}
                       </span>
                     </div>
+
+                    {isDegraded && (
+                      <div className="flex items-center gap-1.5 mb-3 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400 text-xs font-semibold">
+                        <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                        Connexion dégradée
+                      </div>
+                    )}
 
                     <div className="space-y-1.5 text-sm">
                       <div className="flex items-center justify-between">
@@ -339,6 +348,22 @@ export default function SecurityDashboardPage() {
                           {bar.unsynced_count}
                         </span>
                       </div>
+                      {bar.recent_sale_timeouts > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Ventes en échec réseau</span>
+                          <span className="font-semibold text-orange-600 dark:text-orange-400">
+                            {bar.recent_sale_timeouts}
+                          </span>
+                        </div>
+                      )}
+                      {bar.recent_network_drops > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Coupures réseau récentes</span>
+                          <span className="font-semibold text-orange-600 dark:text-orange-400">
+                            {bar.recent_network_drops}
+                          </span>
+                        </div>
+                      )}
                       {bar.app_version && (
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Version</span>

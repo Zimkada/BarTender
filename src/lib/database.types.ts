@@ -799,6 +799,8 @@ export type Database = {
           id: string
           ip_address: string | null
           last_heartbeat_at: string | null
+          recent_network_drops: number
+          recent_sale_timeouts: number
           unsynced_count: number | null
           user_agent: string | null
         }
@@ -811,6 +813,8 @@ export type Database = {
           id?: string
           ip_address?: string | null
           last_heartbeat_at?: string | null
+          recent_network_drops?: number
+          recent_sale_timeouts?: number
           unsynced_count?: number | null
           user_agent?: string | null
         }
@@ -823,6 +827,8 @@ export type Database = {
           id?: string
           ip_address?: string | null
           last_heartbeat_at?: string | null
+          recent_network_drops?: number
+          recent_sale_timeouts?: number
           unsynced_count?: number | null
           user_agent?: string | null
         }
@@ -3864,6 +3870,25 @@ export type Database = {
       }
     }
     Views: {
+      active_refresh_alerts: {
+        Row: {
+          avg_duration_ms: number | null
+          consecutive_failures: number | null
+          created_at: string | null
+          error_messages: string[] | null
+          failed_count: number | null
+          first_failure_at: string | null
+          id: string | null
+          incident_duration_seconds: number | null
+          last_failure_at: string | null
+          status: string | null
+          success_count: number | null
+          timeout_count: number | null
+          total_refreshes: number | null
+          view_name: string | null
+        }
+        Relationships: []
+      }
       admin_bars_list: {
         Row: {
           address: string | null
@@ -5463,9 +5488,12 @@ export type Database = {
           bar_id: string
           bar_name: string
           battery_level: number
+          connection_quality: string
           device_id: string
           last_heartbeat_at: string
           minutes_since_heartbeat: number
+          recent_network_drops: number
+          recent_sale_timeouts: number
           status: string
           unsynced_count: number
         }[]
@@ -5848,6 +5876,8 @@ export type Database = {
           p_bar_id: string
           p_battery_level?: number
           p_device_id: string
+          p_recent_network_drops?: number
+          p_recent_sale_timeouts?: number
           p_unsynced_count: number
         }
         Returns: undefined

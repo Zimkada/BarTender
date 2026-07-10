@@ -4,6 +4,7 @@ import type { SyncOperationCreateSale } from '../../types/sync';
 import { auditLogger } from '../../services/AuditLogger';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
+import { connectionQualityTracker } from '../ConnectionQualityTracker';
 import { generateUUID } from '../../utils/crypto';
 import { toSupabaseJson } from '../../lib/supabase-rpc.types';
 import { calculateBusinessDate, dateToYYYYMMDD, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
@@ -287,6 +288,12 @@ export class SalesService {
             console.error('[SalesService] Non-transient error, skipping retry');
             break;
           }
+
+          // 📡 Signal qualité connexion : tentative de vente ratée pour cause
+          // réseau (timeout/fetch échoué), qu'elle finisse par réussir au retry
+          // suivant ou non — c'est déjà un symptôme de connexion dégradée,
+          // remonté au prochain heartbeat (cf. ConnectionQualityTracker).
+          connectionQualityTracker.recordSaleTimeout();
         }
       }
 
