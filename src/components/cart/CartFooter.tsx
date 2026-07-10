@@ -180,7 +180,7 @@ export function CartFooter({
                                 <span className="text-[11px] font-black uppercase text-brand-primary group-hover:text-brand-dark transition-colors">
                                     Mettre sur un bon
                                 </span>
-                                <span className="text-[9px] text-brand-primary/60 font-medium">
+                                <span className="text-[9px] text-brand-primary/80 dark:text-white/70 font-medium">
                                     Différer le paiement
                                 </span>
                             </div>

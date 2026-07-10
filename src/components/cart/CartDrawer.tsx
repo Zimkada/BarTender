@@ -79,7 +79,8 @@ export function CartDrawer({
     useEffect(() => {
         if (effectiveServerId && selectedBon) {
             const currentTicket = ticketsWithSummary.find(t => t.id === selectedBon);
-            if (currentTicket && currentTicket.serverId !== effectiveServerId && currentTicket.serverId !== null) {
+            // ⚠️ serverId vaut undefined (jamais null) pour les bons sans serveur — cf. mapping useTickets
+            if (currentTicket && currentTicket.serverId != null && currentTicket.serverId !== effectiveServerId) {
                 setSelectedBon('');
             }
         }
