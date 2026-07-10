@@ -201,17 +201,17 @@ export const SecurityService = {
    */
   async getBarHealthStatus(): Promise<BarHealthStatus[]> {
     try {
-      // View not in generated types — cast table name to escape strict overload check
-      const { data, error } = await supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('admin_bars_health_status' as any)
-        .select('*')
-        .order('last_heartbeat_at', { ascending: false });
+      // RPC get_bar_health_status : agrège le dernier heartbeat par bar et calcule
+      // le statut online/warning/offline. Le RPC applique lui-même la garde
+      // super_admin (SECURITY DEFINER). L'ancienne implémentation lisait une vue
+      // admin_bars_health_status qui n'a jamais existé en base (404 systématique).
+      const { data, error } = await supabase.rpc('get_bar_health_status');
 
       if (error) throw error;
       return (data || []) as unknown as BarHealthStatus[];
-    } catch {
-      // 🛡️ Silent Error: Avoid spamming if view is missing
+    } catch (error) {
+      // 🛡️ Silent Error: éviter le spam si le RPC échoue (droits, réseau)
+      console.warn('[Security] Bar health status unreachable:', error);
       return [];
     }
   },

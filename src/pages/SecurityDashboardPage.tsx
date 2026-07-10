@@ -56,7 +56,7 @@ export default function SecurityDashboardPage() {
   const [refreshHistory, setRefreshHistory] = useState<MaterializedViewRefreshLog[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [previousAlertsCount, setPreviousAlertsCount] = useState(0);
-  const [, setBarHealthData] = useState<BarHealthStatus[]>([]);
+  const [barHealthData, setBarHealthData] = useState<BarHealthStatus[]>([]);
 
   const loadSecurityData = useCallback(async () => {
     if (currentSession?.role !== 'super_admin') return;
@@ -292,17 +292,65 @@ export default function SecurityDashboardPage() {
         <div className="space-y-6">
           <Alert show={true} variant="info">
             <p className="text-sm">
-              <span className="font-semibold">Info :</span> La vue "Santé des Bars" permet de voir en temps réel quels établissements sont connectés et synchronisés.
+              <span className="font-semibold">Info :</span> La vue "Santé des Bars" permet de voir en temps réel quels établissements sont connectés et synchronisés. Un bar apparaît "En ligne" si un appareil a émis un signal dans les 15 dernières minutes.
             </p>
           </Alert>
 
-          <div className="bg-card rounded-2xl shadow-sm border border-border p-8 text-center">
-            <Activity className="w-12 h-12 text-muted-foreground/60 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground">En attente des premiers signaux...</h3>
-            <p className="text-muted-foreground max-w-md mx-auto mt-2">
-              Le système "Heartbeat" vient d'être activé. Les données apparaîtront ici dès que les tablettes enverront leurs premiers pings (toutes les 5 minutes).
-            </p>
-          </div>
+          {barHealthData.length === 0 ? (
+            <div className="bg-card rounded-2xl shadow-sm border border-border p-8 text-center">
+              <Activity className="w-12 h-12 text-muted-foreground/60 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground">En attente des premiers signaux...</h3>
+              <p className="text-muted-foreground max-w-md mx-auto mt-2">
+                Aucun appareil n'a encore envoyé de signal. Les données apparaîtront ici dès que les tablettes des bars actifs enverront leurs premiers pings (toutes les 5 minutes).
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {barHealthData.map((bar) => {
+                const statusConfig = {
+                  online: { label: 'En ligne', dot: 'bg-green-500', text: 'text-green-700 dark:text-green-400', ring: 'border-green-200 dark:border-green-900/40' },
+                  warning: { label: 'Instable', dot: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-400', ring: 'border-amber-200 dark:border-amber-900/40' },
+                  offline: { label: 'Hors ligne', dot: 'bg-red-500', text: 'text-red-700 dark:text-red-400', ring: 'border-red-200 dark:border-red-900/40' },
+                }[bar.status] ?? { label: bar.status, dot: 'bg-gray-400', text: 'text-foreground/70', ring: 'border-border' };
+
+                return (
+                  <div
+                    key={`${bar.bar_id}-${bar.device_id ?? 'none'}`}
+                    className={`bg-card rounded-2xl shadow-sm border p-5 ${statusConfig.ring}`}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <h3 className="font-bold text-foreground leading-tight">{bar.bar_name}</h3>
+                      <span className={`flex items-center gap-1.5 text-xs font-semibold ${statusConfig.text} flex-shrink-0`}>
+                        <span className={`w-2 h-2 rounded-full ${statusConfig.dot}`} />
+                        {statusConfig.label}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Dernier signal</span>
+                        <span className="text-foreground/80 font-medium">
+                          {bar.last_heartbeat_at ? formatRelativeTime(bar.last_heartbeat_at) : 'Jamais'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">En attente de sync</span>
+                        <span className={`font-semibold ${bar.unsynced_count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-foreground/80'}`}>
+                          {bar.unsynced_count}
+                        </span>
+                      </div>
+                      {bar.app_version && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Version</span>
+                          <span className="text-foreground/80 font-mono text-xs">{bar.app_version}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

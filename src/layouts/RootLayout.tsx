@@ -12,6 +12,7 @@ import { realtimeService } from '../services/realtime/RealtimeService';
 import { broadcastService } from '../services/broadcast/BroadcastService';
 import { VersionCheckService } from '../services/versionCheck.service';
 import { useRoutePreload } from '../hooks/useRoutePreload';
+import { useHeartbeat } from '../hooks/useHeartbeat';
 import { networkManager } from '../services/NetworkManager';
 import { salesKeys } from '../hooks/queries/useSalesQueries';
 import { stockKeys } from '../hooks/queries/useStockQueries';
@@ -56,6 +57,11 @@ function RootLayoutContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // NEW
   const invalidationTimeoutRef = useRef<number | null>(null);
+
+  // 📡 Heartbeat : signale la présence de l'appareil au dashboard SuperAdmin.
+  // Monté ici (pas dans App.tsx) car le RPC log_heartbeat requiert un utilisateur
+  // authentifié membre du bar. Ne s'exécute que si un bar est actif.
+  useHeartbeat(currentBar?.id);
 
   // 📦 Préchargement des pages critiques pour les utilisateurs bar
   useRoutePreload([
