@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDebounce } from 'use-debounce';
 import {
   Building2, Search, Filter, ChevronLeft, ChevronRight, History
@@ -15,7 +16,15 @@ import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundar
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { BarAuditLogsModal } from '../../components/admin/BarAuditLogsViewer';
 
+const VALID_STATUS_FILTERS = ['all', 'active', 'suspended'] as const;
+type StatusFilter = typeof VALID_STATUS_FILTERS[number];
+
+function isValidStatusFilter(value: string | null): value is StatusFilter {
+  return VALID_STATUS_FILTERS.includes(value as StatusFilter);
+}
+
 export default function BarsManagementPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [bars, setBars] = useState<Bar[]>([]);
   const [allBarMembers, setAllBarMembers] = useState<(BarMember & { user: User })[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,7 +33,12 @@ export default function BarsManagementPage() {
   const [limit] = useState(10);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  // Initialisé depuis ?status= (ex: lien "Bars Suspendus" du Dashboard) —
+  // valeur externe non fiable, validée par isValidStatusFilter, repli 'all'.
+  const urlStatus = searchParams.get('status');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    isValidStatusFilter(urlStatus) ? urlStatus : 'all'
+  );
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [error, setError] = useState<string | null>(null);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
@@ -177,7 +191,13 @@ export default function BarsManagementPage() {
                     { value: 'suspended', label: '🚫 Suspendus uniquement' },
                   ]}
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'suspended')}
+                  onChange={(e) => {
+                    const next = e.target.value as StatusFilter;
+                    setStatusFilter(next);
+                    // Garde l'URL représentative de l'état affiché (lien partageable,
+                    // cohérent au rechargement) — retire le param si on revient à 'all'.
+                    setSearchParams(next === 'all' ? {} : { status: next }, { replace: true });
+                  }}
                   className="pl-10"
                 />
               </div>
@@ -215,6 +235,7 @@ export default function BarsManagementPage() {
                 onClick={() => {
                   setSearchQuery('');
                   setStatusFilter('all');
+                  setSearchParams({}, { replace: true });
                 }}
                 className="text-purple-600 hover:text-purple-700 font-semibold inline-flex items-center gap-2"
               >

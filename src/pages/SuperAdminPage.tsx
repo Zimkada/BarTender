@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Wifi,
   Building2,
@@ -76,7 +77,10 @@ export default function SuperAdminPage() {
       .then((bars) => {
         setBarOptions([
           { value: '', label: 'Tous les bars' },
-          ...bars.map((b) => ({ value: b.id, label: b.name })),
+          ...bars.map((b) => ({
+            value: b.id,
+            label: b.is_active ? b.name : `${b.name} (suspendu)`,
+          })),
         ]);
       })
       .catch((err) => console.error('Erreur chargement des bars:', err));
@@ -196,7 +200,10 @@ export default function SuperAdminPage() {
             <span className="text-xs text-muted-foreground">Toutes périodes, tous bars</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/30 rounded-xl p-4 shadow-sm border border-purple-200 dark:border-purple-900/40">
+            <Link
+              to="/admin/bars"
+              className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/30 rounded-xl p-4 shadow-sm border border-purple-200 dark:border-purple-900/40 transition-all hover:shadow-md hover:border-purple-400 dark:hover:border-purple-700 cursor-pointer"
+            >
               <div className="flex items-start gap-3">
                 <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                 <div>
@@ -204,8 +211,11 @@ export default function SuperAdminPage() {
                   <p className="text-2xl md:text-3xl font-bold text-purple-600 dark:text-purple-400">{stats.bars_count}</p>
                 </div>
               </div>
-            </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-900/30 rounded-xl p-4 shadow-sm border border-green-200 dark:border-green-900/40">
+            </Link>
+            <Link
+              to="/admin/bars?status=active"
+              className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/40 dark:to-green-900/30 rounded-xl p-4 shadow-sm border border-green-200 dark:border-green-900/40 transition-all hover:shadow-md hover:border-green-400 dark:hover:border-green-700 cursor-pointer"
+            >
               <div className="flex items-start gap-3">
                 <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 flex-shrink-0" />
                 <div>
@@ -213,8 +223,11 @@ export default function SuperAdminPage() {
                   <p className="text-2xl md:text-3xl font-bold text-green-600 dark:text-green-400">{stats.active_bars_count}</p>
                 </div>
               </div>
-            </div>
-            <div className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/30 rounded-xl p-4 shadow-sm border border-red-200 dark:border-red-900/40">
+            </Link>
+            <Link
+              to="/admin/bars?status=suspended"
+              className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/30 rounded-xl p-4 shadow-sm border border-red-200 dark:border-red-900/40 transition-all hover:shadow-md hover:border-red-400 dark:hover:border-red-700 cursor-pointer"
+            >
               <div className="flex items-start gap-3">
                 <XCircle className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0" />
                 <div>
@@ -222,7 +235,7 @@ export default function SuperAdminPage() {
                   <p className="text-2xl md:text-3xl font-bold text-red-600 dark:text-red-400">{suspendedBarsCount}</p>
                 </div>
               </div>
-            </div>
+            </Link>
           </div>
           {suspendedBarsCount > 0 && (
             <Alert show={suspendedBarsCount > 0} variant="destructive" className="mt-3">
