@@ -480,7 +480,7 @@ export class AuthService {
     barAddress?: string | null,
     barPhone?: string | null,
     barSettings?: Json
-  ): Promise<{ success: boolean; barId?: string; barName?: string; barAddress?: string; barPhone?: string; error?: string }> {
+  ): Promise<{ success: boolean; barId?: string; barName?: string; barAddress?: string; barPhone?: string; subscriptionDueDate?: string; subscriptionStartDate?: string; billingExempt?: boolean; error?: string }> {
     try {
       // ✅ Validate inputs before sending to RPC
       if (!ownerId || !barName?.trim()) {
@@ -521,6 +521,10 @@ export class AuthService {
         bar_name: string;
         bar_address: string | null;
         bar_phone: string | null;
+        // Essai gratuit 30 jours posé à la création (migration 20260716000001)
+        subscription_due_date?: string | null;
+        subscription_start_date?: string | null;
+        billing_exempt?: boolean;
       }
 
       const result = data as unknown as SetupBarResult;
@@ -535,6 +539,9 @@ export class AuthService {
         barName: result.bar_name,
         barAddress: result.bar_address || undefined,
         barPhone: result.bar_phone || undefined,
+        subscriptionDueDate: result.subscription_due_date || undefined,
+        subscriptionStartDate: result.subscription_start_date || undefined,
+        billingExempt: result.billing_exempt ?? false,
       };
     } catch (error) {
       console.error('AuthService setupPromoterBar error:', error);

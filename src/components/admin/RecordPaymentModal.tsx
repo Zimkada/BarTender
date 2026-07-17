@@ -6,6 +6,7 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { useBeninCurrency } from '../../hooks/useBeninCurrency';
 import { useSubscriptions } from '../../hooks/useSubscriptions';
+import { SUBSCRIPTION_MONTHS_OPTIONS } from '../../utils/subscriptionHelpers';
 import { getPlanPrice } from '../../config/plans';
 import type { Bar, SubscriptionPaymentMethod } from '../../types';
 
@@ -14,13 +15,6 @@ interface RecordPaymentModalProps {
   onClose: () => void;
   onRecorded: () => void;
 }
-
-const MONTHS_OPTIONS = [
-  { value: '1', label: '1 mois' },
-  { value: '3', label: '3 mois' },
-  { value: '6', label: '6 mois' },
-  { value: '12', label: '12 mois (1 an)' },
-];
 
 const METHOD_OPTIONS: { value: SubscriptionPaymentMethod; label: string }[] = [
   { value: 'momo', label: 'Mobile Money' },
@@ -90,7 +84,7 @@ export const RecordPaymentModal: React.FC<RecordPaymentModalProps> = ({ bar, onC
 
         <Select
           label="Nombre de mois couverts"
-          options={MONTHS_OPTIONS}
+          options={[...SUBSCRIPTION_MONTHS_OPTIONS]}
           value={months}
           onChange={(e) => {
             setMonths(e.target.value);

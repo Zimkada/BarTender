@@ -53,6 +53,19 @@ export const FEATURES = {
      * Advanced: Show mode switching UI in settings (only if ENABLE_SWITCHING_MODE is true)
      */
     SHOW_SWITCHING_MODE_UI: true,
+
+    /**
+     * Paiement d'abonnement via checkout FedaPay (Mobile Money hébergé).
+     *
+     * Default: false (OFF) — tant que le compte marchand FedaPay n'est pas actif
+     * ET que les Edge Functions ne sont pas déployées, on n'affiche PAS le bouton
+     * "Payer par Mobile Money" (il échouerait). Le paiement MoMo direct (numéros +
+     * motif affichés) reste le canal disponible au démarrage.
+     *
+     * Passer à true une fois : migrations exécutées, secrets FedaPay posés,
+     * Edge Functions déployées, webhook enregistré côté FedaPay.
+     */
+    FEDAPAY_CHECKOUT_ENABLED: false,
 } as const;
 
 /**

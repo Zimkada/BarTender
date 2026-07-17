@@ -2,10 +2,15 @@
 // Le statut n'est jamais stocké : il est dérivé de subscriptionDueDate.
 //
 // ⭐ SOURCE DE VÉRITÉ : la SubscriptionsPage consomme le statut calculé CÔTÉ SERVEUR
-// par le RPC get_subscription_overview (migration 20260607000000). computeSubscriptionStatus()
-// est un MIROIR de cette logique, conservé pour : tests unitaires, calcul local éventuel,
-// et fallback. Il DOIT rester identique au RPC (même seuil due_soon, même règle overdue).
+// par le RPC get_subscription_overview. computeSubscriptionStatus() est un MIROIR de
+// cette logique, conservé pour : tests unitaires, calcul local éventuel, et fallback.
+// Il DOIT rester identique au RPC (même seuil due_soon, même règle overdue).
 // Si tu modifies un seuil ici, modifie aussi le CASE du RPC, et inversement.
+//
+// ⚠️ Les statuts 'trial' et 'exempt' NE SONT PAS produits ici : ils dépendent
+// respectivement de l'existence d'un paiement enregistré et du flag billing_exempt,
+// non dérivables de la seule dueDate. Ils sont SERVEUR-ONLY (get_subscription_overview
+// et get_my_subscription_status). Ce miroir reste fidèle pour les 4 statuts historiques.
 
 import type { SubscriptionStatus } from '../types';
 
@@ -80,12 +85,15 @@ export function computeNextDueDate(
   return addMonths(base, monthsCovered);
 }
 
-/** Ordre de tri : retards en premier, puis échéances proches, etc. */
+/** Ordre de tri : retards en premier, puis échéances proches, etc.
+ *  Aligné sur l'ORDER BY de get_subscription_overview (exempt en dernier). */
 const STATUS_SORT_ORDER: Record<SubscriptionStatus, number> = {
   overdue: 0,
   due_soon: 1,
   never_paid: 2,
-  up_to_date: 3,
+  trial: 3,
+  up_to_date: 4,
+  exempt: 5,
 };
 
 export function subscriptionStatusSortWeight(status: SubscriptionStatus): number {
@@ -98,4 +106,27 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   due_soon: 'Échéance proche',
   overdue: 'En retard',
   never_paid: 'Jamais payé',
+  trial: 'Essai gratuit',
+  exempt: 'Exempté',
 };
+
+/**
+ * Durées d'abonnement proposées au paiement (manuel admin ET FedaPay).
+ * Source unique : utilisée par RecordPaymentModal et MySubscriptionSection.
+ */
+export const SUBSCRIPTION_MONTHS_OPTIONS = [
+  { value: '1', label: '1 mois' },
+  { value: '3', label: '3 mois' },
+  { value: '6', label: '6 mois' },
+  { value: '12', label: '12 mois (1 an)' },
+] as const;
+
+/** Formatage FR d'une date ISO d'abonnement (échéance, début). Vide → '—'. */
+export function formatSubscriptionDate(
+  date: string | undefined,
+  dateStyle: 'medium' | 'long' = 'medium',
+): string {
+  return date
+    ? new Intl.DateTimeFormat('fr-FR', { dateStyle }).format(new Date(date))
+    : '—';
+}

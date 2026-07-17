@@ -48,6 +48,12 @@ export interface Bar {
   settings: BarSettings;
   isSetupComplete?: boolean;
   theme_config?: unknown; // Configuration du thème (jsonb) — typé en ThemeConfig au point d'usage (ThemeContext)
+  // 🛡️ Facturation : colonnes dédiées en DB (PAS dans settings — un promoteur peut
+  // écrire settings ; ces colonnes ne sont modifiables que via RPC super_admin/service_role)
+  subscriptionDueDate?: string;   // Date ISO de la prochaine échéance
+  subscriptionStartDate?: string; // Date ISO de début d'abonnement (essai inclus)
+  billingExempt?: boolean;        // Bar exempté de facturation (test ou partenaire)
+  billingExemptReason?: string;   // Motif de l'exemption
 }
 
 export interface BarSettings {
@@ -60,8 +66,8 @@ export interface BarSettings {
   operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
   plan?: 'starter' | 'pro' | 'enterprise'; // Plan d'utilisation (contrôle membres, features, dataTier)
   dataTier?: 'lite' | 'balanced' | 'enterprise'; // Stratégie de chargement des données (dérivé du plan)
-  subscriptionStartDate?: string; // Date ISO du premier paiement d'abonnement
-  subscriptionDueDate?: string;   // Date ISO de la prochaine échéance d'abonnement
+  // ❌ subscriptionStartDate/subscriptionDueDate NE SONT PLUS ici : migrées en colonnes
+  // dédiées sur bars (cf. Bar.subscriptionDueDate) — migration 20260716000000
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
@@ -83,6 +89,8 @@ export interface BarSettings {
 
 export type SubscriptionPaymentMethod = 'momo' | 'cash' | 'bank' | 'other';
 
+export type SubscriptionPaymentProvider = 'manual' | 'fedapay';
+
 export interface SubscriptionPayment {
   id: string;
   barId: string;
@@ -92,13 +100,19 @@ export interface SubscriptionPayment {
   paidAt: string;           // Date ISO de l'encaissement
   periodStart: string;      // Date ISO début de période couverte
   periodEnd: string;        // Date ISO fin de période couverte
-  recordedBy?: string;      // userId du super_admin qui a enregistré
+  recordedBy?: string;      // userId du super_admin qui a enregistré (absent si provider)
   notes?: string;
   createdAt: string;
+  provider?: SubscriptionPaymentProvider;  // 'manual' (défaut) ou 'fedapay'
+  providerTransactionId?: string;          // ID transaction FedaPay (clé d'idempotence)
 }
 
-/** Statut d'abonnement dérivé de subscriptionDueDate (jamais stocké) */
-export type SubscriptionStatus = 'up_to_date' | 'due_soon' | 'overdue' | 'never_paid';
+/**
+ * Statut d'abonnement dérivé (jamais stocké).
+ * ⭐ 'trial' et 'exempt' sont calculés CÔTÉ SERVEUR uniquement (RPC) : ils dépendent
+ * de billing_exempt et de l'existence de paiements, non dérivables de la seule dueDate.
+ */
+export type SubscriptionStatus = 'up_to_date' | 'due_soon' | 'overdue' | 'never_paid' | 'trial' | 'exempt';
 
 export interface SubscriptionBarSummary {
   bar: Bar;

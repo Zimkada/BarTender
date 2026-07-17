@@ -14,6 +14,7 @@ import { Card } from '../components/ui/Card';
 import { Alert } from '../components/ui/Alert';
 import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { MySubscriptionSection } from '../components/settings/MySubscriptionSection';
 import { FEATURES } from '../config/features';
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -523,6 +524,11 @@ export default function SettingsPage() {
                     {/* Onglet Opérationnel */}
                     {activeTab === 'operational' && (
                         <div className="space-y-8">
+                            {/* Section Abonnement (paiement Mobile Money) — visible gérant + promoteur */}
+                            <MySubscriptionSection barId={currentBar.id} barName={currentBar.name} />
+
+                            <hr className="border-border" />
+
                             {/* Section Heures & Délais */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>

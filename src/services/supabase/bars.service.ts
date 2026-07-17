@@ -110,7 +110,7 @@ export class BarsService {
         throw new Error(handleSupabaseError(error));
       }
 
-      // ✅ Type-safe result from RPC (now includes full bar record)
+      // ✅ Type-safe result from RPC (now includes full bar record + billing/trial)
       interface BarCreationResult {
         success: boolean;
         bar_id: string;
@@ -125,6 +125,10 @@ export class BarsService {
         closing_hour: number;
         created_at: string;
         updated_at: string;
+        // Colonnes de facturation (essai 30 jours posé à la création — migration 20260716000001)
+        billing_exempt?: boolean;
+        subscription_start_date?: string | null;
+        subscription_due_date?: string | null;
       }
 
       const creationResult = result as unknown as BarCreationResult;
@@ -148,6 +152,10 @@ export class BarsService {
         settings: (creationResult.settings || {}) as BarSettings,
         theme_config: undefined, // Not returned by RPC
         isSetupComplete: false, // Newly created bars are not setup complete
+        // Facturation : le bar démarre en essai gratuit (dueDate = now + 30j)
+        billingExempt: creationResult.billing_exempt ?? false,
+        subscriptionStartDate: creationResult.subscription_start_date ?? undefined,
+        subscriptionDueDate: creationResult.subscription_due_date ?? undefined,
       };
     } catch (error) {
       throw new Error(handleSupabaseError(error));

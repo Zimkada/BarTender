@@ -4,6 +4,7 @@ import {
   computeNextDueDate,
   addMonths,
   subscriptionStatusSortWeight,
+  SUBSCRIPTION_STATUS_LABELS,
   DUE_SOON_THRESHOLD_DAYS,
 } from './subscriptionHelpers';
 
@@ -94,6 +95,29 @@ describe('subscriptionHelpers', () => {
       expect(subscriptionStatusSortWeight('due_soon')).toBeLessThan(
         subscriptionStatusSortWeight('up_to_date')
       );
+    });
+
+    it('place trial entre never_paid et up_to_date, exempt en dernier (aligné sur le RPC)', () => {
+      expect(subscriptionStatusSortWeight('never_paid')).toBeLessThan(
+        subscriptionStatusSortWeight('trial')
+      );
+      expect(subscriptionStatusSortWeight('trial')).toBeLessThan(
+        subscriptionStatusSortWeight('up_to_date')
+      );
+      expect(subscriptionStatusSortWeight('exempt')).toBeGreaterThan(
+        subscriptionStatusSortWeight('up_to_date')
+      );
+    });
+  });
+
+  describe('SUBSCRIPTION_STATUS_LABELS', () => {
+    it('fournit un libellé FR pour chacun des 6 statuts', () => {
+      expect(SUBSCRIPTION_STATUS_LABELS.trial).toBe('Essai gratuit');
+      expect(SUBSCRIPTION_STATUS_LABELS.exempt).toBe('Exempté');
+      // Aucun libellé manquant (le type garantit les clés, on vérifie les valeurs)
+      Object.values(SUBSCRIPTION_STATUS_LABELS).forEach((label) => {
+        expect(label.length).toBeGreaterThan(0);
+      });
     });
   });
 });

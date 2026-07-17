@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
-  CreditCard, Search, Filter, ChevronLeft, ChevronRight, History,
+  CreditCard, Search, Filter, ChevronLeft, ChevronRight, History, ShieldCheck,
 } from 'lucide-react';
 import { Bar, SubscriptionPayment, SubscriptionStatus } from '../../types';
 import { Select } from '../../components/ui/Select';
@@ -12,16 +12,19 @@ import { Modal } from '../../components/ui/Modal';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { RecordPaymentModal } from '../../components/admin/RecordPaymentModal';
+import { BillingExemptModal } from '../../components/admin/BillingExemptModal';
 import { useBeninCurrency } from '../../hooks/useBeninCurrency';
 import { useSubscriptions } from '../../hooks/useSubscriptions';
 import { getPlan } from '../../config/plans';
-import { SUBSCRIPTION_STATUS_LABELS } from '../../utils/subscriptionHelpers';
+import { SUBSCRIPTION_STATUS_LABELS, formatSubscriptionDate } from '../../utils/subscriptionHelpers';
 
-const STATUS_BADGE_VARIANT: Record<SubscriptionStatus, 'success' | 'warning' | 'danger' | 'secondary'> = {
+const STATUS_BADGE_VARIANT: Record<SubscriptionStatus, 'success' | 'warning' | 'danger' | 'secondary' | 'info'> = {
   up_to_date: 'success',
   due_soon: 'warning',
   overdue: 'danger',
   never_paid: 'secondary',
+  trial: 'info',
+  exempt: 'secondary',
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -31,8 +34,7 @@ const METHOD_LABELS: Record<string, string> = {
   other: 'Autre',
 };
 
-const formatDate = (date: string | undefined) =>
-  date ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(date)) : '-';
+const formatDate = (date: string | undefined) => formatSubscriptionDate(date, 'medium');
 
 export default function SubscriptionsPage() {
   const { formatPrice } = useBeninCurrency();
@@ -55,6 +57,7 @@ export default function SubscriptionsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [paymentBar, setPaymentBar] = useState<Bar | null>(null);
+  const [exemptBar, setExemptBar] = useState<Bar | null>(null);
   const [historyBar, setHistoryBar] = useState<Bar | null>(null);
   const [history, setHistory] = useState<SubscriptionPayment[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -62,10 +65,14 @@ export default function SubscriptionsPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-  const loadBars = useCallback(async () => {
+  // silent : rechargement en arrière-plan (post-action) sans flash de skeleton.
+  // Un refetch reste nécessaire car le statut (trial/exempt/overdue…) est calculé
+  // côté serveur (le client ne peut pas le recalculer fidèlement) et le bar peut
+  // sortir du filtre courant après la modification — on garde la grille affichée.
+  const loadBars = useCallback(async (silent = false) => {
     try {
       setError(null);
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await getOverview({
         page: currentPage,
         limit,
@@ -78,9 +85,11 @@ export default function SubscriptionsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors du chargement des abonnements');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [currentPage, limit, debouncedSearchQuery, statusFilter, getOverview]);
+
+  const reloadSilently = useCallback(() => loadBars(true), [loadBars]);
 
   useEffect(() => { loadBars(); }, [loadBars]);
   useEffect(() => { setCurrentPage(1); }, [debouncedSearchQuery, statusFilter]);
@@ -141,7 +150,9 @@ export default function SubscriptionsPage() {
                     { value: 'overdue', label: 'En retard' },
                     { value: 'due_soon', label: 'Échéance proche' },
                     { value: 'up_to_date', label: 'À jour' },
+                    { value: 'trial', label: 'Essai gratuit' },
                     { value: 'never_paid', label: 'Jamais payé' },
+                    { value: 'exempt', label: 'Exempté' },
                   ]}
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as 'all' | SubscriptionStatus)}
@@ -202,22 +213,39 @@ export default function SubscriptionsPage() {
                       <p>
                         <span className="font-semibold">Plan :</span> {plan.label} - {formatPrice(plan.monthlyPriceXOF)}/mois
                       </p>
-                      <p>
-                        <span className="font-semibold">Prochaine échéance :</span>{' '}
-                        {formatDate(bar.settings?.subscriptionDueDate)}
-                        {status === 'overdue' && daysUntilDue !== null && (
-                          <span className="text-red-600 font-semibold"> (retard de {Math.abs(daysUntilDue)}j)</span>
-                        )}
-                        {status === 'due_soon' && daysUntilDue !== null && (
-                          <span className="text-yellow-700 font-semibold"> (dans {daysUntilDue}j)</span>
-                        )}
-                      </p>
+                      {status === 'exempt' ? (
+                        <p className="text-foreground/80">
+                          <span className="font-semibold">Exempté :</span>{' '}
+                          {bar.billingExemptReason || 'Motif non précisé'}
+                        </p>
+                      ) : (
+                        <p>
+                          <span className="font-semibold">
+                            {status === 'trial' ? 'Fin d\'essai :' : 'Prochaine échéance :'}
+                          </span>{' '}
+                          {formatDate(bar.subscriptionDueDate)}
+                          {status === 'overdue' && daysUntilDue !== null && (
+                            <span className="text-red-600 font-semibold"> (retard de {Math.abs(daysUntilDue)}j)</span>
+                          )}
+                          {(status === 'due_soon' || status === 'trial') && daysUntilDue !== null && (
+                            <span className="text-yellow-700 font-semibold"> (dans {daysUntilDue}j)</span>
+                          )}
+                        </p>
+                      )}
                       {!bar.isActive && <p className="text-red-600 font-semibold">Bar suspendu</p>}
                     </div>
 
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => setPaymentBar(bar)} className="flex-1">
                         <CreditCard className="w-4 h-4 mr-1" /> Enregistrer un paiement
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={bar.billingExempt ? 'default' : 'outline'}
+                        onClick={() => setExemptBar(bar)}
+                        title={bar.billingExempt ? 'Gérer l\'exemption' : 'Exempter ce bar'}
+                      >
+                        <ShieldCheck className="w-4 h-4" />
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => openHistory(bar)}>
                         <History className="w-4 h-4" />
@@ -257,7 +285,15 @@ export default function SubscriptionsPage() {
           <RecordPaymentModal
             bar={paymentBar}
             onClose={() => setPaymentBar(null)}
-            onRecorded={loadBars}
+            onRecorded={reloadSilently}
+          />
+        )}
+
+        {exemptBar && (
+          <BillingExemptModal
+            bar={exemptBar}
+            onClose={() => setExemptBar(null)}
+            onSaved={reloadSilently}
           />
         )}
 

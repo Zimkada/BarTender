@@ -45,5 +45,23 @@ export function useSubscriptions() {
     return AdminService.getSubscriptionPayments(barId);
   }, []);
 
-  return { getOverview, recordPayment, getHistory, isRecording, error };
+  const setBillingExempt = useCallback(async (input: {
+    barId: string;
+    exempt: boolean;
+    reason?: string;
+  }): Promise<void> => {
+    setIsRecording(true);
+    setError(null);
+    try {
+      await AdminService.setBarBillingExempt(input);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la modification de l\'exemption';
+      setError(message);
+      throw err;
+    } finally {
+      setIsRecording(false);
+    }
+  }, []);
+
+  return { getOverview, recordPayment, getHistory, setBillingExempt, isRecording, error };
 }

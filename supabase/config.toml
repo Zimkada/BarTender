@@ -48,3 +48,15 @@ entrypoint = "./functions/create-bar-member/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/create-bar-member/*.html" ]
+
+[functions.create-subscription-checkout]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/create-subscription-checkout/index.ts"
+
+[functions.fedapay-webhook]
+enabled = true
+# 🛡️ Public : FedaPay ne peut pas envoyer de JWT Supabase.
+# L'authentification est assurée par la vérification de signature HMAC dans la fonction.
+verify_jwt = false
+entrypoint = "./functions/fedapay-webhook/index.ts"

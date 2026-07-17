@@ -1286,6 +1286,8 @@ export type Database = {
       bars: {
         Row: {
           address: string | null
+          billing_exempt: boolean
+          billing_exempt_reason: string | null
           closing_hour: number | null
           created_at: string | null
           id: string
@@ -1297,11 +1299,15 @@ export type Database = {
           phone: string | null
           settings: Json | null
           setup_completed_at: string | null
+          subscription_due_date: string | null
+          subscription_start_date: string | null
           theme_config: Json | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          billing_exempt?: boolean
+          billing_exempt_reason?: string | null
           closing_hour?: number | null
           created_at?: string | null
           id?: string
@@ -1313,11 +1319,15 @@ export type Database = {
           phone?: string | null
           settings?: Json | null
           setup_completed_at?: string | null
+          subscription_due_date?: string | null
+          subscription_start_date?: string | null
           theme_config?: Json | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          billing_exempt?: boolean
+          billing_exempt_reason?: string | null
           closing_hour?: number | null
           created_at?: string | null
           id?: string
@@ -1329,6 +1339,8 @@ export type Database = {
           phone?: string | null
           settings?: Json | null
           setup_completed_at?: string | null
+          subscription_due_date?: string | null
+          subscription_start_date?: string | null
           theme_config?: Json | null
           updated_at?: string | null
         }
@@ -3400,6 +3412,89 @@ export type Database = {
           },
         ]
       }
+      subscription_payment_intents: {
+        Row: {
+          bar_id: string
+          consumed_at: string | null
+          created_at: string
+          created_by: string | null
+          expected_amount: number
+          months_covered: number
+          plan: string
+          provider_transaction_id: string
+        }
+        Insert: {
+          bar_id: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_amount: number
+          months_covered: number
+          plan: string
+          provider_transaction_id: string
+        }
+        Update: {
+          bar_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_amount?: number
+          months_covered?: number
+          plan?: string
+          provider_transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payment_intents_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payment_intents_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "subscription_payment_intents_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "subscription_payment_intents_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payment_intents_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payment_intents_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_payment_intents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_payments: {
         Row: {
           amount: number
@@ -3412,6 +3507,8 @@ export type Database = {
           paid_at: string
           period_end: string
           period_start: string
+          provider: string
+          provider_transaction_id: string | null
           recorded_by: string | null
         }
         Insert: {
@@ -3425,6 +3522,8 @@ export type Database = {
           paid_at?: string
           period_end: string
           period_start: string
+          provider?: string
+          provider_transaction_id?: string | null
           recorded_by?: string | null
         }
         Update: {
@@ -3438,6 +3537,8 @@ export type Database = {
           paid_at?: string
           period_end?: string
           period_start?: string
+          provider?: string
+          provider_transaction_id?: string | null
           recorded_by?: string | null
         }
         Relationships: [
@@ -4918,6 +5019,10 @@ export type Database = {
       }
     }
     Functions: {
+      _advance_subscription_due: {
+        Args: { p_bar_id: string; p_months: number }
+        Returns: Record<string, unknown>
+      }
       _get_target_user_id: {
         Args: { p_impersonating_user_id: string }
         Returns: string
@@ -5631,6 +5736,8 @@ export type Database = {
         Args: never
         Returns: {
           address: string | null
+          billing_exempt: boolean
+          billing_exempt_reason: string | null
           closing_hour: number | null
           created_at: string | null
           id: string
@@ -5642,6 +5749,8 @@ export type Database = {
           phone: string | null
           settings: Json | null
           setup_completed_at: string | null
+          subscription_due_date: string | null
+          subscription_start_date: string | null
           theme_config: Json | null
           updated_at: string | null
         }[]
@@ -5661,6 +5770,19 @@ export type Database = {
           phone: string
           role: string
           source_bar_name: string
+        }[]
+      }
+      get_my_subscription_status: {
+        Args: { p_bar_id: string }
+        Returns: {
+          billing_exempt: boolean
+          billing_exempt_reason: string
+          days_until_due: number
+          due_date: string
+          monthly_price: number
+          plan: string
+          start_date: string
+          subscription_status: string
         }[]
       }
       get_paginated_audit_logs: {
@@ -5728,6 +5850,7 @@ export type Database = {
           users: Json
         }[]
       }
+      get_plan_price: { Args: { p_plan: string }; Returns: number }
       get_subscription_overview: {
         Args: {
           p_limit?: number
@@ -5738,10 +5861,12 @@ export type Database = {
         Returns: {
           bars: Json
           due_soon_count: number
+          exempt_count: number
           mrr: number
           never_paid_count: number
           overdue_count: number
           total_count: number
+          trial_count: number
           up_to_date_count: number
         }[]
       }
@@ -5926,6 +6051,60 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      record_provider_subscription_payment: {
+        Args: {
+          p_method?: string
+          p_notes?: string
+          p_paid_amount: number
+          p_provider_transaction_id: string
+        }
+        Returns: {
+          amount: number
+          bar_id: string
+          created_at: string
+          id: string
+          method: string
+          months_covered: number
+          notes: string | null
+          paid_at: string
+          period_end: string
+          period_start: string
+          provider: string
+          provider_transaction_id: string | null
+          recorded_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_subscription_intent: {
+        Args: {
+          p_bar_id: string
+          p_created_by?: string
+          p_months_covered: number
+          p_plan: string
+          p_provider_transaction_id: string
+        }
+        Returns: {
+          bar_id: string
+          consumed_at: string | null
+          created_at: string
+          created_by: string | null
+          expected_amount: number
+          months_covered: number
+          plan: string
+          provider_transaction_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_payment_intents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       record_subscription_payment: {
         Args: {
           p_amount: number
@@ -5945,6 +6124,8 @@ export type Database = {
           paid_at: string
           period_end: string
           period_start: string
+          provider: string
+          provider_transaction_id: string | null
           recorded_by: string | null
         }
         SetofOptions: {
@@ -6017,6 +6198,35 @@ export type Database = {
           error_message: string
           success: boolean
         }[]
+      }
+      set_bar_billing_exempt: {
+        Args: { p_bar_id: string; p_exempt: boolean; p_reason?: string }
+        Returns: {
+          address: string | null
+          billing_exempt: boolean
+          billing_exempt_reason: string | null
+          closing_hour: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_setup_complete: boolean | null
+          logo_url: string | null
+          name: string
+          owner_id: string | null
+          phone: string | null
+          settings: Json | null
+          setup_completed_at: string | null
+          subscription_due_date: string | null
+          subscription_start_date: string | null
+          theme_config: Json | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bars"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       setup_promoter_bar: {
         Args: {

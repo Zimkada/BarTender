@@ -499,6 +499,29 @@ export class AdminService {
       throw new Error(handleSupabaseError(error));
     }
   }
+
+  /**
+   * Active/désactive l'exemption de facturation d'un bar (super_admin only).
+   * Le RPC set_bar_billing_exempt écrit les colonnes protégées par trigger.
+   * Un motif est obligatoire à l'activation.
+   */
+  static async setBarBillingExempt(params: {
+    barId: string;
+    exempt: boolean;
+    reason?: string;
+  }): Promise<void> {
+    try {
+      const { error } = await supabase.rpc('set_bar_billing_exempt', {
+        p_bar_id: params.barId,
+        p_exempt: params.exempt,
+        p_reason: params.reason || undefined,
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
 }
 
 // Reflète les colonnes de la table subscription_payments (snake_case)
@@ -514,11 +537,17 @@ interface SubscriptionPaymentRow {
   recorded_by: string | null;
   notes: string | null;
   created_at: string;
+  provider?: 'manual' | 'fedapay' | null;
+  provider_transaction_id?: string | null;
 }
 
 interface SubscriptionOverviewBarRow extends BarFromRPC {
   subscription_status: SubscriptionStatus;
   days_until_due: number | null;
+  subscription_due_date: string | null;
+  subscription_start_date: string | null;
+  billing_exempt: boolean | null;
+  billing_exempt_reason: string | null;
 }
 
 interface SubscriptionOverviewRow {
@@ -529,6 +558,8 @@ interface SubscriptionOverviewRow {
   due_soon_count: number | string | null;
   never_paid_count: number | string | null;
   up_to_date_count: number | string | null;
+  trial_count: number | string | null;
+  exempt_count: number | string | null;
 }
 
 function toNumber(value: number | string | null | undefined): number {
@@ -550,6 +581,10 @@ function mapSubscriptionOverview(row: SubscriptionOverviewRow | undefined): Subs
         isActive: bar.is_active,
         closingHour: bar.closing_hour,
         settings: (bar.settings ?? {}) as Bar['settings'],
+        subscriptionDueDate: bar.subscription_due_date ?? undefined,
+        subscriptionStartDate: bar.subscription_start_date ?? undefined,
+        billingExempt: bar.billing_exempt ?? false,
+        billingExemptReason: bar.billing_exempt_reason ?? undefined,
       },
       status: bar.subscription_status,
       daysUntilDue: bar.days_until_due,
@@ -561,6 +596,8 @@ function mapSubscriptionOverview(row: SubscriptionOverviewRow | undefined): Subs
       due_soon: toNumber(row?.due_soon_count),
       never_paid: toNumber(row?.never_paid_count),
       up_to_date: toNumber(row?.up_to_date_count),
+      trial: toNumber(row?.trial_count),
+      exempt: toNumber(row?.exempt_count),
     },
   };
 }
@@ -578,5 +615,7 @@ function mapSubscriptionPayment(row: SubscriptionPaymentRow): SubscriptionPaymen
     recordedBy: row.recorded_by ?? undefined,
     notes: row.notes ?? undefined,
     createdAt: row.created_at,
+    provider: row.provider ?? undefined,
+    providerTransactionId: row.provider_transaction_id ?? undefined,
   };
 }
