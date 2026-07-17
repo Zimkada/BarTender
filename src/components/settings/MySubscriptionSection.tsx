@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CreditCard, CheckCircle, Gift, ShieldCheck, AlertTriangle, Loader2, Smartphone, Copy, Check } from 'lucide-react';
+import { CreditCard, CheckCircle, Gift, ShieldCheck, AlertTriangle, Loader2, Smartphone, Copy, Check, Zap, Clock } from 'lucide-react';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Alert } from '../ui/Alert';
+import { Badge } from '../ui/Badge';
 import { useBeninCurrency } from '../../hooks/useBeninCurrency';
 import { useMySubscription } from '../../hooks/useMySubscription';
 import {
@@ -176,7 +177,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                 </p>
               )}
 
-              {/* Formulaire de paiement — durée + montant, commun aux deux canaux */}
+              {/* Durée + montant — commun aux deux moyens de paiement */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end pt-2">
                 <Select
                   label="Durée à payer"
@@ -185,36 +186,61 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                   onChange={(e) => setMonths(e.target.value)}
                 />
                 <div className="rounded-lg bg-muted p-3 text-sm">
-                  <span className="text-muted-foreground">Montant : </span>
+                  <span className="text-muted-foreground">Montant à payer : </span>
                   <span className="font-semibold text-foreground">{formatPrice(amount)}</span>
                 </div>
               </div>
 
-              {/* Canal 1 — Paiement FedaPay (checkout hébergé), affiché seulement si actif */}
+              {/* Intitulé : on présente les moyens comme un choix explicite */}
+              <p className="text-sm font-medium text-foreground pt-1">
+                {FEATURES.FEDAPAY_CHECKOUT_ENABLED
+                  ? 'Choisissez votre moyen de paiement :'
+                  : 'Comment payer votre abonnement :'}
+              </p>
+
+              {/* Moyen 1 — Paiement en ligne (FedaPay), affiché seulement si actif */}
               {FEATURES.FEDAPAY_CHECKOUT_ENABLED && (
-                <div className="space-y-2">
+                <div className="rounded-xl border bg-brand-subtle border-brand-primary shadow-sm p-4 space-y-3 transition-all">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-foreground">
+                      <CreditCard size={18} className="text-brand-primary" />
+                      <h4 className="font-semibold text-sm">Payer en ligne</h4>
+                    </div>
+                    <Badge variant="success" size="sm">
+                      <Zap size={12} className="mr-1" /> Activation immédiate
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Vous êtes redirigé vers une page sécurisée pour payer par Mobile Money.
+                    Votre abonnement est activé automatiquement dès le paiement confirmé.
+                  </p>
                   <Button
                     onClick={handlePay}
                     disabled={isRedirecting || isConfirming || amount <= 0}
                     className="w-full sm:w-auto"
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
-                    {isRedirecting ? 'Redirection…' : 'Payer par Mobile Money'}
+                    {isRedirecting ? 'Redirection…' : `Payer ${formatPrice(amount)} en ligne`}
                   </Button>
                   {checkoutError && <p className="text-sm text-red-600">{checkoutError}</p>}
                 </div>
               )}
 
-              {/* Canal 2 — Paiement MoMo direct : numéros + motif à recopier */}
-              <div className="rounded-lg border border-border p-4 space-y-3">
-                <div className="flex items-center gap-2 text-foreground">
-                  <Smartphone size={18} className="text-brand-primary" />
-                  <h4 className="font-semibold text-sm">Payer par Mobile Money direct</h4>
+              {/* Moyen 2 — Paiement direct sur nos numéros MoMo */}
+              <div className="rounded-xl border bg-brand-subtle border-brand-primary shadow-sm p-4 space-y-3 transition-all">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Smartphone size={18} className="text-brand-primary" />
+                    <h4 className="font-semibold text-sm">Payer sur nos numéros Mobile Money</h4>
+                  </div>
+                  <Badge variant="secondary" size="sm">
+                    <Clock size={12} className="mr-1" /> Validation manuelle
+                  </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Envoyez <span className="font-semibold text-foreground">{formatPrice(amount)}</span> à
-                  l'un des numéros ci-dessous, en indiquant <span className="font-semibold">exactement</span> le
-                  motif de référence. Votre abonnement sera activé après vérification du paiement.
+                  l'un des numéros ci-dessous en indiquant le nom de votre bar en motif.
+                  Votre abonnement sera activé après vérification manuelle de votre paiement.
                 </p>
 
                 <div className="space-y-2">
@@ -229,7 +255,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-xs font-medium text-foreground/80">Motif à indiquer (obligatoire) :</p>
+                  <p className="text-xs font-medium text-foreground/80">Motif à indiquer (Nom du bar) :</p>
                   <div className="flex items-center gap-2">
                     <code className="flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-mono select-all text-foreground">
                       {paymentReference}
@@ -239,7 +265,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Ce motif identifie votre bar et votre abonnement. Ne le modifiez pas.
+                    Ce motif nous aide à identifier votre bar.
                   </p>
                 </div>
               </div>
