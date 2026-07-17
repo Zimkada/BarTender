@@ -62,8 +62,10 @@ export const FEATURES = {
      * "Payer par Mobile Money" (il échouerait). Le paiement MoMo direct (numéros +
      * motif affichés) reste le canal disponible au démarrage.
      *
-     * Passer à true une fois : migrations exécutées, secrets FedaPay posés,
-     * Edge Functions déployées, webhook enregistré côté FedaPay.
+     * Flux validé de bout en bout en SANDBOX le 2026-07-17 (checkout + webhook +
+     * crédit d'abonnement OK). Reste à false tant que les secrets Supabase sont
+     * sandbox : passer à true UNIQUEMENT après bascule des clés FedaPay en LIVE
+     * (sinon les vrais bars paieraient vers l'environnement de test).
      */
     FEDAPAY_CHECKOUT_ENABLED: false,
 } as const;

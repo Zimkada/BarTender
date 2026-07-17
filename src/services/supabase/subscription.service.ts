@@ -66,7 +66,17 @@ export class SubscriptionService {
       });
 
       if (response.error) {
-        const message = response.error.context?.body?.error || response.error.message;
+        // Sur une FunctionsHttpError, `context` est l'objet Response HTTP brut :
+        // le vrai message JSON ({ error: "..." }) doit être lu via .json(), pas
+        // via response.error.message (qui reste "non-2xx status code" générique).
+        let message = response.error.message;
+        const ctx = (response.error as { context?: unknown }).context;
+        if (ctx instanceof Response) {
+          try {
+            const body = await ctx.clone().json();
+            if (body?.error) message = body.error;
+          } catch { /* body non-JSON : on garde le message générique */ }
+        }
         throw new Error(message);
       }
       if (response.data?.error) {

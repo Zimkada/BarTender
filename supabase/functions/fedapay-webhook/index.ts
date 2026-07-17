@@ -24,10 +24,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 /** Tolérance sur l'horodatage de la signature (anti-replay) */
 const SIGNATURE_TOLERANCE_SECONDS = 5 * 60
 
-/** Modes de paiement FedaPay -> méthodes internes */
+/** Modes de paiement FedaPay -> méthodes internes.
+ * Ce flux ne propose QUE du Mobile Money : un paiement approuvé est 'momo' par
+ * défaut. On ne classe 'other' que les modes explicitement non-MoMo (carte, etc.),
+ * plutôt que de deviner une liste exhaustive de codes MoMo (qui varie sandbox/prod). */
 function mapMethod(mode: string | undefined): 'momo' | 'other' {
   if (!mode) return 'momo'
-  return ['mtn', 'moov', 'mtn_open', 'mtn_ci', 'moov_tg', 'sbin'].includes(mode) ? 'momo' : 'other'
+  const m = mode.toLowerCase()
+  const nonMomo = ['card', 'bank', 'paypal', 'stripe', 'visa', 'mastercard']
+  return nonMomo.some((x) => m.includes(x)) ? 'other' : 'momo'
 }
 
 /** Comparaison à temps constant (anti timing attack) */

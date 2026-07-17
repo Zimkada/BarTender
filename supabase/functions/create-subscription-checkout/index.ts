@@ -57,47 +57,40 @@ serve(async (req) => {
 
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 3. Autorisation : promoteur/gérant actif de CE bar
-    const { data: membership } = await adminClient
-      .from('bar_members')
-      .select('role')
-      .eq('user_id', caller.id)
-      .eq('bar_id', barId)
-      .eq('is_active', true)
-      .in('role', ['promoteur', 'gerant'])
-      .limit(1)
+    // 3+4. Autorisation + lecture du plan + calcul du montant, TOUT côté SQL via RPC
+    // SECURITY DEFINER. On ne fait PAS de SELECT direct sur bars/bar_members : le rôle
+    // service_role n'a pas de privilège sur ces tables (durcissement RPC du projet).
+    // L'identité de l'appelant (caller.id) vient du JWT déjà vérifié par getUser().
+    const { data: prep, error: prepError } = await adminClient.rpc('prepare_subscription_checkout', {
+      p_caller_id: caller.id,
+      p_bar_id: barId,
+      p_months_covered: months,
+    })
 
-    if (!membership || membership.length === 0) {
-      return jsonResponse({ error: 'Permission denied: not a promoteur/gerant of this bar' }, 403)
+    if (prepError) {
+      const msg = prepError.message || ''
+      // Mapper les exceptions métier du RPC vers des statuts HTTP explicites.
+      if (msg.includes('Not authorized')) return jsonResponse({ error: 'Permission denied: not a promoteur/gerant of this bar' }, 403)
+      if (msg.includes('Bar not found')) return jsonResponse({ error: 'Bar not found' }, 404)
+      if (msg.includes('exempt')) return jsonResponse({ error: 'Ce bar est exempté de facturation' }, 400)
+      console.error('[create-subscription-checkout] prepare_subscription_checkout failed:', msg)
+      return jsonResponse({ error: 'Impossible de préparer le paiement' }, 500)
     }
 
-    // 4. Lire le bar + calculer le montant CÔTÉ SERVEUR
-    const { data: bar, error: barError } = await adminClient
-      .from('bars')
-      .select('id, name, settings, billing_exempt, is_active')
-      .eq('id', barId)
-      .single()
-
-    if (barError || !bar) {
-      return jsonResponse({ error: 'Bar not found' }, 404)
-    }
-    if (bar.billing_exempt) {
-      return jsonResponse({ error: 'Ce bar est exempté de facturation' }, 400)
+    const prepRow = Array.isArray(prep) ? prep[0] : prep
+    if (!prepRow) {
+      return jsonResponse({ error: 'Impossible de préparer le paiement' }, 500)
     }
 
-    const plan = (bar.settings as Record<string, unknown> | null)?.plan ?? 'starter'
-    const { data: monthlyPrice, error: priceError } = await adminClient
-      .rpc('get_plan_price', { p_plan: String(plan) })
-
-    if (priceError || typeof monthlyPrice !== 'number' || monthlyPrice <= 0) {
-      console.error('[create-subscription-checkout] get_plan_price failed:', priceError?.message)
-      return jsonResponse({ error: 'Impossible de déterminer le prix du plan' }, 500)
+    const plan = String(prepRow.plan)
+    const barName = String(prepRow.bar_name)
+    const expectedAmount = Math.round(Number(prepRow.expected_amount)) // XOF = unités entières
+    if (!(expectedAmount > 0)) {
+      return jsonResponse({ error: 'Montant invalide' }, 500)
     }
-
-    const expectedAmount = Math.round(monthlyPrice * months) // XOF = unités entières
 
     // 5. Créer la transaction FedaPay (API REST — pas de SDK, incompatible Deno)
     const fedapayBase = Deno.env.get('FEDAPAY_API_BASE') ?? 'https://sandbox-api.fedapay.com'
@@ -111,7 +104,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        description: `Abonnement BarTender ${plan} — ${months} mois — ${bar.name}`,
+        description: `Abonnement BarTender ${plan} - ${months} mois - ${barName}`,
         amount: expectedAmount,
         currency: { iso: 'XOF' },
         callback_url: `${appBaseUrl}/settings?payment=pending`,
