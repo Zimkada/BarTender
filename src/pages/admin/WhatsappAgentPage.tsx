@@ -45,7 +45,7 @@ const INTERET_BADGE: Record<string, 'danger' | 'warning' | 'success'> = {
 type Tab = 'conversations' | 'leads';
 
 export default function WhatsappAgentPage() {
-  const { listConversations, resumeBot, listLeads, updateLeadStatut, isMutating } = useWhatsappAgent();
+  const { listConversations, getConversation, resumeBot, listLeads, updateLeadStatut, isMutating } = useWhatsappAgent();
 
   const [tab, setTab] = useState<Tab>('conversations');
   const [conversations, setConversations] = useState<WaConversation[]>([]);
@@ -83,6 +83,19 @@ export default function WhatsappAgentPage() {
     if (tab === 'conversations') loadConversations();
     else loadLeads();
   }, [tab, loadConversations, loadLeads]);
+
+  // Ouvre la modale sur l'état affiché immédiatement, puis rafraîchit en arrière-plan
+  // (l'Edge Function a pu archiver de nouveaux messages ou changer le mode entre le
+  // chargement de la liste et le clic).
+  const openConversation = async (conv: WaConversation) => {
+    setSelected(conv);
+    try {
+      const fresh = await getConversation(conv.id);
+      if (fresh) setSelected((cur) => (cur?.id === fresh.id ? fresh : cur));
+    } catch {
+      // on garde l'aperçu de la liste si le refetch échoue — non bloquant
+    }
+  };
 
   const handleResumeBot = async (conv: WaConversation) => {
     try {
@@ -205,7 +218,7 @@ export default function WhatsappAgentPage() {
                     return (
                       <button
                         key={conv.id}
-                        onClick={() => setSelected(conv)}
+                        onClick={() => openConversation(conv)}
                         className={`text-left bg-card rounded-lg p-4 border-2 ${
                           conv.mode !== 'bot' ? 'border-red-200' : 'border-border'
                         } hover:shadow-lg transition-shadow`}

@@ -97,8 +97,10 @@ function mapLead(row: Record<string, unknown>): WaLead {
 
 export class WhatsappAgentService {
   /**
-   * Liste des conversations, triées : à traiter (mode ≠ bot) d'abord, puis par
-   * dernier message. Filtre optionnel par mode/profil pour l'onglet "à traiter".
+   * Liste des conversations, triées : celles à traiter (mode ≠ bot) d'abord, puis
+   * par dernier message. Le tri "à traiter d'abord" est appliqué côté client après
+   * le fetch (PostgREST ne trie pas simplement sur une expression booléenne) — sans
+   * incidence car le volume est borné à `limit`. Filtre optionnel par mode.
    */
   static async listConversations(params?: {
     modeFilter?: WaMode | 'a_traiter' | 'all';
@@ -118,7 +120,12 @@ export class WhatsappAgentService {
 
     const { data, error } = await query;
     if (error) throw new Error(handleSupabaseError(error));
-    return (data ?? []).map(mapConversation);
+
+    // Priorité "à traiter" : mode ≠ bot remonte en tête (l'ordre par
+    // last_message_at DESC est préservé au sein de chaque groupe car sort() est stable).
+    return (data ?? [])
+      .map(mapConversation)
+      .sort((a, b) => Number(a.mode === 'bot') - Number(b.mode === 'bot'));
   }
 
   static async getConversation(id: string): Promise<WaConversation | undefined> {
