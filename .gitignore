@@ -31,6 +31,9 @@ dist-ssr
 supabase/.env
 supabase/functions/.env
 
+# Supabase CLI local state (lien projet, jamais versionné)
+supabase/.temp/
+
 # Scripts de configuration avec secrets (si régénérés)
 setup-alerts.ps1
 setup-alerts.sh

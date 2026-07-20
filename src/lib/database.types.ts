@@ -3969,6 +3969,104 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_conversations: {
+        Row: {
+          created_at: string
+          escalade: Json | null
+          id: string
+          last_message_at: string | null
+          messages: Json
+          mode: string
+          phone: string
+          profil: string
+          updated_at: string
+          wa_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          escalade?: Json | null
+          id?: string
+          last_message_at?: string | null
+          messages?: Json
+          mode?: string
+          phone: string
+          profil?: string
+          updated_at?: string
+          wa_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          escalade?: Json | null
+          id?: string
+          last_message_at?: string | null
+          messages?: Json
+          mode?: string
+          phone?: string
+          profil?: string
+          updated_at?: string
+          wa_name?: string | null
+        }
+        Relationships: []
+      }
+      wa_leads: {
+        Row: {
+          besoin_principal: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          niveau_interet: string
+          nom_bar: string | null
+          nom_contact: string | null
+          phone: string
+          role: string | null
+          statut: string
+          taille_equipe: number | null
+          updated_at: string
+          ville: string | null
+          volume_activite: string | null
+        }
+        Insert: {
+          besoin_principal?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          niveau_interet?: string
+          nom_bar?: string | null
+          nom_contact?: string | null
+          phone: string
+          role?: string | null
+          statut?: string
+          taille_equipe?: number | null
+          updated_at?: string
+          ville?: string | null
+          volume_activite?: string | null
+        }
+        Update: {
+          besoin_principal?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          niveau_interet?: string
+          nom_bar?: string | null
+          nom_contact?: string | null
+          phone?: string
+          role?: string | null
+          statut?: string
+          taille_equipe?: number | null
+          updated_at?: string
+          ville?: string | null
+          volume_activite?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_leads_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       active_refresh_alerts: {
@@ -6050,6 +6148,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      prepare_subscription_checkout: {
+        Args: {
+          p_bar_id: string
+          p_caller_id: string
+          p_months_covered: number
+        }
+        Returns: {
+          bar_name: string
+          expected_amount: number
+          plan: string
+        }[]
       }
       record_provider_subscription_payment: {
         Args: {

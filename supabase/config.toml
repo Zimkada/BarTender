@@ -29,11 +29,16 @@ jwt_expiry = 3600
 [storage]
 file_size_limit = 52428800
 
-# The structure for functions has changed. 
+# The structure for functions has changed.
 # It is now configured per-function.
 # e.g., [functions.my-function]
 # import_map = "./functions/import_map.json"
 [functions]
+
+# Webhook Meta WhatsApp — pas de JWT possible côté Meta :
+# l'authentification = handshake verify_token (GET) + signature HMAC X-Hub-Signature-256 (POST)
+[functions.wa-webhook]
+verify_jwt = false
 
 [analytics]
 enabled = false
