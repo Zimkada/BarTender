@@ -49,6 +49,7 @@ const AuditLogsPage = lazyWithRetry(() => import('../pages/AuditLogsPage'));
 const SecurityDashboardPage = lazyWithRetry(() => import('../pages/SecurityDashboardPage'));
 const AdminNotificationsPage = lazyWithRetry(() => import('../pages/AdminNotificationsPage'));
 const SubscriptionsPage = lazyWithRetry(() => import('../pages/admin/SubscriptionsPage'));
+const WhatsappAgentPage = lazyWithRetry(() => import('../pages/admin/WhatsappAgentPage'));
 
 export const router = createBrowserRouter([
   // =====================
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       { path: 'subscriptions', element: <SubscriptionsPage /> },
       { path: 'users', element: <UsersManagementPage /> },
       { path: 'catalog', element: <GlobalCatalogPage /> },
+      { path: 'whatsapp', element: <WhatsappAgentPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'notifications', element: <AdminNotificationsPage /> },
       { path: 'security', element: <SecurityDashboardPage /> },

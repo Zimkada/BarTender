@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Shield,
   Bell,
-  CreditCard
+  CreditCard,
+  MessageCircle
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -26,6 +27,7 @@ const adminNavItems = [
   { path: '/admin/subscriptions', label: 'Abonnements', icon: CreditCard },
   { path: '/admin/users', label: 'Utilisateurs', icon: Users },
   { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
+  { path: '/admin/whatsapp', label: 'Agent WhatsApp', icon: MessageCircle },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
   { path: '/admin/notifications', label: 'Notifications', icon: Bell },
   { path: '/admin/security', label: 'Sécurité & Monitoring', icon: Shield },
@@ -43,6 +45,7 @@ function AdminLayoutContent() {
     () => import('../pages/admin/SubscriptionsPage'),
     () => import('../pages/admin/UsersManagementPage'),
     () => import('../pages/GlobalCatalogPage'),
+    () => import('../pages/admin/WhatsappAgentPage'),
     () => import('../pages/AuditLogsPage'),
     () => import('../pages/AdminNotificationsPage'),
     () => import('../pages/SecurityDashboardPage'),
