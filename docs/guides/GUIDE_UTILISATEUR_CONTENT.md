@@ -97,7 +97,7 @@ export const GUIDE_TRIGGERS = {
       "action": "Validez une vente en cliquant sur ✓ ou rejetez-la avec ✗",
       "tips": [
         "Validez en masse: cochez plusieurs ventes et cliquez 'Valider'",
-        "Une vente rejetée peut être modifiée par le serveur"
+        "Une vente rejetée est définitive : le serveur doit en créer une nouvelle si besoin"
       ],
       "media": null
     },
@@ -441,7 +441,7 @@ export const GUIDE_TRIGGERS = {
       "position": "bottom",
       "action": "Cliquez ✓ pour valider ou ✗ pour rejeter",
       "tips": [
-        "Rejet = la vente revient au serveur pour correction",
+        "Rejet = la vente est définitivement rejetée (le serveur doit en recréer une si besoin)",
         "Validation = la vente est finale"
       ],
       "media": null

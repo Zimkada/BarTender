@@ -84,7 +84,7 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
         '💰 Paiement = Spécifiez à la création (cash par défaut)',
         '⏳ Vente reste "en attente" jusqu\'à validation gérant',
         '📱 Pouvez voir ventes en attente dans Dashboard → Synthèse',
-        '🔄 Rejet possible : Si gérant rejette, modifiez et renvoyez',
+        '🔄 Rejet possible : Si gérant rejette, la vente est définitive → créez-en une nouvelle',
       ],
     },
 
@@ -93,11 +93,11 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       emoji: '📊',
       title: 'Mode Complet - Serveur : Vos Performances',
       description:
-        'Votre **historique personnel** (page "Historique") affiche toutes vos ventes : **validées** (finales, comptabilisées), **rejetées** (retournées pour correction), **annulées** (supprimées par promoteur). Analysez vos **CA net** et nombre de ventes pour progresser. Gérant utilise ces données pour vous motiver !',
+        'Votre **historique personnel** (page "Historique") affiche toutes vos ventes : **validées** (finales, comptabilisées), **rejetées** (définitives, non comptabilisées), **annulées** (supprimées par promoteur). Analysez vos **CA net** et nombre de ventes pour progresser. Gérant utilise ces données pour vous motiver !',
       visibleFor: ['serveur'],
       tips: [
         '✅ Ventes Validées = Finales, stock déduit, comptabilisées',
-        '❌ Ventes Rejetées = À modifier et renvoyer (ou ignorer)',
+        '❌ Ventes Rejetées = définitives, non comptabilisées (recréez si besoin)',
         '🚫 Ventes Annulées = Supprimées par promoteur (rare)',
         '📈 Consultez pour savoir quels produits/heures vous performez bien',
       ],
@@ -124,12 +124,12 @@ export const SALES_PROCESS_GUIDE: GuideTour = {
       emoji: '✅',
       title: 'Mode Complet - Gérant : Valider les Ventes',
       description:
-        '**Dashboard → Onglet "Gestion Commandes"** affiche toutes les ventes serveurs en **attente de validation**. Pour chaque vente : voir heure, montant, articles. **Actions** : ✅ Valider (stock déduit, comptabilisé) ou ❌ Rejeter (retour serveur, stock remis). Vous pouvez **valider en masse** : cochez plusieurs + cliquez "Valider tous".',
+        '**Dashboard → Onglet "Gestion Commandes"** affiche toutes les ventes serveurs en **attente de validation**. Pour chaque vente : voir heure, montant, articles. **Actions** : ✅ Valider (stock déduit, comptabilisé) ou ❌ Rejeter (vente définitivement rejetée, stock non déduit). Vous pouvez **valider en masse** : cochez plusieurs + cliquez "Valider tous".',
       visibleFor: ['gerant', 'promoteur'],
       tips: [
         '📌 Validation = Déduction stock + Comptabilisation finale',
         '🔍 Vérifiez articles avant validation si doute',
-        '❌ Rejet = Vente retourne à serveur (stock remis, payant re-traité)',
+        '❌ Rejet = Vente définitivement rejetée (stock remis si elle était validée)',
         '⏱️ Ventes expirées (après fermeture caisse) = Auto-invalidées',
       ],
     },
@@ -378,12 +378,12 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       emoji: '✅',
       title: 'Valider ou Rejeter les Ventes',
       description:
-        'Pour chaque vente en attente, vous avez **2 actions** : **✓ Valider** (la vente devient définitive, stock sorti) ou **✗ Rejeter** (le serveur peut la modifier et renvoyer). Vous pouvez aussi **valider en masse** en cochant plusieurs ventes.',
+        'Pour chaque vente en attente, vous avez **2 actions** : **✓ Valider** (la vente devient définitive, stock sorti) ou **✗ Rejeter** (la vente est définitivement rejetée ; le serveur devra en créer une nouvelle si besoin). Vous pouvez aussi **valider en masse** en cochant plusieurs ventes.',
       action: 'Cliquez sur ✓ ou ✗ pour agir',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '✅ **Valider** = vente définitive, stock déduit, plus modifiable',
-        '❌ **Rejeter** = retour au serveur (erreur produit, quantité, etc.)',
+        '❌ **Rejeter** = vente définitivement rejetée (erreur produit, quantité, etc.)',
         '📋 **Validation en masse** : Cochez plusieurs + cliquez Valider',
         '⏱️ Ventes expirées = fin de journée commerciale automatiquement',
         '⚡ Mode Simplifié = vous créez les ventes (pas cet onglet)',
@@ -1242,7 +1242,7 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       visibleFor: ['promoteur'],
       tips: [
         '✅ **Validées** = Ventes finales, comptabilisées dans les stats',
-        '❌ **Rejetées** = Retournées au serveur pour correction',
+        '❌ **Rejetées** = définitivement rejetées, non comptabilisées',
         '🚫 **Annulées** = Supprimées par le promoteur (stock restitué)',
         '📊 Combinez avec autres filtres (période, vendeur) pour analyses détaillées',
       ],

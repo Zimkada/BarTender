@@ -60,7 +60,7 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
         '👤 Vous = Compte utilisateur "Serveur"',
         '📱 Accès à "Vente Rapide" toujours disponible',
         '✅ Ventes créées en **pending** (en attente validation)',
-        '⚠️ Rejet possible si erreur → vous la corrigez et renvoyez',
+        '⚠️ Rejet possible si erreur → vous créez une nouvelle vente correcte',
       ],
     },
 
@@ -85,11 +85,11 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
       emoji: '⏳',
       title: 'Vente Envoyée : Attente Validation',
       description:
-        '**Après "Valider"** : Votre vente passe en état **"Attente de validation"** ⏳. Le Gérant la voit dans son **Dashboard → Onglet "Gestion Commandes"**. Il peut : ✅ **Approuver** (stock déduit, vente finalisée) ou ❌ **Rejeter** (vente revient, vous recevez notification). **Temps attente** : Normalement quelques secondes/minutes, dépend du gérant.',
+        '**Après "Valider"** : Votre vente passe en état **"Attente de validation"** ⏳. Le Gérant la voit dans son **Dashboard → Onglet "Gestion Commandes"**. Il peut : ✅ **Approuver** (stock déduit, vente finalisée) ou ❌ **Rejeter** (la vente devient définitivement "Rejetée"). **Suivi** : consultez le statut de vos ventes dans votre **Historique**. **Temps attente** : Normalement quelques secondes/minutes, dépend du gérant.',
       tips: [
         '📊 Voir ventes en attente : Dashboard → Synthèse du jour',
         '⏱️ **Attente normale** : Gérant valide batch (plusieurs à la fois)',
-        '❌ **Rejet** = Retour à vous, vous devez corriger et renvoyer',
+        '❌ **Rejet** = vente définitivement rejetée, vous créez une nouvelle vente',
         '✅ **Approbation** = Vente devient définitive, apparaît historique',
       ],
     },
@@ -98,14 +98,14 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
     {
       id: 'step-5',
       emoji: '❌',
-      title: 'Si Vente Rejetée : Corriger & Renvoyer',
+      title: 'Si Vente Rejetée : Créer une Nouvelle Vente',
       description:
-        '**Vente rejetée ?** Le Gérant a trouvé une erreur (mauvais produit, quantité incorrecte, etc.). Vous recevez **notification** dans le Dashboard. La vente revient en attente de correction. **Correction** : Créez **une nouvelle vente** (pas modifier l\'ancienne rejetée). L\'ancienne reste en historique avec statut "Rejetée". Renvoyez la nouvelle, gérant re-valide.',
+        '**Vente rejetée ?** Le Gérant a trouvé une erreur (mauvais produit, quantité incorrecte, etc.). Vous le constatez en consultant votre **Historique** (statut "Rejetée"). La vente rejetée est **définitive**. **Marche à suivre** : Créez **une nouvelle vente** correcte (on ne modifie pas l\'ancienne rejetée). L\'ancienne reste en historique avec statut "Rejetée". Envoyez la nouvelle, gérant la valide.',
       tips: [
-        '📲 Notification toast quand vente rejetée',
+        '📜 Le statut "Rejetée" apparaît dans votre Historique',
         '🔄 Créez nouvelle vente (l\'ancienne non-modifiable)',
-        '📝 Note : Regardez pourquoi rejet (dashboard peut afficher raison)',
-        '✅ Renvoyez corrigée, gérant ré-approuvera',
+        '📝 Note : Regardez pourquoi rejet (l\'historique peut afficher la raison)',
+        '✅ Renvoyez une nouvelle vente, gérant l\'approuvera',
       ],
     },
 
@@ -115,7 +115,7 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
       emoji: '📊',
       title: 'Votre Historique : Voir Vos Ventes',
       description:
-        '**Page "Historique"** affiche **TOUTES vos ventes** avec leurs statuts : ✅ **Validées** (finales, comptabilisées), ❌ **Rejetées** (à corriger), 🚫 **Annulées** (supprimées par promoteur, rare). Chaque vente affiche : heure création, produits, montant, CA Net (après retours). Utilisez pour **vérifier votre travail** et **analyser vos performances**.',
+        '**Page "Historique"** affiche **TOUTES vos ventes** avec leurs statuts : ✅ **Validées** (finales, comptabilisées), ❌ **Rejetées** (définitives, non comptabilisées), 🚫 **Annulées** (supprimées par promoteur, rare). Chaque vente affiche : heure création, produits, montant, CA Net (après retours). Utilisez pour **vérifier votre travail** et **analyser vos performances**.',
       tips: [
         '✅ Validées = Comptabilisées dans votre CA',
         '❌ Rejetées = Ignorées (pas comptabilisé)',
@@ -143,14 +143,13 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
     {
       id: 'step-8',
       emoji: '📡',
-      title: 'Offline : Créer Ventes Sans Réseau',
+      title: 'Sans Réseau : Connexion Requise',
       description:
-        '**Pas d\'internet ?** Vous pouvez **quand même créer des ventes** en Mode Complet ! La vente est **stockée en cache** localement. Quand réseau revient, **synchronisation automatique** : vente envoyée vers gérant. **Aucune donnée perdue**. Bannière orange = Indication offline.',
+        '**Pas d\'internet ?** En **Mode Complet**, votre rôle de Serveur **nécessite une connexion active** : vos ventes doivent être validées par le Gérant en temps réel, ce qui exige le réseau. C\'est un **choix volontaire** pour garantir l\'intégrité des opérations. **Que faire ?** Prévenez votre Gérant : il peut basculer le bar en **Mode Simplifié** et centraliser les ventes sur son appareil jusqu\'au retour d\'une bonne connexion.',
       tips: [
-        '📱 Créez ventes normalement même sans réseau',
-        '💾 Ventes en cache local (téléphone/ordinateur)',
-        '🔄 Sync automatique quand connexion revient',
-        '✅ Vente finalisée quand gérant valide après sync',
+        '🚨 Serveur + Mode Complet = connexion obligatoire pour vendre',
+        '👔 En cas de coupure, le Gérant prend le relais (Mode Simplifié)',
+        '🔒 Objectif : aucune vente non validée en attente sans réseau',
       ],
     },
 
@@ -175,7 +174,7 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
       emoji: '💡',
       title: 'Conseils Pratiques pour Performer',
       description:
-        '**Précision** : Vérifiez panier avant "Valider" (pas possible modifier après). **Rapidité** : Utilisez recherche produit (tape nom) au lieu de scroller. **Honnêteté** : Enregistrez TOUTES les ventes (bar vit ou meurt par intégrité). **Attention détails** : Quantités, paiement, produits corrects = 0 rejet. **Feedback gérant** : Si rejeté, demandez pourquoi et corrigez. **Apprentissage** : Regardez quand clients achètent (heures), quoi (produits) pour proposer mieux.',
+        '**Précision** : Vérifiez panier avant "Valider" (pas possible modifier après). **Rapidité** : Utilisez recherche produit (tape nom) au lieu de scroller. **Honnêteté** : Enregistrez TOUTES les ventes (bar vit ou meurt par intégrité). **Attention détails** : Quantités, paiement, produits corrects = 0 rejet. **Feedback gérant** : Si rejeté, demandez pourquoi puis créez une nouvelle vente correcte. **Apprentissage** : Regardez quand clients achètent (heures), quoi (produits) pour proposer mieux.',
       tips: [
         '✅ Double-check panier = Zéro rejet',
         '🔍 Recherche rapide = Plus de ventes par heure',
@@ -190,7 +189,7 @@ export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
       emoji: '✅',
       title: 'Vous Maîtrisez le Processus de Vente !',
       description:
-        'Félicitations ! Vous comprenez maintenant : **Créer panier rapidement** (recherche + quantités), **Sélectionner paiement** (cash défaut), **Envoyer pour validation** (status pending), **Attendre & voir résultat** (approuvé/rejeté), **Corriger si rejet**, **Suivre votre historique & performance**. Vous êtes prêt à vendre efficacement et progresser vers top performer !',
+        'Félicitations ! Vous comprenez maintenant : **Créer panier rapidement** (recherche + quantités), **Sélectionner paiement** (cash défaut), **Envoyer pour validation** (status pending), **Attendre & voir résultat** (approuvé/rejeté), **Recréer une vente si rejet**, **Suivre votre historique & performance**. Vous êtes prêt à vendre efficacement et progresser vers top performer !',
       tips: [
         '🎯 Visez 0 rejets (précision absolue)',
         '💰 Maximisez CA Net (vendre plus + produits chers)',
@@ -296,7 +295,7 @@ export const SERVEUR_FIRST_SALE_GUIDE: GuideTour = {
             id: 'step-6',
             emoji: '🚀',
             title: 'Envoyer pour Validation',
-            description: 'Cliquez sur Confirmer pour finaliser la vente. Votre gérant recevra la notification pour valider votre vente.',
+            description: 'Cliquez sur Confirmer pour envoyer la vente. Elle apparaît aussitôt dans le tableau de bord de votre gérant, qui la validera.',
             action: 'Cliquez sur Confirmer',
             tips: [
                 '⏳ Votre vente passe en "Attente de validation"',
@@ -648,9 +647,9 @@ export const SERVEUR_HISTORY_GUIDE: GuideTour = {
  */
 export const SERVEUR_RETURNS_GUIDE: GuideTour = {
     id: 'serveur-returns',
-    title: 'Consulter Vos Retours',
-    subtitle: 'Suivez les retours et remboursements de vos ventes',
-    description: 'Consultez les retours effectués sur vos ventes et comprenez leur impact sur votre CA.',
+    title: 'Gérer Vos Retours',
+    subtitle: 'Demandez et suivez les retours sur vos ventes',
+    description: 'En Mode Complet, créez une demande de retour sur vos ventes (validée par le gérant) et suivez son impact sur votre CA.',
 
     targetRoles: ['serveur'],
 
@@ -675,13 +674,13 @@ export const SERVEUR_RETURNS_GUIDE: GuideTour = {
             emoji: '👋',
             title: 'Bienvenue aux Retours !',
             description:
-                'Vous consultez ici les retours effectués sur **vos propres ventes**. **Important** : Vous NE pouvez pas créer de retours (seul le gérant peut). Vous voyez **2 onglets** : **Liste** (tous vos retours) et **Statistiques** (KPIs impact).',
+                'Vous gérez ici les retours sur **vos propres ventes**. **En Mode Complet**, vous pouvez **créer une demande de retour** sur une de vos ventes ; elle passe **en attente** et c\'est le **Gérant qui valide** (vous ne validez jamais vous-même). **En Mode Simplifié**, seul le Gérant crée les retours. Vous voyez la **Liste** de vos retours et les **Statistiques** (impact sur votre CA).',
             visibleFor: ['serveur'],
             tips: [
                 '🔍 Vous voyez UNIQUEMENT les retours de vos propres ventes',
-                '💰 Chaque retour réduit votre CA du jour (remboursement débité)',
-                '🔒 Seul le gérant crée et approuve les retours',
-                '⏰ Retours créés avant fermeture caisse (6h matin défaut)',
+                '➕ Mode Complet : vous créez une demande, le gérant la valide',
+                '💰 Chaque retour approuvé réduit votre CA du jour',
+                '🔒 La validation d\'un retour reste réservée au gérant',
             ],
         },
 
