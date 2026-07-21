@@ -24,6 +24,7 @@ interface AuthContextType {
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
   changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
+  acceptLegalTerms: (version?: number) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
 
@@ -504,6 +505,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentSession, setCurrentSession]);
 
+  const acceptLegalTerms = useCallback(async (version = 1): Promise<void> => {
+    await AuthService.acceptLegalTerms(version);
+  }, []);
+
   const resetPassword = useCallback(async (email: string): Promise<void> => {
     try {
       await AuthService.resetPassword(email);
@@ -610,6 +615,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // createUser, // Removed from context value
     // updateUser, // Removed from context value
     changePassword,
+    acceptLegalTerms,
     resetPassword,
     refreshSession: async () => {
       const user = await AuthService.initializeSession();

@@ -28,6 +28,7 @@ import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
 import { MobileSidebar } from '../components/MobileSidebar'; // NEW
 import { Cart } from '../components/Cart';
+import { LegalConsentGate } from '../components/common/LegalConsentGate';
 // Phase 1.5 & UX Improvements - Lazy Loaded
 const LazyGuideButton = lazy(() => import('../components/guide/GuideButton').then(m => ({ default: m.GuideButton })));
 const LazyGuideTourModal = lazy(() => import('../components/guide/GuideTourModal').then(m => ({ default: m.GuideTourModal })));
@@ -216,6 +217,7 @@ function RootLayoutContent() {
 
   return (
     <div className="min-h-screen bg-brand-subtle pb-16 md:pb-0">
+      <LegalConsentGate /> {/* 🛡️ Consentement légal bloquant (comptes existants + révisions) */}
       <OfflineBanner /> {/* Phase 1: Offline Resilience */}
       <UpdateNotification />
       <Suspense fallback={null}>

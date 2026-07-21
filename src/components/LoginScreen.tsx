@@ -11,11 +11,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthNav } from '../layouts/AuthLayout';
 import { getErrorMessage } from '../utils/errorHandler';
 import { validatePassword } from '../utils/validation';
+import { CURRENT_CONSENT_VERSION } from '../config/legal';
 
 function LoginScreen() {
   const navigate = useNavigate();
   const { navigateToForgotPassword } = useAuthNav();
-  const { login, changePassword, verifyMfa } = useAuth();
+  const { login, changePassword, acceptLegalTerms, verifyMfa } = useAuth();
   const { bars } = useBarContext();
 
   const [email, setEmail] = useState('');
@@ -26,6 +27,7 @@ function LoginScreen() {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [consentAccepted, setConsentAccepted] = useState(false); // 🛡️ Consentement légal (CGU + confidentialité)
 
   // États pour la 2FA
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -144,6 +146,11 @@ function LoginScreen() {
       return;
     }
 
+    if (!consentAccepted) {
+      setError('Vous devez accepter les CGU et la Politique de confidentialité pour continuer');
+      return;
+    }
+
     try {
       // Changer le mot de passe via AuthService (Supabase Auth)
       // ⭐ changePassword utilise supabase.auth.updateUser() → la session courante
@@ -151,6 +158,15 @@ function LoginScreen() {
       // nécessaire (l'ancien re-login visait @bartender.local inexistant et échouait
       // silencieusement, bloquant l'onboarding employé).
       await changePassword(newPassword);
+
+      // 🛡️ Enregistrer le consentement légal (date certaine + version). Non bloquant
+      // pour l'onboarding si la RPC échoue : le mot de passe est déjà changé et la
+      // session valide. On log l'échec sans interrompre le parcours utilisateur.
+      try {
+        await acceptLegalTerms(CURRENT_CONSENT_VERSION);
+      } catch (consentError) {
+        console.warn('[LoginScreen] Échec enregistrement consentement (non bloquant):', consentError);
+      }
 
       setIsFirstLogin(false);
       // ✨ Redirection forcée vers l'onboarding pour le parcours éducatif (Gérants/Serveurs)
@@ -256,6 +272,37 @@ function LoginScreen() {
               placeholder="Retapez le mot de passe"
             />
 
+            {/* 🛡️ Consentement légal obligatoire — bloque la validation tant que non coché */}
+            <div className="flex items-start gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="legalConsent"
+                checked={consentAccepted}
+                onChange={(e) => setConsentAccepted(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-brand cursor-pointer flex-shrink-0"
+              />
+              <label htmlFor="legalConsent" className="text-sm text-foreground/70 cursor-pointer select-none">
+                J'ai lu et j'accepte les{' '}
+                <a
+                  href="/legal/cgu"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-primary underline hover:text-brand-primary/80"
+                >
+                  Conditions Générales
+                </a>{' '}
+                et la{' '}
+                <a
+                  href="/legal/confidentialite"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-primary underline hover:text-brand-primary/80"
+                >
+                  Politique de confidentialité
+                </a>.
+              </label>
+            </div>
+
             {error && (
               <Alert show={!!error} variant="destructive">
                 {error}
@@ -264,7 +311,8 @@ function LoginScreen() {
 
             <button
               type="submit"
-              className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02]"
+              disabled={!consentAccepted}
+              className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               Changer le mot de passe
             </button>
@@ -340,6 +388,25 @@ function LoginScreen() {
           <p className="text-sm text-muted-foreground">
             Contactez votre administrateur pour obtenir vos identifiants
           </p>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-border text-center text-xs text-muted-foreground space-x-3">
+          <a
+            href="/legal/cgu"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-brand-primary underline"
+          >
+            CGU
+          </a>
+          <a
+            href="/legal/confidentialite"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-brand-primary underline"
+          >
+            Confidentialité
+          </a>
         </div>
       </motion.div>
     </div>

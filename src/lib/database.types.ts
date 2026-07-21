@@ -3921,6 +3921,7 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null
+          consent_version: number
           created_at: string | null
           email: string
           first_login: boolean | null
@@ -3931,12 +3932,15 @@ export type Database = {
           name: string
           onboarding_completed_at: string | null
           phone: string
+          privacy_accepted_at: string | null
+          terms_accepted_at: string | null
           training_version_completed: number | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          consent_version?: number
           created_at?: string | null
           email: string
           first_login?: boolean | null
@@ -3947,12 +3951,15 @@ export type Database = {
           name: string
           onboarding_completed_at?: string | null
           phone: string
+          privacy_accepted_at?: string | null
+          terms_accepted_at?: string | null
           training_version_completed?: number | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          consent_version?: number
           created_at?: string | null
           email?: string
           first_login?: boolean | null
@@ -3963,6 +3970,8 @@ export type Database = {
           name?: string
           onboarding_completed_at?: string | null
           phone?: string
+          privacy_accepted_at?: string | null
+          terms_accepted_at?: string | null
           training_version_completed?: number | null
           updated_at?: string | null
           username?: string | null
@@ -5125,6 +5134,7 @@ export type Database = {
         Args: { p_impersonating_user_id: string }
         Returns: string
       }
+      accept_legal_terms: { Args: { p_version?: number }; Returns: boolean }
       acknowledge_refresh_alert: {
         Args: { p_alert_id: string }
         Returns: boolean

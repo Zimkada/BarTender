@@ -40,6 +40,9 @@ const ResetPasswordScreen = lazyWithRetry(() => import('../components/ResetPassw
 // === Onboarding (Named Export) ===
 const OnboardingPage = lazyWithRetry(() => import('../pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 
+// === Documents légaux (public) ===
+const LegalDocPage = lazyWithRetry(() => import('../pages/LegalDocPage'));
+
 // === Admin Components (Default Exports) ===
 const SuperAdminPage = lazyWithRetry(() => import('../pages/SuperAdminPage'));
 const BarsManagementPage = lazyWithRetry(() => import('../pages/admin/BarsManagementPage'));
@@ -158,5 +161,18 @@ export const router = createBrowserRouter([
       { path: 'forgot-password', element: <ForgotPasswordScreen /> },
       { path: 'reset-password', element: <ResetPasswordScreen /> },
     ],
+  },
+
+  // =====================
+  // Documents légaux (Public — accessibles sans authentification)
+  // =====================
+  {
+    path: '/legal/:slug',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <LegalDocPage />
+      </Suspense>
+    ),
+    errorElement: <ErrorPage />,
   },
 ]);

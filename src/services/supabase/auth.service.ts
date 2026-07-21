@@ -930,6 +930,47 @@ export class AuthService {
   }
 
   /**
+   * Lire la version de consentement légal enregistrée pour l'utilisateur courant.
+   * Retourne 0 si aucun consentement (ou en cas d'erreur silencieuse → le garde-fou
+   * affichera alors le modal, ce qui est le comportement sûr).
+   */
+  static async getConsentVersion(userId: string): Promise<number> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('consent_version')
+        .eq('id', userId)
+        .single();
+
+      if (error) throw error;
+      return data?.consent_version ?? 0;
+    } catch (error) {
+      console.warn('AuthService getConsentVersion error:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Enregistrer le consentement de l'utilisateur courant aux CGU/CGV et à la
+   * Politique de confidentialité. La RPC (SECURITY DEFINER, guard auth.uid())
+   * n'autorise que l'enregistrement de son propre consentement.
+   */
+  static async acceptLegalTerms(version = 1): Promise<void> {
+    try {
+      const { error } = await supabase.rpc('accept_legal_terms', {
+        p_version: version,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erreur lors de l\'enregistrement du consentement');
+      }
+    } catch (error) {
+      console.error('AuthService acceptLegalTerms error:', error);
+      throw new Error(getErrorMessage(error));
+    }
+  }
+
+  /**
    * Récupérer tous les membres d'un bar
    * Utilise un RPC pour contourner les RLS lors de l'impersonation
    */
