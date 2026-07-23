@@ -45,7 +45,7 @@ quand le volume grandit.
 
 | Action | Détail | Effort | Coût |
 |---|---|---|---|
-| **Compte MoMo dédié BarTender** | Idéalement un compte **MoMo Marchand** (Orange Money / MTN MoMo Business) séparé de ton compte perso. Permet aussi des liens de paiement, un historique propre, et plus tard l'encaissement automatisé. | Moyen | Frais marchand selon opérateur |
+| **Compte MoMo dédié BarTender** | Idéalement un compte **MoMo Marchand** (MTN MoMo Business / Moov Money / Celtiis Cash) séparé de ton compte perso. Permet aussi des liens de paiement, un historique propre, et plus tard l'encaissement automatisé. | Moyen | Frais marchand selon opérateur |
 | **Registre des paiements** | Déjà amorcé côté app : la table `subscription_payments` + RPC `record_subscription_payment` (migration 20260607) trace les paiements manuels. Brancher ce suivi sur le compte dédié. | Fait (app) | 0 |
 | **Compte bancaire pro (plus tard)** | Quand le volume le justifie et/ou à la création de la société. | À différer | — |
 

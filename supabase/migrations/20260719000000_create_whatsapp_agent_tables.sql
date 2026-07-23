@@ -147,6 +147,13 @@ REVOKE ALL ON public.wa_leads FROM anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.wa_conversations TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.wa_leads TO authenticated;
 
+-- service_role : chemin d'écriture de l'Edge Function wa-webhook (bypass RLS).
+-- Sans ce GRANT explicite, la fonction échoue avec "permission denied for table"
+-- (42501) malgré service_role : les tables nouvellement créées n'accordent pas
+-- automatiquement de privilèges à ce rôle.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.wa_conversations TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.wa_leads TO service_role;
+
 COMMIT;
 
 -- ============ POST-VOL (exécuter APRÈS, vérifier chaque résultat) =============

@@ -1,6 +1,6 @@
 # Conditions Générales d'Utilisation et de Vente - BarTender Pro
 
-**Dernière mise à jour : 11 juillet 2026**
+**Dernière mise à jour : 23 juillet 2026**
 
 ## 1. Objet et champ d'application
 
@@ -16,7 +16,8 @@ BarTender Pro est édité et exploité à titre individuel par **Chabi Zimé GOU
 
 **Contact :**
 - Email : zimkada@gmail.com
-- Téléphone / WhatsApp : +229 01 55 28 25 25
+- Assistant WhatsApp (renseignements & support) : +229 01 29 88 21 21
+- Contact direct de l'Éditeur (téléphone / WhatsApp) : +229 01 55 28 25 25
 
 ## 3. Description du Service
 
@@ -175,4 +176,5 @@ Pour toute question relative aux présentes CGU/CGV :
 
 **Chabi Zimé GOUNOU N'GOBI**
 Email : zimkada@gmail.com
-Téléphone / WhatsApp : +229 01 55 28 25 25
+Assistant WhatsApp (renseignements & support) : +229 01 29 88 21 21
+Contact direct de l'Éditeur (téléphone / WhatsApp) : +229 01 55 28 25 25
