@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { CreditCard, CheckCircle, Gift, ShieldCheck, AlertTriangle, Loader2, Smartphone, Copy, Check, Zap, Clock } from 'lucide-react';
+import { CreditCard, CheckCircle, Gift, ShieldCheck, AlertTriangle, Loader2, Smartphone, Copy, Check, Zap, Clock, ChevronDown } from 'lucide-react';
 import { Select } from '../ui/Select';
 import { Button } from '../ui/Button';
 import { Alert } from '../ui/Alert';
@@ -45,7 +45,22 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Détail des moyens de paiement : replié par défaut, déplié d'office quand une
+  // action est attendue (essai/échéance proche/retard). L'utilisateur peut ensuite
+  // ouvrir/fermer manuellement via le bouton "Payer".
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const paymentOpenInit = useRef(false);
   const redirectGuardRef = useRef<number | null>(null);
+
+  // Initialise l'ouverture selon le statut, une seule fois quand les données arrivent.
+  const status = subscription?.status;
+  useEffect(() => {
+    if (!status || paymentOpenInit.current) return;
+    paymentOpenInit.current = true;
+    if (status === 'trial' || status === 'overdue' || status === 'due_soon') {
+      setPaymentOpen(true);
+    }
+  }, [status]);
 
   // Retour du checkout FedaPay : lancer le polling de confirmation (une seule fois).
   // Le nettoyage de ?payment=pending empêche tout re-déclenchement au re-render.
@@ -131,7 +146,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
             </Alert>
           )}
 
-          {/* Statut courant */}
+          {/* Résumé — TOUJOURS visible : plan, statut, prochaine échéance */}
           <div className="rounded-lg bg-muted p-4 space-y-1 text-sm">
             <p>
               <span className="font-semibold">Plan :</span>{' '}
@@ -141,6 +156,15 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
               <span className="font-semibold">Statut :</span>{' '}
               {SUBSCRIPTION_STATUS_LABELS[subscription.status]}
             </p>
+            {subscription.status !== 'exempt' && subscription.dueDate && (
+              <p className="flex items-center gap-2">
+                <span className="font-semibold">
+                  {subscription.status === 'trial' ? 'Fin d\'essai :' : 'Prochaine échéance :'}
+                </span>
+                {formatDate(subscription.dueDate)}
+                {subscription.status === 'up_to_date' && <CheckCircle size={14} className="text-green-600" />}
+              </p>
+            )}
           </div>
 
           {/* Cas exempté : pas de paiement */}
@@ -153,6 +177,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
             </Alert>
           ) : (
             <>
+              {/* Alertes d'action — toujours visibles (hors du bloc pliable) */}
               {subscription.status === 'trial' && (
                 <Alert variant="info" title="Essai gratuit">
                   <span className="flex items-center gap-2">
@@ -170,13 +195,27 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                   </span>
                 </Alert>
               )}
-              {subscription.status === 'up_to_date' && (
-                <p className="text-sm text-foreground/70 flex items-center gap-2">
-                  <CheckCircle size={16} className="text-green-600" />
-                  Prochaine échéance : {formatDate(subscription.dueDate)}
-                </p>
-              )}
 
+              {/* Bouton qui déplie/replie les moyens de paiement */}
+              <button
+                type="button"
+                onClick={() => setPaymentOpen((v) => !v)}
+                className="w-full flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground hover:border-brand-primary/40 transition-all"
+                aria-expanded={paymentOpen}
+              >
+                <span className="flex items-center gap-2">
+                  <CreditCard size={16} className="text-brand-primary" />
+                  Payer mon abonnement
+                </span>
+                <ChevronDown
+                  size={18}
+                  className={`text-muted-foreground transition-transform ${paymentOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {/* Détail des moyens de paiement — repliable */}
+              {paymentOpen && (
+              <>
               {/* Durée + montant — commun aux deux moyens de paiement */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end pt-2">
                 <Select
@@ -269,6 +308,8 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                   </p>
                 </div>
               </div>
+              </>
+              )}
             </>
           )}
         </>
