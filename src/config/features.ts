@@ -57,17 +57,16 @@ export const FEATURES = {
     /**
      * Paiement d'abonnement via checkout FedaPay (Mobile Money hébergé).
      *
-     * Default: false (OFF) — tant que le compte marchand FedaPay n'est pas actif
-     * ET que les Edge Functions ne sont pas déployées, on n'affiche PAS le bouton
-     * "Payer par Mobile Money" (il échouerait). Le paiement MoMo direct (numéros +
-     * motif affichés) reste le canal disponible au démarrage.
+     * ACTIF EN PRODUCTION depuis le 2026-07-25 : compte FedaPay Live (Travailleur
+     * Indépendant), secrets Live posés, flux validé de bout en bout avec un vrai
+     * paiement (checkout -> webhook signé -> crédit d'abonnement OK). Affiché aux
+     * côtés du paiement MoMo direct dans la section "Mon abonnement".
      *
-     * Flux validé de bout en bout en SANDBOX le 2026-07-17 (checkout + webhook +
-     * crédit d'abonnement OK). Reste à false tant que les secrets Supabase sont
-     * sandbox : passer à true UNIQUEMENT après bascule des clés FedaPay en LIVE
-     * (sinon les vrais bars paieraient vers l'environnement de test).
+     * ⚠️ Limite du compte Indépendant : 10 transactions/semaine (Elysée FedaPay,
+     * 24/07). Le MoMo direct sert de soupape si un bar dépasse ce plafond. Passer
+     * au compte Business (RCCM requis) lèvera cette limite quand le volume l'exigera.
      */
-    FEDAPAY_CHECKOUT_ENABLED: false,
+    FEDAPAY_CHECKOUT_ENABLED: true,
 } as const;
 
 /**

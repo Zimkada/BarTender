@@ -84,8 +84,14 @@ async function verifySignature(rawBody: string, header: string, secret: string):
  * seule la réponse de l'API FedaPay (interrogée avec notre clé secrète) fait foi.
  */
 async function fetchTransaction(txnId: string): Promise<{ status: string; amount: number; mode?: string; reference?: string } | null> {
-  const base = Deno.env.get('FEDAPAY_API_BASE') ?? 'https://sandbox-api.fedapay.com'
+  // ⚠️ PAS de défaut sandbox : sans FEDAPAY_API_BASE explicite, on n'interroge pas
+  // (le webhook renverra 500 → retry, plutôt que de valider contre le mauvais env).
+  const base = Deno.env.get('FEDAPAY_API_BASE') ?? ''
   const secret = Deno.env.get('FEDAPAY_SECRET_KEY') ?? ''
+  if (!base || !secret) {
+    console.error('[fedapay-webhook] FEDAPAY_API_BASE ou FEDAPAY_SECRET_KEY manquant')
+    return null
+  }
   const res = await fetch(`${base}/v1/transactions/${encodeURIComponent(txnId)}`, {
     headers: { 'Authorization': `Bearer ${secret}` },
   })

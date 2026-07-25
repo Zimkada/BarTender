@@ -93,9 +93,15 @@ serve(async (req) => {
     }
 
     // 5. Créer la transaction FedaPay (API REST — pas de SDK, incompatible Deno)
-    const fedapayBase = Deno.env.get('FEDAPAY_API_BASE') ?? 'https://sandbox-api.fedapay.com'
+    // ⚠️ PAS de défaut sandbox : si le secret n'est pas configuré, on échoue plutôt
+    // que de router silencieusement les paiements vers l'environnement de test.
+    const fedapayBase = Deno.env.get('FEDAPAY_API_BASE') ?? ''
     const fedapaySecretKey = Deno.env.get('FEDAPAY_SECRET_KEY') ?? ''
     const appBaseUrl = Deno.env.get('APP_BASE_URL') ?? ''
+    if (!fedapayBase || !fedapaySecretKey) {
+      console.error('[create-subscription-checkout] FEDAPAY_API_BASE ou FEDAPAY_SECRET_KEY manquant')
+      return jsonResponse({ error: 'Paiement en ligne non configuré' }, 500)
+    }
 
     const txnResponse = await fetch(`${fedapayBase}/v1/transactions`, {
       method: 'POST',
