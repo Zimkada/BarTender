@@ -16,7 +16,7 @@ BarTender Pro est édité et exploité à titre individuel par **Chabi Zimé GOU
 
 **Contact :**
 - Email : zimkada@gmail.com
-- Assistant WhatsApp (renseignements & support) : +229 01 29 88 21 21
+- Aïcha, assistante WhatsApp (renseignements & support) : +229 01 29 88 21 21
 - Contact direct de l'Éditeur (téléphone / WhatsApp) : +229 01 55 28 25 25
 
 ## 3. Description du Service
@@ -176,5 +176,5 @@ Pour toute question relative aux présentes CGU/CGV :
 
 **Chabi Zimé GOUNOU N'GOBI**
 Email : zimkada@gmail.com
-Assistant WhatsApp (renseignements & support) : +229 01 29 88 21 21
+Aïcha, assistante WhatsApp (renseignements & support) : +229 01 29 88 21 21
 Contact direct de l'Éditeur (téléphone / WhatsApp) : +229 01 55 28 25 25

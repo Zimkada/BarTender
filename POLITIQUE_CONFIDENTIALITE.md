@@ -8,7 +8,8 @@ BarTender ("l'Application") est édité et exploité à titre individuel par **C
 
 **Contact pour toute question relative à vos données personnelles :**
 - Email : zimkada@gmail.com
-- Téléphone / WhatsApp : +229 01 55 28 25 25
+- Aïcha, assistante WhatsApp (renseignements & support) : +229 01 29 88 21 21
+- Contact direct de l'Éditeur (téléphone / WhatsApp) : +229 01 55 28 25 25
 
 ## 2. Quelles données collectons-nous ?
 
@@ -138,4 +139,5 @@ Pour toute question concernant cette politique de confidentialité ou le traitem
 
 **Chabi Zimé GOUNOU N'GOBI**
 Email : zimkada@gmail.com
-Téléphone / WhatsApp : +229 01 55 28 25 25
+Aïcha, assistante WhatsApp (renseignements & support) : +229 01 29 88 21 21
+Contact direct de l'Éditeur (téléphone / WhatsApp) : +229 01 55 28 25 25
