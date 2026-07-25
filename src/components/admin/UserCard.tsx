@@ -23,7 +23,7 @@ export function UserCard({
   return (
     <Card variant="elevated" padding="none" className="overflow-hidden hover:shadow-lg transition-all">
       {/* Header avec nom et email */}
-      <CardHeader className="bg-gradient-to-br from-purple-50 to-indigo-50 p-4 border-b border-purple-100">
+      <CardHeader className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/40 dark:to-indigo-950/30 p-4 border-b border-purple-100 dark:border-purple-900/40">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-bold text-foreground truncate">{user.name}</h3>

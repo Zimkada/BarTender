@@ -14,6 +14,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Alert } from '../../components/ui/Alert';
 import { Modal } from '../../components/ui/Modal';
+import { Select } from '../../components/ui/Select';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { useWhatsappAgent } from '../../hooks/useWhatsappAgent';
@@ -291,16 +292,12 @@ export default function WhatsappAgentPage() {
                       <p className="text-muted-foreground">{formatRelativeTime(lead.createdAt)}</p>
                     </div>
 
-                    <select
+                    <Select
+                      options={LEAD_STATUT_OPTIONS}
                       value={lead.statut}
                       onChange={(e) => handleLeadStatut(lead, e.target.value as WaLeadStatut)}
                       disabled={isMutating}
-                      className="w-full px-3 py-2 text-sm border border-border rounded-lg bg-card focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50"
-                    >
-                      {LEAD_STATUT_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 ))}
               </div>
