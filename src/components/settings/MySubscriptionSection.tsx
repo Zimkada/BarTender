@@ -52,7 +52,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
   const paymentOpenInit = useRef(false);
   const redirectGuardRef = useRef<number | null>(null);
 
-  // Initialise l'ouverture selon le statut, une seule fois quand les données arrivent.
+  // Initialise l'ouverture + le défaut du sélecteur, une seule fois au chargement.
   const status = subscription?.status;
   useEffect(() => {
     if (!status || paymentOpenInit.current) return;
@@ -60,7 +60,12 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
     if (status === 'trial' || status === 'overdue' || status === 'due_soon') {
       setPaymentOpen(true);
     }
-  }, [status]);
+    // En retard : l'avance est optionnelle → défaut 0 (payer le retard seul).
+    // Sinon : défaut 1 mois (durée minimale normale).
+    if ((subscription?.monthsOverdue ?? 0) > 0) {
+      setMonths('0');
+    }
+  }, [status, subscription?.monthsOverdue]);
 
   // Retour du checkout FedaPay : lancer le polling de confirmation (une seule fois).
   // Le nettoyage de ?payment=pending empêche tout re-déclenchement au re-render.
@@ -80,11 +85,22 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
     if (redirectGuardRef.current !== null) window.clearTimeout(redirectGuardRef.current);
   }, []);
 
+  // Facturation cumulée : le retard (mois + montant) vient EXCLUSIVEMENT du serveur
+  // (subscription.monthsOverdue / amountDue) — on ne recalcule jamais le retard côté
+  // client pour éviter toute divergence avec le garde-fou serveur (fin de mois, fuseau).
+  // L'avance (le sélecteur `months`) s'ajoute par-dessus.
+  const overdue = subscription?.monthsOverdue ?? 0;
+  const advanceMonths = Number(months);
+  const totalMonths = overdue + advanceMonths;
+  const amount = subscription
+    ? subscription.amountDue + subscription.monthlyPrice * advanceMonths
+    : 0;
+
   const handlePay = async () => {
     setCheckoutError(null);
     setIsRedirecting(true);
     try {
-      await startCheckout(Number(months));
+      await startCheckout(totalMonths);
       // startCheckout fait window.location.href = url : en cas de succès, la page
       // navigue et ce composant est démonté. Mais si la navigation est silencieusement
       // empêchée (WebView restrictif, URL invalide) sans lever d'exception, on ne doit
@@ -99,8 +115,6 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
       setIsRedirecting(false);
     }
   };
-
-  const amount = subscription ? subscription.monthlyPrice * Number(months) : 0;
 
   // Motif normalisé à copier dans la transaction MoMo directe (identifie le bar).
   // Le plan/mois ne sont pas dans le motif : le montant payé suffit à les déduire.
@@ -191,7 +205,9 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
                 <Alert variant="warning" title="Abonnement en retard">
                   <span className="flex items-center gap-2">
                     <AlertTriangle size={16} />
-                    Votre échéance était le {formatDate(subscription.dueDate)}. Régularisez pour éviter une suspension.
+                    {overdue > 0
+                      ? `Vous avez ${overdue} mois de retard à régler (${formatPrice(subscription.amountDue)}). Votre échéance était le ${formatDate(subscription.dueDate)}.`
+                      : `Votre échéance était le ${formatDate(subscription.dueDate)}. Régularisez pour éviter une suspension.`}
                   </span>
                 </Alert>
               )}
@@ -216,16 +232,32 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
               {/* Détail des moyens de paiement — repliable */}
               {paymentOpen && (
               <>
-              {/* Durée + montant — commun aux deux moyens de paiement */}
+              {/* Retard imposé (non modifiable) quand le bar est en retard */}
+              {overdue > 0 && (
+                <div className="rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 text-sm">
+                  <p className="font-semibold text-amber-800 dark:text-amber-300">
+                    Mois de retard à régler : {overdue} mois
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    {formatPrice(subscription.amountDue)} — obligatoire pour régulariser votre abonnement.
+                  </p>
+                </div>
+              )}
+
+              {/* Durée : le libellé et les options dépendent de l'existence d'un retard.
+                  Avec retard : l'avance est optionnelle (0 possible), ajoutée au retard.
+                  Sans retard : durée simple à payer (min 1 mois). */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end pt-2">
                 <Select
-                  label="Durée à payer"
-                  options={[...SUBSCRIPTION_MONTHS_OPTIONS]}
+                  label={overdue > 0 ? 'Ajouter des mois d\'avance (optionnel)' : 'Durée à payer'}
+                  options={overdue > 0
+                    ? [{ value: '0', label: 'Aucun (payer le retard seul)' }, ...SUBSCRIPTION_MONTHS_OPTIONS]
+                    : [...SUBSCRIPTION_MONTHS_OPTIONS]}
                   value={months}
                   onChange={(e) => setMonths(e.target.value)}
                 />
                 <div className="rounded-lg bg-muted p-3 text-sm">
-                  <span className="text-muted-foreground">Montant à payer : </span>
+                  <span className="text-muted-foreground">Total à payer ({totalMonths} mois) : </span>
                   <span className="font-semibold text-foreground">{formatPrice(amount)}</span>
                 </div>
               </div>

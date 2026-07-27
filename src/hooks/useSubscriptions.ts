@@ -63,5 +63,23 @@ export function useSubscriptions() {
     }
   }, []);
 
-  return { getOverview, recordPayment, getHistory, setBillingExempt, isRecording, error };
+  const grantFreeMonths = useCallback(async (input: {
+    barId: string;
+    months: number;
+    reason: string;
+  }): Promise<void> => {
+    setIsRecording(true);
+    setError(null);
+    try {
+      await AdminService.grantFreeMonths(input);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de l\'octroi des mois offerts';
+      setError(message);
+      throw err;
+    } finally {
+      setIsRecording(false);
+    }
+  }, []);
+
+  return { getOverview, recordPayment, getHistory, setBillingExempt, grantFreeMonths, isRecording, error };
 }

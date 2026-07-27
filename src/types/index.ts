@@ -89,7 +89,7 @@ export interface BarSettings {
 
 export type SubscriptionPaymentMethod = 'momo' | 'cash' | 'bank' | 'other';
 
-export type SubscriptionPaymentProvider = 'manual' | 'fedapay';
+export type SubscriptionPaymentProvider = 'manual' | 'fedapay' | 'offert';
 
 export interface SubscriptionPayment {
   id: string;
@@ -118,6 +118,7 @@ export interface SubscriptionBarSummary {
   bar: Bar;
   status: SubscriptionStatus;
   daysUntilDue: number | null;
+  monthsOverdue: number; // mois de retard (0 si à jour/exempté)
 }
 
 export interface SubscriptionOverview {

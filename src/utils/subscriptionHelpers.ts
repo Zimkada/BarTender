@@ -67,8 +67,11 @@ export function addMonths(date: Date, months: number): Date {
 
 /**
  * Calcule la nouvelle échéance après un paiement.
- * Repart de l'échéance courante si elle est dans le futur (paiement anticipé),
- * sinon de « now » (échéance déjà dépassée — on repart de maintenant).
+ * ⭐ EMPILEMENT : repart TOUJOURS de l'échéance courante (passée OU future),
+ * sinon de « now » uniquement si aucune échéance n'existe (jamais initialisée).
+ * Un bar en retard ne « gagne » donc pas de temps gratuit en tardant.
+ * Miroir exact de _advance_subscription_due (migration 20260726000000) :
+ * period_start = COALESCE(échéance, now()).
  */
 export function computeNextDueDate(
   currentDueDate: string | undefined,
@@ -78,11 +81,68 @@ export function computeNextDueDate(
   let base = now;
   if (currentDueDate) {
     const current = new Date(currentDueDate);
-    if (!Number.isNaN(current.getTime()) && current.getTime() > now.getTime()) {
-      base = current;
+    if (!Number.isNaN(current.getTime())) {
+      base = current; // passée ou future : on empile toujours dessus
     }
   }
   return addMonths(base, monthsCovered);
+}
+
+/**
+ * Ajoute N mois à une date UTC en CLAMPANT la fin de mois (comme l'opérateur
+ * `+ interval` de PostgreSQL), contrairement à `addMonths` (Date.setMonth) qui
+ * DÉBORDE (31 jan + 1 mois = 2 ou 3 mars en JS, alors que Postgres donne 28 fév).
+ * Utilisé UNIQUEMENT par monthsOverdue pour rester le miroir exact du SQL.
+ */
+function addMonthsUtcClamped(y: number, m: number, d: number, add: number): Date {
+  const targetMonthIndex = m + add;
+  const ty = y + Math.floor(targetMonthIndex / 12);
+  const tm = ((targetMonthIndex % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(ty, tm + 1, 0)).getUTCDate(); // dernier jour du mois cible
+  return new Date(Date.UTC(ty, tm, Math.min(d, lastDay)));
+}
+
+/**
+ * Nombre de mois de retard, arrondi au mois SUPÉRIEUR.
+ * Règle métier : « tout mois entamé au-delà de l'échéance est dû ».
+ * 0 si pas d'échéance ou échéance future.
+ *
+ * ⭐ Miroir EXACT de la fonction SQL public.months_overdue (migration 20260726000000).
+ * Deux précautions pour rester aligné sur le SQL (la certification a révélé 2 axes
+ * de divergence) :
+ *   1. Comparaison en dates UTC (le SQL fait `::date` sur une session Postgres UTC ;
+ *      utiliser l'heure LOCALE du navigateur faisait basculer le jour au Bénin UTC+1).
+ *   2. Ajout de mois CLAMPÉ en fin de mois (le SQL clampe via `+ interval` ; addMonths
+ *      JS débordait, donnant un résultat faux sur les échéances au 29/30/31).
+ *
+ * ⚠️ L'UI (MySubscriptionSection) ne recalcule PLUS le retard côté client : elle lit
+ * subscription.monthsOverdue / amountDue du serveur. Cette fonction reste le miroir
+ * de référence (tests + éventuels usages internes) et DOIT rester identique au SQL.
+ *
+ * Ex : échéance 2026-03-01, now 2026-05-20 → 3 mois (2 mois entiers + 19 j entamés).
+ */
+export function monthsOverdue(
+  dueDate: string | undefined,
+  now: Date = new Date()
+): number {
+  if (!dueDate) return 0;
+  const due = new Date(dueDate);
+  if (Number.isNaN(due.getTime())) return 0;
+
+  // Dates UTC (aligné sur le cast ::date côté SQL en session UTC).
+  const dy = due.getUTCFullYear(), dm = due.getUTCMonth(), dd = due.getUTCDate();
+  const dueMid = Date.UTC(dy, dm, dd);
+  const nowMid = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  if (dueMid >= nowMid) return 0; // future ou aujourd'hui
+
+  // Mois calendaires entiers écoulés, avec clamping de fin de mois (comme Postgres).
+  let full = 0;
+  while (addMonthsUtcClamped(dy, dm, dd, full + 1).getTime() <= nowMid) {
+    full += 1;
+  }
+  // Reste-t-il des jours au-delà du dernier mois entier ? → mois entamé, +1.
+  const anchor = addMonthsUtcClamped(dy, dm, dd, full).getTime();
+  return anchor < nowMid ? full + 1 : Math.max(full, 1);
 }
 
 /** Ordre de tri : retards en premier, puis échéances proches, etc.

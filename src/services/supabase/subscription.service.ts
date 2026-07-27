@@ -14,6 +14,10 @@ export interface MySubscription {
   monthlyPrice: number;
   billingExempt: boolean;
   billingExemptReason?: string;
+  /** Mois de retard imposés (0 si à jour/exempté), arrondi au mois supérieur. */
+  monthsOverdue: number;
+  /** Montant minimum dû pour le retard (monthsOverdue × monthlyPrice). */
+  amountDue: number;
 }
 
 export class SubscriptionService {
@@ -45,6 +49,8 @@ export class SubscriptionService {
         monthlyPrice: Number(row.monthly_price),
         billingExempt: row.billing_exempt,
         billingExemptReason: row.billing_exempt_reason ?? undefined,
+        monthsOverdue: Number(row.months_overdue ?? 0),
+        amountDue: Number(row.amount_due ?? 0),
       };
     } catch (error) {
       throw new Error(handleSupabaseError(error));

@@ -17,7 +17,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-application-name',
 }
 
-const ALLOWED_MONTHS = [1, 3, 6, 12]
+// Total = mois de retard (imposés) + mois d'avance (optionnels). Le nombre exact
+// n'est plus une liste blanche fixe : borné 1..60 (5 ans — assez pour un gros
+// retard cumulé, tout en gardant un garde-fou anti-erreur). Le garde-fou
+// "months >= retard" est appliqué côté SQL (prepare_subscription_checkout).
+const MIN_MONTHS = 1
+const MAX_MONTHS = 60
 
 function jsonResponse(body: Record<string, unknown>, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -51,8 +56,8 @@ serve(async (req) => {
     // 2. Valider le body — le client n'envoie QUE barId + monthsCovered
     const { barId, monthsCovered } = await req.json()
     const months = Number(monthsCovered)
-    if (!barId || !ALLOWED_MONTHS.includes(months)) {
-      return jsonResponse({ error: 'barId et monthsCovered (1/3/6/12) sont requis' }, 400)
+    if (!barId || !Number.isInteger(months) || months < MIN_MONTHS || months > MAX_MONTHS) {
+      return jsonResponse({ error: `barId et monthsCovered (${MIN_MONTHS} à ${MAX_MONTHS}) sont requis` }, 400)
     }
 
     const adminClient = createClient(
@@ -76,6 +81,15 @@ serve(async (req) => {
       if (msg.includes('Not authorized')) return jsonResponse({ error: 'Permission denied: not a promoteur/gerant of this bar' }, 403)
       if (msg.includes('Bar not found')) return jsonResponse({ error: 'Bar not found' }, 404)
       if (msg.includes('exempt')) return jsonResponse({ error: 'Ce bar est exempté de facturation' }, 400)
+      // Garde-fou retard : le montant demandé ne couvre pas la dette de retard
+      // (ne devrait pas arriver via l'UI qui impose le retard serveur — protège
+      // contre un appel forgé ou un retard qui a augmenté entre l'affichage et le clic).
+      if (msg.includes('below overdue debt')) {
+        return jsonResponse({ error: 'Le montant ne couvre pas vos mois de retard. Rechargez la page et réessayez.' }, 409)
+      }
+      if (msg.includes('Invalid months_covered') || msg.includes('months_covered')) {
+        return jsonResponse({ error: 'Durée de paiement invalide. Rechargez la page et réessayez.' }, 400)
+      }
       console.error('[create-subscription-checkout] prepare_subscription_checkout failed:', msg)
       return jsonResponse({ error: 'Impossible de préparer le paiement' }, 500)
     }

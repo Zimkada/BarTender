@@ -522,6 +522,29 @@ export class AdminService {
       throw new Error(handleSupabaseError(error));
     }
   }
+
+  /**
+   * Offre des mois d'abonnement à un bar (geste ponctuel, super_admin only).
+   * Distinct de l'exemption : le bar paie normalement par ailleurs, on lui avance
+   * juste l'échéance de N mois sans paiement. Tracé dans l'historique (provider='offert').
+   */
+  static async grantFreeMonths(params: {
+    barId: string;
+    months: number;
+    reason: string;
+  }): Promise<void> {
+    try {
+      const { error } = await supabase.rpc('grant_free_months', {
+        p_bar_id: params.barId,
+        p_months: params.months,
+        p_reason: params.reason,
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
 }
 
 // Reflète les colonnes de la table subscription_payments (snake_case)
@@ -537,7 +560,7 @@ interface SubscriptionPaymentRow {
   recorded_by: string | null;
   notes: string | null;
   created_at: string;
-  provider?: 'manual' | 'fedapay' | null;
+  provider?: 'manual' | 'fedapay' | 'offert' | null;
   provider_transaction_id?: string | null;
 }
 
@@ -548,6 +571,7 @@ interface SubscriptionOverviewBarRow extends BarFromRPC {
   subscription_start_date: string | null;
   billing_exempt: boolean | null;
   billing_exempt_reason: string | null;
+  months_overdue: number | null;
 }
 
 interface SubscriptionOverviewRow {
@@ -588,6 +612,7 @@ function mapSubscriptionOverview(row: SubscriptionOverviewRow | undefined): Subs
       },
       status: bar.subscription_status,
       daysUntilDue: bar.days_until_due,
+      monthsOverdue: toNumber(bar.months_overdue),
     })),
     totalCount: toNumber(row?.total_count),
     mrr: toNumber(row?.mrr),

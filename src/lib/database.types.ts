@@ -3227,6 +3227,7 @@ export type Database = {
           bar_id: string
           created_at: string | null
           id: string
+          is_active: boolean
           server_name: string
           updated_at: string | null
           user_id: string
@@ -3235,6 +3236,7 @@ export type Database = {
           bar_id: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           server_name: string
           updated_at?: string | null
           user_id: string
@@ -3243,6 +3245,7 @@ export type Database = {
           bar_id?: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           server_name?: string
           updated_at?: string | null
           user_id?: string
@@ -5883,11 +5886,13 @@ export type Database = {
       get_my_subscription_status: {
         Args: { p_bar_id: string }
         Returns: {
+          amount_due: number
           billing_exempt: boolean
           billing_exempt_reason: string
           days_until_due: number
           due_date: string
           monthly_price: number
+          months_overdue: number
           plan: string
           start_date: string
           subscription_status: string
@@ -6062,6 +6067,30 @@ export type Database = {
           view_name: string
         }[]
       }
+      grant_free_months: {
+        Args: { p_bar_id: string; p_months: number; p_reason: string }
+        Returns: {
+          amount: number
+          bar_id: string
+          created_at: string
+          id: string
+          method: string
+          months_covered: number
+          notes: string | null
+          paid_at: string
+          period_end: string
+          period_start: string
+          provider: string
+          provider_transaction_id: string | null
+          recorded_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "subscription_payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       increment_promotion_uses: {
         Args: { p_promotion_id: string }
         Returns: undefined
@@ -6130,6 +6159,10 @@ export type Database = {
         Args: { p_restocked_by: string; p_return_id: string }
         Returns: Json
       }
+      months_overdue: {
+        Args: { p_due_date: string; p_now?: string }
+        Returns: number
+      }
       pay_ticket: {
         Args: {
           p_paid_by: string
@@ -6168,6 +6201,7 @@ export type Database = {
         Returns: {
           bar_name: string
           expected_amount: number
+          months_overdue: number
           plan: string
         }[]
       }

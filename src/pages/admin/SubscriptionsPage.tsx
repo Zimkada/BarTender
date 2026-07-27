@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
-  CreditCard, Search, Filter, ChevronLeft, ChevronRight, History, ShieldCheck,
+  CreditCard, Search, Filter, ChevronLeft, ChevronRight, History, ShieldCheck, Gift,
 } from 'lucide-react';
 import { Bar, SubscriptionPayment, SubscriptionStatus } from '../../types';
 import { Select } from '../../components/ui/Select';
@@ -13,6 +13,7 @@ import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundar
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { RecordPaymentModal } from '../../components/admin/RecordPaymentModal';
 import { BillingExemptModal } from '../../components/admin/BillingExemptModal';
+import { GrantFreeMonthsModal } from '../../components/admin/GrantFreeMonthsModal';
 import { useBeninCurrency } from '../../hooks/useBeninCurrency';
 import { useSubscriptions } from '../../hooks/useSubscriptions';
 import { getPlan } from '../../config/plans';
@@ -58,6 +59,7 @@ export default function SubscriptionsPage() {
 
   const [paymentBar, setPaymentBar] = useState<Bar | null>(null);
   const [exemptBar, setExemptBar] = useState<Bar | null>(null);
+  const [giftBar, setGiftBar] = useState<Bar | null>(null);
   const [historyBar, setHistoryBar] = useState<Bar | null>(null);
   const [history, setHistory] = useState<SubscriptionPayment[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -190,7 +192,7 @@ export default function SubscriptionsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 md:p-6">
-              {subscriptionRows.map(({ bar, status, daysUntilDue }) => {
+              {subscriptionRows.map(({ bar, status, daysUntilDue, monthsOverdue }) => {
                 const plan = getPlan(bar.settings?.plan);
                 return (
                   <div
@@ -224,7 +226,10 @@ export default function SubscriptionsPage() {
                             {status === 'trial' ? 'Fin d\'essai :' : 'Prochaine échéance :'}
                           </span>{' '}
                           {formatDate(bar.subscriptionDueDate)}
-                          {status === 'overdue' && daysUntilDue !== null && (
+                          {status === 'overdue' && monthsOverdue > 0 && (
+                            <span className="text-red-600 font-semibold"> ({monthsOverdue} mois de retard dû)</span>
+                          )}
+                          {status === 'overdue' && monthsOverdue === 0 && daysUntilDue !== null && (
                             <span className="text-red-600 font-semibold"> (retard de {Math.abs(daysUntilDue)}j)</span>
                           )}
                           {(status === 'due_soon' || status === 'trial') && daysUntilDue !== null && (
@@ -238,6 +243,14 @@ export default function SubscriptionsPage() {
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => setPaymentBar(bar)} className="flex-1">
                         <CreditCard className="w-4 h-4 mr-1" /> Enregistrer un paiement
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setGiftBar(bar)}
+                        title="Offrir des mois"
+                      >
+                        <Gift className="w-4 h-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -297,6 +310,14 @@ export default function SubscriptionsPage() {
           />
         )}
 
+        {giftBar && (
+          <GrantFreeMonthsModal
+            bar={giftBar}
+            onClose={() => setGiftBar(null)}
+            onSaved={reloadSilently}
+          />
+        )}
+
         {historyBar && (
           <Modal
             open
@@ -315,12 +336,18 @@ export default function SubscriptionsPage() {
               <p className="text-sm text-muted-foreground py-4">Aucun paiement enregistré.</p>
             ) : (
               <div className="divide-y divide-border">
-                {history.map((p) => (
+                {history.map((p) => {
+                  const isGift = p.provider === 'offert';
+                  return (
                   <div key={p.id} className="py-3 flex justify-between items-start text-sm">
                     <div>
-                      <p className="font-semibold text-foreground">{formatPrice(p.amount)}</p>
+                      <p className="font-semibold text-foreground flex items-center gap-2">
+                        {isGift
+                          ? <Badge variant="info" size="sm"><Gift size={12} className="mr-1" /> Offert</Badge>
+                          : formatPrice(p.amount)}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        {p.monthsCovered} mois - {METHOD_LABELS[p.method] || p.method}
+                        {p.monthsCovered} mois{isGift ? ` - ${p.notes || 'geste commercial'}` : ` - ${METHOD_LABELS[p.method] || p.method}`}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Période : {formatDate(p.periodStart)} vers {formatDate(p.periodEnd)}
@@ -328,7 +355,8 @@ export default function SubscriptionsPage() {
                     </div>
                     <p className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(p.paidAt)}</p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Modal>

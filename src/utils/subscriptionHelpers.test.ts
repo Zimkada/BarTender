@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   computeSubscriptionStatus,
   computeNextDueDate,
+  monthsOverdue,
   addMonths,
   subscriptionStatusSortWeight,
   SUBSCRIPTION_STATUS_LABELS,
@@ -74,16 +75,75 @@ describe('subscriptionHelpers', () => {
       expect(r.getMonth()).toBe(NOW.getMonth() + 1);
     });
 
-    it('repart de now quand l\'échéance courante est dépassée', () => {
+    it('EMPILE depuis l\'échéance courante même dépassée (pas de temps gratuit)', () => {
+      // NOW = 7 juin. Échéance dépassée au 1er mai + 1 mois = 1er juin (empilement),
+      // et NON juillet (l'ancien comportement repartait de now).
       const r = computeNextDueDate('2026-05-01T00:00:00Z', 1, NOW);
-      // base = now (juin) + 1 mois = juillet
-      expect(r.getMonth()).toBe(6);
+      expect(r.getMonth()).toBe(5); // juin (index 5)
+      expect(r.getDate()).toBe(1);
     });
 
     it('repart de l\'échéance courante quand elle est dans le futur (paiement anticipé)', () => {
       const r = computeNextDueDate('2026-09-01T00:00:00Z', 3, NOW);
       // base = septembre + 3 mois = décembre
       expect(r.getMonth()).toBe(11);
+    });
+  });
+
+  describe('monthsOverdue', () => {
+    it('retourne 0 quand pas d\'échéance', () => {
+      expect(monthsOverdue(undefined, NOW)).toBe(0);
+    });
+
+    it('retourne 0 quand l\'échéance est future', () => {
+      expect(monthsOverdue('2026-09-01T00:00:00Z', NOW)).toBe(0);
+    });
+
+    it('retourne 0 pour une échéance aujourd\'hui', () => {
+      // Même jour calendaire UTC que NOW (2026-06-07) → pas de retard.
+      expect(monthsOverdue('2026-06-07T00:00:00Z', NOW)).toBe(0);
+    });
+
+    it('retourne 1 pour un retard de quelques jours (mois entamé)', () => {
+      // NOW = 7 juin, échéance 1er juin → 6 jours de retard → 1 mois dû
+      expect(monthsOverdue('2026-06-01T00:00:00Z', NOW)).toBe(1);
+    });
+
+    it('arrondit au mois supérieur : 2 mois pleins + reste = 3 mois', () => {
+      // échéance 1er mars, now 20 mai → 2 mois entiers (mars, avril) + 19j → 3
+      const d = new Date('2026-05-20T12:00:00Z');
+      expect(monthsOverdue('2026-03-01T00:00:00Z', d)).toBe(3);
+    });
+
+    it('retourne exactement N pour un multiple exact de mois', () => {
+      // échéance 1er mars, now 1er juin → 3 mois pleins pile → 3
+      const d = new Date('2026-06-01T12:00:00Z');
+      expect(monthsOverdue('2026-03-01T00:00:00Z', d)).toBe(3);
+    });
+
+    // ⚠️ Cas FIN DE MOIS — révélés par la certification (clamping Postgres).
+    // JS Date.setMonth déborde (31 jan + 1 mois = 3 mars) ; Postgres clampe (28 fév).
+    // La fonction DOIT suivre Postgres (source de vérité du garde-fou serveur).
+    it('échéance au 31 : clampe la fin de mois comme Postgres (pas de débordement)', () => {
+      // due=31 jan, now=1er mars → 31 jan + 1 mois = 28 fév (clampé) < 1er mars
+      // → 1 mois entier + reste → 2 mois. (Le débordement JS donnait 1 à tort.)
+      expect(monthsOverdue('2026-01-31T00:00:00Z', new Date('2026-03-01T12:00:00Z'))).toBe(2);
+    });
+
+    it('échéance au 31, now au 28 fév : exactement 1 mois (clampé pile)', () => {
+      // 31 jan + 1 mois = 28 fév = now → 1 mois pile, pas de reste → 1
+      expect(monthsOverdue('2026-01-31T00:00:00Z', new Date('2026-02-28T12:00:00Z'))).toBe(1);
+    });
+
+    it('échéance au 30 : clampe correctement sur les mois courts', () => {
+      // due=30 avril, now=1er juin → 30 avr + 1 mois = 30 mai < 1er juin → 2
+      expect(monthsOverdue('2026-04-30T00:00:00Z', new Date('2026-06-01T12:00:00Z'))).toBe(2);
+    });
+
+    it('échéance proche de minuit UTC : calcul en UTC (pas de bascule locale)', () => {
+      // due=2026-04-01T23:30Z (00:30 locale Bénin). En UTC le jour reste le 1er avril.
+      // now=2026-07-02 → 3 mois entiers (1 avr→1 juil) + 1j → 4 mois.
+      expect(monthsOverdue('2026-04-01T23:30:00Z', new Date('2026-07-02T07:00:00Z'))).toBe(4);
     });
   });
 
