@@ -51,7 +51,7 @@ Le Service est proposé selon trois plans, différenciés par la taille d'équip
 
 | Plan | Équipe maximum | Prix |
 |---|---|---|
-| Starter | 3 personnes | 9 000 XOF / mois |
+| Starter | 4 personnes | 9 000 XOF / mois |
 | Pro | 8 personnes | 15 000 XOF / mois |
 | Max | 20 personnes | 30 000 XOF / mois |
 

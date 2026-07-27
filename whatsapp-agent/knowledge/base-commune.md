@@ -21,7 +21,7 @@ Trois plans, différenciés UNIQUEMENT par la taille d'équipe autorisée (promo
 
 | Plan | Équipe max | Prix |
 |---|---|---|
-| Starter | 3 personnes | 9 000 XOF / mois |
+| Starter | 4 personnes | 9 000 XOF / mois |
 | Pro | 8 personnes | 15 000 XOF / mois |
 | Max | 20 personnes | 30 000 XOF / mois |
 

@@ -255,7 +255,7 @@ Segmentation **par taille d'équipe** (toutes les fonctionnalités incluses dans
 
 | Plan | Prix / mois | Équipe max | Positionnement |
 |---|---|---|---|
-| **Starter** | 9 000 XOF (300 FCFA/j) | 3 | Sas commercial, force l'upsell au 4ᵉ membre |
+| **Starter** | 9 000 XOF (300 FCFA/j) | 4 | Sas commercial, force l'upsell au 5ᵉ membre |
 | **Pro** | 15 000 XOF (500 FCFA/j) | 8 | Tier vedette (cœur de cible) |
 | **Max** | 30 000 XOF (1 000 FCFA/j) | 20 | Gros bars / réseaux |
 

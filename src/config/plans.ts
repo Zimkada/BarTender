@@ -9,7 +9,7 @@
  * - La PlanId 'enterprise' reste la clé technique pour stabilité (label affiché : "Max").
  *
  * Pricing (cf. MARKETING.md §4) :
- * - Starter 9 000 XOF/mois (300 FCFA/jour) — sas commercial, force upsell au 4ᵉ membre
+ * - Starter 9 000 XOF/mois (300 FCFA/jour) — sas commercial, force upsell au 5ᵉ membre
  * - Pro 15 000 XOF/mois (500 FCFA/jour) — tier vedette ICP, force upsell au 9ᵉ membre
  * - Max 30 000 XOF/mois (1 000 FCFA/jour) — gros bars, limite dure (custom au-delà)
  */
@@ -55,8 +55,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: 'starter',
     label: 'Starter',
-    description: 'Bar qui démarre — équipe jusqu\'à 3 personnes (promoteur inclus)',
-    maxMembers: 3,
+    description: 'Bar qui démarre — équipe jusqu\'à 4 personnes (promoteur inclus)',
+    maxMembers: 4,
     monthlyPriceXOF: 9000,
     dataTier: 'balanced',
     features: ALL_FEATURES_ENABLED,

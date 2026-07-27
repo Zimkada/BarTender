@@ -53,23 +53,23 @@ describe('usePlan Hook', () => {
   });
 
   describe('canAddMember', () => {
-    it('allows adding when under limit (starter, 2/3)', () => {
-      setupMock('starter', 2);
+    it('allows adding when under limit (starter, 3/4)', () => {
+      setupMock('starter', 3);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(true);
       expect(result.current.memberLimitMessage).toBeNull();
     });
 
-    it('blocks adding when at limit (starter, 3/3)', () => {
-      setupMock('starter', 3);
+    it('blocks adding when at limit (starter, 4/4)', () => {
+      setupMock('starter', 4);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(false);
       expect(result.current.memberLimitMessage).toContain('Pro');
       expect(result.current.memberLimitMessage).toContain('Votre équipe grandit');
     });
 
-    it('blocks adding when over limit (starter, 4/3)', () => {
-      setupMock('starter', 4);
+    it('blocks adding when over limit (starter, 5/4)', () => {
+      setupMock('starter', 5);
       const { result } = renderHook(() => usePlan());
       expect(result.current.canAddMember).toBe(false);
     });
@@ -101,7 +101,7 @@ describe('usePlan Hook', () => {
     });
 
     it('only counts active members', () => {
-      // 4 members total but only 2 active → under starter limit of 3
+      // 4 members total but only 2 active → under starter limit of 4
       setupMock('starter', 4, [true, true, false, false]);
       const { result } = renderHook(() => usePlan());
       expect(result.current.activeMemberCount).toBe(2);

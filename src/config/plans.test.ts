@@ -59,10 +59,10 @@ describe('plans.ts', () => {
   });
 
   describe('isMemberLimitReached', () => {
-    it('starter limit is 3 (promoteur + gérant + 1 serveur)', () => {
-      expect(isMemberLimitReached('starter', 2)).toBe(false);
-      expect(isMemberLimitReached('starter', 3)).toBe(true);
+    it('starter limit is 4 (promoteur + gérant + 2 serveurs)', () => {
+      expect(isMemberLimitReached('starter', 3)).toBe(false);
       expect(isMemberLimitReached('starter', 4)).toBe(true);
+      expect(isMemberLimitReached('starter', 5)).toBe(true);
     });
 
     it('pro limit is 8', () => {
@@ -77,9 +77,9 @@ describe('plans.ts', () => {
       expect(isMemberLimitReached('enterprise', 20)).toBe(true);
     });
 
-    it('undefined plan defaults to starter limit (3)', () => {
-      expect(isMemberLimitReached(undefined, 2)).toBe(false);
-      expect(isMemberLimitReached(undefined, 3)).toBe(true);
+    it('undefined plan defaults to starter limit (4)', () => {
+      expect(isMemberLimitReached(undefined, 3)).toBe(false);
+      expect(isMemberLimitReached(undefined, 4)).toBe(true);
     });
   });
 

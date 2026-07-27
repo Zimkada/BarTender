@@ -77,7 +77,7 @@ L'Inventaire a 4 onglets : Produits, Opérations, Commandes, Statistiques.
 - Créer un compte gérant ou serveur : réservé au promoteur. L'application génère un identifiant et un mot de passe temporaire à transmettre à la personne.
 - Importer un membre existant d'un autre bar.
 - Changer le rôle (gérant / serveur) ou retirer un membre.
-- Le nombre de membres dépend du plan (Starter 3, Pro 8, Max 20, promoteur inclus). Limite atteinte : proposer le plan supérieur et transmettre à l'équipe pour la mise en place.
+- Le nombre de membres dépend du plan (Starter 4, Pro 8, Max 20, promoteur inclus). Limite atteinte : proposer le plan supérieur et transmettre à l'équipe pour la mise en place.
 
 ## Paramètres (page Paramètres)
 
