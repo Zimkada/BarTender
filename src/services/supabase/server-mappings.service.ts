@@ -10,13 +10,23 @@
 
 import { supabase } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
-import { OfflineStorage } from '../../utils/offlineStorage';
+import { OfflineStorage, isActiveMapping } from '../../utils/offlineStorage';
 
 export interface ServerNameMapping {
   id: string;
   barId: string;
   userId: string;
   serverName: string;
+  /**
+   * false = le membre n'est plus un serveur actif du bar (retiré ou promu).
+   * Synchronisé en DB par le trigger trg_sync_server_mapping.
+   *
+   * ⚠️ Deux usages distincts, ne pas les confondre :
+   * - Sélecteur de caisse → mappings ACTIFS uniquement (le nom doit disparaître)
+   * - Résolution d'un nom de bon → TOUS les mappings (un bon ouvert d'un serveur
+   *   parti doit garder son libellé, cf. useTickets)
+   */
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,17 +44,22 @@ export class ServerMappingsService {
     if (shouldShowBanner) {
       console.log('[ServerMappingsService] Offline mode: using cache fallback for', normalizedName);
       const cachedMappings = OfflineStorage.getMappings(barId);
-      const mapping = cachedMappings?.find((m) => m.serverName === normalizedName);
+      const mapping = cachedMappings?.find(
+        (m) => m.serverName === normalizedName && isActiveMapping(m)
+      );
       return mapping?.userId || null;
     }
 
     try {
       // ⭐ TIMEOUT RESILIENCE (Correction Spinner)
+      // 🛡️ is_active : ne jamais résoudre le nom d'un serveur retiré ou promu.
+      // Sans ce filtre, une vente pourrait encore lui être imputée.
       const rpcPromise = supabase
         .from('server_name_mappings')
         .select('user_id')
         .eq('bar_id', barId)
         .eq('server_name', normalizedName)
+        .eq('is_active', true)
         .single();
 
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -71,7 +86,9 @@ export class ServerMappingsService {
 
       // 2. Fallback de secours en cas d'erreur réseau ou timeout
       const cachedMappings = OfflineStorage.getMappings(barId);
-      const mapping = cachedMappings?.find((m) => m.serverName === normalizedName);
+      const mapping = cachedMappings?.find(
+        (m) => m.serverName === normalizedName && isActiveMapping(m)
+      );
       return mapping?.userId || null;
     }
   }
@@ -133,6 +150,7 @@ export class ServerMappingsService {
         barId: data.bar_id,
         userId: data.user_id as string,
         serverName: data.server_name,
+        isActive: data.is_active ?? true,
         createdAt: new Date(data.created_at || Date.now()),
         updatedAt: new Date(data.updated_at || Date.now()),
       };
@@ -143,16 +161,30 @@ export class ServerMappingsService {
   }
 
   /**
-   * Get all server name mappings for a bar
-   * Used in settings UI to display current mappings
+   * Get server name mappings for a bar
+   *
+   * @param includeInactive
+   *   false (défaut) → mappings ACTIFS seulement. Pour le sélecteur de caisse :
+   *     un serveur retiré ou promu ne doit plus être sélectionnable.
+   *   true → TOUS les mappings. Pour la résolution des noms de bons ouverts
+   *     (useTickets) et l'écran de gestion des mappings, qui doivent continuer
+   *     d'afficher les inactifs.
    */
-  static async getAllMappingsForBar(barId: string): Promise<ServerNameMapping[]> {
+  static async getAllMappingsForBar(
+    barId: string,
+    includeInactive = false
+  ): Promise<ServerNameMapping[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('server_name_mappings')
         .select('*')
-        .eq('bar_id', barId)
-        .order('server_name', { ascending: true });
+        .eq('bar_id', barId);
+
+      if (!includeInactive) {
+        query = query.eq('is_active', true);
+      }
+
+      const { data, error } = await query.order('server_name', { ascending: true });
 
       if (error) throw error;
 
@@ -161,6 +193,9 @@ export class ServerMappingsService {
         barId: m.bar_id,
         userId: m.user_id as string,
         serverName: m.server_name,
+        // ⭐ Fallback true : si la colonne n'est pas encore présente (client
+        // déployé avant la migration), on ne masque personne par erreur.
+        isActive: m.is_active ?? true,
         createdAt: new Date(m.created_at || Date.now()),
         updatedAt: new Date(m.updated_at || Date.now()),
       }));
@@ -242,6 +277,7 @@ export class ServerMappingsService {
         barId: m.bar_id,
         userId: m.user_id,
         serverName: m.server_name,
+        isActive: m.is_active ?? true,
         createdAt: new Date(m.created_at || Date.now()),
         updatedAt: new Date(m.updated_at || Date.now()),
       }));
@@ -301,11 +337,14 @@ export class ServerMappingsService {
       }
 
       // Upsert all mappings at once (creates if not exist, updates if exist)
+      // ⭐ is_active: true — réactive un mapping désactivé si le serveur est
+      // redevenu actif, au lieu de laisser une ligne inactive orpheline.
       const { data, error: upsertError } = await supabase
         .from('server_name_mappings')
-        .upsert(mappingsToCreate, {
-          onConflict: 'bar_id,server_name',
-        })
+        .upsert(
+          mappingsToCreate.map(m => ({ ...m, is_active: true })),
+          { onConflict: 'bar_id,server_name' }
+        )
         .select();
 
       if (upsertError) throw upsertError;
@@ -319,6 +358,7 @@ export class ServerMappingsService {
         barId: m.bar_id,
         userId: m.user_id,
         serverName: m.server_name,
+        isActive: m.is_active ?? true,
         createdAt: new Date(m.created_at || Date.now()),
         updatedAt: new Date(m.updated_at || Date.now()),
       }));

@@ -67,7 +67,10 @@ export function ServerMappingsManager({
         return;
       }
 
-      const allMappings = await ServerMappingsService.getAllMappingsForBar(barId);
+      // ⭐ includeInactive : l'écran de gestion doit montrer les mappings
+      // désactivés (serveur retiré) pour permettre leur suppression manuelle.
+      // Le sélecteur de caisse, lui, ne reçoit que les actifs.
+      const allMappings = await ServerMappingsService.getAllMappingsForBar(barId, true);
 
       // ✨ Enrichir avec userName pour affichage UI (compatible CachedMapping)
       // Note: BarContext peut aussi mettre à jour ce cache (sans userName).
@@ -75,7 +78,8 @@ export function ServerMappingsManager({
       const enrichedMappings: CachedMapping[] = allMappings.map(mapping => ({
         serverName: mapping.serverName,
         userId: mapping.userId,
-        userName: barMembers.find(m => m.userId === mapping.userId)?.name || 'Inconnu'
+        userName: barMembers.find(m => m.userId === mapping.userId)?.name || 'Inconnu',
+        isActive: mapping.isActive
       }));
 
       setMappings(enrichedMappings);

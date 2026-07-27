@@ -146,7 +146,10 @@ export function useTickets(barId: string | undefined) {
     const { data: sales = [] } = useSales(barId, { startDate: salesWindowStart });
 
     // Mappings serveurs pour résoudre les noms
-    const { mappings = [] } = useServerMappings(barId);
+    // ⭐ includeInactive: un bon ouvert laissé par un serveur depuis retiré doit
+    // GARDER son libellé. Sans les mappings inactifs, il deviendrait anonyme et
+    // personne ne saurait à quelle table réclamer l'encaissement.
+    const { mappings = [] } = useServerMappings(barId, true);
 
     // 🔄 Retours unifiés (Online + Offline) pour déduction
     const { returns = [] } = useUnifiedReturns(barId);

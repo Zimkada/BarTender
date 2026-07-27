@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { getErrorMessage } from '../utils/errorHandler';
 
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +8,7 @@ import { auditLogger } from '../services/AuditLogger';
 import { BarsService } from '../services/supabase/bars.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { serverMappingsKeys } from '../hooks/useServerMappings';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import type { Database, Json } from '../lib/database.types';
@@ -63,6 +65,7 @@ export const useBar = useBarContext;
 
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission, updateCurrentBar } = useAuth();
+  const queryClient = useQueryClient();
   const [bars, setBars] = useState<Bar[]>([]);
   const [barMembers, setBarMembers] = useState<BarMember[]>([]);
   const [currentBarId, setCurrentBarId] = useState<string | null>(null);
@@ -638,6 +641,12 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         m.id === memberId ? { ...m, isActive: false } : m
       ));
 
+      // ⭐ Le trigger DB trg_sync_server_mapping vient de désactiver le mapping
+      // de caisse de ce membre. Sans invalidation, le sélecteur continuerait
+      // d'afficher son nom jusqu'au prochain rechargement complet.
+      queryClient.invalidateQueries({ queryKey: serverMappingsKeys.all });
+      OfflineStorage.clearMappings(currentBar.id);
+
       // Force background refresh to sync other fields
       await refreshMembers(currentBar.id);
 
@@ -646,7 +655,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error('[BarContext] Error removing member:', error);
       return { success: false, error: getErrorMessage(error) };
     }
-  }, [currentSession, currentBar, barMembers]);
+  }, [currentSession, currentBar, barMembers, queryClient]);
 
   const updateBarMember = useCallback(async (memberId: string, updates: Partial<BarMember>) => {
     if (!currentSession || !currentBar) return;
@@ -660,12 +669,18 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (result.success) {
         setBarMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: updates.role! } : m));
+
+        // ⭐ Un changement de rôle modifie le mapping de caisse côté DB :
+        // serveur → gérant supprime le mapping, gérant → serveur le (re)crée.
+        queryClient.invalidateQueries({ queryKey: serverMappingsKeys.all });
+        OfflineStorage.clearMappings(currentBar.id);
+
         toast.success("Rôle mis à jour");
       } else {
         toast.error(result.error || "Erreur maj rôle");
       }
     }
-  }, [currentSession, currentBar, barMembers]);
+  }, [currentSession, currentBar, barMembers, queryClient]);
 
   const value: BarContextType = {
     bars,

@@ -1,6 +1,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BarProvider, useBar } from './BarContext';
 import { offlineQueue } from '../services/offlineQueue';
 import { useAuth } from './AuthContext';
@@ -76,7 +77,13 @@ describe('BarContext - Offline Resilience', () => {
 
     it('should queue UPDATE_BAR operation when offline', async () => {
         const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <BarProvider>{children}</BarProvider>
+            <QueryClientProvider
+                client={new QueryClient({
+                    defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+                })}
+            >
+                <BarProvider>{children}</BarProvider>
+            </QueryClientProvider>
         );
 
         const { result } = renderHook(() => useBar(), { wrapper });
@@ -112,7 +119,13 @@ describe('BarContext - Offline Resilience', () => {
 
     it('should queue settings updates correctly (Satisfies Schema)', async () => {
         const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <BarProvider>{children}</BarProvider>
+            <QueryClientProvider
+                client={new QueryClient({
+                    defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+                })}
+            >
+                <BarProvider>{children}</BarProvider>
+            </QueryClientProvider>
         );
         const { result } = renderHook(() => useBar(), { wrapper });
 

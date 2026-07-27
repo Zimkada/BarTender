@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { ReactNode } from 'react';
 import { BarProvider, useBarContext } from './BarContext';
 import { BarsService } from '../services/supabase/bars.service';
@@ -47,8 +48,16 @@ vi.mock('../services/AuditLogger', () => ({
 }));
 
 // Wrapper pour fournir les contextes nécessaires
+// BarProvider consomme useQueryClient → doit être monté sous QueryClientProvider
+// (comme dans main.tsx).
 const wrapper = ({ children }: { children: ReactNode }) => (
-    <BarProvider>{children} </BarProvider>
+    <QueryClientProvider
+        client={new QueryClient({
+            defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+        })}
+    >
+        <BarProvider>{children} </BarProvider>
+    </QueryClientProvider>
 );
 
 describe('BarContext - Structural Hardening (Phase 9)', () => {

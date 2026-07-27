@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useBarContext, BarProvider } from './BarContext';
 import type { Bar } from '../types';
@@ -221,8 +222,19 @@ vi.mock('react-hot-toast', () => ({
 import { BarsService } from '../services/supabase/bars.service';
 
 describe('BarContext - Integration via BarProvider', () => {
+  // BarProvider consomme useQueryClient (invalidation des mappings de caisse
+  // après retrait/changement de rôle). Dans l'app il est monté sous
+  // QueryClientProvider (main.tsx) — le wrapper reproduit cet arbre.
   const wrapper = ({ children }: { children: React.ReactNode }) =>
-    React.createElement(BarProvider, null, children);
+    React.createElement(
+      QueryClientProvider,
+      {
+        client: new QueryClient({
+          defaultOptions: { queries: { retry: false }, mutations: { retry: false } }
+        })
+      },
+      React.createElement(BarProvider, null, children)
+    );
 
   describe('operatingMode via real hook + provider', () => {
     it('should return operatingMode "full" when bar has no operatingMode in settings', async () => {

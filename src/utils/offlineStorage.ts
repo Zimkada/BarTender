@@ -14,6 +14,23 @@ export interface CachedMapping {
   serverName: string;
   userId: string;
   userName?: string; // Optionnel (pour UI uniquement)
+  /**
+   * false = serveur retiré ou promu — ne doit plus apparaître au sélecteur
+   * de caisse, y compris hors ligne.
+   * Optionnel : les caches écrits avant cette version n'ont pas le champ.
+   * Absent → traité comme actif (cf. isActiveMapping).
+   */
+  isActive?: boolean;
+}
+
+/**
+ * Un mapping en cache est-il utilisable pour une nouvelle vente ?
+ * Le champ étant optionnel (caches anciens), l'absence vaut « actif » :
+ * on préfère laisser passer un nom obsolète plutôt que masquer un serveur
+ * légitime hors ligne.
+ */
+export function isActiveMapping(m: CachedMapping): boolean {
+  return m.isActive !== false;
 }
 
 /**
@@ -40,7 +57,11 @@ const STORAGE_KEYS = {
   CACHE_VERSION: 'bartender_cache_version', // ⭐ Versioning
 } as const;
 
-const CURRENT_VERSION = '2.0.0';
+// 2.1.0 (2026-07-27) : ajout de CachedMapping.isActive.
+// Les caches 2.0.0 contiennent des mappings sans ce champ, donc potentiellement
+// des serveurs retirés considérés comme actifs. Le bump force une repopulation
+// depuis la DB au prochain chargement.
+const CURRENT_VERSION = '2.1.0';
 
 export class OfflineStorage {
   /**
@@ -57,6 +78,13 @@ export class OfflineStorage {
         } else if (!cachedVersion || cachedVersion < '2.0.0') {
           console.warn(`[OfflineStorage] Version incompatible (${cachedVersion}). Purging cache.`);
           this.clear();
+        } else if (cachedVersion === '2.0.0') {
+          // ⭐ 2.0.0 → 2.1.0 : purge CIBLÉE des seuls mappings.
+          // Ils n'ont pas le champ isActive et peuvent contenir des serveurs
+          // retirés. On ne touche PAS aux bars ni aux opérations en attente :
+          // une purge globale ferait perdre des ventes offline non synchronisées.
+          console.log('[OfflineStorage] 2.0.0 → 2.1.0: purging server mappings only');
+          localStorage.removeItem(STORAGE_KEYS.SERVER_MAPPINGS);
         }
         localStorage.setItem(STORAGE_KEYS.CACHE_VERSION, CURRENT_VERSION);
       }
@@ -159,7 +187,10 @@ export class OfflineStorage {
       const normalized = mappings.map(m => ({
         serverName: m.serverName,
         userId: m.userId,
-        userName: 'userName' in m ? m.userName : undefined
+        userName: 'userName' in m ? m.userName : undefined,
+        // ⭐ Conserve l'état d'activité pour le mode hors ligne.
+        // Absent de la source (ancien appelant) → true par défaut.
+        isActive: 'isActive' in m ? m.isActive : true
       }));
 
       const allMappings = this.getAllMappings();
@@ -197,6 +228,26 @@ export class OfflineStorage {
     } catch (error) {
       console.error('[OfflineStorage] Error loading mappings:', error);
       return null;
+    }
+  }
+
+  /**
+   * Purger les mappings en cache d'un bar
+   *
+   * À appeler après toute opération modifiant l'appartenance ou le rôle d'un
+   * membre (retrait, changement de rôle) : le trigger DB a mis à jour
+   * server_name_mappings, le cache local est devenu obsolète et pourrait
+   * resservir un nom retiré en mode hors ligne.
+   */
+  static clearMappings(barId: string): void {
+    try {
+      const allMappings = this.getAllMappings();
+      if (!(barId in allMappings)) return;
+
+      delete allMappings[barId];
+      localStorage.setItem(STORAGE_KEYS.SERVER_MAPPINGS, JSON.stringify(allMappings));
+    } catch (error) {
+      console.error('[OfflineStorage] Error clearing mappings:', error);
     }
   }
 
