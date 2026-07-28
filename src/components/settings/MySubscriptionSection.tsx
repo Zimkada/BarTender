@@ -57,7 +57,7 @@ export const MySubscriptionSection: React.FC<Props> = ({ barId, barName }) => {
   useEffect(() => {
     if (!status || paymentOpenInit.current) return;
     paymentOpenInit.current = true;
-    if (status === 'trial' || status === 'overdue' || status === 'due_soon') {
+    if (status === 'trial' || status === 'overdue' || status === 'due_soon' || status === 'never_paid') {
       setPaymentOpen(true);
     }
     // En retard : l'avance est optionnelle → défaut 0 (payer le retard seul).

@@ -22,6 +22,7 @@ import { useBarContext } from '../context/BarContext';
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
+import { SubscriptionReminder } from './SubscriptionReminder'; // Rappel d'abonnement (pastille + popover)
 import { RefreshButton } from './RefreshButton'; // ✅ Bouton rafraîchissement manuel
 import { useViewport } from '../hooks/useViewport';
 //import { ProfileSettings } from './ProfileSettings';
@@ -155,6 +156,7 @@ export function Header({
                   <ColorModeToggle variant="header" />
                   <SyncStatusBadge compact position="header" />
                   <NetworkBadge />
+                  <SubscriptionReminder />
 
                   <Button
                     onClick={logout}
@@ -264,6 +266,9 @@ export function Header({
 
             {/* ✅ Badge réseau compact (offline/connexion lente) */}
             <NetworkBadge />
+
+            {/* Rappel d'abonnement (promoteur/gérant, statut nécessitant action) */}
+            <SubscriptionReminder />
 
             {/* ✅ Toggle Mode d'affichage (système / clair / sombre) */}
             <ColorModeToggle variant="header" />
