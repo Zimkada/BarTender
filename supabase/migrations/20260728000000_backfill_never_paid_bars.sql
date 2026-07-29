@@ -59,9 +59,14 @@ SET billing_exempt        = true,
 WHERE id = '81a9b77b-a981-4a87-821d-ec1b1e3c939c';  -- COUR DES GRANDS
 
 -- =====================================================
--- (d) FACTURATION IMMÉDIATE : vrais bars ACTIFS never_paid restants
+-- (d) FACTURATION : vrais bars ACTIFS never_paid restants — échéance 31/07/2026
 -- =====================================================
--- subscription_due_date = now() → 'due_soon' aujourd'hui puis 'overdue'.
+-- Échéance fixée au 31/07/2026 12:00 UTC (13h Bénin) plutôt que now() : ces bars
+-- n'ont jamais été prévenus de la facturation, on leur laisse quelques jours
+-- d'information avant que le 1er mois soit dû. Le 01/08 au matin l'échéance est
+-- dépassée → 'overdue', 1 mois dû. Avant le 01/08 → 'due_soon' (mois_dus = 0).
+-- Pas un mois d'essai offert : reste équitable envers les bars en cours d'essai
+-- à qui il reste moins d'un mois.
 -- Le filtre exclut AUTOMATIQUEMENT :
 --   - les exemptés (étapes a/b : système, BAR-TEST, ESPOIR, DAÏBI, COUR DES GRANDS)
 --   - les bars SUSPENDUS (is_active = false, ex. Le Privilège) → non facturés.
@@ -69,7 +74,7 @@ WHERE id = '81a9b77b-a981-4a87-821d-ec1b1e3c939c';  -- COUR DES GRANDS
 -- Tour Eiffel, PRESTIGE BAR 2, etc.).
 
 UPDATE public.bars
-SET subscription_due_date   = now(),
+SET subscription_due_date   = '2026-07-31 12:00:00+00'::timestamptz,
     subscription_start_date = now()
 WHERE subscription_due_date IS NULL
   AND billing_exempt = false
@@ -93,9 +98,12 @@ COMMIT;
 --               'never_paid RESTANT' = 0,
 --               'a une échéance' = les vrais bars actifs.
 --
--- 2) Bars mis en facturation aujourd'hui :
--- SELECT name, subscription_due_date FROM public.bars
--- WHERE subscription_due_date::date = CURRENT_DATE ORDER BY name;
+-- 2) Bars mis en facturation (échéance 31/07/2026), avec mois dus et montant :
+-- SELECT name, settings->>'plan' AS plan, subscription_due_date,
+--        public.months_overdue(subscription_due_date) AS mois_dus
+-- FROM public.bars
+-- WHERE subscription_due_date::date = DATE '2026-07-31' ORDER BY name;
+--   → avant le 01/08 : mois_dus = 0 (due_soon) ; à partir du 01/08 : mois_dus = 1.
 --
 -- 3) Le Privilège (suspendu) non facturé :
 -- SELECT name, is_active, subscription_due_date, billing_exempt
