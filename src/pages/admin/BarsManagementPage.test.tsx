@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import BarsManagementPage from './BarsManagementPage';
 
 const mockGetPaginatedBars = vi.fn();
@@ -68,7 +69,11 @@ describe('BarsManagementPage', () => {
   });
 
   it('updates plan and keeps dataTier unified (balanced) when admin changes a bar plan', async () => {
-    render(<BarsManagementPage />);
+    render(
+      <MemoryRouter>
+        <BarsManagementPage />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByText('Bar A')).toBeTruthy();
 
