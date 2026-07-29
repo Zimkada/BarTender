@@ -69,7 +69,13 @@ const {
 
 vi.mock('../../hooks/queries/useSalesQueries', () => ({
   useSales: mockUseSales,
-  salesKeys: { all: ['sales'] },
+  // Mock complet : refetch() de useUnifiedSales appelle salesKeys.list/stats.
+  salesKeys: {
+    all: ['sales'],
+    list: (barId: string) => ['sales', 'list', barId],
+    detail: (id: string) => ['sales', 'detail', id],
+    stats: (barId: string) => ['sales', 'stats', barId],
+  },
 }));
 
 vi.mock('../../hooks/queries/useStockQueries', () => ({
