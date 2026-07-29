@@ -50,12 +50,18 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
   // Notamment lors du rafraîchissement des catégories en arrière-plan (React Query)
   const wasOpen = React.useRef(false);
 
+  // ⭐ On suit l'ID du produit édité, pas sa référence : un refetch React Query
+  // renvoie un nouvel objet pour le même produit et écrasait la saisie en cours.
+  const loadedProductId = React.useRef<string | undefined>(undefined);
+
   useEffect(() => {
     // On ne reset le formulaire que si le modal VIENT d'ouvrir
-    // OU si l'objet 'product' passé en prop a explicitement changé (ex: switch d'édition)
+    // OU si on passe à un AUTRE produit (switch d'édition), jamais sur un simple
+    // refetch du même produit.
     const justOpened = isOpen && !wasOpen.current;
+    const switchedProduct = isOpen && product?.id !== loadedProductId.current;
 
-    if (justOpened || (isOpen && product)) {
+    if (justOpened || switchedProduct) {
       if (product) {
         setMode('custom');
         setStep('details');
@@ -84,9 +90,14 @@ export function ProductModal({ isOpen, onClose, onSave, categories, product, inl
         setSelectedGlobalId(null);
         setStep('selection');
       }
+      loadedProductId.current = product?.id;
     }
     wasOpen.current = isOpen;
-  }, [product, categories.length, isOpen]);
+    if (!isOpen) loadedProductId.current = undefined;
+    // ⭐ `product` est volontairement hors dépendances : seul son ID doit
+    // déclencher un rechargement du formulaire (voir commentaire ci-dessus).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id, categories.length, isOpen]);
 
   // Load global products when switching to global mode
   useEffect(() => {
