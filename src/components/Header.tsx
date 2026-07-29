@@ -22,6 +22,7 @@ import { useBarContext } from '../context/BarContext';
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { SubscriptionReminder } from './SubscriptionReminder'; // Rappel d'abonnement (pastille + popover)
 import { RefreshButton } from './RefreshButton'; // ✅ Bouton rafraîchissement manuel
 import { useViewport } from '../hooks/useViewport';
@@ -68,6 +69,10 @@ export function Header({
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
+
+  // ⭐ Hors ligne : sur mobile, on efface le réglage de thème de la barre de badges
+  // pour que l'indicateur réseau reste lisible (cf. commentaire au point d'usage).
+  const { isOnline } = useNetworkStatus();
 
   // ✨ HYBRID DRY REVENUE
   const { netRevenue: todayTotal } = useRevenueStats();
@@ -152,8 +157,16 @@ export function Header({
 
                 {/* Badges + Actions - RIGHT */}
                 <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* ⭐ Priorité au réseau sur petit écran : hors ligne, le réglage de
+                      thème s'efface pour que le badge réseau reste lisible et ne soit
+                      pas noyé parmi six icônes. Un bar doit voir que le problème vient
+                      du réseau.
+                      RefreshButton est volontairement CONSERVÉ : c'est l'action utile
+                      quand la connexion traîne. Et le masquage est limité à la coupure
+                      franche (pas au simple réseau lent), sinon un bar en zone 3G
+                      perdrait ces boutons en permanence. */}
                   <RefreshButton />
-                  <ColorModeToggle variant="header" />
+                  {isOnline && <ColorModeToggle variant="header" />}
                   <SyncStatusBadge compact position="header" />
                   <NetworkBadge />
                   <SubscriptionReminder />
