@@ -153,8 +153,10 @@ export const OfflineBanner: React.FC = () => {
         expanded: { width: 'min(90vw, 400px)', borderRadius: 24, height: 'auto' }
     };
 
+    // px-3 : garde-fou petit écran — sans marge latérale, la pastille repliée
+    // peut toucher les bords sur un 360px une fois le libellé allongé.
     return (
-        <div className="fixed top-4 left-0 right-0 z-[9999] flex justify-center pointer-events-none">
+        <div className="fixed top-4 left-0 right-0 z-[9999] flex justify-center pointer-events-none px-3">
             <motion.div
                 initial="collapsed"
                 animate={isExpanded ? "expanded" : "collapsed"}
@@ -171,14 +173,16 @@ export const OfflineBanner: React.FC = () => {
                     className="flex items-center justify-between px-4 h-12 cursor-pointer"
                     onClick={() => setIsExpanded(!isExpanded)}
                 >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                         <motion.div
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ repeat: Infinity, duration: 2 }}
-                            className={`w-2 h-2 rounded-full ${canWorkOffline ? 'bg-amber-500' : 'bg-red-500'}`}
+                            className={`w-2 h-2 rounded-full flex-shrink-0 ${canWorkOffline ? 'bg-amber-500' : 'bg-red-500'}`}
                         />
-                        <span className="text-white font-bold text-sm tracking-wide">
-                            {canWorkOffline ? 'Mode Hors Ligne' : 'Connexion Perdue'}
+                        {/* ⭐ Le libellé doit attribuer la panne au réseau, pas laisser
+                            croire que l'application est en cause. */}
+                        <span className="text-white font-bold text-sm tracking-wide truncate">
+                            {canWorkOffline ? 'Mode Hors Ligne' : 'Pas de connexion internet'}
                         </span>
                         {(pendingCount + errorCount > 0) && !isExpanded && (
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono
@@ -230,14 +234,14 @@ export const OfflineBanner: React.FC = () => {
                                     </div>
                                 ) : (
                                     <>
-                                        <p className="mb-2 text-red-300">Connexion Internet requise.</p>
+                                        <p className="mb-2 text-red-300">Votre téléphone n'a plus internet.</p>
                                         <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20 mb-2">
                                             <p className="text-xs text-red-200 font-medium">
-                                                🚨 Votre rôle de Serveur nécessite une connexion active pour garantir l'intégrité des opérations.
+                                                L'application fonctionne normalement : c'est la connexion qui manque. Vos ventes ne peuvent pas être enregistrées tant qu'elle n'est pas revenue.
                                             </p>
                                         </div>
                                         <p className="text-[10px] text-muted-foreground italic text-center">
-                                            Vérifiez votre Wi-Fi/4G ou contactez un gérant.
+                                            Vérifiez le Wi-Fi ou vos données mobiles, puis prévenez le gérant.
                                         </p>
                                     </>
                                 )}

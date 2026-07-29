@@ -113,13 +113,22 @@ function isSlowConnection(connection?: NetworkInformation): boolean {
   if (!connection) return false;
 
   // Considérer comme lente:
-  // - 2G ou slow-2G
-  // - RTT > 400ms (Round Trip Time)
+  // - 3G, 2G ou slow-2G
+  // - RTT > 300ms (Round Trip Time)
   // - downlink < 1 Mbps
+  //
+  // ⭐ La 3G est volontairement incluse : c'est le cas le plus fréquent chez nos
+  // utilisateurs, et sans elle l'application paraissait simplement lente sans
+  // aucune explication à l'écran — le bar en concluait que l'application ne
+  // marche pas. Le seuil RTT passe de 400 à 300ms pour la même raison (une 3G
+  // moyenne tourne autour de 100-300ms et échappait au seuil précédent).
+  // Contrepartie assumée : le badge "Réseau lent" devient nettement plus
+  // fréquent en zone mal couverte.
   return (
+    connection.effectiveType === '3g' ||
     connection.effectiveType === '2g' ||
     connection.effectiveType === 'slow-2g' ||
-    (connection.rtt !== undefined && connection.rtt > 400) ||
+    (connection.rtt !== undefined && connection.rtt > 300) ||
     (connection.downlink !== undefined && connection.downlink < 1)
   );
 }

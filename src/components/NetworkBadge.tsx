@@ -20,9 +20,12 @@ export function NetworkBadge() {
     return (
       <div
         className="flex items-center gap-1.5 px-2 py-1 bg-red-500/90 rounded-md text-white text-xs font-medium"
-        title="Mode hors ligne - Certaines fonctionnalités sont limitées"
+        title="Pas de connexion internet - ce n'est pas l'application"
       >
         <WifiOff className="w-3.5 h-3.5 flex-shrink-0" />
+        {/* ⭐ Libellé TOUJOURS visible, y compris sous 420px : sur mobile il n'y a pas
+            de survol, donc une pastille rouge sans texte n'explique rien. Le promoteur
+            doit pouvoir attribuer la panne à sa connexion, pas à l'application. */}
         <span>Hors ligne</span>
       </div>
     );
@@ -30,13 +33,19 @@ export function NetworkBadge() {
 
   // Badge connexion lente
   if (isSlowConnection) {
+    // effectiveType n'est pas toujours renseigné (API réseau partielle sur iOS/Safari,
+    // ou lenteur détectée via rtt/downlink seuls) → libellé fixe "Connexion lente"
+    // plutôt que "Connexion {type}" qui afficherait "Connexion " vide. Le type précis,
+    // s'il existe, va dans le title uniquement.
+    const typeSuffix = effectiveType ? ` (${effectiveType.toUpperCase()})` : '';
     return (
       <div
         className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/90 rounded-md text-white text-xs font-medium"
-        title={`Connexion ${effectiveType?.toUpperCase()} - Chargement optimisé`}
+        title={`Connexion lente${typeSuffix} - l'application attend le réseau`}
       >
         <Activity className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>Connexion {effectiveType?.toUpperCase()}</span>
+        {/* Libellé court pour tenir à 360px sans pousser les autres icônes. */}
+        <span>Réseau lent</span>
       </div>
     );
   }

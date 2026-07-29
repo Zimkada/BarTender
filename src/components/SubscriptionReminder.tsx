@@ -93,7 +93,7 @@ export function SubscriptionReminder() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-64 z-50 rounded-lg border border-border bg-card shadow-xl p-3 text-foreground">
+        <div className="absolute right-0 mt-2 w-[min(16rem,calc(100vw-1rem))] z-50 rounded-lg border border-border bg-card shadow-xl p-3 text-foreground">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <span className={`w-2.5 h-2.5 rounded-full ${dotColor} flex-shrink-0`} />
