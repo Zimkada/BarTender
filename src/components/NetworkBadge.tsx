@@ -23,20 +23,27 @@ export function NetworkBadge() {
         title="Mode hors ligne - Certaines fonctionnalités sont limitées"
       >
         <WifiOff className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>Hors ligne</span>
+        {/* Libellé masqué sur petit écran (icône + couleur suffisent) — le title reste. */}
+        <span className="hidden min-[420px]:inline">Hors ligne</span>
       </div>
     );
   }
 
   // Badge connexion lente
   if (isSlowConnection) {
+    // effectiveType n'est pas toujours renseigné (API réseau partielle sur iOS/Safari,
+    // ou lenteur détectée via rtt/downlink seuls) → libellé fixe "Connexion lente"
+    // plutôt que "Connexion {type}" qui afficherait "Connexion " vide. Le type précis,
+    // s'il existe, va dans le title uniquement.
+    const typeSuffix = effectiveType ? ` (${effectiveType.toUpperCase()})` : '';
     return (
       <div
         className="flex items-center gap-1.5 px-2 py-1 bg-amber-500/90 rounded-md text-white text-xs font-medium"
-        title={`Connexion ${effectiveType?.toUpperCase()} - Chargement optimisé`}
+        title={`Connexion lente${typeSuffix} - Chargement optimisé`}
       >
         <Activity className="w-3.5 h-3.5 flex-shrink-0" />
-        <span>Connexion {effectiveType?.toUpperCase()}</span>
+        {/* Libellé masqué sur petit écran (icône + couleur suffisent) — le title reste. */}
+        <span className="hidden min-[420px]:inline">Connexion lente</span>
       </div>
     );
   }
