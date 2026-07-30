@@ -1,6 +1,7 @@
 // src/layouts/AdminLayout.tsx
 import { Link, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
@@ -37,6 +38,7 @@ function AdminLayoutContent() {
   const { isAuthenticated, currentSession, logout } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   // Précharger toutes les pages admin en arrière-plan dès que l'utilisateur est SuperAdmin
   const isSuperAdmin = currentSession?.role === 'super_admin';
@@ -122,14 +124,30 @@ function AdminLayoutContent() {
                   to={item.path}
                   onClick={() => setIsSidebarOpen(false)}
                   className={`
-                    flex items-center gap-3 px-4 py-3 rounded-lg transition-all
+                    group relative flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
                     ${isActive
-                      ? 'bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 font-semibold'
+                      ? 'text-purple-700 dark:text-purple-400 font-semibold'
                       : 'text-foreground/70 hover:bg-muted hover:text-foreground'
                     }
                   `}
                 >
-                  <Icon className="w-5 h-5" />
+                  {/* ⭐ Indicateur actif partagé : glisse d'un item à l'autre au changement de route */}
+                  {isActive && (
+                    <motion.span
+                      layoutId="admin-nav-active"
+                      className="absolute inset-0 -z-10 rounded-lg bg-purple-100 dark:bg-purple-950/40"
+                      transition={prefersReducedMotion
+                        ? { duration: 0 }
+                        : { type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                  <motion.span
+                    className="flex-shrink-0"
+                    whileHover={prefersReducedMotion ? {} : { scale: 1.15, rotate: -8 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </motion.span>
                   <span>{item.label}</span>
                 </Link>
               );
