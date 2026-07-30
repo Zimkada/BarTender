@@ -5,7 +5,8 @@
 > **Décisions structurantes** :
 > 1. Intégrer au socle existant, ne pas réécrire d'application (§2).
 > 2. Le plat est une entité **autonome** (`dishes`), pas un `bar_product` (§4.5).
-> 3. La vente d'un plat naît au **retrait par le serveur** et naît **validée** (§7).
+> 3. Les ingrédients sont décrémentés à **`ready`** (matière cuite = consommée) ; la vente naît au
+>    **retrait par le serveur** et naît **validée** (§6). Deux événements, deux moments.
 
 ---
 
@@ -113,9 +114,10 @@ La tentation naturelle serait d'ajouter une branche dans le RPC existant pour di
 et plat. Erreur : cela mettrait du code resto dans le chemin critique de **tous** les bars, y
 compris purs.
 
-Bon découpage : un **nouveau** RPC pour la vente de plat (création de la vente + consommation des
-N ingrédients, atomique), à côté de l'existant qu'on ne touche pas. C'est aussi ce qui permet de
-tester le module sans risquer une régression sur le cœur du produit.
+Bon découpage : de **nouveaux** RPC dédiés au parcours plat (`mark_kitchen_item_ready` pour la
+consommation de matière, `serve_kitchen_item` pour la vente — cf. §6 et §10), à côté de l'existant
+qu'on ne touche pas. C'est aussi ce qui permet de tester le module sans risquer une régression sur
+le cœur du produit.
 
 > C'est la raison technique qui a fait pencher pour `dishes` autonome (§4.5) : avec l'héritage, il
 > aurait fallu filtrer `is_dish = false` dans les requêtes existantes — donc **modifier du code
@@ -204,12 +206,21 @@ kitchen_orders                       -- extension du ticket, PAS un doublon
 kitchen_order_items                  -- ⭐ porteur du statut canonique
   id, bar_id ⭐, kitchen_order_id, dish_id, quantity
   status                 -- pending | accepted | preparing | ready | served | cancelled
-  accepted_by, accepted_at, ready_at, served_at, served_by
-  cancelled_by, cancel_reason
+  accepted_by, accepted_at
+  ready_at, ready_by     -- ⭐ moment de la CONSOMMATION de matière
+  served_at, served_by   -- ⭐ moment de la NAISSANCE du CA
+  cancelled_by, cancel_reason, cancelled_at
   reminder_count, last_reminder_at
   modifiers              -- JSONB : « sans piment »
-  unit_price, computed_cost
+  unit_price
+  computed_cost          -- ⭐ snapshot du coût matière, figé à `ready` (cf. 6)
+  consumed_at            -- ⭐ horodatage du décrément (idempotence)
+  sale_id                -- ⭐ FK nullable — NULL si ready mais jamais servi (= perte)
 ```
+
+Le couple `consumed_at` / `sale_id` porte la distinction du §6 : une ligne avec `consumed_at`
+renseigné mais `sale_id` à NULL est une **perte** (matière consommée, aucun produit). C'est cette
+combinaison qui rend les pertes cuisine mesurables plat par plat.
 
 ⭐ **`bar_id` obligatoire sur les deux tables**, bien que dérivable via `ticket_id`. Toutes les
 tables du projet le portent : c'est la convention d'isolation multi-tenant, et les policies RLS
@@ -474,10 +485,44 @@ une vente seul.
 ```
 Serveur commande → pending
 Cuisinier accepte → preparing
-Cuisinier a fini → ready              ⟵ le plat existe physiquement
-SERVEUR RETIRE  → served              ⟵ ⭐ LA VENTE NAÎT ICI, status = 'validated'
-                                         + ingrédients décrémentés (même transaction)
+Cuisinier a fini → ready     ⟵ ⭐ MATIÈRE CONSOMMÉE : décrément ingrédients + snapshot coût
+SERVEUR RETIRE  → served     ⟵ ⭐ PRODUIT CONSTATÉ : vente créée, status = 'validated'
 ```
+
+### ⭐ Deux événements distincts, deux moments (correction)
+
+**Le décrément des ingrédients a lieu à `ready`, PAS à `served`.**
+
+Le modèle initial liait les deux dans une seule transaction atomique à `served`. C'était une
+**erreur de fond** : un plat marqué `ready` a été **cuit**, donc les ingrédients sont consommés
+définitivement. S'il n'est jamais servi (client parti, erreur de commande, plat tombé), le stock
+doit **quand même** refléter cette consommation.
+
+Sans cette correction, un plat `ready → cancelled` ne décrémentait rien alors qu'il avait coûté —
+et l'écart théorique/réel (§7), métrique centrale du module, se trouvait faussé **dans le mauvais
+sens** : il attribuait à du gaspillage invisible une consommation parfaitement connue.
+
+Deux faits de nature différente étaient forcés dans une seule transition :
+
+| Événement | Fait constaté | Moment juste | Nature comptable |
+|---|---|---|---|
+| **Consommation de matière** | Le plat a été cuisiné | `ready` | Charge engagée |
+| **Naissance du produit** | Le plat a été remis au client | `served` | Produit constaté |
+
+La comptabilité les traite d'ailleurs séparément (une charge, un produit). Les lier était une
+commodité technique, pas une nécessité.
+
+**Conséquence** : un plat `ready` non servi laisse matière consommée + aucun CA — c'est-à-dire
+**une perte correctement enregistrée**, avec coût matière connu, recette identifiée et motif saisi.
+Bien plus exploitable que de la noyer dans l'écart d'inventaire, puisqu'on sait *quel* plat a été
+perdu et *pourquoi*.
+
+**Le snapshot du coût se fait donc à `ready`**, jamais à `served` : c'est là que la matière sort,
+donc là que le CUMP doit être lu. Sinon le coût figé ne correspondrait pas au stock réellement
+décrémenté.
+
+Effet secondaire favorable : la règle « `cancel_sale` annule le CA mais pas la consommation »
+(§6, conséquences) cesse d'être une exception à traiter — elle découle naturellement du modèle.
 
 Le retrait plutôt que `ready` : un plat prêt mais oublié sur le passe n'est pas servi, et l'écart
 `ready → served` mesure la réactivité du service.
@@ -534,6 +579,22 @@ l'argument de vente le plus fort.
 **Conséquence** : l'inventaire physique périodique des ingrédients est **obligatoire**, pas
 optionnel. Sans lui le module ne mesure que du théorique, et la « marge précise » promise est
 fausse.
+
+### Quatrième métrique : les pertes cuisine mesurées
+
+La dissociation du §6 (matière à `ready`, CA à `served`) fait apparaître une donnée que le modèle
+initial perdait : les **plats produits mais non servis**.
+
+| Requête | Signification |
+|---|---|
+| `consumed_at IS NOT NULL AND sale_id IS NULL` | Plat cuisiné, jamais vendu = **perte identifiée** |
+
+Contrairement à l'écart théorique/réel — qui agrège toutes les causes sans les distinguer — cette
+métrique est **attribuable** : on connaît le plat, sa recette, son coût matière, le motif
+d'annulation et l'heure. Elle réduit d'autant la part inexpliquée de l'écart d'inventaire.
+
+Pour un promoteur, c'est une information directement actionnable : « 4 poulets braisés perdus cette
+semaine, dont 3 le vendredi soir » désigne un problème de rythme de service, pas un vol.
 
 ---
 
@@ -812,14 +873,30 @@ transition (ou un double décrément).
 
 | Transition | Effet | Criticité |
 |---|---|---|
-| `accept`, `start`, `ready` | Changement de statut seul | Faible — rejeu inoffensif si idempotent |
-| `cancel` | Statut + motif, **aucune vente** | Faible |
-| **`serve`** | **Crée du CA + décrémente N ingrédients** | ⭐ **Maximale** |
+| `accept`, `start` | Changement de statut seul | Faible — rejeu inoffensif si idempotent |
+| `cancel` (avant `ready`) | Statut + motif, aucun effet matière ni CA | Faible |
+| **`ready`** | **Décrémente N ingrédients + fige le coût** | ⭐ **Maximale** |
+| **`serve`** | **Crée la vente (CA)** | ⭐ Élevée |
 
-`serve` est **le RPC le plus dangereux du module** et doit être le plus durci : atomique,
-`SECURITY DEFINER`, `FOR UPDATE` sur les lignes d'ingrédients (races entre appareils), et
-**idempotent** par clé sur `kitchen_order_item_id`. Un rejeu doit retourner la vente déjà créée,
-jamais en créer une seconde — même contrat que `create_sale_idempotent`.
+**Deux RPC distincts, chacun idempotent** (conséquence de la dissociation du §6) :
+
+| RPC | Responsabilité | Clé d'idempotence |
+|---|---|---|
+| `mark_kitchen_item_ready` | Statut → `ready`, décrément des ingrédients, snapshot `computed_cost`, `consumed_at` | `kitchen_order_item_id` |
+| `serve_kitchen_item` | Statut → `served`, création de la vente `validated`, liaison `sale_id` | `kitchen_order_item_id` |
+
+`mark_kitchen_item_ready` devient **le RPC le plus dangereux du module** : c'est lui qui touche au
+stock. Exigences : atomique, `SECURITY DEFINER`, `FOR UPDATE` sur les lignes d'ingrédients (races
+entre appareils), rejeu retournant l'état déjà consommé **sans double décrément**.
+
+`serve_kitchen_item` reste sensible (il crée du CA) mais ne touche plus au stock — un rejeu doit
+retourner la vente déjà créée, jamais en créer une seconde (même contrat que
+`create_sale_idempotent`).
+
+> **Note** : la revue externe recommandait de faire de `serve` le RPC le plus durci, au motif qu'il
+> créait du CA **et** décrémentait du stock. La dissociation du §6 déplace cette cible vers
+> `mark_ready`. La recommandation reste valable, elle change d'objet — et le résultat est meilleur :
+> **aucun RPC ne fait plus les deux à la fois.**
 
 Le CUMP existant sait déjà gérer le stock nul
 ([reverse_supply](../../supabase/migrations/20260703040000_vague4c_cump_single_source_of_truth.sql) :
@@ -926,7 +1003,7 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 | **0** | Audit + ajout rôle `cuisinier` (§11.3) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` + `ingredient_supplies` + CUMP + écran appro | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
 | **2** | `dishes` + `dish_ingredients` + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`serve_kitchen_item` (RPC atomique)** + format `sales.items` (§4.2) + garde-fou `pay_ticket` (§5) | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
+| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + garde-fou `pay_ticket` (§5) | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
 | **4** | Inventaire physique d'ingrédients + écart théorique/réel | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
@@ -935,20 +1012,26 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 > transaction, au retrait. Sans ce RPC, la phase 3 ne serait pas une prise de commande fiable mais
 > une maquette. **Le noyau atomique appartient à la phase 3.**
 
-### Le noyau de la phase 3 : `serve_kitchen_item`
+### Le noyau de la phase 3 : deux RPC atomiques
 
-RPC unique et atomique, **le plus durci du module** — c'est le seul qui crée du CA *et* décrémente
-du stock :
+La dissociation du §6 (matière à `ready`, CA à `served`) donne **deux** RPC plutôt qu'un :
 
-1. transition `ready → served` sur la ligne (avec `FOR UPDATE`) ;
+**`mark_kitchen_item_ready`** — le plus durci du module, c'est lui qui touche au stock :
+1. transition `preparing → ready` sur la ligne (`FOR UPDATE`) ;
+2. décrément des N ingrédients de la recette ;
+3. snapshot du coût matière (`computed_cost`) au CUMP du moment — figé, jamais recalculé (§4.4) ;
+4. `consumed_at` renseigné ;
+5. **idempotence** par clé stable sur `kitchen_order_item_id` — un rejeu ne doit **jamais** produire
+   un second décrément.
+
+**`serve_kitchen_item`** — ne touche plus au stock :
+1. transition `ready → served` (`FOR UPDATE`) ;
 2. création de la vente, `status = 'validated'` (§6) ;
-3. snapshot du coût (`computed_cost`) — figé, jamais recalculé (§4.4) ;
-4. décrément des N ingrédients de la recette ;
-5. **idempotence** par clé stable sur `kitchen_order_item_id`.
+3. liaison `sale_id` sur la ligne ;
+4. **idempotence** par la même clé — un rejeu retourne la vente déjà créée.
 
-Toutes les transitions de ligne (`accept`, `start`, `ready`, `serve`, `cancel`) doivent être
-idempotentes avec des clés stables — prérequis du mode offline (§10). `serve` est celle qui exige
-le plus de durcissement.
+Toutes les transitions (`accept`, `start`, `ready`, `serve`, `cancel`) doivent être idempotentes
+avec des clés stables — prérequis du mode offline (§10).
 
 **Logique de l'ordre général** : les phases 1 et 2 délivrent l'essentiel de la valeur perçue **sans
 toucher au flux de vente**, qui est la partie la mieux durcie de l'app (idempotence, promotions,
@@ -1030,6 +1113,21 @@ Traçabilité des erreurs redressées, pour ne pas les refaire :
 | **Vue par table dans le Service** | ✅ **Accepté** — regroupement par `table_number` obligatoire, sans plan de salle graphique (§8) |
 | **`ScopeSwitcher` : « filtrage client obligatoire » trop rigide** | ✅ **Accepté** — règle reformulée en « zéro refetch au changement de portée » (§8) |
 | **Positionnement produit phase 2** | ✅ **Accepté** — « costing cuisine », pas « gestion restauration » (§12) |
+
+### Correction post-revue : moment du décrément (30/07/2026)
+
+| Affirmation | Correction |
+|---|---|
+| « Vente **et** décrément dans la même transaction, au retrait (`served`) » | **Faux sur le fond** : un plat marqué `ready` a été **cuit**, donc la matière est consommée définitivement. Un plat `ready` puis annulé ne décrémentait rien alors qu'il avait coûté → l'écart théorique/réel était faussé **dans le mauvais sens** (consommation connue comptée comme gaspillage invisible) |
+
+**Modèle corrigé** : décrément + snapshot du coût à **`ready`** (charge engagée), création de la
+vente à **`served`** (produit constaté). Deux faits comptables distincts, deux RPC idempotents
+(§10). Gains : les pertes cuisine deviennent **attribuables** (§7), et `mark_ready` remplace `serve`
+comme RPC le plus sensible — **aucun RPC ne touche plus au stock et au CA simultanément**.
+
+> Origine : remarque métier du fondateur. Deuxième fois qu'une intuition terrain corrige une
+> décision prise pour des raisons techniques (la première : la validation gérant inutile pour les
+> plats, §6).
 
 ---
 
