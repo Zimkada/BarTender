@@ -12,7 +12,7 @@
 > impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
 >
 > **Deux passes de revue** : §13 = audit **technique** contre le code (7 failles) ; §14 = test
-> **« service réel »** (7 corrections métier, dont `service_mode` pour l'emporté — angle mort
+> **« service réel »** (8 corrections métier, dont `service_mode` pour l'emporté — angle mort
 > complet — et `cost_mode` pour l'huile de friture).
 
 ---
@@ -192,6 +192,8 @@ ingredients                          -- tomates, poulet, huile, gaz
 dishes
   id, bar_id, name, category_id, price
   is_available           -- le cuisinier coupe un plat
+  requires_preparation   -- ⭐ défaut true ; false = beignet/gâteau déjà prêt,
+                         --   suit le chemin des boissons, sans bon ni cuisine (cf. 14.7)
   preparation_time_min   -- calibre les seuils d'alerte de retard
   photo_url
 
@@ -201,7 +203,7 @@ dish_ingredients                     -- LA recette
   is_optional
   yield_factor           -- pertes de préparation (épluchage, parage)
 
-recipe_components                    -- ⭐ sous-recettes (cf. 14.7) — V1, 1 seul niveau
+recipe_components                    -- ⭐ sous-recettes (cf. 14.8) — V1, 1 seul niveau
   dish_id                -- le plat composé
   base_dish_id           -- la base réutilisable (sauce, marinade, bouillon)
   quantity               -- portions de base consommées
@@ -435,6 +437,10 @@ inutilisable.
 ([QuickSaleFlow.tsx](../../src/components/QuickSaleFlow.tsx)) crée le bon **puis** chaque vente
 immédiatement avec `ticketId`. Le ticket est donc un **regroupement de ventes déjà enregistrées**,
 c'est-à-dire **l'addition**.
+
+> Le bon est **optionnel** pour une boisson (vente au comptoir) mais **nécessaire** pour un plat qui
+> demande une préparation — sinon la commande n'a aucun support pendant sa production. D'où le **bon
+> implicite** de §14.7, créé automatiquement dès qu'un plat entre dans le panier.
 
 ```
         TICKET (addition unique — table 5)
@@ -1038,8 +1044,8 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §14.3) + `ingredient_supplies` + CUMP + écran appro + saisie en portions (§14.6) | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
-| **2** | `dishes` + `dish_ingredients` + **`recipe_components`** (§14.7) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
+| **2** | `dishes` (+ `requires_preparation`, §14.7) + `dish_ingredients` + **`recipe_components`** (§14.8) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
 | **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
@@ -1230,11 +1236,12 @@ mérite d'être dit.
 ## 14. Test « service réel » — corrections métier (30/07/2026)
 
 > Le plan avait été audité **techniquement** (§13) mais jamais confronté à un service de 40 couverts
-> un vendredi soir. Cette section corrige 7 manques métier, dont un angle mort complet.
+> un vendredi soir. Cette section corrige 8 manques métier, dont deux angles morts complets
+> (`service_mode` §14.1 et la vente sans bon §14.7).
 >
-> Source : seconde revue externe. Elle portait sur une version antérieure (5 de ses 12 points étaient
-> déjà traités), mais ses apports métier restants sont réels et l'un d'eux est meilleur que l'analyse
-> initiale.
+> Sources : **seconde revue externe** pour §14.1 à §14.6 et §14.8 (elle portait sur une version
+> antérieure — 4 de ses 12 points étaient déjà traités — mais ses apports métier restants sont réels
+> et l'un d'eux est meilleur que l'analyse initiale) ; **question du fondateur** pour §14.7.
 
 ### 14.1 ⭐ ANGLE MORT — `service_mode` : le plan suppose partout « table »
 
@@ -1347,7 +1354,63 @@ fausses.
 
 **Portée** : couche de présentation, pas refonte du modèle.
 
-### 14.7 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
+### 14.7 Vente sans bon : bon implicite dès qu'un plat entre dans le panier
+
+**Cas non examiné par le plan.** Le bon est **entièrement optionnel** aujourd'hui : `sales.ticket_id`
+est nullable, `p_ticket_id` a `DEFAULT NULL`
+([create_tickets_table.sql](../../supabase/migrations/20260204000000_create_tickets_table.sql)), et
+[QuickSaleFlow](../../src/components/QuickSaleFlow.tsx) passe `ticketId || undefined`. **La vente
+sans bon est le cas par défaut** — c'est la vente au comptoir.
+
+Or le plan fait de `kitchen_orders.ticket_id` le rattachement de la commande cuisine (§4.1). Sans
+bon, ce champ serait NULL et **le plat flotterait sans support pendant sa préparation**.
+
+| | Boisson sans bon | Plat sans bon |
+|---|---|---|
+| Commande et remise | Simultanées | 10 à 40 min d'écart |
+| Où vit la commande entre les deux ? | Nulle part — pas besoin | **Nulle part = problème** |
+
+**Options écartées** :
+- *`kitchen_orders.ticket_id` nullable* → deux chemins de rattachement à maintenir, et `pay_ticket`
+  perd toute prise sur ces plats, donc le paiement anticipé (§14.2) devient impossible pour eux.
+- *Exiger explicitement un bon* → friction inutile : le serveur ne devrait pas avoir à comprendre
+  qu'un plat « exige un bon ». La règle est déductible par le système.
+
+**Décision : bon implicite.** Dès qu'un plat entre dans le panier, un bon est créé automatiquement
+si aucun n'est sélectionné. **Toutes les lignes du panier y sont rattachées**, boissons incluses —
+sinon l'addition serait fragmentée, ce qui contredirait « un ticket = une addition » (§5).
+
+Selon le `service_mode` (§14.1), le bon change de sens sans changer de structure :
+
+| `service_mode` | Repère affiché sur le bon |
+|---|---|
+| `dine_in` | `table_number` |
+| `takeaway` | `customer_name` (déjà présent) — c'est le **ticket de retrait** |
+
+**Invariance préservée (§3)** : un bon n'est créé implicitement **que** si le panier contient un
+plat → jamais pour un bar pur.
+
+⚠ **Effet à assumer** : `ticket_number` est **séquentiel par journée comptable**
+([add_payment_method_and_number](../../supabase/migrations/20260204140000_add_payment_method_and_number_to_tickets.sql)).
+Un bon implicite consomme donc un numéro visible dans le suivi. Acceptable, mais à ne pas découvrir
+en production — le promoteur verra plus de bons qu'il n'en a créés manuellement.
+
+#### Exception : les plats sans préparation
+
+Le plan suppose que **tout** plat passe par la cuisine. Faux : un beignet déjà cuit, une part de
+gâteau au comptoir n'ont ni production ni délai. Leur imposer un circuit cuisine + un bon serait une
+lourdeur pure.
+
+```
+dishes
+  requires_preparation   -- ⭐ défaut true ; false = vendu comme une boisson
+```
+
+Un plat `requires_preparation = false` suit **le chemin des boissons** : vente immédiate, aucun
+`kitchen_order`, aucun bon implicite. Son coût matière est néanmoins décrémenté au moment de la vente
+(la recette existe), mais sans passage par les statuts de production.
+
+### 14.8 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
 
 §15 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
 ingrédients dans 10 plats — précisément la saisie identifiée comme **principal coût d'adoption**.
@@ -1385,7 +1448,7 @@ Limite V1 : **un seul niveau d'imbrication** (une base ne peut pas contenir une 
 
 - ~~`is_transversal` binaire~~ → **résolu en §14.3** : typologie `cost_mode` à 4 niveaux, dont
   `per_dish_flat` pour l'huile de friture.
-- ~~Sous-recettes écartées~~ → **résolu en §14.7** : `recipe_components` minimal dès la V1, un seul
+- ~~Sous-recettes écartées~~ → **résolu en §14.8** : `recipe_components` minimal dès la V1, un seul
   niveau d'imbrication.
 - **`7021` non confirmé par une source normative (§9)** — seule faiblesse structurelle encore
   ouverte. À valider par un comptable OHADA avant d'écrire du code comptable.
@@ -1462,6 +1525,19 @@ vérifiés. Détail complet en **§13**.
 | **Déjà traités** | 1, 2, 3, 11 | Le point 1 (« la vente naît trop tard ») **recommandait exactement la décision déjà prise** en §6 — matière à `ready`, CA à `served` |
 | **Intégrés** | 4, 5, 6, 7, 8, 9, 12 | → §14 |
 | **Écarté** | 10 (rôle « chef cuisine ») | Un 2ᵉ rôle doublerait le coût du §11.4 (56 fichiers, 17 migrations) pour un besoin non confirmé. La distinction est déjà servie par des **permissions** séparées (`canManageIngredientStock` ≠ `canViewKitchenOrders`) |
+
+### Question du fondateur : vente combinée sans bon (30/07/2026)
+
+« Une vente boisson + plat est-elle possible sans passer par un bon ? »
+
+Cas **jamais examiné** par le plan, alors que la vente sans bon est le comportement **par défaut**
+de l'app (`sales.ticket_id` nullable, `p_ticket_id DEFAULT NULL`). Le modèle rattachait pourtant la
+commande cuisine au ticket (§4.1) — sans bon, un plat en préparation n'aurait **aucun support**.
+
+Résolu en **§14.7** : bon implicite créé dès qu'un plat entre dans le panier, toutes lignes
+rattachées (addition non fragmentée). A révélé au passage un second manque : le plan supposait que
+**tout** plat passe par la cuisine, alors qu'un beignet déjà cuit n'a ni production ni délai →
+`requires_preparation` (défaut `true`).
 
 Apports les plus précieux :
 - **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
