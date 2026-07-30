@@ -76,7 +76,7 @@ export function SubscriptionReminder() {
 
   const goToPayment = () => {
     setOpen(false);
-    navigate('/settings');
+    navigate('/subscription');
   };
 
   return (

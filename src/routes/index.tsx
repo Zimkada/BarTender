@@ -14,6 +14,7 @@ import { AdminLayout } from '../layouts/AdminLayout';
 // === Pages (export default) - With automatic retry on chunk load failure ===
 const HomePage = lazyWithRetry(() => import('../pages/HomePage'));
 const SettingsPage = lazyWithRetry(() => import('../pages/SettingsPage'));
+const SubscriptionPage = lazyWithRetry(() => import('../pages/SubscriptionPage'));
 const DashboardPage = lazyWithRetry(() => import('../pages/DashboardPage'));
 const SaleDetailsPage = lazyWithRetry(() => import('../pages/SaleDetailsPage'));
 const ForecastingAIPage = lazyWithRetry(() => import('../pages/ForecastingAIPage'));
@@ -120,6 +121,15 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute permission="canManageSettings" />,
         children: [
           { index: true, element: <SettingsPage /> },
+        ],
+      },
+      {
+        // Même permission que /settings : l'abonnement en sort sans changer d'accès
+        // (promoteur + gérant, pour qu'un retard puisse être régularisé sans attendre).
+        path: 'subscription',
+        element: <ProtectedRoute permission="canManageSettings" />,
+        children: [
+          { index: true, element: <SubscriptionPage /> },
         ],
       },
       { path: 'profil', element: <ProfilePage /> },

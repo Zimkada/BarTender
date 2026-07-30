@@ -127,7 +127,7 @@ serve(async (req) => {
         description: `Abonnement BarTender ${plan} - ${months} mois - ${barName}`,
         amount: expectedAmount,
         currency: { iso: 'XOF' },
-        callback_url: `${appBaseUrl}/settings?payment=pending`,
+        callback_url: `${appBaseUrl}/subscription?payment=pending`,
         // ⚠️ custom_metadata = DEBUG UNIQUEMENT (visible au dashboard FedaPay).
         // Le webhook ne le lit JAMAIS comme source de vérité : bar/plan/mois/montant
         // proviennent de l'intent stocké ci-dessous (record_subscription_intent).
