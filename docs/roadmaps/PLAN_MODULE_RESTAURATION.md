@@ -10,7 +10,10 @@
 >
 > ⛔ **Deux blocages à trancher avant la phase 3** : le retour de plat est structurellement
 > impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
-> Les 7 failles de l'audit sont en **§13**.
+>
+> **Deux passes de revue** : §13 = audit **technique** contre le code (7 failles) ; §14 = test
+> **« service réel »** (7 corrections métier, dont `service_mode` pour l'emporté — angle mort
+> complet — et `cost_mode` pour l'huile de friture).
 
 ---
 
@@ -182,7 +185,8 @@ ingredients                          -- tomates, poulet, huile, gaz
   conversion_factor      -- 1 kg = 1000 g
   current_stock          -- en usage_unit (source de vérité)
   current_average_cost   -- CUMP par usage_unit
-  is_transversal         -- sel, huile : non décrémenté par recette
+  cost_mode              -- ⭐ direct | global | per_dish_flat | cost_only (cf. 14.3)
+                         --   remplace le booléen is_transversal, trop binaire
   min_stock_alert
 
 dishes
@@ -197,6 +201,11 @@ dish_ingredients                     -- LA recette
   is_optional
   yield_factor           -- pertes de préparation (épluchage, parage)
 
+recipe_components                    -- ⭐ sous-recettes (cf. 14.7) — V1, 1 seul niveau
+  dish_id                -- le plat composé
+  base_dish_id           -- la base réutilisable (sauce, marinade, bouillon)
+  quantity               -- portions de base consommées
+
 ingredient_supplies                  -- miroir de supplies
   id, bar_id, ingredient_id, quantity, unit_cost, total_cost
   supplier, business_date, created_by
@@ -204,6 +213,7 @@ ingredient_supplies                  -- miroir de supplies
 kitchen_orders                       -- extension du ticket, PAS un doublon
   id, bar_id ⭐, ticket_id
   status                 -- DÉRIVÉ des lignes, jamais écrit directement (cf. 4.3)
+  service_mode           -- ⭐ 'dine_in' | 'takeaway' (cf. 14.1) — delivery hors V1
   priority, notes
   created_at
 
@@ -213,7 +223,9 @@ kitchen_order_items                  -- ⭐ porteur du statut canonique
   accepted_by, accepted_at
   ready_at, ready_by     -- ⭐ moment de la CONSOMMATION de matière
   served_at, served_by   -- ⭐ moment de la NAISSANCE du CA
-  cancelled_by, cancel_reason, cancelled_at
+  cancelled_by, cancelled_at
+  cancel_reason          -- ⭐ ENUM structuré, pas du texte libre (cf. 14.4)
+  cancel_note            -- texte libre en complément, jamais à la place
   reminder_count, last_reminder_at
   modifiers              -- JSONB : « sans piment »
   unit_price
@@ -295,10 +307,12 @@ recette consomme 300 g. Sans conversion explicite : soit des recettes en « frac
 (illisible), soit un appro pénible. Confirmé par les pratiques professionnelles de costing
 (AP cost converti en unités de recette + yield pour les pertes).
 
-**Ingrédients transversaux exclus des recettes.** Modéliser l'huile et le sel au gramme est une
-fausse précision : saisie alourdie, résultat inexploitable. Traitement : `is_transversal = true`,
-stock simple avec alerte de seuil, imputés en charge indirecte cuisine — pas dans le coût matière
-du plat. Le gaz est une charge de cuisine (`6052`), pas un ingrédient.
+**Ni tout décrémenter, ni tout exclure — `cost_mode` à 4 niveaux (§14.3).** Modéliser le sel au
+gramme est une fausse précision (saisie alourdie, résultat inexploitable) ; mais exclure l'huile de
+friture du coût d'un alloco est un **biais de marge**. D'où quatre traitements : `direct`
+(décrémenté + coût), `global` (stock simple + charge indirecte : sel, eau), `per_dish_flat`
+(forfait au coût sans décrément : **huile de friture**, charbon, emballage), `cost_only`. Le gaz
+reste une charge de cuisine (`6052`), pas un ingrédient de recette.
 
 **Stock d'ingrédients non bloquant.** Ne jamais empêcher un plat de sortir parce que le stock
 théorique dit 0 : en cuisine réelle, le cuisinier voit ce qu'il a. Alerte, jamais blocage —
@@ -444,7 +458,9 @@ lui, réelle en dessous.
 ### Garde-fous — prérequis bloquants de la phase 3
 
 **1. `pay_ticket` doit refuser la fermeture s'il reste des `kitchen_order_items` non
-`served`/`cancelled`.**
+`served`/`cancelled`** — ⚠ **règle assouplie en §14.2** : cette interdiction bloquerait la vente à
+emporter (payée avant préparation). Le paiement anticipé du ticket entier est finalement supporté,
+avec le moyen de paiement mémorisé sur le ticket et appliqué aux ventes créées ensuite.
 
 Ce n'est pas une précaution mais une **nécessité de cohérence comptable**. `pay_ticket` a évolué :
 il prend désormais `p_payment_method` et **propage le moyen de paiement aux ventes du ticket**
@@ -474,7 +490,8 @@ préparation). D'où la ligne « dont en cuisine » de l'écran de vente (§8).
 
 ### Le cuisinier valide la faisabilité
 
-Il peut **refuser** un plat, mais uniquement **avant** `preparing`, avec un motif court. Puisque
+Il peut **refuser** un plat, mais uniquement **avant** `preparing`, avec un motif **structuré**
+(`cancel_reason` en énumération — §14.4, pas du texte libre). Puisque
 la vente n'existe pas encore, un refus n'a **aucune conséquence comptable** — rien à
 contre-passer. Le cuisinier ne touche jamais à l'argent, seulement à la faisabilité.
 
@@ -1020,10 +1037,10 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 | Phase | Contenu | Valeur livrée | Risque |
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
-| **1** | `ingredients` + `ingredient_supplies` + CUMP + écran appro | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
-| **2** | `dishes` + `dish_ingredients` + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + garde-fou `pay_ticket` (§5) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
-| **4** | Inventaire physique d'ingrédients + écart théorique/réel | Détection gaspillage et fuites | Moyen |
+| **1** | `ingredients` (+ `cost_mode`, §14.3) + `ingredient_supplies` + CUMP + écran appro + saisie en portions (§14.6) | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
+| **2** | `dishes` + `dish_ingredients` + **`recipe_components`** (§14.7) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
+| **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
 > ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
@@ -1210,7 +1227,145 @@ mérite d'être dit.
 
 ---
 
-## 14. Points de vigilance
+## 14. Test « service réel » — corrections métier (30/07/2026)
+
+> Le plan avait été audité **techniquement** (§13) mais jamais confronté à un service de 40 couverts
+> un vendredi soir. Cette section corrige 7 manques métier, dont un angle mort complet.
+>
+> Source : seconde revue externe. Elle portait sur une version antérieure (5 de ses 12 points étaient
+> déjà traités), mais ses apports métier restants sont réels et l'un d'eux est meilleur que l'analyse
+> initiale.
+
+### 14.1 ⭐ ANGLE MORT — `service_mode` : le plan suppose partout « table »
+
+**Aucune occurrence** de « emporté », « takeaway » ou `service_mode` dans le plan avant cette
+section. Ni la contre-analyse, ni la revue externe, ni l'audit §13 ne l'avaient vu.
+
+Or un petit resto béninois vend beaucoup **à emporter**. Sans ce champ, l'écran cuisine forcerait de
+fausses tables (« table 99 » pour l'emporté), ce qui pollue les données et rend inutilisable le
+regroupement par table (§8).
+
+```
+kitchen_orders
+  service_mode  -- 'dine_in' | 'takeaway'    (delivery : hors V1)
+```
+
+**Combinaison critique avec §14.2** : un client qui emporte **paie avant** que le plat soit prêt.
+Le garde-fou `pay_ticket` (§5) **rendrait donc la vente à emporter impossible**. Une règle comptable
+qui bloque un cas d'usage courant est une erreur de conception, pas une rigueur.
+
+Conséquences UI : `table_number` devient nullable quand `service_mode = 'takeaway'` ; l'écran Service
+groupe par table **ou** par « À emporter » ; le nom du client (`tickets.customer_name`, déjà présent)
+devient le repère pour l'emporté.
+
+### 14.2 Paiement anticipé — le garde-fou §5 doit être assoupli, pas levé
+
+Cas terrain que le garde-fou actuel bloque : paiement d'avance, emporté payé avant préparation,
+table qui veut partir.
+
+Mais **lever** le garde-fou rouvrirait le problème qu'il résolvait : `pay_ticket` propage
+`payment_method` aux ventes du ticket, donc un plat servi après paiement produirait une vente **sans
+moyen de paiement**.
+
+**Solution** : traiter le paiement anticipé comme un cas explicite plutôt que comme une exception.
+Le moyen de paiement est **mémorisé sur le ticket** (`tickets.payment_method`, déjà présent) et
+**appliqué aux ventes créées ensuite** par `serve_kitchen_item`. Le ticket passe alors dans un état
+`paid` avec des lignes cuisine encore actives — état légitime, plus « incohérent ».
+
+**Décision V1** : paiement anticipé du **ticket entier** supporté ; **paiement partiel interdit**
+(payer les boissons maintenant et le plat après suppose de fractionner une addition — chantier à
+part entière).
+
+### 14.3 Typologie des consommables — `is_transversal` binaire est un biais de marge
+
+§15 admettait que `is_transversal` est « binaire alors que la réalité ne l'est pas » **sans en tirer
+de conséquence**. Aveu sans correction.
+
+L'argument qui tranche : ce n'est pas une imprécision mais un **biais systématique**. L'huile de
+friture est un coût **majeur** pour l'alloco, le poisson frit, les beignets — plats centraux au
+Bénin. La traiter comme le sel **sous-estime la marge des plats frits et surestime celle des
+mijotés** : le classement des plats par rentabilité, qui est le livrable de la phase 2, serait
+**faux**.
+
+Typologie à 4 niveaux remplaçant le booléen :
+
+| `cost_mode` | Exemples | Décrément stock | Inclus au coût du plat |
+|---|---|---|---|
+| `direct` | poulet, riz, poisson | ✅ par recette | ✅ au CUMP |
+| `global` | sel, gaz, eau | ❌ stock simple + alerte | ❌ charge indirecte cuisine |
+| ⭐ `per_dish_flat` | **huile de friture**, charbon, emballage | ❌ | ✅ **forfait par plat** |
+| `cost_only` | — | ❌ non suivi | ✅ |
+
+Le niveau `per_dish_flat` est ce qui manquait : il évite la fausse précision (personne ne pèse
+l'huile) **tout en** attribuant le coût aux plats qui le supportent réellement.
+
+### 14.4 `cancel_reason` structuré, pas du texte libre
+
+§6 dit « avec un motif court » — donc du texte libre. Sans énumération, impossible de distinguer une
+**fuite de stock** d'un **problème d'organisation** ou d'une **mauvaise carte**.
+
+```
+cancel_reason ENUM :
+  ingredient_shortage    -- rupture → signal d'appro
+  kitchen_overloaded     -- délai trop long → signal d'organisation
+  dish_unavailable       -- plat coupé mais encore visible côté serveur → signal de carte
+  server_input_error     -- erreur de saisie
+  customer_cancelled     -- annulation client
+  substitution_offered   -- remplacé par un autre plat
+```
+
+Un champ texte libre reste utile **en complément**, jamais à la place. C'est la structure qui rend
+les annulations analysables — et donc actionnables pour le promoteur (cf. métrique des pertes, §7).
+
+### 14.5 Inventaire : rythme et gel par période
+
+§7 pose l'obligation **trois fois**, le rythme **nulle part**. Compter tous les ingrédients chaque
+jour est irréaliste en restaurant.
+
+| Fréquence | Portée |
+|---|---|
+| Quotidien | **Comptage rapide** des ingrédients critiques uniquement (viande, poisson) |
+| Hebdomadaire | **Inventaire complet** |
+| À la demande | **Ajustement avec motif** : casse, perte, repas du personnel, erreur d'achat, vol suspecté |
+
+⭐ **Gel par période** — le point le plus important : une fois la marge d'une période calculée et
+communiquée au promoteur, un inventaire tardif ne doit **pas** la réécrire. Sans gel, les chiffres
+changent après coup et le promoteur perd confiance dans l'outil.
+
+Note : les motifs d'ajustement recoupent `cancel_reason` (§14.4) — même logique, catégoriser pour
+rendre analysable.
+
+### 14.6 Portions : couche de saisie, pas manque du modèle
+
+`yield_factor` (§4.1) et `usage_unit` couvrent déjà le **calcul** : un poulet de 1,5 kg acheté ne
+donne pas 1,5 kg vendable, et `yield_factor` l'exprime.
+
+Ce qui manque est **ergonomique** : un cuisinier pense en « un quart de poulet », pas en « 375 g ».
+Prévoir une saisie en portions métier avec conversion automatique vers `usage_unit`. Sans cela, les
+recettes seront remplies avec des approximations arbitraires — le modèle serait juste et les données
+fausses.
+
+**Portée** : couche de présentation, pas refonte du modèle.
+
+### 14.7 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
+
+§15 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
+ingrédients dans 10 plats — précisément la saisie identifiée comme **principal coût d'adoption**.
+
+Dans la cuisine ouest-africaine, sauces, marinades, bouillons et bases se répètent
+systématiquement. Forcer 10 plats à redéclarer « sauce tomate maison » alourdit la saisie **et**
+crée des divergences de coût entre plats censés partager la même base.
+
+**Position corrigée** : pas un moteur de production complet, mais **`recipe_components` minimal dès
+la V1** — un plat peut inclure une base réutilisable avec une quantité. La base est elle-même une
+recette, dont le coût unitaire remonte dans les plats qui la référencent.
+
+Limite V1 : **un seul niveau d'imbrication** (une base ne peut pas contenir une autre base), pour
+éviter la récursion de coût.
+
+---
+
+## 15. Points de vigilance
 
 **Ce qui peut mal tourner :**
 
@@ -1228,18 +1383,16 @@ mérite d'être dit.
 
 **Faiblesses assumées de cette réflexion :**
 
-- `is_transversal` est **binaire alors que la réalité ne l'est pas** : exclure l'huile d'un plat
-  frit peut sous-estimer sensiblement le coût matière. Un forfait par plat, ou un
-  `is_transversal` par ingrédient **et par plat**, serait plus juste.
-- **Les sous-recettes ont été écartées, ce qui se contredit** : dans la cuisine
-  ouest-africaine, les sauces de base réutilisées sont la norme. Les reporter oblige à dupliquer
-  les mêmes ingrédients dans 10 plats — précisément la saisie identifiée comme principal coût
-  d'adoption. À reconsidérer.
-- `7021` non confirmé par une source normative (§8).
+- ~~`is_transversal` binaire~~ → **résolu en §14.3** : typologie `cost_mode` à 4 niveaux, dont
+  `per_dish_flat` pour l'huile de friture.
+- ~~Sous-recettes écartées~~ → **résolu en §14.7** : `recipe_components` minimal dès la V1, un seul
+  niveau d'imbrication.
+- **`7021` non confirmé par une source normative (§9)** — seule faiblesse structurelle encore
+  ouverte. À valider par un comptable OHADA avant d'écrire du code comptable.
 
 ---
 
-## 15. Ce qui a été corrigé en cours de réflexion
+## 16. Ce qui a été corrigé en cours de réflexion
 
 Traçabilité des erreurs redressées, pour ne pas les refaire :
 
@@ -1300,6 +1453,25 @@ vérifiés. Détail complet en **§13**.
 | 13.6 | `CHECK >= 0` sur ingrédients | Modérée | Piège de mimétisme |
 | 13.7 | Mode simplifié et cuisine | Mineure | Cohérence affirmée non vérifiée |
 
+### Seconde revue externe (30/07/2026) — test « service réel »
+
+12 points soulevés, sur une **version antérieure** du plan. Tri après vérification ligne par ligne :
+
+| Statut | Points | Détail |
+|---|---|---|
+| **Déjà traités** | 1, 2, 3, 11 | Le point 1 (« la vente naît trop tard ») **recommandait exactement la décision déjà prise** en §6 — matière à `ready`, CA à `served` |
+| **Intégrés** | 4, 5, 6, 7, 8, 9, 12 | → §14 |
+| **Écarté** | 10 (rôle « chef cuisine ») | Un 2ᵉ rôle doublerait le coût du §11.4 (56 fichiers, 17 migrations) pour un besoin non confirmé. La distinction est déjà servie par des **permissions** séparées (`canManageIngredientStock` ≠ `canViewKitchenOrders`) |
+
+Apports les plus précieux :
+- **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
+  Ni la contre-analyse, ni la 1ʳᵉ revue, ni l'audit §13 ne l'avaient vu. Et il **invalidait** le
+  garde-fou `pay_ticket` (§5) pour la vente à emporter.
+- **§14.3 `cost_mode`** — meilleur que l'analyse initiale : §15 admettait que `is_transversal` était
+  trop binaire **sans en tirer de conséquence**. L'argument décisif manquait : c'est un **biais
+  systématique** (marge des plats frits sous-estimée, mijotés surestimée), donc le classement des
+  plats par rentabilité — livrable de la phase 2 — serait faux.
+
 **Enseignements méthodologiques** :
 1. **13.1, 13.3 et 13.4 ont la même origine** : le flux de vente a été analysé sans ses satellites
    (retours, échanges, journée comptable). Toute décision sur le flux principal doit désormais être
@@ -1308,10 +1480,17 @@ vérifiés. Détail complet en **§13**.
    incohérence ailleurs (deux journées comptables possibles). Chaque correction doit être re-auditée.
 3. **13.2 montre le coût d'une vérification partielle** : avoir lu `target_product_ids` sans lire
    `target_type` a produit un argument surestimé dans une décision structurante.
+4. **Un audit technique ne remplace pas un test métier.** Le §13 a été mené contre le code et a
+   trouvé 7 failles ; il n'a trouvé **aucun** des 7 manques du §14, parce que ceux-là ne sont
+   visibles qu'en simulant un service réel (un client qui emporte, un plat frit, une sauce de base
+   partagée). Les deux angles sont nécessaires.
+5. **Une faiblesse admise mais non corrigée reste une faille.** `is_transversal` et les
+   sous-recettes étaient tous deux signalés en §15 comme « à reconsidérer » — et sont restés en
+   l'état jusqu'à ce qu'un tiers en démontre l'impact. Documenter un doute ne le résout pas.
 
 ---
 
-## 16. Sources externes consultées
+## 17. Sources externes consultées
 
 - [Slant POS — ingredient usage tracking](https://blog.slantco.com/how-pos-systems-help-track-ingredient-usage-and-profitability/)
 - [Restaurant365 — food inventory management](https://www.restaurant365.com/blog/food-inventory-management/)
