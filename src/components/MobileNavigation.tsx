@@ -5,7 +5,6 @@ import {
   Package,
   Zap,
   RotateCcw,
-  FileSpreadsheet,
   LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -94,21 +93,28 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       path: '/returns',
       color: 'text-red-600',
       roles: ['promoteur', 'gerant', 'serveur']
-    },
-    {
-      icon: <FileSpreadsheet size={24} />,
-      label: 'Import/Export',
-      path: '/settings',
-      color: 'text-teal-600',
-      roles: ['promoteur', 'gerant']
     }
+    // ❌ Retiré : « Import/Export » → /settings. La barre ne rend que 5 entrées et
+    // le promoteur en avait 6 : cet item était tronqué, donc invisible pour lui et
+    // affiché pour le gérant seul. Les Paramètres restent au menu latéral.
   ];
 
   const navItems = allNavItems.filter(item =>
     currentSession?.role ? (item.roles as readonly string[]).includes(currentSession.role) : false
   );
 
-  const displayedItems = navItems.slice(0, 5);
+  // ⭐ Garde-fou : la barre ne tient que 5 entrées. Le slice ne doit JAMAIS avoir
+  // à tronquer — si un rôle dépasse, l'item surnuméraire disparaîtrait sans aucun
+  // signal (c'était le cas d'Import/Export pour le promoteur). Toute nouvelle
+  // entrée doit donc être arbitrée ici, pas ajoutée à la liste.
+  const MAX_VISIBLE_ITEMS = 5;
+  if (import.meta.env.DEV && navItems.length > MAX_VISIBLE_ITEMS) {
+    console.warn(
+      `[MobileNavigation] ${navItems.length} entrées pour le rôle "${currentSession?.role}" ` +
+      `alors que la barre en affiche ${MAX_VISIBLE_ITEMS} : "${navItems[MAX_VISIBLE_ITEMS].label}" est masquée.`
+    );
+  }
+  const displayedItems = navItems.slice(0, MAX_VISIBLE_ITEMS);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-40 pb-safe">
