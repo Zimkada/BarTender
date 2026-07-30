@@ -7,6 +7,10 @@
 > 2. Le plat est une entité **autonome** (`dishes`), pas un `bar_product` (§4.5).
 > 3. Les ingrédients sont décrémentés à **`ready`** (matière cuite = consommée) ; la vente naît au
 >    **retrait par le serveur** et naît **validée** (§6). Deux événements, deux moments.
+>
+> ⛔ **Deux blocages à trancher avant la phase 3** : le retour de plat est structurellement
+> impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
+> Les 7 failles de l'audit sont en **§13**.
 
 ---
 
@@ -326,12 +330,17 @@ Deux options étaient en balance : `dishes` autonome, ou `bar_product` avec `is_
    `returns`, `stock_adjustments`, `purchase_orders`, `decisions_manuelles`… Chacune hériterait
    mécaniquement des plats — un plat pourrait apparaître dans un bon de commande fournisseur.
 
-4. ⭐ **Les promotions ciblent par `target_product_ids UUID[]`, SANS clé étrangère**
+4. **Les promotions ciblent par `target_product_ids UUID[]`, SANS clé étrangère**
    ([059_create_promotions_and_events.sql](../../supabase/migrations/059_create_promotions_and_events.sql)).
-   **C'est le fait décisif** : le moteur travaille sur des UUID nus, donc il peut cibler des plats
-   venant d'une autre table. La promotion sur les plats ne nécessite **pas** que le plat soit un
-   `bar_product`. L'argument « menu du jour à prix réduit », qui semblait imposer l'héritage,
-   reposait sur une hypothèse fausse.
+   Le moteur travaille sur des UUID nus, donc il peut cibler des plats venant d'une autre table :
+   l'argument « menu du jour à prix réduit » n'impose donc **pas** l'héritage.
+
+   > ⚠ **Vérification initialement incomplète** (corrigée à l'audit, cf. §13.2) : j'avais lu
+   > `target_product_ids` sans lire `target_type TEXT CHECK (target_type IN ('product', 'category',
+   > 'all'))`. Les modes **`'all'`** et **`'category'`** posent un vrai problème de périmètre
+   > (§13.2). Les promotions ne sont donc **pas gratuites** avec `dishes` autonome — cet avantage
+   > était surestimé. La décision reste valide sur ses autres appuis (faits 1-3 et 5, et surtout le
+   > filtrage `is_dish = false` à propager partout), mais pas sur celui-là.
 
 5. **Le price guard, lui, est couplé** : il lit `bar_products.price` et `display_name` pour
    valider chaque ligne
@@ -346,8 +355,8 @@ Deux options étaient en balance : `dishes` autonome, ou `bar_product` avec `is_
 | Invariant global/custom | 3ᵉ nature dans un invariant déjà fragile | Sans objet |
 | 10 FK CASCADE | Héritées **toutes**, à neutraliser une par une | Aucune |
 | `display_name`, `alert_threshold`, `local_image` | Sémantique à réinterpréter | Champs propres |
-| Promotions | Gratuit | **Gratuit aussi** (UUID[] sans FK) |
-| Price guard | Gratuit | À étendre (une requête) |
+| Promotions | Gratuit pour `'product'`, mais `'all'`/`'category'` restent ambigus | Ciblage `'product'` possible (UUID[] sans FK) ; périmètre `'all'`/`'category'` **à définir dans les deux cas** (§13.2) |
+| Price guard | Gratuit | À dupliquer dans le RPC plat (§13.5) |
 | Catalogue / photos | Hérité | À rebâtir (nom, prix, image — borné) |
 | **Requêtes existantes sur les produits** | **Toutes** à filtrer `is_dish = false` | **Inchangées** |
 
@@ -945,7 +954,17 @@ permet 4 personnes, passez à Pro pour en ajouter ») et non une erreur techniqu
 
 `dishes` autonome. Analyse complète et coûts acceptés en **§4.5**.
 
-### 11.3 Rôle `cuisinier` — seul point dur restant
+### 11.3 ⛔ Retour de plat et périmètre des promotions — révélés à l'audit
+
+Deux blocages découverts lors de l'audit du 30/07 (§13.1 et §13.2), tous deux à trancher **avant**
+la phase 3 :
+
+- **Retour de plat impossible** (`returns.product_id` FK `NOT NULL` vers `bar_products`). Décision
+  recommandée : pas de retour de plat en V1, `cancel_sale` pour les cas réels.
+- **Périmètre des promotions** (`target_type = 'all'` / `'category'`). Décision recommandée : rendre
+  le périmètre explicite plutôt que laisser un comportement indéfini qui détruirait la marge.
+
+### 11.4 Rôle `cuisinier` — point dur technique
 
 Mesures réelles :
 
@@ -1000,10 +1019,10 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 
 | Phase | Contenu | Valeur livrée | Risque |
 |---|---|---|---|
-| **0** | Audit + ajout rôle `cuisinier` (§11.3) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
+| **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` + `ingredient_supplies` + CUMP + écran appro | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
 | **2** | `dishes` + `dish_ingredients` + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + garde-fou `pay_ticket` (§5) | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
+| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + garde-fou `pay_ticket` (§5) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
 | **4** | Inventaire physique d'ingrédients + écart théorique/réel | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
@@ -1054,7 +1073,144 @@ sur la cuisine tant que ce n'est pas livré).
 
 ---
 
-## 13. Points de vigilance
+## 13. Failles identifiées à l'audit (30/07/2026)
+
+> Audit du plan contre le code réel, en cherchant les endroits raisonnés **par analogie** avec le
+> flux boissons sans vérification. Sept failles. **Les failles 13.1 et 13.2 sont bloquantes.**
+>
+> Origine commune de 13.1, 13.3 et 13.4 : le flux de vente a été analysé **sans ses satellites**
+> (retours, échanges, journée comptable).
+
+### 13.1 ⛔ BLOQUANTE — Le retour d'un plat est structurellement impossible
+
+`returns.product_id` est une FK **`NOT NULL REFERENCES bar_products(id)`**
+([015_create_returns_table.sql](../../supabase/migrations/015_create_returns_table.sql)).
+
+Contrairement à `sales.items` (JSONB permissif, §4.2) et aux promotions (`UUID[]` sans FK), **ici la
+contrainte est dure**. Un plat n'étant pas un `bar_product` (§4.5), **aucun retour de plat ne peut
+être inséré** — échec au niveau base.
+
+Aggravant : le trigger `handle_auto_restock` fait
+`UPDATE bar_products SET stock = stock + quantity_returned`
+([auto_restock_trigger.sql](../../supabase/migrations/20260210140000_auto_restock_trigger.sql)). Si
+on contournait la FK, il incrémenterait le stock d'un article qui n'en a pas — ou d'un
+`bar_product` homonyme.
+
+Or un plat **se retourne** dans la vraie vie : « ce poisson n'est pas frais », « ce n'est pas ce que
+j'ai commandé ».
+
+| Option | Coût |
+|---|---|
+| `returns.product_id` nullable + `item_type` + `dish_id` | Touche une table centrale utilisée par les bars purs — **contredit §3** |
+| Table `dish_returns` séparée | Duplique tout le circuit (statuts, validation, remboursement) |
+| ✅ **Pas de retour de plat en V1** | Trou métier assumé et documenté |
+
+**Recommandation : option 3.** Un plat servi puis refusé se traite par `cancel_sale` — le CA est
+annulé, la matière reste consommée, ce qui est comptablement juste (§6). Avant `served`, une
+annulation de ligne suffit. **À documenter comme limite explicite**, pas à découvrir en production.
+
+### 13.2 ⛔ BLOQUANTE — `target_type = 'all'` promeut les plats par accident
+
+Les promotions ont trois modes de ciblage
+([059](../../supabase/migrations/059_create_promotions_and_events.sql)) :
+
+```sql
+target_type TEXT NOT NULL CHECK (target_type IN ('product', 'category', 'all'))
+target_product_ids  UUID[]   -- si 'product'
+target_category_ids UUID[]   -- si 'category'
+```
+
+Deux modes cassent :
+
+- **`'all'`** — une promotion « −10 % sur tout ce soir », créée pour les boissons, s'applique-t-elle
+  aux plats ? Le moteur ne sait pas distinguer. Silence du plan = **comportement indéfini**.
+- **`'category'`** — si les plats réutilisent `bar_categories` (suggéré « probablement suffisant » en
+  §4.5), une promotion sur une catégorie boisson peut toucher des plats, et inversement.
+
+Ce n'est pas un détail : **une remise involontaire sur les plats détruit la marge** — précisément la
+métrique que le module est censé protéger (§7).
+
+**À trancher** : soit un `target_scope: 'bar' | 'kitchen' | 'both'`, soit `'all'` signifie « tous les
+produits bar » et les plats exigent un ciblage explicite. Le silence n'est pas une option.
+
+### 13.3 Le Magic Swap (`provideExchange`) est incompatible avec les plats
+
+`provideExchange` ([AppProvider.tsx](../../src/context/AppProvider.tsx)) crée un retour puis une
+vente liée, avec une signature typée `swapProduct: Product`. Trois cas non traités :
+
+| Cas | Problème |
+|---|---|
+| Plat → boisson | Bloqué par 13.1 (le retour du plat est impossible) |
+| **Boisson → plat** | ⚠ La vente d'échange serait créée **immédiatement**, contredisant « la vente d'un plat naît à `served` » (§6) → **vente de plat sans passage en cuisine** |
+| Plat → plat | Cumule les deux |
+
+**Recommandation** : interdire explicitement le plat comme produit d'échange en V1 (échange
+boisson → boisson uniquement, comportement actuel). Sans cette interdiction écrite, quelqu'un
+l'implémentera par symétrie et créera une vente de plat fantôme.
+
+### 13.4 `business_date` : la charge et le produit peuvent tomber dans deux journées
+
+**Incohérence introduite par la dissociation du §6**, non vue lors de cette correction.
+
+Depuis que le décrément a lieu à `ready` et la vente à `served`, les deux événements ont des
+horodatages distincts. Avec `closing_hour = 6` (défaut Afrique de l'Ouest), un plat prêt à **5h50**
+et servi à **6h10** franchit la clôture : **la charge matière tomberait la veille, le produit le
+jour suivant**. Un Z de caisse afficherait une consommation sans vente, et l'inverse le lendemain.
+
+| Source de `business_date` | Effet |
+|---|---|
+| `created_at` (commande) | CA rattaché au moment de la commande |
+| ✅ **`served_at`** | Cohérent avec « la vente naît au retrait » |
+| `consumed_at` (`ready`) | ⛔ Charge et produit dans des journées différentes |
+
+**Recommandation** : `business_date` calculée depuis `served_at` pour la vente, **et la même valeur
+reportée sur la ligne de consommation**, même si `ready_at` appartient à la veille. La cohérence
+comptable prime sur l'exactitude horaire du décrément.
+
+Cas particulier : un plat `ready` **jamais servi** (perte, §7) n'a pas de `served_at` → sa
+`business_date` se calcule alors depuis `consumed_at`.
+
+### 13.5 Price guard : la duplication doit être assumée, pas subie
+
+§4.5 annonçait « étendre le price guard aux plats » sans mesurer la contradiction. Le guard lit
+`bar_products.price` et `display_name`
+([restore_strict_price_guard.sql](../../supabase/migrations/20260704073000_restore_strict_price_guard.sql)).
+Pour un plat il faudrait lire `dishes.price` — donc une **branche conditionnelle selon `item_type`
+dans le RPC de vente**. Or §3 exige que `create_sale` reste inchangé pour les boissons.
+
+**Recommandation** : **dupliquer** le guard dans le RPC plat plutôt que de généraliser l'existant.
+Trois lignes similaires valent mieux qu'une abstraction qui met du code resto dans le chemin
+critique des bars purs. Décision à assumer explicitement, sinon quelqu'un « factorisera » et
+touchera au guard des boissons.
+
+### 13.6 `ingredients.current_stock` ne doit PAS porter de `CHECK >= 0`
+
+Deux règles du plan se combinent mal : « stock d'ingrédients **jamais bloquant** » (§4.4) et
+décrément optimiste offline avec réconciliation (§10). Rien n'empêche donc un stock négatif.
+
+Or `bar_products.stock` porte un `CHECK (stock >= 0)`. Ajouter la même contrainte par **mimétisme**
+ferait **échouer le RPC en plein service** — exactement ce que « jamais bloquant » voulait éviter.
+
+**Décision explicite** : pas de `CHECK >= 0` sur `ingredients.current_stock`. Un stock négatif est
+un **signal** (« vous avez servi plus que vous n'avez acheté »), pas une erreur. Le CUMP sait déjà
+gérer le stock nul (§10). À écrire, sinon la contrainte sera ajoutée par réflexe.
+
+### 13.7 Le mode simplifié n'a pas de traduction cuisine cohérente
+
+§6 affirme qu'en mode simplifié « le gérant commande et retire ». Mais **qui marque `ready`** ?
+
+- Si le cuisinier a un compte → il existe un acteur de terrain dans un mode censé ne pas en avoir ;
+- Si le cuisinier n'a pas de compte → le gérant fait les trois transitions, et l'écran cuisinier
+  perd son sens.
+
+Non bloquant (mode minoritaire), mais le plan affirmait une cohérence **non vérifiée**. À trancher :
+le plus probable est qu'un bar-resto en mode simplifié donne quand même un compte au cuisinier — ce
+qui signifie que « mode simplifié » et « restauration » sont partiellement contradictoires, et
+mérite d'être dit.
+
+---
+
+## 14. Points de vigilance
 
 **Ce qui peut mal tourner :**
 
@@ -1083,7 +1239,7 @@ sur la cuisine tant que ce n'est pas livré).
 
 ---
 
-## 14. Ce qui a été corrigé en cours de réflexion
+## 15. Ce qui a été corrigé en cours de réflexion
 
 Traçabilité des erreurs redressées, pour ne pas les refaire :
 
@@ -1108,7 +1264,7 @@ Traçabilité des erreurs redressées, pour ne pas les refaire :
 | **`bar_id` manquant sur les tables cuisine** | ✅ **Accepté** — ajouté, conforme à la convention multi-tenant du projet (§4.1) |
 | **Items de vente à typer (`item_type`)** | ✅ **Accepté**, avec correction factuelle : il n'existe **pas** de table `sale_items` — `sales.items` est du **JSONB sans FK**. Le risque est donc *plus* élevé (échec silencieux, pas erreur SQL) → §4.2 |
 | **`pay_ticket` plus fragile qu'annoncé** (propage `payment_method` aux ventes) | ✅ **Accepté** — le garde-fou passe de « à ajouter » à **prérequis bloquant** (§5) |
-| **Rôle cuisinier : protéger par permission, pas par rôle brut** | ✅ **Accepté** — livrables de phase 0 formalisés (§11.3) |
+| **Rôle cuisinier : protéger par permission, pas par rôle brut** | ✅ **Accepté** — livrables de phase 0 formalisés (§11.4) |
 | **Offline : idempotence par transition, `serve` le plus durci** | ✅ **Accepté** (§10) |
 | **Vue par table dans le Service** | ✅ **Accepté** — regroupement par `table_number` obligatoire, sans plan de salle graphique (§8) |
 | **`ScopeSwitcher` : « filtrage client obligatoire » trop rigide** | ✅ **Accepté** — règle reformulée en « zéro refetch au changement de portée » (§8) |
@@ -1129,9 +1285,33 @@ comme RPC le plus sensible — **aucun RPC ne touche plus au stock et au CA simu
 > décision prise pour des raisons techniques (la première : la validation gérant inutile pour les
 > plats, §6).
 
+### Audit interne du plan (30/07/2026) — 7 failles
+
+Audit systématique du plan contre le code, à la recherche des raisonnements **par analogie** non
+vérifiés. Détail complet en **§13**.
+
+| # | Faille | Gravité | Nature de l'erreur |
+|---|---|---|---|
+| 13.1 | Retour de plat impossible (FK `NOT NULL`) | ⛔ Bloquante | Trou métier non vu |
+| 13.2 | `target_type = 'all'` promeut les plats | ⛔ Bloquante | Vérification partielle (§4.5 surestimé) |
+| 13.3 | Magic Swap incompatible | Majeure | Flux existant ignoré |
+| 13.4 | `business_date` : charge ≠ produit | Majeure | **Introduite par la correction précédente** |
+| 13.5 | Price guard : duplication à assumer | Majeure | Contradiction avec §3 non mesurée |
+| 13.6 | `CHECK >= 0` sur ingrédients | Modérée | Piège de mimétisme |
+| 13.7 | Mode simplifié et cuisine | Mineure | Cohérence affirmée non vérifiée |
+
+**Enseignements méthodologiques** :
+1. **13.1, 13.3 et 13.4 ont la même origine** : le flux de vente a été analysé sans ses satellites
+   (retours, échanges, journée comptable). Toute décision sur le flux principal doit désormais être
+   testée contre ces trois-là.
+2. **13.4 est née d'une correction** — améliorer un point (dissocier matière et CA) a créé une
+   incohérence ailleurs (deux journées comptables possibles). Chaque correction doit être re-auditée.
+3. **13.2 montre le coût d'une vérification partielle** : avoir lu `target_product_ids` sans lire
+   `target_type` a produit un argument surestimé dans une décision structurante.
+
 ---
 
-## 15. Sources externes consultées
+## 16. Sources externes consultées
 
 - [Slant POS — ingredient usage tracking](https://blog.slantco.com/how-pos-systems-help-track-ingredient-usage-and-profitability/)
 - [Restaurant365 — food inventory management](https://www.restaurant365.com/blog/food-inventory-management/)
