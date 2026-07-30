@@ -4,7 +4,7 @@
 > **Date** : 30/07/2026
 > **Décisions structurantes** :
 > 1. Intégrer au socle existant, ne pas réécrire d'application (§2).
-> 2. Le plat est une entité **autonome** (`dishes`), pas un `bar_product` (§4.4).
+> 2. Le plat est une entité **autonome** (`dishes`), pas un `bar_product` (§4.5).
 > 3. La vente d'un plat naît au **retrait par le serveur** et naît **validée** (§7).
 
 ---
@@ -117,7 +117,7 @@ Bon découpage : un **nouveau** RPC pour la vente de plat (création de la vente
 N ingrédients, atomique), à côté de l'existant qu'on ne touche pas. C'est aussi ce qui permet de
 tester le module sans risquer une régression sur le cœur du produit.
 
-> C'est la raison technique qui a fait pencher pour `dishes` autonome (§4.4) : avec l'héritage, il
+> C'est la raison technique qui a fait pencher pour `dishes` autonome (§4.5) : avec l'héritage, il
 > aurait fallu filtrer `is_dish = false` dans les requêtes existantes — donc **modifier du code
 > qui sert aux bars purs**. L'autonomie garantit l'invariance **par construction**, pas par
 > vigilance.
@@ -144,11 +144,23 @@ Une intention d'invariance ne suffit pas — il faut pouvoir la constater :
 - une **comparaison de captures** avant/après sur dashboard, vente et inventaire. Le pipeline
   Playwright + sharp des guides utilisateurs peut servir à ça.
 
+### Exigences de performance associées
+
+L'invariance réseau ne suffit pas : le module doit aussi rester léger **pour les bars-restos**.
+
+- **Index partiel** sur `kitchen_order_items(bar_id, status, created_at)` pour la file active —
+  c'est la requête la plus fréquente du module (écran Service rafraîchi en continu).
+- **Realtime sur les statuts actifs uniquement**, jamais sur l'historique des commandes soldées.
+- **Fenêtre dure** sur les commandes terminées (la file ne doit jamais charger le mois écoulé).
+- **Vues/RPC agrégées** pour le dashboard cuisine — pas de jointure client sur un gros historique.
+- **Aucun préchargement de la route cuisine** si `has_restaurant = false` (les layouts préchargent
+  les pages critiques en arrière-plan : la page Cuisine doit en être exclue conditionnellement).
+
 ---
 
 ## 4. Modèle de données
 
-### Principe : le plat est vendable, pas stocké
+### 4.1 Principe : le plat est vendable, pas stocké
 
 Le coût d'un plat est **dérivé de sa recette**, jamais stocké comme un coût d'achat. Un plat n'a
 pas de stock mais une *disponibilité calculée*.
@@ -184,19 +196,80 @@ ingredient_supplies                  -- miroir de supplies
   supplier, business_date, created_by
 
 kitchen_orders                       -- extension du ticket, PAS un doublon
-  id, ticket_id
-  status                 -- pending | accepted | preparing | ready | served | cancelled
-  accepted_by, accepted_at, ready_at, served_at
-  priority, notes, reminder_count
+  id, bar_id ⭐, ticket_id
+  status                 -- DÉRIVÉ des lignes, jamais écrit directement (cf. 4.3)
+  priority, notes
+  created_at
 
-kitchen_order_items
-  id, kitchen_order_id, dish_id, quantity
-  status                 -- statut par ligne
+kitchen_order_items                  -- ⭐ porteur du statut canonique
+  id, bar_id ⭐, kitchen_order_id, dish_id, quantity
+  status                 -- pending | accepted | preparing | ready | served | cancelled
+  accepted_by, accepted_at, ready_at, served_at, served_by
+  cancelled_by, cancel_reason
+  reminder_count, last_reminder_at
   modifiers              -- JSONB : « sans piment »
   unit_price, computed_cost
 ```
 
-### Points non négociables
+⭐ **`bar_id` obligatoire sur les deux tables**, bien que dérivable via `ticket_id`. Toutes les
+tables du projet le portent : c'est la convention d'isolation multi-tenant, et les policies RLS
+comme les filtres Realtime en dépendent. Dériver par jointure alourdirait chaque policy, chaque
+index et chaque filtre Realtime. Prévoir une contrainte de cohérence avec le `bar_id` du ticket.
+
+### 4.2 Format unifié de `sales.items` — produits et plats
+
+**Fait vérifié** : il n'existe **aucune table `sale_items`**. Les lignes de vente sont stockées
+dans `sales.items JSONB NOT NULL`
+([001_initial_schema.sql](../../supabase/migrations/001_initial_schema.sql)) — donc **aucune
+contrainte référentielle vers `bar_products` à contourner**. Même bonne surprise que pour les
+promotions (§4.5, fait 4).
+
+**Mais c'est un risque, pas un confort.** Puisque le JSONB n'impose rien, rien n'empêchera un
+`product_id` de plat de se retrouver dans une vue de stats produits jointe sur `bar_products`, et
+de **disparaître silencieusement d'un `INNER JOIN`**. Un JSONB non typé est plus dangereux qu'une
+FK : l'erreur ne remonte pas, elle se traduit en chiffres faux.
+
+**Format à imposer dès la phase 3** :
+
+```jsonc
+{
+  "item_type": "product" | "dish",   // ⭐ discriminant obligatoire
+  "item_id":   "<uuid>",             // bar_products.id OU dishes.id selon item_type
+  "display_name": "Poulet braisé",   // figé (le plat peut être renommé plus tard)
+  "quantity": 2,
+  "unit_price": 2500,
+  "computed_cost": 1450,             // coût matière figé (plats uniquement)
+  "recipe_version_id": "<uuid>"      // optionnel — traçabilité de la recette servie
+}
+```
+
+**Travail obligatoire de la phase 3** : auditer **toutes** les vues matérialisées et RPC lisant
+`sales.items` (stats produits, top produits, forecasting, CUMP, exports) pour qu'elles filtrent
+`item_type = 'product'`. C'est le **seul endroit du chantier où l'invariance des bars purs (§3)
+est menacée par le format des données** et non par du code — un item de plat non filtré
+corromprait des statistiques de bar.
+
+Note de compatibilité : les items existants n'ont pas `item_type`. Traiter l'absence comme
+`'product'` (`COALESCE(item->>'item_type', 'product')`) évite toute reprise de données.
+
+### 4.3 Statut canonique au niveau ligne, parent dérivé
+
+`kitchen_orders.status` et `kitchen_order_items.status` modifiables indépendamment créeraient une
+classe entière de bugs de synchronisation. Cas sans réponse au niveau parent : **une commande de
+2 plats dont l'un est prêt et l'autre annulé — quel statut porte le parent ?**
+
+**Règle** : le statut canonique vit sur la **ligne**. Le statut parent est **dérivé** (vue, RPC ou
+trigger), jamais écrit directement. Dérivation suggérée :
+
+| Toutes les lignes… | Statut parent dérivé |
+|---|---|
+| `cancelled` | `cancelled` |
+| `served` ou `cancelled` | `served` (commande soldée) |
+| au moins une `ready`, aucune en cours | `ready` |
+| au moins une `preparing` | `preparing` |
+| sinon | `pending` |
+
+### 4.4 Points non négociables
 
 **`computed_cost` figé à la commande.** Recalculer la marge d'un plat de mars avec le CUMP de
 juillet rendrait tout l'historique de marge faux. C'est la leçon déjà apprise sur le CUMP des
@@ -216,7 +289,7 @@ du plat. Le gaz est une charge de cuisine (`6052`), pas un ingrédient.
 théorique dit 0 : en cuisine réelle, le cuisinier voit ce qu'il a. Alerte, jamais blocage —
 l'inverse du stock de boissons.
 
-### 4.4 Le plat est une entité autonome — décision tranchée
+### 4.5 Le plat est une entité autonome — décision tranchée
 
 Deux options étaient en balance : `dishes` autonome, ou `bar_product` avec `is_dish = true`
 (qui hériterait gratuitement des promotions, du price guard, du catalogue et des images).
@@ -348,12 +421,23 @@ c'est-à-dire **l'addition**.
 Le serveur ne voit qu'un écran avec onglets Boissons / Plats. La séparation est invisible pour
 lui, réelle en dessous.
 
-### Garde-fous
+### Garde-fous — prérequis bloquants de la phase 3
 
-- `pay_ticket` doit refuser la fermeture s'il reste des `kitchen_order_items` non
-  `served`/`cancelled` — sinon on encaisse un plat qui pourrait ne jamais sortir. Le RPC a déjà
-  la bonne structure (`FOR UPDATE`, rejet des statuts invalides).
-- Le total du ticket doit distinguer *encaissable maintenant* et *en préparation*.
+**1. `pay_ticket` doit refuser la fermeture s'il reste des `kitchen_order_items` non
+`served`/`cancelled`.**
+
+Ce n'est pas une précaution mais une **nécessité de cohérence comptable**. `pay_ticket` a évolué :
+il prend désormais `p_payment_method` et **propage le moyen de paiement aux ventes du ticket**
+([vague 4a](../../supabase/migrations/20260703020000_vague4a_close_anon_execute_breach.sql)). Or un
+plat non encore servi **n'est pas encore une vente**. Sans ce garde-fou, un plat servi après
+paiement produirait une vente **sans moyen de paiement propagé** — donc une ligne comptable
+orpheline, invisible dans la ventilation des encaissements.
+
+Le RPC a déjà la bonne structure pour l'accueillir (`FOR UPDATE`, rejet des statuts invalides).
+
+**2. Le résumé du ticket doit additionner ventes existantes + lignes cuisine non encore
+comptables.** Sinon l'addition affichée est **fausse** avant le service (elle omet les plats en
+préparation). D'où la ligne « dont en cuisine » de l'écran de vente (§8).
 
 ---
 
@@ -521,6 +605,11 @@ l'argent). Page de menu → pas de `showBack` explicite (défaut `true`).
 - **Zones de tap ≥ 44px** : mains humides ou grasses.
 - **Modificateurs en évidence** (« sans piment ») : l'information qui coûte le plus cher quand
   elle est manquée.
+- ⭐ **Regroupement par table obligatoire** (pas seulement une liste de plats). Le ticket est une
+  **addition attachée à une table** : sur un rush à 12 tables, une liste plate devient illisible et
+  le cuisinier perd le lien entre les plats d'une même table. Ce n'est **pas** un plan de salle
+  graphique (toujours écarté) — juste un regroupement visuel par `table_number`, avec un compteur
+  de plats en cours par table.
 
 **Onglet Plats** — la marge est l'élément central de la carte, avec seuil d'alerte :
 
@@ -603,9 +692,19 @@ purs. Certaines cartes n'ont aucun équivalent bar :
 seul objet `analytics`. Filtrer `analytics` suffit — `DashboardSummary`, `DashboardOrders` et
 `DashboardPerformance` restent inchangés.
 
-**Filtrage côté client obligatoire** (`useMemo`), jamais 3 requêtes distinctes : l'egress a fait
-l'objet de 3 vagues d'optimisation pour descendre à ~200 MB/j. Changer de portée doit être
-instantané et gratuit en réseau.
+**Règle : zéro refetch au changement de portée.**
+
+Formulation corrigée — « filtrage côté client obligatoire » était trop rigide et devient faux si
+les métriques cuisine proviennent de vues agrégées distinctes (l'écart théorique/réel ou le temps
+moyen de préparation ne se dérivent pas des ventes de boissons).
+
+La règle robuste :
+- **une** query initiale agrégée supplémentaire est autorisée quand `has_restaurant = true` ;
+- **changer de portée ne déclenche aucune requête** — les trois portées se servent des données déjà
+  en cache.
+
+L'egress a fait l'objet de 3 vagues d'optimisation pour descendre à ~200 MB/j : ce qui compte est
+qu'un bar pur ne paie rien (§3) et qu'un bar-resto ne paie qu'une fois, pas à chaque clic.
 
 Sur mobile, sélecteur compact (emojis seuls) : avec header + onglets + `BonStrip`, le premier
 chiffre descend bas.
@@ -704,9 +803,23 @@ Position cohérente avec la doctrine du projet (dégradé assumé selon rôle et
 - **Consommation d'ingrédients : optimiste, réconciliée à la synchro.**
 - **Jamais bloquant** sur le stock d'ingrédients.
 
-Le RPC de consommation doit être atomique, `SECURITY DEFINER`, avec `FOR UPDATE` sur les lignes
-d'ingrédients (races) et **idempotent** (clé sur `kitchen_order_item_id`) — indispensable en
-offline.
+### Chaque transition de ligne doit être idempotente
+
+Il ne suffit **pas** de « mettre les `kitchen_order_items` dans la file ». Chaque transition
+(`accept`, `start`, `ready`, `serve`, `cancel`) est une opération distincte, rejouable après une
+coupure, et doit donc porter sa **propre clé stable** — sinon un rejeu produit une double
+transition (ou un double décrément).
+
+| Transition | Effet | Criticité |
+|---|---|---|
+| `accept`, `start`, `ready` | Changement de statut seul | Faible — rejeu inoffensif si idempotent |
+| `cancel` | Statut + motif, **aucune vente** | Faible |
+| **`serve`** | **Crée du CA + décrémente N ingrédients** | ⭐ **Maximale** |
+
+`serve` est **le RPC le plus dangereux du module** et doit être le plus durci : atomique,
+`SECURITY DEFINER`, `FOR UPDATE` sur les lignes d'ingrédients (races entre appareils), et
+**idempotent** par clé sur `kitchen_order_item_id`. Un rejeu doit retourner la vente déjà créée,
+jamais en créer une seconde — même contrat que `create_sale_idempotent`.
 
 Le CUMP existant sait déjà gérer le stock nul
 ([reverse_supply](../../supabase/migrations/20260703040000_vague4c_cump_single_source_of_truth.sql) :
@@ -753,7 +866,7 @@ permet 4 personnes, passez à Pro pour en ajouter ») et non une erreur techniqu
 
 ### 11.2 Modèle du plat — ✅ TRANCHÉ
 
-`dishes` autonome. Analyse complète et coûts acceptés en **§4.4**.
+`dishes` autonome. Analyse complète et coûts acceptés en **§4.5**.
 
 ### 11.3 Rôle `cuisinier` — seul point dur restant
 
@@ -783,6 +896,27 @@ Un cuisinier n'est **pas** un 5e niveau hiérarchique : il est transversal, au m
 `canUpdateKitchenOrderStatus`, `canManageRecipes`, `canManageIngredientStock`) et **sans**
 `canSell`. À éviter : un flag `is_kitchen_staff` sur un serveur — mélange deux métiers.
 
+#### Protéger par permission, jamais par rôle brut
+
+La route et les écrans cuisine doivent être gardés par **permission**
+(`<ProtectedRoute permission="canViewKitchenOrders" />`), pas par un test `role === 'cuisinier'`.
+Le projet a déjà ce mécanisme, et c'est ce qui permet à un gérant ou un promoteur d'accéder à la
+cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrôle.
+
+#### Livrables obligatoires de la phase 0
+
+1. **Audit exhaustif** de tous les `role !== 'serveur'` et `role === 'serveur'` — chacun doit être
+   requalifié explicitement (le cuisinier est-il concerné ?).
+2. **Migrations de contraintes** : ajouter `'cuisinier'` aux 17 `CHECK (role IN ...)`. Rétrocompatible
+   (aucune donnée existante n'utilise cette valeur), mais attention au piège connu du
+   `CREATE OR REPLACE` qui perd les grants — re-`REVOKE`/`GRANT` systématique + post-vol
+   `has_function_privilege('anon', ...)`.
+3. **Tests RBAC** couvrant les 30 permissions pour le nouveau rôle, et vérifiant qu'un cuisinier
+   **ne peut pas** vendre, valider une vente, ni lire la comptabilité.
+4. **Décisions explicites** : un gérant peut-il créer un cuisinier (probablement oui → adapter la
+   RLS qui le restreint à `role='serveur'`) ? Que fait le guard `create_sale` en mode simplifié
+   pour un cuisinier (il ne doit pas vendre du tout) ?
+
 ---
 
 ## 12. Séquençage
@@ -792,15 +926,48 @@ Un cuisinier n'est **pas** un 5e niveau hiérarchique : il est transversal, au m
 | **0** | Audit + ajout rôle `cuisinier` (§11.3) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` + `ingredient_supplies` + CUMP + écran appro | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
 | **2** | `dishes` + `dish_ingredients` + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
-| **4** | RPC de consommation + inventaire physique + écart théorique/réel | Détection gaspillage et fuites | Moyen |
+| **3** | Extension ticket + écran Service + statuts + **`serve_kitchen_item` (RPC atomique)** + format `sales.items` (§4.2) + garde-fou `pay_ticket` (§5) | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
+| **4** | Inventaire physique d'ingrédients + écart théorique/réel | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
-**Logique de cet ordre** : les phases 1 et 2 délivrent l'essentiel de la valeur perçue **sans
+> ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
+> placé en phase 4, alors que la décision §6 fait naître la vente **et** le décrément dans la même
+> transaction, au retrait. Sans ce RPC, la phase 3 ne serait pas une prise de commande fiable mais
+> une maquette. **Le noyau atomique appartient à la phase 3.**
+
+### Le noyau de la phase 3 : `serve_kitchen_item`
+
+RPC unique et atomique, **le plus durci du module** — c'est le seul qui crée du CA *et* décrémente
+du stock :
+
+1. transition `ready → served` sur la ligne (avec `FOR UPDATE`) ;
+2. création de la vente, `status = 'validated'` (§6) ;
+3. snapshot du coût (`computed_cost`) — figé, jamais recalculé (§4.4) ;
+4. décrément des N ingrédients de la recette ;
+5. **idempotence** par clé stable sur `kitchen_order_item_id`.
+
+Toutes les transitions de ligne (`accept`, `start`, `ready`, `serve`, `cancel`) doivent être
+idempotentes avec des clés stables — prérequis du mode offline (§10). `serve` est celle qui exige
+le plus de durcissement.
+
+**Logique de l'ordre général** : les phases 1 et 2 délivrent l'essentiel de la valeur perçue **sans
 toucher au flux de vente**, qui est la partie la mieux durcie de l'app (idempotence, promotions,
 price guard, offline). Un promoteur qui découvre en phase 2 que son plat vedette a 12 % de marge
-a déjà rentabilisé le module. **Le module est vendable après la phase 2**, la prise de commande
-pouvant suivre.
+a déjà rentabilisé le module.
+
+### Positionnement commercial par phase
+
+**Après la phase 2, le module est vendable — mais comme « costing cuisine », pas comme « gestion
+restauration ».**
+
+| Phase | Ce qui est vendu | Formulation à employer |
+|---|---|---|
+| 2 | Pilotage de la rentabilité des recettes | « Connaître la marge réelle de chaque plat » |
+| 3+ | Commande cuisine opérationnelle | « Prise de commande et suivi cuisine » |
+
+Annoncer « gestion restauration » dès la phase 2 serait survendre : il n'y a ni prise de commande
+ni écran cuisinier à ce stade. Cohérent avec la consigne commerciale existante (ne rien promettre
+sur la cuisine tant que ce n'est pas livré).
 
 ---
 
@@ -847,7 +1014,22 @@ Traçabilité des erreurs redressées, pour ne pas les refaire :
 | « Rôle cuisinier : risque très faible » | **Élevé** : 56 fichiers, 17 migrations, 30 permissions |
 | « L'inventaire physique est optionnel (phase 4) » | **Obligatoire** : sans lui, la « marge précise » vendue est fausse |
 | Plafond `maxMembers` non vu, puis qualifié de blocage imposant de réserver le module à Pro/Max | **Faux blocage** : un petit resto (promoteur + cuisinier + serveur, avec ou sans gérant) tient dans Starter. Erreur de généralisation depuis le cas le plus gros (§11.1) |
-| « Le plat doit être un `bar_product` pour bénéficier des promotions » | **Faux** : les promotions ciblent des `UUID[]` **sans FK**. L'argument principal de l'héritage reposait sur une hypothèse non vérifiée → `dishes` autonome (§4.4) |
+| « Le plat doit être un `bar_product` pour bénéficier des promotions » | **Faux** : les promotions ciblent des `UUID[]` **sans FK**. L'argument principal de l'héritage reposait sur une hypothèse non vérifiée → `dishes` autonome (§4.5) |
+
+### Corrections issues de la revue externe (30/07/2026)
+
+| Point soulevé | Traitement |
+|---|---|
+| **Séquençage phase 3/4 incohérent** : le RPC de consommation en phase 4 alors que la vente naît avec décrément atomique | ✅ **Accepté** — `serve_kitchen_item` déplacé en phase 3 (§12). Erreur réelle : la décision §6 a été prise après l'écriture du séquençage, sans le corriger |
+| **Divergence `kitchen_orders.status` / `kitchen_order_items.status`** | ✅ **Accepté** — statut canonique sur la ligne, parent dérivé (§4.3) |
+| **`bar_id` manquant sur les tables cuisine** | ✅ **Accepté** — ajouté, conforme à la convention multi-tenant du projet (§4.1) |
+| **Items de vente à typer (`item_type`)** | ✅ **Accepté**, avec correction factuelle : il n'existe **pas** de table `sale_items` — `sales.items` est du **JSONB sans FK**. Le risque est donc *plus* élevé (échec silencieux, pas erreur SQL) → §4.2 |
+| **`pay_ticket` plus fragile qu'annoncé** (propage `payment_method` aux ventes) | ✅ **Accepté** — le garde-fou passe de « à ajouter » à **prérequis bloquant** (§5) |
+| **Rôle cuisinier : protéger par permission, pas par rôle brut** | ✅ **Accepté** — livrables de phase 0 formalisés (§11.3) |
+| **Offline : idempotence par transition, `serve` le plus durci** | ✅ **Accepté** (§10) |
+| **Vue par table dans le Service** | ✅ **Accepté** — regroupement par `table_number` obligatoire, sans plan de salle graphique (§8) |
+| **`ScopeSwitcher` : « filtrage client obligatoire » trop rigide** | ✅ **Accepté** — règle reformulée en « zéro refetch au changement de portée » (§8) |
+| **Positionnement produit phase 2** | ✅ **Accepté** — « costing cuisine », pas « gestion restauration » (§12) |
 
 ---
 
