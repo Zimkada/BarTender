@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Home,
   Zap,
@@ -21,6 +21,9 @@ import {
   User,
   Globe,
   Gift,
+  CreditCard,
+  ChevronDown,
+  ShoppingCart,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -49,6 +52,26 @@ interface MenuItem {
   feature?: FeatureKey;
 }
 
+/** Groupe de menus repliable. Tous se comportent pareil : icône, libellé, chevron. */
+interface MenuGroup {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  items: MenuItem[];
+  /** false quand le groupe n'a qu'un item : rendu à plat, sans tiroir. */
+  isCollapsible: boolean;
+}
+
+/** Clé de persistance du groupe ouvert (même registre que selectedBarId). */
+const OPEN_GROUP_STORAGE_KEY = 'bartender_sidebar_open_group';
+
+/**
+ * Groupe ouvert au tout premier usage : ses écrans sont les plus utilisés, ils ne
+ * doivent pas coûter un clic de plus. Il reste repliable comme les autres — un
+ * chevron qui ne se replierait jamais serait un contrôle menteur.
+ */
+const DEFAULT_OPEN_GROUP_ID = 'sale';
+
 export function MobileSidebar({
   isOpen,
   onClose,
@@ -59,10 +82,34 @@ export function MobileSidebar({
   const { hasFeature } = usePlan();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
+  const prefersReducedMotion = useReducedMotion();
 
   // 🛡️ Monitor network status
   const [isOffline, setIsOffline] = React.useState(!networkManager.isOnline());
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+
+  // Un seul groupe ouvert à la fois (sinon on retrouve la liste plate).
+  // Au tout premier usage, 'sale' est ouvert : ses écrans sont les plus utilisés.
+  const [openGroupId, setOpenGroupId] = React.useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem(OPEN_GROUP_STORAGE_KEY);
+      // '' = l'utilisateur a explicitement tout replié, à distinguer de l'absence de clé.
+      return stored === null ? DEFAULT_OPEN_GROUP_ID : (stored || null);
+    } catch {
+      return DEFAULT_OPEN_GROUP_ID; // localStorage indisponible : simple perte de confort
+    }
+  });
+
+  const setOpenGroup = React.useCallback((id: string | null) => {
+    setOpenGroupId(id);
+    try {
+      // '' plutôt que removeItem : un repli explicite doit survivre au rechargement,
+      // sinon 'sale' se rouvrirait comme au premier usage.
+      localStorage.setItem(OPEN_GROUP_STORAGE_KEY, id ?? '');
+    } catch {
+      /* non bloquant */
+    }
+  }, []);
 
   React.useEffect(() => {
     return networkManager.subscribe(() => {
@@ -98,17 +145,108 @@ export function MobileSidebar({
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
     { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
     { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
-    { id: 'teamManagement', label: "Gestion de l'Équipe", icon: <Users size={20} />, roles: ['promoteur', 'gerant'], path: '/team' },
+    { id: 'teamManagement', label: 'Équipe', icon: <Users size={20} />, roles: ['promoteur', 'gerant'], path: '/team' },
     { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions', feature: 'promotions' },
     { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'gerant'], path: '/settings' },
     { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'gerant', 'serveur'], path: '/profil' },
+    { id: 'subscription', label: 'Abonnement', icon: <CreditCard size={20} />, roles: ['promoteur', 'gerant'], path: '/subscription' },
     { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting', feature: 'accounting' }
   ];
 
-  const visibleMenus = menuItems.filter(item =>
-    currentSession && item.roles.includes(currentSession.role)
-    && (!item.feature || hasFeature(item.feature))
-  );
+  const isVisible = (item: MenuItem) =>
+    !!currentSession && item.roles.includes(currentSession.role)
+    && (!item.feature || hasFeature(item.feature));
+
+  const visibleMenus = menuItems.filter(isVisible);
+  const byId = (id: string) => menuItems.find(m => m.id === id);
+
+  /**
+   * Regroupement (promoteur/gérant uniquement). Le serveur garde une liste plate :
+   * avec ~6 entrées, des tiroirs seraient de la complexité gratuite.
+   */
+  const isGrouped = currentSession?.role === 'promoteur' || currentSession?.role === 'gerant';
+
+  /**
+   * Construit un groupe à partir des items réellement visibles pour le rôle/plan.
+   * Un groupe réduit à un seul item est rendu à plat : un tiroir qui ne masque
+   * rien n'est qu'un clic de plus (cas possible si un rôle perd des permissions).
+   */
+  const buildGroup = (id: string, label: string, icon: React.ReactNode, itemIds: string[]): MenuGroup | null => {
+    const items = itemIds.map(byId).filter((m): m is MenuItem => !!m && isVisible(m));
+    return items.length > 0 ? { id, label, icon, items, isCollapsible: items.length > 1 } : null;
+  };
+
+  const menuGroups: MenuGroup[] = isGrouped
+    ? ([
+        // ShoppingCart et non Zap : Zap identifie déjà « Vente rapide » dans ce groupe.
+        buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'dailyDashboard', 'history']),
+        buildGroup('stock', 'Produits et stock', <Package size={18} />, ['returns', 'consignments', 'inventory']),
+        buildGroup('management', 'Gestion', <DollarSign size={18} />, ['accounting', 'subscription', 'teamManagement']),
+        buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings', 'profile']),
+      ].filter((g): g is MenuGroup => g !== null))
+    : [];
+
+  // Le groupe contenant l'écran courant s'ouvre de lui-même : sans ça, l'utilisateur
+  // ne voit plus où il se trouve.
+  const activeGroupId = menuGroups.find(
+    g => g.isCollapsible && g.items.some(item => item.id === currentMenu)
+  )?.id;
+
+  // ⭐ Uniquement à la transition fermée → ouverte. Se déclencher à chaque render
+  // rouvrirait le groupe actif juste après un clic sur un autre groupe (l'utilisateur
+  // resterait prisonnier de 'sale' tant qu'il est sur l'écran d'accueil).
+  const wasOpenRef = React.useRef(false);
+  React.useEffect(() => {
+    if (isOpen && !wasOpenRef.current && activeGroupId) {
+      setOpenGroup(activeGroupId);
+    }
+    wasOpenRef.current = isOpen;
+  }, [isOpen, activeGroupId, setOpenGroup]);
+
+  const renderMenuItem = (item: MenuItem) => {
+    const isDisabled = item.id === 'quickSale' && isOffline;
+
+    return (
+      <motion.button
+        key={item.id}
+        onClick={() => {
+          if (isDisabled) {
+            showNotification('error', "Vente rapide indisponible hors connexion. Utilisez l'onglet Accueil (Panier).");
+            return;
+          }
+          if (item.path) {
+            navigate(item.path);
+          } else if (item.action) {
+            item.action();
+          }
+          onClose();
+        }}
+        whileHover={isDisabled || prefersReducedMotion ? undefined : 'hover'}
+        whileTap={isDisabled || prefersReducedMotion ? undefined : 'tap'}
+        variants={{
+          hover: { scale: 1.02, x: 4 },
+          tap: { scale: 0.98 },
+        }}
+        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
+          ? currentSession?.role === 'super_admin'
+            ? 'bg-purple-600 text-white shadow-md'
+            : 'bg-brand-primary text-white shadow-md'
+          : isDisabled
+            ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
+            : 'bg-card/60 text-foreground/80 hover:bg-card hover:shadow-sm'
+          }`}
+      >
+        <motion.span
+          variants={{ hover: { scale: 1.15, rotate: -8 } }}
+          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+          className={currentMenu === item.id ? 'text-white' : (isDisabled ? 'text-muted-foreground/60' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary'))}
+        >
+          {item.icon}
+        </motion.span>
+        <span className="font-medium">{item.label}</span>
+      </motion.button>
+    );
+  };
 
   return (
     <AnimatePresence>
@@ -150,43 +288,49 @@ export function MobileSidebar({
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">
-              {visibleMenus.map((item) => {
-                const isQuickSale = item.id === 'quickSale';
-                const isDisabled = isQuickSale && isOffline;
+              {isGrouped
+                ? menuGroups.map((group) => {
+                  // Groupe à item unique : rendu à plat, le tiroir n'apporterait rien.
+                  if (!group.isCollapsible) {
+                    return <div key={group.id} className="mb-2">{group.items.map(renderMenuItem)}</div>;
+                  }
 
-                return (
-                  <motion.button
-                    key={item.id}
-                    onClick={() => {
-                      if (isDisabled) {
-                        showNotification('error', "Vente rapide indisponible hors connexion. Utilisez l'onglet Accueil (Panier).");
-                        return;
-                      }
-                      if (item.path) {
-                        navigate(item.path);
-                      } else if (item.action) {
-                        item.action();
-                      }
-                      onClose();
-                    }}
-                    whileHover={isDisabled ? {} : { scale: 1.02, x: 4 }}
-                    whileTap={isDisabled ? {} : { scale: 0.98 }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
-                      ? currentSession?.role === 'super_admin'
-                        ? 'bg-purple-600 text-white shadow-md'
-                        : 'bg-brand-primary text-white shadow-md'
-                      : isDisabled
-                        ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-60'
-                        : 'bg-card/60 text-foreground/80 hover:bg-card hover:shadow-sm'
-                      }`}
-                  >
-                    <span className={currentMenu === item.id ? 'text-white' : (isDisabled ? 'text-muted-foreground/60' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary'))}>
-                      {item.icon}
-                    </span>
-                    <span className="font-medium">{item.label}</span>
-                  </motion.button>
-                );
-              })}
+                  const isGroupOpen = openGroupId === group.id;
+                  const hasActiveItem = group.items.some(item => item.id === currentMenu);
+
+                  return (
+                    <div key={group.id} className="mb-2">
+                      <button
+                        type="button"
+                        onClick={() => setOpenGroup(isGroupOpen ? null : group.id)}
+                        aria-expanded={isGroupOpen}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${hasActiveItem && !isGroupOpen
+                          ? 'bg-card text-foreground font-semibold'
+                          : 'text-foreground/80 hover:bg-card/70'
+                          }`}
+                      >
+                        <span className={currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary'}>
+                          {group.icon}
+                        </span>
+                        <span className="font-medium flex-1 text-left">{group.label}</span>
+                        <motion.span
+                          animate={{ rotate: isGroupOpen ? 180 : 0 }}
+                          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
+                          className="text-foreground/50"
+                        >
+                          <ChevronDown size={18} />
+                        </motion.span>
+                      </button>
+
+                      {isGroupOpen && (
+                        <div className="mt-1 ml-3 pl-2 border-l border-brand-subtle">
+                          {group.items.map(renderMenuItem)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+                : visibleMenus.map(renderMenuItem)}
             </div>
 
             <div className={`p-4 border-t space-y-2 ${currentSession?.role === 'super_admin' ? 'border-purple-200' : 'border-brand-subtle'}`}>

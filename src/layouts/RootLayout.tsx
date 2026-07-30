@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -57,6 +57,27 @@ function RootLayoutContent() {
   const { modalState, openModal, closeModal } = useModal();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // NEW
+  const location = useLocation();
+
+  // ⭐ Identifiant du menu courant, dérivé de l'URL : surligne l'item actif dans la
+  // sidebar et déplie le groupe qui le contient. Les clés correspondent aux `id`
+  // des MenuItem de MobileSidebar (pas aux chemins).
+  const currentMenuId = (() => {
+    const path = location.pathname;
+    if (path === '/') return 'home';
+    if (path.startsWith('/dashboard')) return 'dailyDashboard';
+    if (path.startsWith('/sales')) return 'history';
+    if (path.startsWith('/inventory')) return 'inventory';
+    if (path.startsWith('/returns')) return 'returns';
+    if (path.startsWith('/consignments')) return 'consignments';
+    if (path.startsWith('/team')) return 'teamManagement';
+    if (path.startsWith('/promotions')) return 'promotions';
+    if (path.startsWith('/subscription')) return 'subscription';
+    if (path.startsWith('/settings')) return 'settings';
+    if (path.startsWith('/profil')) return 'profile';
+    if (path.startsWith('/accounting')) return 'accounting';
+    return '';
+  })();
   const invalidationTimeoutRef = useRef<number | null>(null);
 
   // 📡 Heartbeat : signale la présence de l'appareil au dashboard SuperAdmin.
@@ -255,7 +276,7 @@ function RootLayoutContent() {
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
         onShowQuickSale={() => openModal('QUICK_SALE')}
-        currentMenu={''} // Placeholder
+        currentMenu={currentMenuId}
       />
 
       <LazyLoadErrorBoundary maxRetries={3}>
