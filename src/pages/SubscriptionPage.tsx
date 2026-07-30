@@ -16,14 +16,19 @@ export default function SubscriptionPage() {
     if (!currentBar) return null;
 
     return (
-        <div className="max-w-4xl mx-auto p-4 space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6 pb-32 px-4">
             <SimplePageHeader
                 title="Abonnement"
                 subtitle="Statut et paiement de votre abonnement."
                 icon={<CreditCard size={24} />}
             />
 
-            <MySubscriptionSection barId={currentBar.id} barName={currentBar.name} />
+            {/* Conteneur bg-card + text-foreground : la section heritait du contexte
+                de couleur de SettingsPage. Isolee, elle doit le porter elle-meme,
+                sinon son texte reste sombre sur fond sombre en theme dark. */}
+            <div className="bg-card text-foreground rounded-2xl shadow-sm border border-border p-4 sm:p-6">
+                <MySubscriptionSection barId={currentBar.id} barName={currentBar.name} />
+            </div>
         </div>
     );
 }
