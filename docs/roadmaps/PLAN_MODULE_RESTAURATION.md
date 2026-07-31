@@ -12,7 +12,7 @@
 > impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
 >
 > **Deux passes de revue** : §13 = audit **technique** contre le code (7 failles) ; §14 = test
-> **« service réel »** (8 corrections métier, dont `service_mode` pour l'emporté — angle mort
+> **« service réel »** (10 corrections métier, dont `service_mode` pour l'emporté — angle mort
 > complet — et `cost_mode` pour l'huile de friture).
 
 ---
@@ -192,21 +192,34 @@ ingredients                          -- tomates, poulet, huile, gaz
 dishes
   id, bar_id, name, category_id, price
   is_available           -- le cuisinier coupe un plat
-  requires_preparation   -- ⭐ défaut true ; false = beignet/gâteau déjà prêt,
-                         --   suit le chemin des boissons, sans bon ni cuisine (cf. 14.7)
+  production_mode        -- ⭐⭐ on_order | batch | batch_finish | precooked (cf. 14.8)
+                         --    remplace requires_preparation, trop binaire
   preparation_time_min   -- calibre les seuils d'alerte de retard
+  resale_window_min      -- ⭐ délai de récupération d'un plat non retiré (cf. 14.9)
+  is_batch_base          -- ⭐ true = lot produit puis prélevé (riz cuit, poulet bouilli)
+  portions_per_batch     -- ⭐ rendement du lot (5 kg riz ≈ 20 portions)
   photo_url
 
-dish_ingredients                     -- LA recette
+dish_ingredients                     -- recette : ingrédients bruts
   dish_id, ingredient_id
   quantity               -- en usage_unit
   is_optional
   yield_factor           -- pertes de préparation (épluchage, parage)
+  consumed_at_stage      -- ⭐ 'batch' | 'finish' (cf. 14.8 batch_finish)
 
-recipe_components                    -- ⭐ sous-recettes (cf. 14.8) — V1, 1 seul niveau
+recipe_components                    -- ⭐ sous-recettes ET prélèvement de lots (14.10)
   dish_id                -- le plat composé
-  base_dish_id           -- la base réutilisable (sauce, marinade, bouillon)
+  base_dish_id           -- la base réutilisable (sauce, marinade) OU le lot prélevé
   quantity               -- portions de base consommées
+
+production_batches                   -- ⭐ lots produits (cf. 14.8 batch / batch_finish)
+  id, bar_id, dish_id    -- dish_id = le plat-base (is_batch_base = true)
+  produced_qty           -- portions produites
+  remaining_qty          -- portions restantes (décrémenté au service)
+  unit_cost              -- coût de production / portions = CUMP de 2ᵉ niveau
+  produced_at, produced_by, business_date
+  expires_at             -- fin de conservation
+  discarded_qty, discarded_at, discard_reason  -- reste jeté = perte valorisée
 
 ingredient_supplies                  -- miroir de supplies
   id, bar_id, ingredient_id, quantity, unit_cost, total_cost
@@ -1044,15 +1057,28 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §14.3) + `ingredient_supplies` + CUMP + écran appro + saisie en portions (§14.6) | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
-| **2** | `dishes` (+ `requires_preparation`, §14.7) + `dish_ingredients` + **`recipe_components`** (§14.8) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle | **Élevé** — touche au flux de vente |
-| **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel | Détection gaspillage et fuites | Moyen |
+| **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.10) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
+| **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.9) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
 > ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
 > placé en phase 4, alors que la décision §6 fait naître la vente **et** le décrément dans la même
 > transaction, au retrait. Sans ce RPC, la phase 3 ne serait pas une prise de commande fiable mais
 > une maquette. **Le noyau atomique appartient à la phase 3.**
+
+> ⚠ **Seconde correction — les lots appartiennent à la phase 3.** J'avais d'abord proposé de reporter
+> `batch` en phase 4-5, au motif qu'il pouvait être approximé (déclarer le lot du matin comme 20
+> plats servis d'un coup). Cet argument **tombe** dès qu'on ajoute `batch_finish` : les deux régimes
+> de lot couvrent ensemble la majorité de ce que vend réellement un maquis (riz sauce, spaghetti-
+> poulet, alloco-poisson). Les reporter tous les deux réduirait la phase 3 au poulet braisé et à la
+> pâtisserie — **un périmètre trop étroit pour être vendable**. Ce qui peut être reporté est le
+> *raffinement* (report de lot d'un jour sur l'autre, alertes de surproduction, valorisation fine des
+> restes), pas le mécanisme de base.
+>
+> ⚠ **Réserve terrain** : si `batch` est vraiment le cas dominant chez vos clients, ce point conditionne
+> la valeur de toute la phase 3. **Seul le terrain le tranche** — une heure avec un promoteur de maquis
+> vaut mieux qu'un audit supplémentaire.
 
 ### Le noyau de la phase 3 : deux RPC atomiques
 
@@ -1128,9 +1154,20 @@ j'ai commandé ».
 | Table `dish_returns` séparée | Duplique tout le circuit (statuts, validation, remboursement) |
 | ✅ **Pas de retour de plat en V1** | Trou métier assumé et documenté |
 
-**Recommandation : option 3.** Un plat servi puis refusé se traite par `cancel_sale` — le CA est
-annulé, la matière reste consommée, ce qui est comptablement juste (§6). Avant `served`, une
-annulation de ligne suffit. **À documenter comme limite explicite**, pas à découvrir en production.
+**Recommandation : option 3** pour les plats **cuisinés** (`on_order`, `batch`, `batch_finish`). Un
+plat servi puis refusé se traite par `cancel_sale` — le CA est annulé, la matière reste consommée, ce
+qui est comptablement juste (§6). Avant `served`, une annulation de ligne suffit.
+
+> ⭐ **Nuance apportée par §14.8** : le retour redevient **légitime pour `production_mode =
+> 'precooked'`** (pâtisserie, beignet). Ces plats ont un **stock réel dénombrable** — une pâtisserie
+> retournée intacte retourne au présentoir, exactement comme une bière remise au frigo. Ils sont donc
+> plus proches d'un `bar_product` que d'un plat cuisiné.
+>
+> La FK `NOT NULL` reste néanmoins un obstacle technique : à traiter au moment où le retour de
+> `precooked` sera implémenté (phase 4+), pas en V1.
+>
+> Pour les plats cuisinés, la vraie réponse au besoin métier n'est pas le retour mais la **file de
+> récupération** (§14.9) : resservir un plat prêt non retiré dans un délai court, ou assumer la perte.
 
 ### 13.2 ⛔ BLOQUANTE — `target_type = 'all'` promeut les plats par accident
 
@@ -1236,10 +1273,12 @@ mérite d'être dit.
 ## 14. Test « service réel » — corrections métier (30/07/2026)
 
 > Le plan avait été audité **techniquement** (§13) mais jamais confronté à un service de 40 couverts
-> un vendredi soir. Cette section corrige 8 manques métier, dont deux angles morts complets
-> (`service_mode` §14.1 et la vente sans bon §14.7).
+> un vendredi soir. Cette section corrige 10 manques métier, dont **trois angles morts complets** :
+> `service_mode` (§14.1), la vente sans bon (§14.7) et surtout **les quatre régimes de production**
+> (§14.8) — le plan supposait que tout plat est préparé à la commande, alors que c'est le cas
+> **minoritaire** dans un maquis béninois.
 >
-> Sources : **seconde revue externe** pour §14.1 à §14.6 et §14.8 (elle portait sur une version
+> Sources : **seconde revue externe** pour §14.1 à §14.6 et §14.10 (elle portait sur une version
 > antérieure — 4 de ses 12 points étaient déjà traités — mais ses apports métier restants sont réels
 > et l'un d'eux est meilleur que l'analyse initiale) ; **question du fondateur** pour §14.7.
 
@@ -1395,22 +1434,147 @@ plat → jamais pour un bar pur.
 Un bon implicite consomme donc un numéro visible dans le suivi. Acceptable, mais à ne pas découvrir
 en production — le promoteur verra plus de bons qu'il n'en a créés manuellement.
 
-#### Exception : les plats sans préparation
+### 14.8 ⭐⭐ `production_mode` : quatre régimes de production
 
-Le plan suppose que **tout** plat passe par la cuisine. Faux : un beignet déjà cuit, une part de
-gâteau au comptoir n'ont ni production ni délai. Leur imposer un circuit cuisine + un bon serait une
-lourdeur pure.
+Le plan supposait que **tout** plat passe par la cuisine à la commande. Faux, et de loin : c'est
+même le cas **minoritaire** dans un maquis béninois.
+
+Deux axes suffisent à décrire tous les cas — **la matière vient-elle d'un lot ?** et **la commande
+déclenche-t-elle une production ?** Les quatre combinaisons donnent quatre régimes, ce qui garantit
+la complétude du modèle (pas de cinquième cas caché) :
+
+| `production_mode` | Lot | Finition à la commande | Délai | Bon | Retour | Exemple |
+|---|---|---|---|---|---|---|
+| `on_order` | non | totale | 20-40 min | oui | non | poulet braisé, poisson grillé |
+| **`batch`** | oui | **aucune** | nul | non | non | **riz gras + sauce légume** |
+| **`batch_finish`** | oui | **partielle** | 5-10 min | oui | non | **spaghetti-poulet, alloco-poisson** |
+| `precooked` | — | aucune | nul | non | ✅ **oui** | pâtisserie, beignet |
+
+**Libellés UI en langage clair** (jamais le nom technique) : « Préparé à la commande » / « Cuisiné en
+grande quantité » / « Précuit puis fini à la commande » / « Déjà prêt à vendre ».
+
+##### `on_order` — le cas déjà modélisé
+
+Comportement du §6 sans changement : matière à `ready`, vente à `served`, bon implicite, statuts de
+production, chrono.
+
+##### `batch` — production le matin, service à la portion
+
+Le fait structurant : **la matière est consommée à la cuisson du lot, ni à la commande ni au
+service.**
 
 ```
-dishes
-  requires_preparation   -- ⭐ défaut true ; false = vendu comme une boisson
+Matin       : 5 kg riz + sauce cuisinés     → ingrédients décrémentés ICI (une seule fois)
+              → production_batches : 20 portions, unit_cost = coût lot / 20
+Service     : commande « riz + légumes »    → prélève 1 portion de chaque lot
+              → vente immédiate (comme une boisson), AUCUN passage cuisine
+              → remaining_qty décrémenté, PAS les ingrédients
+Fin de jour : reste conservable → report ; sinon discarded_qty = perte valorisée
 ```
 
-Un plat `requires_preparation = false` suit **le chemin des boissons** : vente immédiate, aucun
-`kitchen_order`, aucun bon implicite. Son coût matière est néanmoins décrémenté au moment de la vente
-(la recette existe), mais sans passage par les statuts de production.
+⚠ **Piège à éviter** : décrémenter les ingrédients à chaque portion servie **double-compterait** la
+matière déjà consommée le matin. Le service ne touche **que** `remaining_qty`.
 
-### 14.8 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
+Le coût de la portion est un **CUMP de 2ᵉ niveau** : `coût du lot / portions_per_batch`, figé à la
+production.
+
+Métrique la plus utile de ce régime : « 20 portions cuisinées, 14 vendues, 6 jetées » → **signal de
+surproduction**, levier de marge plus actionnable que l'écart d'inventaire.
+
+Note : « riz + légumes » prélève dans **deux lots distincts** → `recipe_components` porte les
+prélèvements, exactement comme il porte les sous-recettes.
+
+##### `batch_finish` — hybride : lot puis finition
+
+**La matière est consommée en deux temps**, et c'est ce qui le distingue :
+
+| Moment | Consommé | Source |
+|---|---|---|
+| Production du lot (matin) | spaghetti secs, poulet cru, eau, sel | `ingredients` (`consumed_at_stage = 'batch'`) |
+| **Finition** (à la commande) | portion du lot **+** huile, sauce, oignon | lot **+** `ingredients` (`'finish'`) |
+
+La recette a donc deux volets : `recipe_components` (portions de lots prélevées) et
+`dish_ingredients` filtré sur `consumed_at_stage = 'finish'`.
+
+```
+coût du plat = Σ(portions de lot × unit_cost du lot) + Σ(ingrédients de finition × CUMP)
+```
+
+⭐ **C'est ici que `cost_mode = per_dish_flat` (§14.3) trouve sa justification la plus nette** :
+l'huile de friture appartient à la **finition**, pas au lot. Un poulet bouilli le matin ne consomme
+pas d'huile ; le même poulet frit à la commande en consomme. Les deux mécanismes se combinent
+exactement à cet endroit.
+
+Circuit de service : identique à `on_order` (`pending → preparing → ready → served`, bon implicite,
+chrono) mais avec `preparation_time_min` calibré à 5-10 min. Le prélèvement du lot **et** le
+décrément des ingrédients de finition ont lieu à `ready`, cohérent avec §6.
+
+##### `precooked` — vendu comme une boisson
+
+Vente immédiate, aucun `kitchen_order`, aucun bon implicite. **Seul régime où le retour est
+possible** : un plat précuisiné a un **stock réel dénombrable** (12 beignets sur le présentoir), donc
+il est plus proche d'un `bar_product` que d'un plat cuisiné. Une pâtisserie retournée intacte
+retourne au présentoir, exactement comme une bière remise au frigo — ce qui lève partiellement la
+limite du §13.1.
+
+#### Réserve : risque d'adoption
+
+Ce modèle à 4 régimes est bien plus lourd que le booléen initial. Le risque n'est pas technique mais
+**d'adoption** : un promoteur devra choisir le régime de chaque plat, et un mauvais choix produit des
+données fausses.
+
+Atténuations : **régime par défaut selon la catégorie** (grillades → `on_order`, plats du jour →
+`batch`), libellés en langage clair (ci-dessus), et jamais de jargon technique dans l'UI.
+
+### 14.9 File de récupération : resservir un plat prêt non retiré
+
+Concept absent du plan **et** des POS examinés. Il ne s'agit **pas** d'un retour (impossible, §13.1)
+mais d'une **fenêtre de rattrapage avant que la perte devienne définitive**.
+
+```
+plat ready → non retiré (client parti, erreur, refus)
+   → file d'attente horodatée
+      ├─ resservi à un autre client avant resale_window_min → récupération, perte évitée
+      └─ délai dépassé                                      → jeté, perte assumée
+```
+
+Élégance du mécanisme : il **réutilise le modèle existant**. La matière est déjà décrémentée (à
+`ready`, §6), donc resservir ne redécrémente rien — il n'y a **que la vente** à créer. C'est
+exactement la métrique de perte du §7 (`consumed_at IS NOT NULL AND sale_id IS NULL`), avec une
+possibilité d'annulation.
+
+**Périmètre** : `on_order` et `batch_finish` uniquement (plats finis). Sans objet pour `batch` (la
+portion non servie reste dans le lot) et `precooked` (retour possible).
+
+#### ⚠ Trois garde-fous obligatoires
+
+**1. L'app enregistre, elle ne suggère JAMAIS.** Resservir un plat passé en salle est encadré par la
+réglementation sanitaire et peut être mal perçu par un client. Si l'app **proposait** activement de
+resservir, elle porterait une part de responsabilité dans la décision. Elle doit donc être un outil
+de **traçabilité**, pas de conseil. La nuance est mince et elle est essentielle.
+
+**2. Le délai est par plat** (`resale_window_min`), pas une constante : un riz gras et un poisson
+grillé n'ont pas la même tolérance. Réserve : un champ de configuration mal rempli est un champ
+inutile — prévoir un défaut par catégorie.
+
+**3. La remise en vente est validée par le gérant ou le serveur, pas par le cuisinier seul.** Le
+cuisinier voit l'état du plat et le **signale** récupérable ; la décision sanitaire appartient à qui
+en porte la responsabilité.
+
+#### ⭐ Coût matière de la ligne récupérée = 0
+
+Un plat resservi a **deux clients** dans l'historique : celui qui l'a commandé (n'a pas payé) et
+celui qui le consomme (paie). Traitement retenu :
+
+- **nouvelle ligne** rattachée au nouveau ticket (l'addition doit être juste), avec
+  `recovered_from_item_id` pointant vers l'originale (traçabilité du premier client préservée) ;
+- **`computed_cost = 0`** sur la ligne récupérée — la matière a déjà été imputée à la première.
+
+Sans cette mise à zéro, **le même coût matière serait compté deux fois** : la marge du plat récupéré
+paraîtrait nulle alors qu'elle est totale. C'est la condition pour que la métrique de marge (§7)
+reste juste.
+
+### 14.10 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
 
 §15 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
 ingrédients dans 10 plats — précisément la saisie identifiée comme **principal coût d'adoption**.
@@ -1448,7 +1612,7 @@ Limite V1 : **un seul niveau d'imbrication** (une base ne peut pas contenir une 
 
 - ~~`is_transversal` binaire~~ → **résolu en §14.3** : typologie `cost_mode` à 4 niveaux, dont
   `per_dish_flat` pour l'huile de friture.
-- ~~Sous-recettes écartées~~ → **résolu en §14.8** : `recipe_components` minimal dès la V1, un seul
+- ~~Sous-recettes écartées~~ → **résolu en §14.10** : `recipe_components` minimal dès la V1, un seul
   niveau d'imbrication.
 - **`7021` non confirmé par une source normative (§9)** — seule faiblesse structurelle encore
   ouverte. À valider par un comptable OHADA avant d'écrire du code comptable.
@@ -1535,9 +1699,34 @@ de l'app (`sales.ticket_id` nullable, `p_ticket_id DEFAULT NULL`). Le modèle ra
 commande cuisine au ticket (§4.1) — sans bon, un plat en préparation n'aurait **aucun support**.
 
 Résolu en **§14.7** : bon implicite créé dès qu'un plat entre dans le panier, toutes lignes
-rattachées (addition non fragmentée). A révélé au passage un second manque : le plan supposait que
-**tout** plat passe par la cuisine, alors qu'un beignet déjà cuit n'a ni production ni délai →
-`requires_preparation` (défaut `true`).
+rattachées (addition non fragmentée).
+
+### ⭐⭐ Quatre régimes de production — le manque le plus important (31/07/2026)
+
+La question précédente a ouvert un fil qui a révélé **l'angle mort le plus grave du plan** : il
+supposait que **tout plat est préparé à la commande**, alors que c'est le cas **minoritaire** dans un
+maquis béninois.
+
+Trois précisions successives du fondateur ont construit le modèle :
+
+| Apport | Régime révélé |
+|---|---|
+| « Un beignet déjà cuit n'a ni production ni délai » | `precooked` — et **seul régime où le retour est possible** |
+| « Le riz dans la glacière, la sauce dans le plateau : à la commande, plus rien n'est préparé » | **`batch`** — la matière est consommée **à la cuisson du lot**, ni à la commande ni au service |
+| « Le spaghetti bouilli au frigo, le poulet bouilli en lot, puis on finalise à la commande » | **`batch_finish`** — matière consommée **en deux temps** (lot + finition) |
+
+Le modèle final tient sur **deux axes** (matière issue d'un lot ? commande déclenchant une
+production ?) dont les 4 combinaisons donnent les 4 régimes — ce qui garantit qu'il n'y a **pas de
+cinquième cas caché**. Détail en §14.8.
+
+Trois conséquences non anticipées :
+1. **Piège du double comptage** : décrémenter les ingrédients à chaque portion de `batch` servie
+   compterait deux fois la matière consommée le matin. Le service ne touche que `remaining_qty`.
+2. **`cost_mode = per_dish_flat` (§14.3) trouve ici sa justification la plus nette** : l'huile de
+   friture appartient à la **finition**, pas au lot. Deux corrections indépendantes se rejoignent.
+3. **Correction de séquençage** : j'avais proposé de reporter les lots en phase 4-5 ; avec
+   `batch_finish`, les deux régimes de lot couvrent la majorité de ce qu'un maquis vend réellement →
+   **phase 3 obligatoire**, sinon périmètre invendable.
 
 Apports les plus précieux :
 - **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
