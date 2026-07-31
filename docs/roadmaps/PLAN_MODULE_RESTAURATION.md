@@ -11,8 +11,10 @@
 >    **péremption** ; les **boissons** gardent le **CUMP** inchangé (§15.13). SYSCOHADA autorise les
 >    deux.
 >
-> ⛔ **Deux blocages à trancher avant la phase 3** : le retour de plat est structurellement
-> impossible (§14.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§14.2).
+> ✅ **Les 6 décisions du §12.4 sont tranchées** (31/07/2026) — plus aucun blocage avant la phase 3A.
+> Reste **un** arbitrage : le **périmètre des promotions** `'all'`/`'category'` (§14.2). Le blocage
+> « retour de plat » (§14.1) **tombe en V1** : son seul cas légitime (`precooked`) est un
+> `bar_product`, pas un plat (§12.4.c).
 >
 > **Deux passes de revue** : §14 = audit **technique** contre le code (7 failles) ; §15 = test
 > **« service réel »** (13 corrections métier, dont `service_mode` pour l'emporté — angle mort
@@ -211,7 +213,9 @@ ingredient_lots                      -- ⭐⭐ FIFO/FEFO — un lot par approvis
 dishes
   id, bar_id, name, category_id, price
   is_available           -- le cuisinier coupe un plat
-  production_mode        -- ⭐⭐ on_order | batch | batch_finish | precooked (cf. 14.8)
+  production_mode        -- ⭐⭐ V1 : on_order | batch | batch_finish   (cf. 15.8)
+                         --    'precooked' reporté Post-V1 : c'est un bar_product,
+                         --    pas un plat (cf. 12.4.c)
                          --    remplace requires_preparation, trop binaire
   preparation_time_min   -- calibre les seuils d'alerte de retard
   resale_window_min      -- ⭐ délai de récupération d'un plat non retiré (cf. 14.11)
@@ -226,10 +230,23 @@ dish_ingredients                     -- recette : ingrédients bruts
   yield_factor           -- pertes de préparation (épluchage, parage)
   consumed_at_stage      -- ⭐ 'batch' | 'finish' (cf. 14.8 batch_finish)
 
-recipe_components                    -- ⭐ sous-recettes ET prélèvement de lots (14.12)
+dish_recipe_components               -- ⭐ le MODÈLE : sous-recettes (cf. 12.4.d, 15.12)
   dish_id                -- le plat composé
-  base_dish_id           -- la base réutilisable (sauce, marinade) OU le lot prélevé
-  quantity               -- portions de base consommées
+  base_dish_id           -- la base réutilisable (sauce, marinade, bouillon)
+  quantity               -- portions de base prévues
+                         -- ⚠ PAS de coût ici : une recette porte une quantité, pas un prix
+
+kitchen_item_batch_consumptions      -- ⭐ l'INSTANCE : lots réellement prélevés (cf. 12.4.d)
+  kitchen_order_item_id
+  production_batch_id
+  quantity, unit_cost    -- le coût vit ICI, pas sur la recette
+
+prepaid_resolutions                  -- ⭐ plat prépayé puis annulé (cf. 12.4.b)
+  id, bar_id, ticket_id, kitchen_order_item_id
+  amount
+  resolution             -- 'cash_refund' | 'substitution'  (choix du CLIENT)
+  substituted_item_id    -- si substitution
+  resolved_by, resolved_at, notes
 
 production_batches                   -- ⭐ lots produits (cf. 14.8 batch / batch_finish)
   id, bar_id, dish_id    -- dish_id = le plat-base (is_batch_base = true)
@@ -253,10 +270,16 @@ ingredient_adjustments               -- ⭐ calque stock_adjustments (cf. 14.5)
   notes                  -- obligatoires si reason = 'other'
   adjusted_by, adjusted_at, business_date
 
+tickets                              -- ⭐ EXISTANT — 2 colonnes ajoutées (cf. 12.4.a, 12.4.b)
+  ... colonnes actuelles inchangées (status reste 'open' | 'paid')
+  fulfillment_status     -- ⭐ NULL | pending | fulfilled
+                         --    NULL = aucune ligne cuisine → bar pur inchangé (§3)
+  prepaid_amount         -- ⭐ montant encaissé avant service (cf. 12.4.b)
+
 kitchen_orders                       -- extension du ticket, PAS un doublon
   id, bar_id ⭐, ticket_id
   status                 -- DÉRIVÉ des lignes, jamais écrit directement (cf. 4.3)
-  service_mode           -- ⭐ 'dine_in' | 'takeaway' (cf. 14.1) — delivery hors V1
+  service_mode           -- ⭐ 'dine_in' | 'takeaway' (cf. 15.1) — delivery hors V1
   priority, notes
   created_at
 
@@ -1207,66 +1230,139 @@ la phase 3 :
 - **Périmètre des promotions** (`target_type = 'all'` / `'category'`). Décision recommandée : rendre
   le périmètre explicite plutôt que laisser un comportement indéfini qui détruirait la marge.
 
-### 12.4 ⛔ Quatre décisions révélées par la 3ᵉ revue (31/07/2026)
+### 12.4 ✅ Six décisions révélées par la 3ᵉ revue — TRANCHÉES (31/07/2026)
 
-Toutes issues des **corrections récentes** : le modèle est devenu plus juste métier sans être
-stabilisé techniquement. À trancher **avant la première migration**.
+Toutes issues des **corrections récentes** : le modèle était devenu plus juste métier sans être
+stabilisé techniquement. **Les six sont désormais tranchées** — plus aucun blocage avant la
+phase 3A.
 
-#### 12.4.a `paid` ne signifie plus « terminé » → deux axes sur le ticket
+#### 12.4.a ✅ `paid` ne signifie plus « terminé » → `fulfillment_status` nullable
 
 Le paiement anticipé (§15.2) autorise un ticket payé avec des plats en cuisine. Or
 `tickets.status CHECK (status IN ('open','paid'))` n'a **qu'un axe** → un tel ticket
 **disparaîtrait des bons ouverts** alors qu'il reste du travail.
 
-→ Séparer `payment_status` / `fulfillment_status`. Détail et table des 4 combinaisons : **§6.3**.
+**Décision : ne PAS toucher à `tickets.status`.** Il est utilisé en production (index,
+[`BonStrip`](../../src/components/dashboard/BonStrip.tsx), `pay_ticket`, RLS) et sa sémantique reste
+correcte pour un bar pur. Ajouter une **colonne nullable** :
 
-#### 12.4.b ⛔ Trou financier : plat payé d'avance puis annulé
+```
+status              -- inchangé : open | paid              (l'argent)
+fulfillment_status  -- NULL | pending | fulfilled          (la cuisine)
+```
+
+`NULL` = « aucune ligne cuisine sur ce ticket » → **un bar pur ne voit aucune différence** (§3).
+Ticket clos ⟺ `paid` **ET** (`fulfillment_status IS NULL OR = 'fulfilled'`).
+
+Additif, rétrocompatible, et **aucune migration d'un `CHECK` en production**.
+
+#### 12.4.b ✅ Trou financier du prépaiement → remboursement espèces **ou** substitution
 
 **Manque non vu lors de l'assouplissement de §15.2.** Si un plat prépayé est annulé avant `ready`
 (rupture) : **aucune vente à annuler** (elle naît à `served`), **aucun retour possible** (§14.1),
-**aucun remboursement modélisé**. → De l'argent encaissé **sans contrepartie ni mécanisme de
-restitution**.
+**aucun remboursement modélisé** → argent encaissé **sans contrepartie ni mécanisme de restitution**.
 
-À modéliser au minimum : `prepaid_amount` sur le ticket, et une **résolution explicite** —
-remboursement, avoir, ou substitution par un autre plat. Sans cela, **l'emporté payé d'avance est
-incomplet**, pas seulement imprécis.
+**Décision (fondateur)** : les **deux** résolutions sont offertes — **le choix appartient au client**,
+pas au système :
 
-#### 12.4.c `precooked` est techniquement orphelin
+| Résolution | Effet |
+|---|---|
+| `cash_refund` | ⭐ **Sortie de caisse** tracée, imputée au ticket prépayé |
+| `substitution` | Nouvelle ligne cuisine sur le **même** ticket, prépaiement reporté dessus |
 
-§15.8 dit qu'un plat `precooked` « se vend comme une boisson, retour possible ». Mais :
-- `dishes` **n'a pas de stock** (décision §4.1) — or une pâtisserie a un stock réel dénombrable ;
-- `returns.product_id` pointe **obligatoirement** vers `bar_products` (§14.1).
+Modèle minimal :
 
-→ `precooked` n'a donc **ni stock ni retour** dans l'état actuel : catégorie déclarée, non
-implémentable. Trois options : lui donner un stock via `production_batches`, une table dédiée, ou
-**le reporter hors V1**. « Vendu comme une boisson » ne suffit pas.
+```
+tickets.prepaid_amount            -- montant encaissé avant service
 
-#### 12.4.d `recipe_components` mélange modèle et instance
+prepaid_resolutions               -- une par ligne annulée après prépaiement
+  id, bar_id, ticket_id, kitchen_order_item_id
+  amount
+  resolution        -- 'cash_refund' | 'substitution'
+  substituted_item_id  -- si substitution
+  resolved_by, resolved_at, notes
+```
 
-Le plan lui fait porter **les sous-recettes** (§15.12) **et** le prélèvement de lots (§15.8). Or une
-recette est un **modèle** (« 1 portion de sauce »), un `production_batch` une **instance datée** avec
-coût et reliquat. Les confondre est une erreur structurelle.
+⚠ **`cash_refund` est une sortie de caisse** : elle doit apparaître en comptabilité (contrepartie de
+la classe 5) et être **soumise aux mêmes contrôles qu'une annulation de vente** — traçabilité de
+l'auteur, motif, et visibilité dans le Z de caisse. Ne pas la traiter comme un simple ajustement.
 
-→ Séparer : `dish_recipe_components` (bases théoriques) et `kitchen_item_batch_consumptions` (lots
-réellement prélevés, avec leur `unit_cost`).
+Le serveur propose, le client choisit, le système enregistre les deux cas sans en privilégier un.
 
-#### 12.4.e Le lot de régularisation ne se résorbe pas
+#### 12.4.c ✅ `precooked` → reporté Post-V1 (erreur de catégorisation)
+
+§15.8 disait qu'un plat `precooked` « se vend comme une boisson, retour possible ». Mais `dishes`
+**n'a pas de stock** (§4.1) et `returns.product_id` pointe **obligatoirement** vers `bar_products`
+(§14.1) → **ni stock ni retour** : catégorie déclarée, non implémentable.
+
+**Décision : report Post-V1**, pour une raison de fond — **`precooked` n'est pas un plat.** C'est un
+**produit fini revendu en l'état** : stock dénombrable, retour possible, aucune production à la
+commande. C'est exactement la définition d'un `bar_product`.
+
+> **Le classer comme plat était une erreur de catégorisation.** Un maquis qui vend des beignets peut
+> les saisir comme **produits** dès aujourd'hui, sans le module cuisine. Ce qui manque (recette d'un
+> précuisiné, coût de production) est un **raffinement**, pas un bloquant — le report ne prive
+> personne de rien.
+
+→ `production_mode` n'a donc que **3 valeurs en V1** : `on_order`, `batch`, `batch_finish`.
+
+#### 12.4.d ✅ Séparer recette (modèle) et lots (instances)
+
+Le plan faisait porter à `recipe_components` **les sous-recettes** (§15.12) **et** le prélèvement de
+lots (§15.8). Erreur structurelle : une recette est un **modèle**, un `production_batch` une
+**instance datée** avec coût et reliquat.
+
+```
+dish_recipe_components          -- le MODÈLE : « ce plat contient 1 portion de sauce »
+  dish_id, base_dish_id, quantity
+
+kitchen_item_batch_consumptions -- l'INSTANCE : « cette ligne a prélevé 1 portion du lot #47 »
+  kitchen_order_item_id, production_batch_id, quantity, unit_cost
+```
+
+**Ce qui tranche** : `unit_cost` n'a de sens que sur l'**instance**. Une recette porte une quantité,
+pas un coût. Les mélanger imposerait un coût *nullable* dans une table de modèle — signe qu'on
+confond deux choses.
+
+Bénéfice gratuit : la traçabilité exigée par l'écran de détail du coût (§15.13) — on sait **de quel
+lot** venait chaque portion.
+
+#### 12.4.e ✅ Résorption du lot de régularisation : compensation à l'appro
 
 §15.13 crée un lot fictif au dernier prix connu sur stock négatif — bonne rustine, mais **le plan ne
-dit pas comment il disparaît**. Si un vrai approvisionnement arrive et qu'on ajoute simplement un
-lot, stock, coût et pertes deviennent faux.
+disait pas comment il disparaît**.
 
-→ Règle explicite : **un approvisionnement compense d'abord les régularisations négatives**, avec
-**écart de prix tracé** (le prix réel diffère du prix estimé).
+**Règle, à l'arrivée d'un approvisionnement réel** :
 
-#### 12.4.f `current_stock` : dérivé ou colonne ?
+1. chercher les régularisations ouvertes de cet ingrédient (`is_regularization = true`,
+   `remaining_qty < 0`) ;
+2. **les solder d'abord** avec la quantité entrante, **avant** de créer le lot réel ;
+3. **tracer l'écart de prix** — prix estimé de la régularisation vs prix réellement payé.
 
-§4.1 écrit `current_stock -- dérivé de Σ(lots.remaining_qty)`. **Ambigu** : si c'est dérivé, ce n'est
-pas une source de vérité ; si c'est stocké pour la performance, il faut triggers, verrouillage et
-tests de cohérence.
+⚠ **Clôturer, ne pas supprimer** le lot de régularisation : sinon on perd la trace de l'anomalie, qui
+est précisément le signal qu'on voulait rendre visible.
 
-→ Trancher : **vue calculée**, colonne cache avec trigger, ou vue matérialisée. Ne pas laisser
-l'implémentation choisir.
+L'écart de prix est la donnée intéressante : s'il est systématiquement négatif, le « dernier prix
+connu » **sous-estime** les achats.
+
+#### 12.4.f ✅ `current_stock` = colonne cache écrite par les RPC
+
+§4.1 écrivait `current_stock -- dérivé de Σ(lots.remaining_qty)` — **ambigu**.
+
+| Option | Verdict |
+|---|---|
+| Vue calculée (`SUM`) | Juste, mais recalcule à chaque lecture — coûteux sur l'écran Service rafraîchi en continu |
+| Vue matérialisée | Latence de rafraîchissement **inacceptable** pour un stock |
+| ✅ **Colonne cache** | Écrite **uniquement** par les RPC qui touchent aux lots |
+
+**Ce qui tranche** : c'est le pattern **déjà validé** par le projet sur le CUMP. La
+[vague 4c](../../supabase/migrations/20260703040000_vague4c_cump_single_source_of_truth.sql) a établi
+que `current_average_cost` est écrit par les RPC incrémentales et **jamais par un trigger** —
+précisément parce que **deux écrivains créent des divergences**.
+
+Donc : `ingredients.current_stock` est un **cache d'affichage**, la source de vérité est
+`SUM(ingredient_lots.remaining_qty)`, avec un **test de cohérence** périodique. Statut à documenter
+dans un `COMMENT ON COLUMN`, comme fait pour `last_unit_cost`.
 
 ### 12.5 Rôle `cuisinier` — point dur technique
 
@@ -1325,14 +1421,14 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§12.5) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §15.3) + **`ingredient_lots` FIFO/FEFO** (§15.13) + `ingredient_supplies` + écran appro + saisie en portions (§15.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (mais table neuve, aucune reprise) |
-| **2** | `dishes` (+ **`production_mode`**, §15.8) + `dish_ingredients` + **`recipe_components`** (§15.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3A** | Machine d'état (§6) + extension ticket **2 axes** (§6.3) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§15.7) + régimes **`on_order`** et **`batch_finish`** + arbitrages §14.1 à §14.6 | Prise de commande opérationnelle, **sans emporté ni prépaiement** | **Élevé** — touche au flux de vente |
-| **3B** | `service_mode` (§15.1) + **paiement anticipé** (§15.2) + **résolution du trou financier** (§12.4.b) | Vente à emporter | **Élevé** — argent encaissé sans contrepartie si mal fait |
-| **3C** | **`production_batches`** + régime **`batch`** complet (§15.8) | Riz sauce, plats du jour — **le cas dominant en maquis** | Moyen |
+| **2** | `dishes` (+ **`production_mode`**, §15.8) + `dish_ingredients` + **`dish_recipe_components`** (§15.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **3A** | Machine d'état (§6) + `tickets.fulfillment_status` (§12.4.a) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + `kitchen_item_batch_consumptions` (§12.4.d) + format `sales.items` (§4.2) + bon implicite (§15.7) + régimes **`on_order`** et **`batch_finish`** + arbitrages §14.1 à §14.6 | Prise de commande opérationnelle, **sans emporté ni prépaiement** | **Élevé** — touche au flux de vente |
+| **3B** | `service_mode` (§15.1) + **paiement anticipé** (§15.2) + `prepaid_amount` + **`prepaid_resolutions`** — remboursement espèces **ou** substitution (§12.4.b) | Vente à emporter | **Élevé** — `cash_refund` = sortie de caisse à contrôler |
+| **3C** | **`production_batches`** + régime **`batch`** complet + résorption des régularisations (§12.4.e) | Riz sauce, plats du jour — **le cas dominant en maquis** | Moyen |
 | **3D** | **`service_alerts`** (§15.10) | Décision de rupture outillée | Faible |
 | **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §15.5) + écart théorique/réel + **enregistrement** des pertes (§15.11) | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§10) | Vision consolidée bar + resto | Faible |
-| **Post-V1** | `precooked` (§12.4.c) + **remise en vente** des plats récupérés (§15.11) + retour de plat | — | Reporté volontairement |
+| **Post-V1** | `precooked` géré comme plat (§12.4.c — **couvert en V1 via `bar_products`**) + **remise en vente** des plats récupérés (§15.11) + retour de plat cuisiné | — | Reporté volontairement |
 
 > ⭐ **Découpage de la phase 3 (3ᵉ revue, 31/07/2026).** La phase 3 avait grossi à chaque ajout sans
 > jamais être redécoupée : elle contenait tickets, service, 2 RPC critiques, lots, 4 régimes, items
@@ -1440,16 +1536,18 @@ j'ai commandé ».
 plat servi puis refusé se traite par `cancel_sale` — le CA est annulé, la matière reste consommée, ce
 qui est comptablement juste (§6). Avant `served`, une annulation de ligne suffit.
 
-> ⭐ **Nuance apportée par §15.8** : le retour redevient **légitime pour `production_mode =
-> 'precooked'`** (pâtisserie, beignet). Ces plats ont un **stock réel dénombrable** — une pâtisserie
-> retournée intacte retourne au présentoir, exactement comme une bière remise au frigo. Ils sont donc
-> plus proches d'un `bar_product` que d'un plat cuisiné.
+> ⭐ **Le blocage disparaît en V1** (§12.4.c) : le seul cas où le retour était légitime était
+> `precooked` (pâtisserie) — or ce n'est **pas un plat** mais un `bar_product` (stock dénombrable,
+> aucune production). Saisi comme **produit**, il utilise le circuit de retour **existant**, sans
+> toucher à la FK.
 >
-> La FK `NOT NULL` reste néanmoins un obstacle technique : à traiter au moment où le retour de
-> `precooked` sera implémenté (phase 4+), pas en V1.
+> → **Aucun retour de plat n'est nécessaire en V1.** La FK `NOT NULL` cesse d'être un obstacle : elle
+> le redeviendra si un `precooked` géré comme plat est implémenté Post-V1.
 >
-> Pour les plats cuisinés, la vraie réponse au besoin métier n'est pas le retour mais la **file de
-> récupération** (§15.11) : resservir un plat prêt non retiré dans un délai court, ou assumer la perte.
+> Pour les plats cuisinés, la réponse au besoin métier n'est pas le retour mais :
+> - **avant `served`** : annulation de ligne (aucune vente n'existe) ;
+> - **après `served`** : `cancel_sale` — CA annulé, matière consommée (comptablement juste, §6) ;
+> - **prêt mais non retiré** : enregistrement de la perte (§15.11).
 
 ### 13.2 ⛔ BLOQUANTE — `target_type = 'all'` promeut les plats par accident
 
@@ -1764,7 +1862,7 @@ bon, ce champ serait NULL et **le plat flotterait sans support pendant sa prépa
 
 > ⚠ **Règle affinée (3ᵉ revue)** : le critère n'est **pas** « un plat entre dans le panier » mais
 > « **une ligne crée un délai ou un suivi cuisine** » — donc `on_order` et `batch_finish` seulement.
-> Un plat `batch` ou `precooked` vendu immédiatement **ne déclenche aucun bon**, sauf si le panier
+> Un plat `batch` vendu immédiatement **ne déclenche aucun bon**, sauf si le panier
 > contient **aussi** une ligne à préparation (l'addition ne doit pas être fragmentée). Le tableau des
 > régimes (§15.8) disait déjà « bon : non » pour ces deux régimes — la formulation ci-dessous était
 > trop large.
@@ -1803,10 +1901,17 @@ la complétude du modèle (pas de cinquième cas caché) :
 | `on_order` | non | totale | 20-40 min | oui | non | poulet braisé, poisson grillé |
 | **`batch`** | oui | **aucune** | nul | non | non | **riz gras + sauce légume** |
 | **`batch_finish`** | oui | **partielle** | 5-10 min | oui | non | **spaghetti-poulet, alloco-poisson** |
-| `precooked` | — | aucune | nul | non | ✅ **oui** | pâtisserie, beignet |
+| ~~`precooked`~~ | — | aucune | nul | non | ✅ oui | ⏸ **Post-V1** (§12.4.c) — pâtisserie, beignet |
+
+> ⏸ **`precooked` reporté Post-V1** (§12.4.c) : ce n'est **pas un plat** mais un **produit fini
+> revendu en l'état** (stock dénombrable, retour possible, aucune production) — donc un
+> `bar_product`. Le classer comme plat était une **erreur de catégorisation**. Un maquis qui vend des
+> beignets les saisit comme **produits** dès aujourd'hui, sans le module cuisine.
+>
+> → **V1 : 3 régimes** (`on_order`, `batch`, `batch_finish`).
 
 **Libellés UI en langage clair** (jamais le nom technique) : « Préparé à la commande » / « Cuisiné en
-grande quantité » / « Précuit puis fini à la commande » / « Déjà prêt à vendre ».
+grande quantité » / « Précuit puis fini à la commande ».
 
 ##### `on_order` — le cas déjà modélisé
 
@@ -1836,7 +1941,7 @@ production.
 Métrique la plus utile de ce régime : « 20 portions cuisinées, 14 vendues, 6 jetées » → **signal de
 surproduction**, levier de marge plus actionnable que l'écart d'inventaire.
 
-Note : « riz + légumes » prélève dans **deux lots distincts** → `recipe_components` porte les
+Note : « riz + légumes » prélève dans **deux lots distincts** → `kitchen_item_batch_consumptions` porte les
 prélèvements, exactement comme il porte les sous-recettes.
 
 ##### `batch_finish` — hybride : lot puis finition
@@ -1848,7 +1953,7 @@ prélèvements, exactement comme il porte les sous-recettes.
 | Production du lot (matin) | spaghetti secs, poulet cru, eau, sel | `ingredients` (`consumed_at_stage = 'batch'`) |
 | **Finition** (à la commande) | portion du lot **+** huile, sauce, oignon | lot **+** `ingredients` (`'finish'`) |
 
-La recette a donc deux volets : `recipe_components` (portions de lots prélevées) et
+La recette a donc deux volets : `kitchen_item_batch_consumptions` (lots prélevés, §12.4.d) et
 `dish_ingredients` filtré sur `consumed_at_stage = 'finish'`.
 
 ```
@@ -1865,13 +1970,17 @@ Circuit de service : identique à `on_order` (`pending → preparing → ready �
 chrono) mais avec `preparation_time_min` calibré à 5-10 min. Le prélèvement du lot **et** le
 décrément des ingrédients de finition ont lieu à `ready`, cohérent avec §6.
 
-##### `precooked` — vendu comme une boisson
+##### ⏸ `precooked` — reporté Post-V1, à traiter comme un `bar_product`
 
-Vente immédiate, aucun `kitchen_order`, aucun bon implicite. **Seul régime où le retour est
-possible** : un plat précuisiné a un **stock réel dénombrable** (12 beignets sur le présentoir), donc
-il est plus proche d'un `bar_product` que d'un plat cuisiné. Une pâtisserie retournée intacte
-retourne au présentoir, exactement comme une bière remise au frigo — ce qui lève partiellement la
-limite du §14.1.
+Vente immédiate, aucun `kitchen_order`, aucun bon implicite, retour possible — parce qu'un plat
+précuisiné a un **stock réel dénombrable** (12 beignets sur le présentoir).
+
+**C'est précisément ce qui montre que ce n'est pas un plat** : stock dénombrable + retour + aucune
+production = **la définition d'un `bar_product`**. D'où le report Post-V1 (§12.4.c) : le besoin est
+couvert **dès aujourd'hui** en saisissant ces articles comme produits, sans le module cuisine.
+
+Ce qui manquerait pour bien faire (recette d'un précuisiné, coût de production plutôt que coût
+d'achat) est un **raffinement**, pas un bloquant.
 
 #### ⭐ Aucun régime n'est « normal » pour un plat donné
 
@@ -1899,7 +2008,10 @@ ne demandant que ce que le promoteur sait :
 |---|---|
 | « Je le prépare à la commande » | `on_order` |
 | « Je le prépare d'avance » | `batch` **ou** `batch_finish` — **déduit de la recette** |
-| « Il est déjà prêt à vendre » | `precooked` |
+| ~~« Il est déjà prêt à vendre »~~ | ⏸ Post-V1 — à saisir comme **produit** (§12.4.c) |
+
+→ **2 choix en V1**, et la distinction `batch`/`batch_finish` reste déduite. Le risque d'adoption s'en
+trouve encore réduit.
 
 La distinction `batch` / `batch_finish` **n'a pas à être demandée** : si la recette contient des
 ingrédients marqués `consumed_at_stage = 'finish'`, il y a une finition ; sinon, non. Le système le
@@ -2052,7 +2164,7 @@ exactement la métrique de perte du §8 (`consumed_at IS NOT NULL AND sale_id IS
 possibilité d'annulation.
 
 **Périmètre** : `on_order` et `batch_finish` uniquement (plats finis). Sans objet pour `batch` (la
-portion non servie reste dans le lot) et `precooked` (retour possible).
+portion non servie reste dans le lot).
 
 #### ⚠ Trois garde-fous obligatoires
 
@@ -2082,7 +2194,7 @@ Sans cette mise à zéro, **le même coût matière serait compté deux fois** :
 paraîtrait nulle alors qu'elle est totale. C'est la condition pour que la métrique de marge (§8)
 reste juste.
 
-### 15.12 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
+### 15.12 Sous-recettes : de « écartées » à `dish_recipe_components` minimal en V1
 
 §16 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
 ingrédients dans 10 plats — précisément la saisie identifiée comme **principal coût d'adoption**.
@@ -2091,7 +2203,7 @@ Dans la cuisine ouest-africaine, sauces, marinades, bouillons et bases se répè
 systématiquement. Forcer 10 plats à redéclarer « sauce tomate maison » alourdit la saisie **et**
 crée des divergences de coût entre plats censés partager la même base.
 
-**Position corrigée** : pas un moteur de production complet, mais **`recipe_components` minimal dès
+**Position corrigée** : pas un moteur de production complet, mais **`dish_recipe_components` minimal dès
 la V1** — un plat peut inclure une base réutilisable avec une quantité. La base est elle-même une
 recette, dont le coût unitaire remonte dans les plats qui la référencent.
 
@@ -2221,7 +2333,7 @@ aussi problématique qu'un calcul faux, parce qu'il n'est pas cru.
 
 - ~~`is_transversal` binaire~~ → **résolu en §15.3** : typologie `cost_mode` à 4 niveaux, dont
   `per_dish_flat` pour l'huile de friture.
-- ~~Sous-recettes écartées~~ → **résolu en §15.12** : `recipe_components` minimal dès la V1, un seul
+- ~~Sous-recettes écartées~~ → **résolu en §15.12** : `dish_recipe_components` minimal dès la V1, un seul
   niveau d'imbrication.
 - ~~`7021` non confirmé par une source normative~~ → **tranché en §10** : `7021` est un code de
   **ventilation géographique** (« produits finis dans la Région »), donc détourné. Nomenclature
@@ -2516,6 +2628,21 @@ méthodologique (« chaque correction doit être re-auditée ») et que **je n'a
 Troisième table où **« produit » signifie implicitement `bar_products`** : `sales.items` (§4.2),
 `returns.product_id` (§14.1), `promotion_applications.product_id` (§14.2). **À traiter comme un motif,
 pas trois cas isolés** — tout `product_id` sans FK doit être audité avant la phase 3A.
+
+#### ✅ Les six décisions tranchées le 31/07/2026 — §12.4
+
+| # | Décision | Raison qui a tranché |
+|---|---|---|
+| a | `fulfillment_status` **nullable** plutôt que refonte de `tickets.status` | `NULL` = bar pur inchangé (§3) ; additif, **aucune migration de `CHECK`** en production |
+| **b** | **Remboursement espèces OU substitution** — au choix du **client** | Décision du fondateur : le système enregistre, il n'impose pas. ⚠ `cash_refund` = **sortie de caisse** à contrôler comme une annulation de vente |
+| c | `precooked` **reporté Post-V1** | **Erreur de catégorisation** de ma part : stock dénombrable + retour + aucune production = c'est un `bar_product`, pas un plat. Le besoin est **déjà couvert** en V1 → V1 à **3 régimes**, et le blocage §14.1 (retour) **disparaît** |
+| d | `dish_recipe_components` / `kitchen_item_batch_consumptions` | `unit_cost` n'a de sens que sur l'**instance**. Une recette porte une quantité, pas un prix — un coût *nullable* dans une table de modèle signalerait la confusion |
+| e | L'appro **solde d'abord** les régularisations, écart de prix tracé, lot **clôturé** (jamais supprimé) | Supprimer perdrait la trace de l'anomalie — précisément le signal qu'on voulait rendre visible |
+| f | `current_stock` = **colonne cache** écrite uniquement par les RPC | Pattern **déjà validé** par la vague 4c : `current_average_cost` est écrit par les RPC et **jamais par un trigger**, parce que **deux écrivains créent des divergences** |
+
+**Effet de bord favorable de (c)** : le blocage bloquant §14.1 (retour de plat impossible par la FK
+`returns.product_id`) **tombe en V1** — le seul cas légitime était `precooked`, désormais traité comme
+produit. La FK ne redeviendra un obstacle que Post-V1.
 
 #### Recommandation finale de la revue, adoptée
 
