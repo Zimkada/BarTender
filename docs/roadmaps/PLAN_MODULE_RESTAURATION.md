@@ -35,11 +35,15 @@ Balayage exhaustif effectué : 128 fichiers `.md` du dépôt principal + 65 du d
 `BarTender_Copie`. Aucun document dédié. Le sujet n'avait jamais été abordé que lorsqu'il
 croisait un autre travail.
 
-**Seule trace concrète dans le code** : le plan de comptes est granulaire
-(`7011` Ventes de Boissons, `6011` Achats de Boissons dans
-[syscohada.types.ts](../../src/services/accounting/syscohada.types.ts)), et non un `701`
-générique. Investissement minime, bien choisi : il évite une migration comptable le jour du
-lancement.
+**Seule trace concrète dans le code** : le plan de comptes utilise `7011` Ventes de Boissons et
+`6011` Achats de Boissons ([syscohada.types.ts](../../src/services/accounting/syscohada.types.ts))
+plutôt qu'un `701`/`601` générique.
+
+> ⛔ **Appréciation initialement fausse** (corrigée le 31/07/2026, cf. §9) : je qualifiais cela
+> d'« investissement minime, bien choisi ». **C'est une erreur de nomenclature**, pas une
+> préparation : `7011` signifie officiellement « ventes de marchandises **dans la Région** », un
+> sous-compte de ventilation **géographique**. La *logique* de séparation boissons/repas était juste ;
+> la numérotation à 4 chiffres était détournée.
 
 ---
 
@@ -921,24 +925,88 @@ autonome (CVA + `cn()` + story Storybook, comme l'exige la convention).
 
 ## 9. Comptabilité
 
-L'amorce existante paie. À ajouter dans
-[syscohada.types.ts](../../src/services/accounting/syscohada.types.ts) :
+### ⛔ Correction : `7021` est un code détourné — et `7011` l'est déjà
 
-```
-'602'  Achats de matières premières   (ingrédients)
-'6052' Combustibles                   (gaz)
-'7021' Ventes de repas
-'603'  Variation des stocks           ⭐ nouveau besoin
-```
+**Vérification effectuée le 31/07/2026** contre le
+[référentiel OHADA](https://plan-comptable-ohada.com/nouvelle-norme-2016/compte/70.html)
+(AUDCIF 2017, SYSCOHADA révisé applicable depuis le 01/01/2018).
 
-Le `603` est la vraie nouveauté : une activité de **transformation** doit constater la variation
-de stock de matières premières en fin de période, ce qu'une pure revente peut esquiver. Le Z de
-caisse séparera automatiquement `7011` boissons / `7021` repas.
+Le compte `70` se subdivise en 7 catégories, et **chaque sous-compte à 4 chiffres est réservé à une
+ventilation géographique**, pas à une nature de produit :
 
-> ⚠ **Réserve** : `7021` provient de l'analyse interne, **pas d'une source normative**. La
-> recherche documentaire n'a pas confirmé ce code précis pour les ventes de repas en SYSCOHADA
-> (seulement la série 70 et des sous-comptes de 602). **À valider par un comptable OHADA avant
-> d'écrire du code.**
+| Code | Signification **officielle** |
+|---|---|
+| `701` | Ventes de marchandises |
+| `702` | Ventes de produits finis |
+| **`7021`** | **« dans la Région »** (produits finis vendus en zone OHADA) |
+| `7022` | hors Région |
+| `7023` / `7024` | aux entités du groupe (dans / hors Région) |
+| `7025` | sur internet |
+
+→ Employer `7021` pour « Ventes de repas » **détourne un code normalisé de son sens**.
+
+⛔ **Conséquence sur le code en production** : [syscohada.types.ts](../../src/services/accounting/syscohada.types.ts)
+déclare `'7011': 'Ventes de Boissons'` et `'6011': 'Achats de Boissons'`. Or `7011` signifie
+officiellement « ventes de marchandises **dans la Région** » et `6011` « achats de marchandises
+**dans la Région** ». **La même confusion existe déjà, indépendamment du module restauration.**
+
+> **Correction d'appréciation** : le §1 qualifiait cette granularité d'« investissement minime, bien
+> choisi ». **C'est faux** — c'était une **erreur de nomenclature**, pas une préparation
+> intelligente. Un plan qui se félicite d'une erreur est pire qu'un plan qui l'ignore.
+
+### Ce qui reste juste
+
+**La logique de séparation** est exactement celle que SYSCOHADA prescrit : les boissons sont des
+**marchandises** revendues en l'état (`601`/`701`), les repas des **produits finis** issus d'une
+transformation (`602`/`702`). Seule la numérotation à 4 chiffres était détournée.
+
+### Nomenclature retenue — comptes à 3 chiffres
+
+| Usage | Compte | Libellé officiel |
+|---|---|---|
+| Achats boissons | `601` | Achats de marchandises |
+| Ventes boissons | `701` | Ventes de marchandises |
+| Achats ingrédients | `602` | Achats de matières premières et fournitures liées |
+| Ventes repas | `702` | Ventes de produits finis |
+| Variation des stocks | `603` | Variations des stocks |
+| Gaz | `6052` | Autres achats — combustibles |
+
+Le `603` reste la vraie nouveauté : une activité de **transformation** doit constater la variation de
+stock de matières premières en fin de période, ce qu'une pure revente peut esquiver.
+
+**Le détail « Boissons » / « Repas » reste un libellé applicatif**, affiché dans les écrans — jamais
+un code comptable. L'export SYSCOHADA sort `701` et `702`.
+
+### ⚠ À valider par un comptable OHADA — trois questions
+
+Ma source est un référentiel **en ligne**, pas un avis professionnel. Sur un sujet où une erreur se
+voit devant l'administration fiscale, cela ne suffit pas pour modifier du code comptable en
+production.
+
+1. `701` / `702` sont-ils les bons comptes pour distinguer ventes de boissons et ventes de repas ?
+2. Les sous-comptes à 4 chiffres sont-ils **réservés** à la ventilation géographique, ou peut-on les
+   personnaliser ?
+3. ⭐ **Deux méthodes de valorisation dans le même bilan** — CUMP pour les marchandises, FIFO pour les
+   matières premières (§14.13) — est-ce acceptable, et **comment le déclarer en annexe** ?
+
+### Correctif attendu sur le code en production — NON appliqué
+
+Décision : **ne pas corriger `7011`/`6011` maintenant.**
+
+| Raison | Détail |
+|---|---|
+| Source non normative | Recherche en ligne, pas avis professionnel |
+| Pas urgent | L'erreur existe depuis l'origine sans conséquence connue. Un compte détourné produit un export **inhabituel**, pas un calcul faux — les montants sont justes, l'étiquette est mauvaise |
+| Vérification > correction | Changer le code prend 5 min ; s'assurer qu'aucun export déjà remis à un comptable ne devient incohérent est un autre travail |
+
+Correctif à appliquer **après** validation comptable :
+- `syscohada.types.ts` : `7011` → `701`, `6011` → `601` ;
+- `syscohada.service.ts` : 3 occurrences de `'7011'` + le mapping `case 'supply'` ;
+- `syscohada.service.test.ts` : les assertions attendent `7011`.
+
+> Si un comptable OHADA n'est **pas** accessible à court terme, la correction `701`/`702` devient
+> préférable au statu quo : mieux vaut un compte normalisé sur la base d'une recherche sérieuse qu'un
+> compte qu'on **sait** détourné.
 
 ---
 
@@ -1101,7 +1169,7 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 | **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
 | **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **`service_alerts`** (§14.10, cas plat) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
 | **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.11) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
-| **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
+| **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§9) | Vision consolidée bar + resto | Faible |
 
 > ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
 > placé en phase 4, alors que la décision §6 fait naître la vente **et** le décrément dans la même
@@ -1946,8 +2014,13 @@ aussi problématique qu'un calcul faux, parce qu'il n'est pas cru.
   `per_dish_flat` pour l'huile de friture.
 - ~~Sous-recettes écartées~~ → **résolu en §14.12** : `recipe_components` minimal dès la V1, un seul
   niveau d'imbrication.
-- **`7021` non confirmé par une source normative (§9)** — seule faiblesse structurelle encore
-  ouverte. À valider par un comptable OHADA avant d'écrire du code comptable.
+- ~~`7021` non confirmé par une source normative~~ → **tranché en §9** : `7021` est un code de
+  **ventilation géographique** (« produits finis dans la Région »), donc détourné. Nomenclature
+  retenue : comptes à **3 chiffres** (`601`/`701` bar, `602`/`702` cuisine, `603`, `6052`).
+- **Reste ouvert : 3 questions à un comptable OHADA (§9)** — validation de `701`/`702`,
+  personnalisation des sous-comptes à 4 chiffres, et **déclaration en annexe de la coexistence
+  CUMP + FIFO** (§14.13). Plus un **correctif en attente** sur `7011`/`6011` en production,
+  volontairement **non appliqué** faute de source normative.
 
 ---
 
@@ -2125,6 +2198,39 @@ Trois adaptations imposées par le modèle cuisine, que le simple calque n'aurai
 
 Observation utile : le motif existant `donation_sample` couvre le **repas du personnel** — poste réel
 et souvent invisible en maquis. L'énumération du bar était plus adaptée à la cuisine que prévu.
+
+### ⛔ Nomenclature SYSCOHADA : `7021` détourné, `7011` l'était déjà (31/07/2026)
+
+Vérification du dernier point ouvert du plan, contre le
+[référentiel OHADA](https://plan-comptable-ohada.com/nouvelle-norme-2016/compte/70.html) (AUDCIF 2017).
+
+**Résultat : le point est tranché, mais pas dans le sens du plan.** `7021` **existe** officiellement
+et signifie « produits finis vendus **dans la Région** » — les sous-comptes à 4 chiffres du compte 70
+sont réservés à une **ventilation géographique**, pas à une nature de produit.
+
+**Et la même erreur est déjà en production** : `7011` (« Ventes de Boissons ») signifie officiellement
+« ventes de marchandises dans la Région ». L'erreur n'a **pas** été introduite par le module
+restauration — elle est dans le code depuis l'origine.
+
+| Ce que j'affirmais | Réalité |
+|---|---|
+| §1 : `7011`/`6011` = « investissement minime, **bien choisi** » | ⛔ **Erreur de nomenclature**, pas préparation |
+| §9 : `7021` = « Ventes de repas » | ⛔ Code de **ventilation géographique** détourné |
+| La *logique* boissons (marchandises) / repas (produits finis) | ✅ **Juste** — c'est ce que SYSCOHADA prescrit |
+
+**Nomenclature retenue** : comptes à **3 chiffres** (`601`/`701` bar, `602`/`702` cuisine, `603`,
+`6052`). Le détail « Boissons »/« Repas » devient un **libellé applicatif**, jamais un code comptable.
+
+**Décision assumée : le code en production n'est PAS corrigé.** Ma source est un référentiel en ligne,
+pas un avis professionnel ; l'erreur produit un export *inhabituel*, pas un calcul faux (les montants
+sont justes, l'étiquette est mauvaise) ; et rien n'est urgent. Corriger sur cette base, dans un module
+comptable en production, serait prendre un risque pour gagner peu. Correctif documenté en §9, à
+appliquer après validation.
+
+**Enseignement** : cette vérification a été faite **parce qu'une réserve avait été écrite** et
+maintenue visible pendant tout le cadrage. Sans elle, `7021` serait passé en implémentation. Écrire ses
+doutes fonctionne — à condition de finir par les lever (cf. enseignement 5 : « une faiblesse admise
+mais non corrigée reste une faille »).
 
 Apports les plus précieux :
 - **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
