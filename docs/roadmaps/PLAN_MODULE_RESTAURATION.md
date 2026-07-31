@@ -7,12 +7,15 @@
 > 2. Le plat est une entité **autonome** (`dishes`), pas un `bar_product` (§4.5).
 > 3. Les ingrédients sont décrémentés à **`ready`** (matière cuite = consommée) ; la vente naît au
 >    **retrait par le serveur** et naît **validée** (§6). Deux événements, deux moments.
+> 4. Les **ingrédients** sont valorisés en **FIFO/FEFO** (`ingredient_lots`) — seule méthode gérant la
+>    **péremption** ; les **boissons** gardent le **CUMP** inchangé (§14.13). SYSCOHADA autorise les
+>    deux.
 >
 > ⛔ **Deux blocages à trancher avant la phase 3** : le retour de plat est structurellement
 > impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
 >
 > **Deux passes de revue** : §13 = audit **technique** contre le code (7 failles) ; §14 = test
-> **« service réel »** (12 corrections métier, dont `service_mode` pour l'emporté — angle mort
+> **« service réel »** (13 corrections métier, dont `service_mode` pour l'emporté — angle mort
 > complet — et `cost_mode` pour l'huile de friture).
 
 ---
@@ -74,7 +77,8 @@ ordre, au même prix — sans savoir a priori qu'elles sont nécessaires.
 ### Condition qui aurait justifié le zéro — non remplie
 
 Le socle serait incompatible si le CUMP était faux ou le décrément irrémédiablement mono-produit.
-C'est l'inverse : le CUMP valorise un ingrédient **sans modification**, et le décrément
+C'est l'inverse : le moteur de valorisation existant est sain (les ingrédients seront finalement
+valorisés en FIFO — §14.13 — mais **sans toucher** au CUMP des boissons), et le décrément
 mono-produit est un RPC à côté duquel on en ajoute un autre. Le ticket possède déjà
 `table_number` et `customer_name`, champs qui n'ont de sens qu'en restauration.
 
@@ -183,11 +187,22 @@ ingredients                          -- tomates, poulet, huile, gaz
   purchase_unit          -- 'kg', 'L', 'sac'        (ce qu'on achète)
   usage_unit             -- 'g', 'ml', 'unité'      (ce que la recette consomme)
   conversion_factor      -- 1 kg = 1000 g
-  current_stock          -- en usage_unit (source de vérité)
-  current_average_cost   -- CUMP par usage_unit
+  current_stock          -- en usage_unit — dérivé de Σ(lots.remaining_qty)
   cost_mode              -- ⭐ direct | global | per_dish_flat | cost_only (cf. 14.3)
                          --   remplace le booléen is_transversal, trop binaire
+  default_shelf_life_days -- ⭐ durée de conservation par défaut (pré-remplit expires_at)
   min_stock_alert
+  -- ⚠ PAS de current_average_cost : les ingrédients sont valorisés en FIFO/FEFO (cf. 14.13)
+
+ingredient_lots                      -- ⭐⭐ FIFO/FEFO — un lot par approvisionnement (14.13)
+  id, bar_id, ingredient_id
+  received_qty           -- en usage_unit
+  remaining_qty          -- décrémenté à la consommation ; 0 = lot épuisé
+  unit_cost              -- coût d'achat RÉEL de ce lot (pas une moyenne)
+  received_at, expires_at
+  supply_id              -- lien vers ingredient_supplies
+  is_regularization      -- ⭐ true = lot fictif créé sur stock négatif (anomalie, cf. 14.13)
+  expired_qty, expired_at -- perte par péremption, valorisée à unit_cost
 
 dishes
   id, bar_id, name, category_id, price
@@ -562,9 +577,9 @@ commodité technique, pas une nécessité.
 Bien plus exploitable que de la noyer dans l'écart d'inventaire, puisqu'on sait *quel* plat a été
 perdu et *pourquoi*.
 
-**Le snapshot du coût se fait donc à `ready`**, jamais à `served` : c'est là que la matière sort,
-donc là que le CUMP doit être lu. Sinon le coût figé ne correspondrait pas au stock réellement
-décrémenté.
+**Le snapshot du coût se fait donc à `ready`**, jamais à `served` : c'est là que la matière sort, donc
+là que les **lots consommés** sont connus (§14.13). Avantage du FIFO ici : le coût figé correspond aux
+lots **réellement** prélevés, pas à une moyenne au moment du décrément.
 
 Effet secondaire favorable : la règle « `cancel_sale` annule le CA mais pas la consommation »
 (§6, conséquences) cesse d'être une exception à traiter — elle découle naturellement du modèle.
@@ -613,7 +628,7 @@ qu'aucun client ne l'a demandé.
 
 | Niveau | Formule | Usage |
 |---|---|---|
-| **Marge matière brute** | `prix − Σ(qté × CUMP ingrédient direct)` | Décision de prix, comparaison entre plats |
+| **Marge matière brute** | `prix − Σ(qté × coût FIFO du lot consommé)` (§14.13) | Décision de prix, comparaison entre plats |
 | **Coût matière réel** | via inventaire physique périodique | Détecte vol, gaspillage, portions trop généreuses |
 | **Marge contributive** | marge matière − charges cuisine réparties | Rentabilité réelle du volet resto |
 
@@ -640,6 +655,24 @@ d'annulation et l'heure. Elle réduit d'autant la part inexpliquée de l'écart 
 
 Pour un promoteur, c'est une information directement actionnable : « 4 poulets braisés perdus cette
 semaine, dont 3 le vendredi soir » désigne un problème de rythme de service, pas un vol.
+
+### Cinquième métrique : les pertes par péremption
+
+Rendue possible par le FIFO/FEFO (§14.13) — **impossible en CUMP**, qui fond tous les achats dans une
+moyenne sans dates. Chaque `ingredient_lot` portant `expires_at`, un lot non consommé à échéance
+devient une perte **valorisée à son coût d'achat réel**.
+
+> « Vous perdez 8 % de vos tomates » → achats surdimensionnés, levier immédiat.
+
+Les trois métriques de perte se complètent sans se recouvrir :
+
+| Métrique | Cause identifiée |
+|---|---|
+| Écart théorique/réel | toutes causes confondues (vol, portions, gaspillage) |
+| Plats produits non servis | rythme de service, annulations |
+| **Pertes par péremption** | **surdimensionnement des achats** |
+
+Chaque métrique attribuable réduit d'autant la part inexpliquée de la première.
 
 ---
 
@@ -943,11 +976,10 @@ retourner la vente déjà créée, jamais en créer une seconde (même contrat q
 > `mark_ready`. La recommandation reste valable, elle change d'objet — et le résultat est meilleur :
 > **aucun RPC ne fait plus les deux à la fois.**
 
-Le CUMP existant sait déjà gérer le stock nul
-([reverse_supply](../../supabase/migrations/20260703040000_vague4c_cump_single_source_of_truth.sql) :
-« si nouveau_stock <= 0 : on conserve le CUMP courant »), mais un stock chroniquement négatif
-produirait un coût matière faux, donc une marge fausse — d'où l'inventaire physique obligatoire
-(§7).
+Le stock négatif est possible (« jamais bloquant », §4.4). En FIFO il n'a **aucune définition
+naturelle** — consommer un lot inexistant, à quel prix ? D'où le **lot de régularisation** au dernier
+prix connu, marqué comme anomalie (§14.13). Un stock chroniquement négatif produirait un coût matière
+faux, donc une marge fausse — d'où l'inventaire physique obligatoire (§7).
 
 ---
 
@@ -1056,7 +1088,7 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 | Phase | Contenu | Valeur livrée | Risque |
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
-| **1** | `ingredients` (+ `cost_mode`, §14.3) + `ingredient_supplies` + CUMP + écran appro + saisie en portions (§14.6) | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
+| **1** | `ingredients` (+ `cost_mode`, §14.3) + **`ingredient_lots` FIFO/FEFO** (§14.13) + `ingredient_supplies` + écran appro + saisie en portions (§14.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (mais table neuve, aucune reprise) |
 | **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
 | **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **`service_alerts`** (§14.10, cas plat) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
 | **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.11) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
@@ -1087,7 +1119,8 @@ La dissociation du §6 (matière à `ready`, CA à `served`) donne **deux** RPC 
 **`mark_kitchen_item_ready`** — le plus durci du module, c'est lui qui touche au stock :
 1. transition `preparing → ready` sur la ligne (`FOR UPDATE`) ;
 2. décrément des N ingrédients de la recette ;
-3. snapshot du coût matière (`computed_cost`) au CUMP du moment — figé, jamais recalculé (§4.4) ;
+3. snapshot du coût matière (`computed_cost`) = Σ des lots **réellement consommés** en FEFO
+   (§14.13) — figé, jamais recalculé (§4.4) ;
 4. `consumed_at` renseigné ;
 5. **idempotence** par clé stable sur `kitchen_order_item_id` — un rejeu ne doit **jamais** produire
    un second décrément.
@@ -1273,7 +1306,7 @@ mérite d'être dit.
 ## 14. Test « service réel » — corrections métier (30/07/2026)
 
 > Le plan avait été audité **techniquement** (§13) mais jamais confronté à un service de 40 couverts
-> un vendredi soir. Cette section corrige 12 manques métier, dont **trois angles morts complets** :
+> un vendredi soir. Cette section corrige 13 manques métier, dont **trois angles morts complets** :
 > `service_mode` (§14.1), la vente sans bon (§14.7) et surtout **les quatre régimes de production**
 > (§14.8) — le plan supposait que tout plat est préparé à la commande, alors que c'est le cas
 > **minoritaire** dans un maquis béninois.
@@ -1733,6 +1766,107 @@ Limite V1 : **un seul niveau d'imbrication** (une base ne peut pas contenir une 
 
 ---
 
+### 14.13 ⭐⭐ Valorisation des ingrédients : FIFO/FEFO, pas CUMP
+
+**Décision** : les **ingrédients** sont valorisés en **FIFO** (`ingredient_lots`) ; les **boissons**
+gardent le **CUMP** inchangé.
+
+#### Pourquoi deux méthodes dans la même application
+
+**SYSCOHADA autorise les deux** — CUMP (en deux variantes) et FIFO/PEPS. Mon objection initiale
+(« le CUMP est *la* méthode conforme, en sortir créerait une incohérence ») était **factuellement
+fausse**.
+
+Et il s'agit de **natures de stock différentes**, ce qui rend la coexistence légitime :
+
+| Stock | Nature | Comptes | Méthode |
+|---|---|---|---|
+| Boissons | marchandises revendues en l'état | `601` / `701` | **CUMP** |
+| Ingrédients | matières premières transformées | `602` / `702` | **FIFO/FEFO** |
+
+⚠ **À documenter en annexe comptable** : deux méthodes dans un même bilan est autorisé, mais doit
+être **déclaré**.
+
+#### Coût de migration : nul
+
+Les **102 occurrences** de `current_average_cost` dans **25 migrations** + 10 fichiers TS concernent
+`bar_products`. La table `ingredients` est **neuve** → aucune reprise de données, aucun code existant
+touché. Le durcissement de la vague 4c n'est pas rouvert.
+
+#### Les deux arguments décisifs
+
+**1. Le FIFO décrémente au coût d'achat réel** — un lot identifié, une facture précise, pas une
+moyenne. La charge et l'inventaire restant correspondent aux prix effectivement payés.
+
+**2. ⭐ Il est la SEULE méthode qui permette de gérer la péremption.** C'est l'argument le plus fort,
+et il est spécifique aux ingrédients : ce sont des **denrées à courte durée de conservation**.
+
+| Capacité | Impossible en CUMP | Valeur pour le promoteur |
+|---|---|---|
+| « Ce poisson expire demain » | pas de dates, tout est fondu | consommer avant de perdre |
+| Lot périmé → perte valorisée | — | chiffrer ce que la péremption coûte |
+| Historique de pertes par ingrédient | — | « vous perdez 8 % de vos tomates » → achats surdimensionnés |
+
+Même logique que `service_alerts` (§14.10) et `cancel_reason` (§14.4) : **catégoriser rend
+actionnable**.
+
+#### La périssabilité résout l'objection « le FIFO valorise à un prix périmé »
+
+Objection initiale : le FIFO valorise au prix du plus **ancien** lot, donc potentiellement périmé
+(tomate à 300 F le mois dernier, 1200 F cette semaine → alloco valorisé à 300 F, marge affichée
+trompeuse).
+
+**Cette objection ne s'applique pas aux denrées fraîches** : le cas suppose un stock ancien coexistant
+avec un achat récent, ce qui **ne se produit pas** quand la conservation est de quelques jours. Le lot
+le plus ancien a été acheté hier ou avant-hier.
+
+→ **Pour les ingrédients frais, le FIFO converge naturellement vers le prix du jour.** L'objection
+était structurellement valide mais **quantitativement négligeable** ici.
+
+**Conséquence, qui simplifie** : la « double marge » (réalisée FIFO + prix du jour) que j'avais
+proposée devient **redondante**. Un écart de quelques pour cent ne justifie pas deux indicateurs
+permanents — ce serait de la complexité pour un gain nul, et un écran plus confus.
+→ **Une seule marge, au FIFO**, qui est de fait la marge actuelle. L'**alerte de dérive** garde son
+sens (elle signale un saut de prix), le second indicateur permanent non.
+
+#### FEFO, pas FIFO strict
+
+L'ordre de consommation doit être **« premier expiré, premier sorti »** :
+
+```sql
+ORDER BY expires_at, received_at   -- ⭐ et non received_at seul
+```
+
+Identique dans ~95 % des cas, mais pas toujours : un lot acheté plus tard peut expirer plus tôt selon
+sa fraîcheur à l'achat. **En cuisine, c'est la date de péremption qui commande**, pas la date d'achat
+— c'est aussi une obligation sanitaire.
+
+#### ⚠ Le stock négatif : lot de régularisation
+
+Conflit à résoudre : le plan pose que le stock d'ingrédients est **jamais bloquant** (§4.4). En CUMP un
+stock négatif garde son coût moyen ; **en FIFO, consommer un lot qui n'existe pas n'a aucune
+définition** — à quel prix ?
+
+**Solution** : un **lot de régularisation** créé automatiquement (`is_regularization = true`),
+valorisé au **dernier prix connu**, et **marqué comme anomalie — jamais silencieux**.
+
+Ainsi la règle « jamais bloquant » est préservée **et** le FIFO reste honnête : l'écart devient
+**visible** au lieu d'être absorbé, et il alimente directement l'écart théorique/réel (§7).
+
+#### ⚠ Réserve : quatre niveaux de valorisation en cascade
+
+```
+ingredient_lots → production_batches → portions → ligne de vente (computed_cost)
+```
+
+Le calcul sera **juste**, mais le risque est la **traçabilité mentale**. Quand un promoteur demandera
+« pourquoi mon riz sauce coûte 340 F et pas 310 », il faut pouvoir remonter la chaîne.
+
+**Un écran de détail du coût est obligatoire dès le départ** — un calcul juste mais opaque est presque
+aussi problématique qu'un calcul faux, parce qu'il n'est pas cru.
+
+---
+
 ## 15. Points de vigilance
 
 **Ce qui peut mal tourner :**
@@ -1881,6 +2015,34 @@ Deux apports du fondateur sur le même fil :
 
 Bénéfice non anticipé : l'historique des alertes résolues (« 9 ruptures sur le poisson, dont 6 le
 vendredi ») alimentera le **chantier de prévision**, prochain de la roadmap.
+
+### Valorisation des ingrédients : FIFO retenu contre le CUMP (31/07/2026)
+
+Question du fondateur : *« les prix des ingrédients varient beaucoup selon les périodes, le CUMP est-il
+la bonne métrique ? »*
+
+**Mon objection principale était factuellement fausse** : j'avais affirmé que le CUMP était *la*
+méthode conforme SYSCOHADA et qu'en sortir créerait une incohérence comptable. **SYSCOHADA autorise
+les deux** (CUMP en 2 variantes, et FIFO/PEPS). L'obstacle réglementaire n'existait pas.
+
+| Objection initiale | Sort |
+|---|---|
+| « Le CUMP est la méthode conforme SYSCOHADA » | ❌ **Faux** — les deux sont autorisées |
+| « Coût de migration massif (102 occurrences, 25 migrations) » | ❌ **Sans objet** — le fondateur visait les **ingrédients seuls** ; `ingredients` est une table **neuve** |
+| « Le FIFO valorise à un prix périmé » | ❌ **Négligeable** — les ingrédients sont **périssables à courte durée**, donc le FIFO **converge vers le prix du jour** |
+| « Conflit avec stock jamais bloquant » | ✅ **Valide** → résolu par le **lot de régularisation** |
+
+**Argument décisif, que je n'avais pas identifié** : le FIFO est la **seule méthode qui permette de
+gérer la péremption**. Le CUMP, sans dates, ne peut ni alerter avant expiration, ni valoriser une
+perte, ni historiser les pertes par ingrédient. Sur des denrées à courte durée, ce n'est pas un
+détail — c'est un poste de perte structurel (→ 5ᵉ métrique, §7).
+
+**Simplification obtenue** : la « double marge » (réalisée FIFO + prix du jour) que j'avais proposée
+devient **redondante** puisque le FIFO ≈ prix du jour sur denrées fraîches. Une seule marge, un écran
+plus simple. L'alerte de dérive suffit pour signaler un saut de prix.
+
+**Raffinement ajouté** : **FEFO** plutôt que FIFO strict (`ORDER BY expires_at, received_at`) — en
+cuisine c'est la date de péremption qui commande, pas la date d'achat.
 
 Apports les plus précieux :
 - **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
