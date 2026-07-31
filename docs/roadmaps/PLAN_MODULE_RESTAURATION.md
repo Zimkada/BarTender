@@ -8,13 +8,13 @@
 > 3. Les ingrédients sont décrémentés à **`ready`** (matière cuite = consommée) ; la vente naît au
 >    **retrait par le serveur** et naît **validée** (§6). Deux événements, deux moments.
 > 4. Les **ingrédients** sont valorisés en **FIFO/FEFO** (`ingredient_lots`) — seule méthode gérant la
->    **péremption** ; les **boissons** gardent le **CUMP** inchangé (§14.13). SYSCOHADA autorise les
+>    **péremption** ; les **boissons** gardent le **CUMP** inchangé (§15.13). SYSCOHADA autorise les
 >    deux.
 >
 > ⛔ **Deux blocages à trancher avant la phase 3** : le retour de plat est structurellement
-> impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
+> impossible (§14.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§14.2).
 >
-> **Deux passes de revue** : §13 = audit **technique** contre le code (7 failles) ; §14 = test
+> **Deux passes de revue** : §14 = audit **technique** contre le code (7 failles) ; §15 = test
 > **« service réel »** (13 corrections métier, dont `service_mode` pour l'emporté — angle mort
 > complet — et `cost_mode` pour l'huile de friture).
 
@@ -28,7 +28,7 @@ chantier cadré :
 | Source | Contenu |
 |---|---|
 | [.agents/workflows/syscohada_analysis.md](../../.agents/workflows/syscohada_analysis.md) | Section 2 « Le To-Be : Restauration » + section 3.C « Préparation ». La plus substantielle. |
-| [PRESENTATION_TECHNIQUE.md](../../PRESENTATION_TECHNIQUE.md) §14.3 | 4 lignes : constat marché + périmètre + posture roadmap |
+| [PRESENTATION_TECHNIQUE.md](../../PRESENTATION_TECHNIQUE.md) §15.3 | 4 lignes : constat marché + périmètre + posture roadmap |
 | [whatsapp-agent/knowledge/prospects.md](../../whatsapp-agent/knowledge/prospects.md) | Consigne commerciale : ne rien promettre sur la cuisine |
 
 Balayage exhaustif effectué : 128 fichiers `.md` du dépôt principal + 65 du dossier
@@ -39,7 +39,7 @@ croisait un autre travail.
 `6011` Achats de Boissons ([syscohada.types.ts](../../src/services/accounting/syscohada.types.ts))
 plutôt qu'un `701`/`601` générique.
 
-> ⛔ **Appréciation initialement fausse** (corrigée le 31/07/2026, cf. §9) : je qualifiais cela
+> ⛔ **Appréciation initialement fausse** (corrigée le 31/07/2026, cf. §10) : je qualifiais cela
 > d'« investissement minime, bien choisi ». **C'est une erreur de nomenclature**, pas une
 > préparation : `7011` signifie officiellement « ventes de marchandises **dans la Région** », un
 > sous-compte de ventilation **géographique**. La *logique* de séparation boissons/repas était juste ;
@@ -82,7 +82,7 @@ ordre, au même prix — sans savoir a priori qu'elles sont nécessaires.
 
 Le socle serait incompatible si le CUMP était faux ou le décrément irrémédiablement mono-produit.
 C'est l'inverse : le moteur de valorisation existant est sain (les ingrédients seront finalement
-valorisés en FIFO — §14.13 — mais **sans toucher** au CUMP des boissons), et le décrément
+valorisés en FIFO — §15.13 — mais **sans toucher** au CUMP des boissons), et le décrément
 mono-produit est un RPC à côté duquel on en ajoute un autre. Le ticket possède déjà
 `table_number` et `customer_name`, champs qui n'ont de sens qu'en restauration.
 
@@ -130,7 +130,7 @@ et plat. Erreur : cela mettrait du code resto dans le chemin critique de **tous*
 compris purs.
 
 Bon découpage : de **nouveaux** RPC dédiés au parcours plat (`mark_kitchen_item_ready` pour la
-consommation de matière, `serve_kitchen_item` pour la vente — cf. §6 et §10), à côté de l'existant
+consommation de matière, `serve_kitchen_item` pour la vente — cf. §6 et §11), à côté de l'existant
 qu'on ne touche pas. C'est aussi ce qui permet de tester le module sans risquer une régression sur
 le cœur du produit.
 
@@ -235,7 +235,7 @@ production_batches                   -- ⭐ lots produits (cf. 14.8 batch / batc
   id, bar_id, dish_id    -- dish_id = le plat-base (is_batch_base = true)
   produced_qty           -- portions produites
   remaining_qty          -- portions restantes (décrémenté au service)
-  unit_cost              -- coût de production / portions = CUMP de 2ᵉ niveau
+  unit_cost              -- coût de production / portions (coût moyen du lot)
   produced_at, produced_by, business_date
   expires_at             -- fin de conservation
   discarded_qty, discarded_at, discard_reason  -- reste jeté = perte valorisée
@@ -341,16 +341,16 @@ trigger), jamais écrit directement. Dérivation suggérée :
 
 ### 4.4 Points non négociables
 
-**`computed_cost` figé à la commande.** Recalculer la marge d'un plat de mars avec le CUMP de
-juillet rendrait tout l'historique de marge faux. C'est la leçon déjà apprise sur le CUMP des
-boissons.
+**`computed_cost` figé à `ready`** (moment de la consommation de matière — §6, §15.13), **jamais
+recalculé**. Recalculer la marge d'un plat de mars avec les prix de juillet rendrait tout l'historique
+de marge faux. C'est la leçon déjà apprise sur le CUMP des boissons.
 
 **Séparation `purchase_unit` / `usage_unit`.** Le promoteur achète un sac de riz de 25 kg, la
 recette consomme 300 g. Sans conversion explicite : soit des recettes en « fractions de sac »
 (illisible), soit un appro pénible. Confirmé par les pratiques professionnelles de costing
 (AP cost converti en unités de recette + yield pour les pertes).
 
-**Ni tout décrémenter, ni tout exclure — `cost_mode` à 4 niveaux (§14.3).** Modéliser le sel au
+**Ni tout décrémenter, ni tout exclure — `cost_mode` à 4 niveaux (§15.3).** Modéliser le sel au
 gramme est une fausse précision (saisie alourdie, résultat inexploitable) ; mais exclure l'huile de
 friture du coût d'un alloco est un **biais de marge**. D'où quatre traitements : `direct`
 (décrémenté + coût), `global` (stock simple + charge indirecte : sel, eau), `per_dish_flat`
@@ -392,10 +392,10 @@ Deux options étaient en balance : `dishes` autonome, ou `bar_product` avec `is_
    Le moteur travaille sur des UUID nus, donc il peut cibler des plats venant d'une autre table :
    l'argument « menu du jour à prix réduit » n'impose donc **pas** l'héritage.
 
-   > ⚠ **Vérification initialement incomplète** (corrigée à l'audit, cf. §13.2) : j'avais lu
+   > ⚠ **Vérification initialement incomplète** (corrigée à l'audit, cf. §14.2) : j'avais lu
    > `target_product_ids` sans lire `target_type TEXT CHECK (target_type IN ('product', 'category',
    > 'all'))`. Les modes **`'all'`** et **`'category'`** posent un vrai problème de périmètre
-   > (§13.2). Les promotions ne sont donc **pas gratuites** avec `dishes` autonome — cet avantage
+   > (§14.2). Les promotions ne sont donc **pas gratuites** avec `dishes` autonome — cet avantage
    > était surestimé. La décision reste valide sur ses autres appuis (faits 1-3 et 5, et surtout le
    > filtrage `is_dish = false` à propager partout), mais pas sur celui-là.
 
@@ -412,8 +412,8 @@ Deux options étaient en balance : `dishes` autonome, ou `bar_product` avec `is_
 | Invariant global/custom | 3ᵉ nature dans un invariant déjà fragile | Sans objet |
 | 10 FK CASCADE | Héritées **toutes**, à neutraliser une par une | Aucune |
 | `display_name`, `alert_threshold`, `local_image` | Sémantique à réinterpréter | Champs propres |
-| Promotions | Gratuit pour `'product'`, mais `'all'`/`'category'` restent ambigus | Ciblage `'product'` possible (UUID[] sans FK) ; périmètre `'all'`/`'category'` **à définir dans les deux cas** (§13.2) |
-| Price guard | Gratuit | À dupliquer dans le RPC plat (§13.5) |
+| Promotions | Gratuit pour `'product'`, mais `'all'`/`'category'` restent ambigus | Ciblage `'product'` possible (UUID[] sans FK) ; périmètre `'all'`/`'category'` **à définir dans les deux cas** (§14.2) |
+| Price guard | Gratuit | À dupliquer dans le RPC plat (§14.5) |
 | Catalogue / photos | Hérité | À rebâtir (nom, prix, image — borné) |
 | **Requêtes existantes sur les produits** | **Toutes** à filtrer `is_dish = false` | **Inchangées** |
 
@@ -481,7 +481,7 @@ c'est-à-dire **l'addition**.
 
 > Le bon est **optionnel** pour une boisson (vente au comptoir) mais **nécessaire** pour un plat qui
 > demande une préparation — sinon la commande n'a aucun support pendant sa production. D'où le **bon
-> implicite** de §14.7, créé automatiquement dès qu'un plat entre dans le panier.
+> implicite** de §15.7, créé automatiquement dès qu'un plat entre dans le panier.
 
 ```
         TICKET (addition unique — table 5)
@@ -490,14 +490,17 @@ c'est-à-dire **l'addition**.
         │                       │
    LIGNES BOISSONS         LIGNES PLATS
    create_sale immédiat    kitchen_order (pending)
-   stock décrémenté        → cuisinier : accepted → preparing → ready
-   ✅ chemin actuel        → serveur retire : served
-      INTACT              → vente créée + ingrédients décrémentés
+   stock décrémenté        → cuisinier : accepted → preparing
+   ✅ chemin actuel        → ready   : MATIÈRE décrémentée + coût figé
+      INTACT               → served  : VENTE créée (CA)
         └───────────┬───────────┘
                     │
              pay_ticket (existant)
              une seule addition, un seul encaissement
 ```
+
+> **Référence unique des transitions : §6 (machine d'état).** Les descriptions narratives de ce
+> document sont indicatives ; en cas de divergence, **la machine d'état fait foi**.
 
 Le serveur ne voit qu'un écran avec onglets Boissons / Plats. La séparation est invisible pour
 lui, réelle en dessous.
@@ -505,7 +508,7 @@ lui, réelle en dessous.
 ### Garde-fous — prérequis bloquants de la phase 3
 
 **1. `pay_ticket` doit refuser la fermeture s'il reste des `kitchen_order_items` non
-`served`/`cancelled`** — ⚠ **règle assouplie en §14.2** : cette interdiction bloquerait la vente à
+`served`/`cancelled`** — ⚠ **règle assouplie en §15.2** : cette interdiction bloquerait la vente à
 emporter (payée avant préparation). Le paiement anticipé du ticket entier est finalement supporté,
 avec le moyen de paiement mémorisé sur le ticket et appliqué aux ventes créées ensuite.
 
@@ -520,11 +523,105 @@ Le RPC a déjà la bonne structure pour l'accueillir (`FOR UPDATE`, rejet des st
 
 **2. Le résumé du ticket doit additionner ventes existantes + lignes cuisine non encore
 comptables.** Sinon l'addition affichée est **fausse** avant le service (elle omet les plats en
-préparation). D'où la ligne « dont en cuisine » de l'écran de vente (§8).
+préparation). D'où la ligne « dont en cuisine » de l'écran de vente (§9).
 
 ---
 
-## 6. Validation : le double constat remplace le contrôle a posteriori
+## 6. ⭐⭐ MACHINE D'ÉTAT — référence unique des transitions
+
+> **Ce document fait foi.** Les sections narratives sont indicatives ; en cas de divergence, cette
+> machine d'état prévaut. **À produire et valider AVANT la première migration.**
+>
+> **Pourquoi elle existe** : les transitions étaient décrites en prose, dispersées sur ~2 000 lignes.
+> Résultat mécanique — 5 contradictions internes accumulées après les corrections successives
+> (« coût figé à la commande » vs « à `ready` », « vente et décrément simultanés », deux formules au
+> CUMP après le passage au FIFO, un schéma de flux obsolète). Ces contradictions ne sont pas des
+> étourderies : elles sont le **symptôme prévisible** de l'absence de table de vérité unique.
+
+### 6.1 `kitchen_order_item` — statut canonique (§4.3)
+
+| De | Transition | Vers | Acteur | Effet **stock** | Effet **CA** |
+|---|---|---|---|---|---|
+| — | `create` | `pending` | serveur / gérant | — | — |
+| `pending` | `accept` | `accepted` | cuisinier | — | — |
+| `pending` / `accepted` | `start` | `preparing` | cuisinier | — | — |
+| `preparing` | **`mark_ready`** | `ready` | cuisinier | ⭐ **décrément FEFO + `computed_cost` figé + `consumed_at`** | — |
+| `ready` | **`serve`** | `served` | serveur | — | ⭐ **vente créée `validated` + `sale_id`** |
+| `pending` / `accepted` / `preparing` | `cancel` | `cancelled` | cuisinier | — (rien consommé) | — |
+| `ready` | `cancel` | `cancelled` | gérant | ⚠ **matière consommée, NON restituée** | — (aucune vente n'a existé) → **perte** (§8) |
+
+**Transitions interdites** — à faire respecter par les RPC, pas seulement par l'UI :
+- `pending → served` (on ne sert pas un plat non produit) ;
+- `served → cancelled` (utiliser `cancel_sale`, qui annule le CA sans restituer la matière) ;
+- toute transition rétrograde (`ready → preparing`) ;
+- `cancel` par le **cuisinier** après `ready` (décision sanitaire/commerciale = gérant).
+
+**Invariants** :
+- `consumed_at IS NOT NULL` ⟺ statut ∈ {`ready`, `served`} ou (`cancelled` **après** `ready`) ;
+- `sale_id IS NOT NULL` ⟺ statut = `served` ;
+- `consumed_at IS NOT NULL AND sale_id IS NULL` ⟹ **perte** (4ᵉ métrique, §8).
+
+### 6.2 `kitchen_order` — statut DÉRIVÉ, jamais écrit
+
+Calculé depuis les lignes (§4.3). Aucune transition propre, aucun RPC n'écrit ce champ.
+
+### 6.3 `ticket` — ⚠ DEUX AXES, pas un
+
+⛔ **Décision à trancher avant la phase 3.** `tickets.status` n'a qu'un axe
+(`CHECK (status IN ('open','paid'))`,
+[migration](../../supabase/migrations/20260204000000_create_tickets_table.sql)). Or le paiement
+anticipé (§15.2) autorise un ticket **payé avec des plats encore en cuisine** — donc `paid` ne
+signifie plus « terminé », et un tel ticket **disparaîtrait des bons ouverts** alors qu'il reste du
+travail.
+
+Séparation nécessaire :
+
+| Axe | Valeurs | Sens |
+|---|---|---|
+| `payment_status` | `unpaid` / `paid` | l'argent est encaissé |
+| `fulfillment_status` | `pending` / `fulfilled` | toutes les lignes sont `served`/`cancelled` |
+
+Un ticket n'est **clos** que si `paid` **et** `fulfilled`. Les 4 combinaisons sont légitimes :
+
+| `payment` | `fulfillment` | Cas réel |
+|---|---|---|
+| `unpaid` | `pending` | service en cours (cas normal) |
+| `unpaid` | `fulfilled` | tout servi, addition à encaisser |
+| **`paid`** | **`pending`** | ⭐ **emporté payé d'avance** (§15.2) |
+| `paid` | `fulfilled` | clos |
+
+### 6.4 `production_batch` (§15.8)
+
+| De | Transition | Vers | Effet |
+|---|---|---|---|
+| — | `produce` | actif | **décrément FEFO des ingrédients** + `unit_cost` = coût / portions |
+| actif | `consume` | actif ou épuisé | `remaining_qty −= n` — ⚠ **ne touche PAS aux ingrédients** (déjà consommés) |
+| actif | `expire` | clos | `discarded_qty` → **perte valorisée** à `unit_cost` |
+
+⚠ **Piège du double comptage** (§15.8) : `consume` ne décrémente **jamais** les ingrédients.
+
+### 6.5 `sale` — inchangé
+
+Le circuit existant (`pending → validated` / `rejected`) n'est **pas modifié**. Une vente issue de
+`serve` naît directement `validated` (§7) — elle n'entre pas dans le circuit de validation gérant.
+
+### 6.6 Effets comptables par transition — table de vérité
+
+| Transition | Charge (classe 6) | Produit (classe 7) | `business_date` |
+|---|---|---|---|
+| `mark_ready` | ⭐ consommation matière (`602`) | — | `served_at` si servi plus tard, sinon `consumed_at` (§14.4) |
+| `serve` | — | ⭐ vente (`702`) | `served_at` |
+| `cancel` après `ready` | consommation matière (`602`) | — (perte) | `consumed_at` |
+| `produce` (lot) | consommation matière (`602`) | — | `produced_at` |
+| `expire` (lot) | perte valorisée | — | date de constat |
+
+⚠ **Une seule `business_date` comptable** (§14.4) — `ready_at` / `served_at` restent disponibles comme
+horodatages bruts pour l'analyse opérationnelle. Ne **pas** créer deux journées comptables
+concurrentes : les rapports cesseraient de s'accorder selon celle qu'ils utilisent.
+
+---
+
+## 7. Validation : le double constat remplace le contrôle a posteriori
 
 ### Deux validations de nature différente
 
@@ -538,7 +635,7 @@ préparation). D'où la ligne « dont en cuisine » de l'écran de vente (§8).
 ### Le cuisinier valide la faisabilité
 
 Il peut **refuser** un plat, mais uniquement **avant** `preparing`, avec un motif **structuré**
-(`cancel_reason` en énumération — §14.4, pas du texte libre). Puisque
+(`cancel_reason` en énumération — §15.4, pas du texte libre). Puisque
 la vente n'existe pas encore, un refus n'a **aucune conséquence comptable** — rien à
 contre-passer. Le cuisinier ne touche jamais à l'argent, seulement à la faisabilité.
 
@@ -572,7 +669,7 @@ définitivement. S'il n'est jamais servi (client parti, erreur de commande, plat
 doit **quand même** refléter cette consommation.
 
 Sans cette correction, un plat `ready → cancelled` ne décrémentait rien alors qu'il avait coûté —
-et l'écart théorique/réel (§7), métrique centrale du module, se trouvait faussé **dans le mauvais
+et l'écart théorique/réel (§8), métrique centrale du module, se trouvait faussé **dans le mauvais
 sens** : il attribuait à du gaspillage invisible une consommation parfaitement connue.
 
 Deux faits de nature différente étaient forcés dans une seule transition :
@@ -591,7 +688,7 @@ Bien plus exploitable que de la noyer dans l'écart d'inventaire, puisqu'on sait
 perdu et *pourquoi*.
 
 **Le snapshot du coût se fait donc à `ready`**, jamais à `served` : c'est là que la matière sort, donc
-là que les **lots consommés** sont connus (§14.13). Avantage du FIFO ici : le coût figé correspond aux
+là que les **lots consommés** sont connus (§15.13). Avantage du FIFO ici : le coût figé correspond aux
 lots **réellement** prélevés, pas à une moyenne au moment du décrément.
 
 Effet secondaire favorable : la règle « `cancel_sale` annule le CA mais pas la consommation »
@@ -609,8 +706,9 @@ Le retrait plutôt que `ready` : un plat prêt mais oublié sur le passe n'est p
   dans l'écart théorique/réel).
 - Le décalage temporel dans l'écran de validation (des plats arrivant 20 min après les boissons
   du même ticket).
-- La dérive du stock d'ingrédients par rapport au CA : vente et décrément devenant simultanés,
-  il n'y a plus de fenêtre d'incohérence.
+- L'ambiguïté sur le moment de la consommation : la matière est décrémentée à `ready` (fait
+  physique), le CA constaté à `served` (fait commercial) — chaque événement est rattaché au moment
+  où il se produit réellement, cf. machine d'état §5.
 
 **Argument décisif :** sur un service de 40 couverts, faire valider chaque plat rendait l'écran
 de validation inexploitable — donc « Valider tout » cliqué mécaniquement, ce qui **détruit** la
@@ -619,7 +717,7 @@ valeur du contrôle, y compris pour les boissons noyées dans le flot.
 ### Ce que le gérant garde
 
 Il perd un veto sans objet, rien d'utile :
-- **supervision temps réel** avec chrono et relance (§8) ;
+- **supervision temps réel** avec chrono et relance (§9) ;
 - **`cancel_sale`** pour corriger par exception, avec trace d'audit.
 
 Il supervise pendant, il corrige après. Il n'autorise pas.
@@ -637,11 +735,11 @@ qu'aucun client ne l'a demandé.
 
 ---
 
-## 7. Marge : trois niveaux
+## 8. Marge : trois niveaux
 
 | Niveau | Formule | Usage |
 |---|---|---|
-| **Marge matière brute** | `prix − Σ(qté × coût FIFO du lot consommé)` (§14.13) | Décision de prix, comparaison entre plats |
+| **Marge matière brute** | `prix − Σ(qté × coût FIFO du lot consommé)` (§15.13) | Décision de prix, comparaison entre plats |
 | **Coût matière réel** | via inventaire physique périodique | Détecte vol, gaspillage, portions trop généreuses |
 | **Marge contributive** | marge matière − charges cuisine réparties | Rentabilité réelle du volet resto |
 
@@ -651,7 +749,7 @@ l'argument de vente le plus fort.
 
 **Conséquence** : l'inventaire physique périodique des ingrédients est **obligatoire**, pas
 optionnel. Sans lui le module ne mesure que du théorique, et la « marge précise » promise est
-fausse. Mécanisme, rythme, motifs d'ajustement et gel par période : **§14.5**.
+fausse. Mécanisme, rythme, motifs d'ajustement et gel par période : **§15.5**.
 
 ### Quatrième métrique : les pertes cuisine mesurées
 
@@ -671,7 +769,7 @@ semaine, dont 3 le vendredi soir » désigne un problème de rythme de service, 
 
 ### Cinquième métrique : les pertes par péremption
 
-Rendue possible par le FIFO/FEFO (§14.13) — **impossible en CUMP**, qui fond tous les achats dans une
+Rendue possible par le FIFO/FEFO (§15.13) — **impossible en CUMP**, qui fond tous les achats dans une
 moyenne sans dates. Chaque `ingredient_lot` portant `expires_at`, un lot non consommé à échéance
 devient une perte **valorisée à son coût d'achat réel**.
 
@@ -689,7 +787,7 @@ Chaque métrique attribuable réduit d'autant la part inexpliquée de la premiè
 
 ---
 
-## 8. Interfaces
+## 9. Interfaces
 
 ### Contrainte découverte
 
@@ -923,7 +1021,7 @@ autonome (CVA + `cn()` + story Storybook, comme l'exige la convention).
 
 ---
 
-## 9. Comptabilité
+## 10. Comptabilité
 
 ### ⛔ Correction : `7021` est un code détourné — et `7011` l'est déjà
 
@@ -987,7 +1085,7 @@ production.
 2. Les sous-comptes à 4 chiffres sont-ils **réservés** à la ventilation géographique, ou peut-on les
    personnaliser ?
 3. ⭐ **Deux méthodes de valorisation dans le même bilan** — CUMP pour les marchandises, FIFO pour les
-   matières premières (§14.13) — est-ce acceptable, et **comment le déclarer en annexe** ?
+   matières premières (§15.13) — est-ce acceptable, et **comment le déclarer en annexe** ?
 
 ### Correctif attendu sur le code en production — NON appliqué
 
@@ -1010,7 +1108,7 @@ Correctif à appliquer **après** validation comptable :
 
 ---
 
-## 10. Offline
+## 11. Offline
 
 Position cohérente avec la doctrine du projet (dégradé assumé selon rôle et mode) :
 
@@ -1055,14 +1153,14 @@ retourner la vente déjà créée, jamais en créer une seconde (même contrat q
 
 Le stock négatif est possible (« jamais bloquant », §4.4). En FIFO il n'a **aucune définition
 naturelle** — consommer un lot inexistant, à quel prix ? D'où le **lot de régularisation** au dernier
-prix connu, marqué comme anomalie (§14.13). Un stock chroniquement négatif produirait un coût matière
-faux, donc une marge fausse — d'où l'inventaire physique obligatoire (§7).
+prix connu, marqué comme anomalie (§15.13). Un stock chroniquement négatif produirait un coût matière
+faux, donc une marge fausse — d'où l'inventaire physique obligatoire (§8).
 
 ---
 
-## 11. Blocages
+## 12. Blocages
 
-### 11.1 Plafond de membres — ✅ LEVÉ (non-blocage)
+### 12.1 Plafond de membres — ✅ LEVÉ (non-blocage)
 
 [src/config/plans.ts](../../src/config/plans.ts) :
 
@@ -1095,13 +1193,13 @@ rentabilité de leurs plats).
 atteinte. `check_plan_member_limit` doit produire un message actionnable (« votre plan Starter
 permet 4 personnes, passez à Pro pour en ajouter ») et non une erreur technique sèche.
 
-### 11.2 Modèle du plat — ✅ TRANCHÉ
+### 12.2 Modèle du plat — ✅ TRANCHÉ
 
 `dishes` autonome. Analyse complète et coûts acceptés en **§4.5**.
 
-### 11.3 ⛔ Retour de plat et périmètre des promotions — révélés à l'audit
+### 12.3 ⛔ Retour de plat et périmètre des promotions — révélés à l'audit
 
-Deux blocages découverts lors de l'audit du 30/07 (§13.1 et §13.2), tous deux à trancher **avant**
+Deux blocages découverts lors de l'audit du 30/07 (§14.1 et §14.2), tous deux à trancher **avant**
 la phase 3 :
 
 - **Retour de plat impossible** (`returns.product_id` FK `NOT NULL` vers `bar_products`). Décision
@@ -1109,7 +1207,68 @@ la phase 3 :
 - **Périmètre des promotions** (`target_type = 'all'` / `'category'`). Décision recommandée : rendre
   le périmètre explicite plutôt que laisser un comportement indéfini qui détruirait la marge.
 
-### 11.4 Rôle `cuisinier` — point dur technique
+### 12.4 ⛔ Quatre décisions révélées par la 3ᵉ revue (31/07/2026)
+
+Toutes issues des **corrections récentes** : le modèle est devenu plus juste métier sans être
+stabilisé techniquement. À trancher **avant la première migration**.
+
+#### 12.4.a `paid` ne signifie plus « terminé » → deux axes sur le ticket
+
+Le paiement anticipé (§15.2) autorise un ticket payé avec des plats en cuisine. Or
+`tickets.status CHECK (status IN ('open','paid'))` n'a **qu'un axe** → un tel ticket
+**disparaîtrait des bons ouverts** alors qu'il reste du travail.
+
+→ Séparer `payment_status` / `fulfillment_status`. Détail et table des 4 combinaisons : **§6.3**.
+
+#### 12.4.b ⛔ Trou financier : plat payé d'avance puis annulé
+
+**Manque non vu lors de l'assouplissement de §15.2.** Si un plat prépayé est annulé avant `ready`
+(rupture) : **aucune vente à annuler** (elle naît à `served`), **aucun retour possible** (§14.1),
+**aucun remboursement modélisé**. → De l'argent encaissé **sans contrepartie ni mécanisme de
+restitution**.
+
+À modéliser au minimum : `prepaid_amount` sur le ticket, et une **résolution explicite** —
+remboursement, avoir, ou substitution par un autre plat. Sans cela, **l'emporté payé d'avance est
+incomplet**, pas seulement imprécis.
+
+#### 12.4.c `precooked` est techniquement orphelin
+
+§15.8 dit qu'un plat `precooked` « se vend comme une boisson, retour possible ». Mais :
+- `dishes` **n'a pas de stock** (décision §4.1) — or une pâtisserie a un stock réel dénombrable ;
+- `returns.product_id` pointe **obligatoirement** vers `bar_products` (§14.1).
+
+→ `precooked` n'a donc **ni stock ni retour** dans l'état actuel : catégorie déclarée, non
+implémentable. Trois options : lui donner un stock via `production_batches`, une table dédiée, ou
+**le reporter hors V1**. « Vendu comme une boisson » ne suffit pas.
+
+#### 12.4.d `recipe_components` mélange modèle et instance
+
+Le plan lui fait porter **les sous-recettes** (§15.12) **et** le prélèvement de lots (§15.8). Or une
+recette est un **modèle** (« 1 portion de sauce »), un `production_batch` une **instance datée** avec
+coût et reliquat. Les confondre est une erreur structurelle.
+
+→ Séparer : `dish_recipe_components` (bases théoriques) et `kitchen_item_batch_consumptions` (lots
+réellement prélevés, avec leur `unit_cost`).
+
+#### 12.4.e Le lot de régularisation ne se résorbe pas
+
+§15.13 crée un lot fictif au dernier prix connu sur stock négatif — bonne rustine, mais **le plan ne
+dit pas comment il disparaît**. Si un vrai approvisionnement arrive et qu'on ajoute simplement un
+lot, stock, coût et pertes deviennent faux.
+
+→ Règle explicite : **un approvisionnement compense d'abord les régularisations négatives**, avec
+**écart de prix tracé** (le prix réel diffère du prix estimé).
+
+#### 12.4.f `current_stock` : dérivé ou colonne ?
+
+§4.1 écrit `current_stock -- dérivé de Σ(lots.remaining_qty)`. **Ambigu** : si c'est dérivé, ce n'est
+pas une source de vérité ; si c'est stocké pour la performance, il faut triggers, verrouillage et
+tests de cohérence.
+
+→ Trancher : **vue calculée**, colonne cache avec trigger, ou vue matérialisée. Ne pas laisser
+l'implémentation choisir.
+
+### 12.5 Rôle `cuisinier` — point dur technique
 
 Mesures réelles :
 
@@ -1160,16 +1319,29 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 
 ---
 
-## 12. Séquençage
+## 13. Séquençage
 
 | Phase | Contenu | Valeur livrée | Risque |
 |---|---|---|---|
-| **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
-| **1** | `ingredients` (+ `cost_mode`, §14.3) + **`ingredient_lots` FIFO/FEFO** (§14.13) + `ingredient_supplies` + écran appro + saisie en portions (§14.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (mais table neuve, aucune reprise) |
-| **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **`service_alerts`** (§14.10, cas plat) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
-| **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.11) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
-| **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§9) | Vision consolidée bar + resto | Faible |
+| **0** | Audit + ajout rôle `cuisinier` (§12.5) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
+| **1** | `ingredients` (+ `cost_mode`, §15.3) + **`ingredient_lots` FIFO/FEFO** (§15.13) + `ingredient_supplies` + écran appro + saisie en portions (§15.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (mais table neuve, aucune reprise) |
+| **2** | `dishes` (+ **`production_mode`**, §15.8) + `dish_ingredients` + **`recipe_components`** (§15.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **3A** | Machine d'état (§6) + extension ticket **2 axes** (§6.3) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§15.7) + régimes **`on_order`** et **`batch_finish`** + arbitrages §14.1 à §14.6 | Prise de commande opérationnelle, **sans emporté ni prépaiement** | **Élevé** — touche au flux de vente |
+| **3B** | `service_mode` (§15.1) + **paiement anticipé** (§15.2) + **résolution du trou financier** (§12.4.b) | Vente à emporter | **Élevé** — argent encaissé sans contrepartie si mal fait |
+| **3C** | **`production_batches`** + régime **`batch`** complet (§15.8) | Riz sauce, plats du jour — **le cas dominant en maquis** | Moyen |
+| **3D** | **`service_alerts`** (§15.10) | Décision de rupture outillée | Faible |
+| **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §15.5) + écart théorique/réel + **enregistrement** des pertes (§15.11) | Détection gaspillage et fuites | Moyen |
+| **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§10) | Vision consolidée bar + resto | Faible |
+| **Post-V1** | `precooked` (§12.4.c) + **remise en vente** des plats récupérés (§15.11) + retour de plat | — | Reporté volontairement |
+
+> ⭐ **Découpage de la phase 3 (3ᵉ revue, 31/07/2026).** La phase 3 avait grossi à chaque ajout sans
+> jamais être redécoupée : elle contenait tickets, service, 2 RPC critiques, lots, 4 régimes, items
+> typés, paiement anticipé, bon implicite, alertes et 6 arbitrages — **une phase-projet entière**.
+> Découpée en 3A/3B/3C/3D, chaque sous-phase reste livrable et testable seule.
+>
+> Ordre choisi : **3A d'abord** parce que le service à table est le socle ; **3B ensuite** parce que le
+> prépaiement introduit un risque financier (§12.4.b) qui ne doit pas retarder le socle ; **3C** est le
+> cas dominant en maquis mais dépend d'un socle stable.
 
 > ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
 > placé en phase 4, alors que la décision §6 fait naître la vente **et** le décrément dans la même
@@ -1197,7 +1369,7 @@ La dissociation du §6 (matière à `ready`, CA à `served`) donne **deux** RPC 
 1. transition `preparing → ready` sur la ligne (`FOR UPDATE`) ;
 2. décrément des N ingrédients de la recette ;
 3. snapshot du coût matière (`computed_cost`) = Σ des lots **réellement consommés** en FEFO
-   (§14.13) — figé, jamais recalculé (§4.4) ;
+   (§15.13) — figé, jamais recalculé (§4.4) ;
 4. `consumed_at` renseigné ;
 5. **idempotence** par clé stable sur `kitchen_order_item_id` — un rejeu ne doit **jamais** produire
    un second décrément.
@@ -1209,7 +1381,7 @@ La dissociation du §6 (matière à `ready`, CA à `served`) donne **deux** RPC 
 4. **idempotence** par la même clé — un rejeu retourne la vente déjà créée.
 
 Toutes les transitions (`accept`, `start`, `ready`, `serve`, `cancel`) doivent être idempotentes
-avec des clés stables — prérequis du mode offline (§10).
+avec des clés stables — prérequis du mode offline (§11).
 
 **Logique de l'ordre général** : les phases 1 et 2 délivrent l'essentiel de la valeur perçue **sans
 toucher au flux de vente**, qui est la partie la mieux durcie de l'app (idempotence, promotions,
@@ -1232,7 +1404,7 @@ sur la cuisine tant que ce n'est pas livré).
 
 ---
 
-## 13. Failles identifiées à l'audit (30/07/2026)
+## 14. Failles identifiées à l'audit (30/07/2026)
 
 > Audit du plan contre le code réel, en cherchant les endroits raisonnés **par analogie** avec le
 > flux boissons sans vérification. Sept failles. **Les failles 13.1 et 13.2 sont bloquantes.**
@@ -1268,7 +1440,7 @@ j'ai commandé ».
 plat servi puis refusé se traite par `cancel_sale` — le CA est annulé, la matière reste consommée, ce
 qui est comptablement juste (§6). Avant `served`, une annulation de ligne suffit.
 
-> ⭐ **Nuance apportée par §14.8** : le retour redevient **légitime pour `production_mode =
+> ⭐ **Nuance apportée par §15.8** : le retour redevient **légitime pour `production_mode =
 > 'precooked'`** (pâtisserie, beignet). Ces plats ont un **stock réel dénombrable** — une pâtisserie
 > retournée intacte retourne au présentoir, exactement comme une bière remise au frigo. Ils sont donc
 > plus proches d'un `bar_product` que d'un plat cuisiné.
@@ -1277,7 +1449,7 @@ qui est comptablement juste (§6). Avant `served`, une annulation de ligne suffi
 > `precooked` sera implémenté (phase 4+), pas en V1.
 >
 > Pour les plats cuisinés, la vraie réponse au besoin métier n'est pas le retour mais la **file de
-> récupération** (§14.11) : resservir un plat prêt non retiré dans un délai court, ou assumer la perte.
+> récupération** (§15.11) : resservir un plat prêt non retiré dans un délai court, ou assumer la perte.
 
 ### 13.2 ⛔ BLOQUANTE — `target_type = 'all'` promeut les plats par accident
 
@@ -1298,10 +1470,26 @@ Deux modes cassent :
   §4.5), une promotion sur une catégorie boisson peut toucher des plats, et inversement.
 
 Ce n'est pas un détail : **une remise involontaire sur les plats détruit la marge** — précisément la
-métrique que le module est censé protéger (§7).
+métrique que le module est censé protéger (§8).
 
 **À trancher** : soit un `target_scope: 'bar' | 'kitchen' | 'both'`, soit `'all'` signifie « tous les
 produits bar » et les plats exigent un ciblage explicite. Le silence n'est pas une option.
+
+#### ⚠ Complément (3ᵉ revue) : l'historique analytics reste faux même avec un ciblage correct
+
+Ce point ne couvrait que le **ciblage**. Il manquait la **traçabilité** :
+`promotion_applications.product_id UUID NOT NULL`
+([059](../../supabase/migrations/059_create_promotions_and_events.sql)) — pas de FK, donc l'insertion
+d'un UUID de plat **passe**, mais la colonne est **nommée et interprétée comme un produit**.
+
+→ Même une promo plat correctement ciblée polluerait les analytics promotionnelles. Il faut le même
+discriminant que pour `sales.items` (§4.2) : **`item_type` + `item_id`** sur
+`promotion_applications`, et filtrer `item_type = 'product'` dans les vues existantes.
+
+⭐ **Symptôme récurrent** : troisième table (`sales.items`, `returns.product_id`,
+`promotion_applications.product_id`) où « produit » est **implicitement synonyme de `bar_products`**.
+À traiter comme un **motif systématique**, pas comme trois cas isolés : tout endroit nommant
+`product_id` sans FK doit être audité avant la phase 3A.
 
 ### 13.3 Le Magic Swap (`provideExchange`) est incompatible avec les plats
 
@@ -1337,7 +1525,7 @@ jour suivant**. Un Z de caisse afficherait une consommation sans vente, et l'inv
 reportée sur la ligne de consommation**, même si `ready_at` appartient à la veille. La cohérence
 comptable prime sur l'exactitude horaire du décrément.
 
-Cas particulier : un plat `ready` **jamais servi** (perte, §7) n'a pas de `served_at` → sa
+Cas particulier : un plat `ready` **jamais servi** (perte, §8) n'a pas de `served_at` → sa
 `business_date` se calcule alors depuis `consumed_at`.
 
 ### 13.5 Price guard : la duplication doit être assumée, pas subie
@@ -1356,14 +1544,15 @@ touchera au guard des boissons.
 ### 13.6 `ingredients.current_stock` ne doit PAS porter de `CHECK >= 0`
 
 Deux règles du plan se combinent mal : « stock d'ingrédients **jamais bloquant** » (§4.4) et
-décrément optimiste offline avec réconciliation (§10). Rien n'empêche donc un stock négatif.
+décrément optimiste offline avec réconciliation (§11). Rien n'empêche donc un stock négatif.
 
 Or `bar_products.stock` porte un `CHECK (stock >= 0)`. Ajouter la même contrainte par **mimétisme**
 ferait **échouer le RPC en plein service** — exactement ce que « jamais bloquant » voulait éviter.
 
 **Décision explicite** : pas de `CHECK >= 0` sur `ingredients.current_stock`. Un stock négatif est
-un **signal** (« vous avez servi plus que vous n'avez acheté »), pas une erreur. Le CUMP sait déjà
-gérer le stock nul (§10). À écrire, sinon la contrainte sera ajoutée par réflexe.
+un **signal** (« vous avez servi plus que vous n'avez acheté »), pas une erreur. En FIFO/FEFO il est
+matérialisé par un **lot de régularisation** marqué comme anomalie (§15.13). À écrire, sinon la
+contrainte sera ajoutée par réflexe.
 
 ### 13.7 Le mode simplifié n'a pas de traduction cuisine cohérente
 
@@ -1380,33 +1569,33 @@ mérite d'être dit.
 
 ---
 
-## 14. Test « service réel » — corrections métier (30/07/2026)
+## 15. Test « service réel » — corrections métier (30/07/2026)
 
-> Le plan avait été audité **techniquement** (§13) mais jamais confronté à un service de 40 couverts
+> Le plan avait été audité **techniquement** (§14) mais jamais confronté à un service de 40 couverts
 > un vendredi soir. Cette section corrige 13 manques métier, dont **trois angles morts complets** :
-> `service_mode` (§14.1), la vente sans bon (§14.7) et surtout **les quatre régimes de production**
-> (§14.8) — le plan supposait que tout plat est préparé à la commande, alors que c'est le cas
+> `service_mode` (§15.1), la vente sans bon (§15.7) et surtout **les quatre régimes de production**
+> (§15.8) — le plan supposait que tout plat est préparé à la commande, alors que c'est le cas
 > **minoritaire** dans un maquis béninois.
 >
-> Sources : **seconde revue externe** pour §14.1 à §14.6 et §14.12 (elle portait sur une version
+> Sources : **seconde revue externe** pour §15.1 à §15.6 et §15.12 (elle portait sur une version
 > antérieure — 4 de ses 12 points étaient déjà traités — mais ses apports métier restants sont réels
-> et l'un d'eux est meilleur que l'analyse initiale) ; **question du fondateur** pour §14.7.
+> et l'un d'eux est meilleur que l'analyse initiale) ; **question du fondateur** pour §15.7.
 
-### 14.1 ⭐ ANGLE MORT — `service_mode` : le plan suppose partout « table »
+### 15.1 ⭐ ANGLE MORT — `service_mode` : le plan suppose partout « table »
 
 **Aucune occurrence** de « emporté », « takeaway » ou `service_mode` dans le plan avant cette
-section. Ni la contre-analyse, ni la revue externe, ni l'audit §13 ne l'avaient vu.
+section. Ni la contre-analyse, ni la revue externe, ni l'audit §14 ne l'avaient vu.
 
 Or un petit resto béninois vend beaucoup **à emporter**. Sans ce champ, l'écran cuisine forcerait de
 fausses tables (« table 99 » pour l'emporté), ce qui pollue les données et rend inutilisable le
-regroupement par table (§8).
+regroupement par table (§9).
 
 ```
 kitchen_orders
   service_mode  -- 'dine_in' | 'takeaway'    (delivery : hors V1)
 ```
 
-**Combinaison critique avec §14.2** : un client qui emporte **paie avant** que le plat soit prêt.
+**Combinaison critique avec §15.2** : un client qui emporte **paie avant** que le plat soit prêt.
 Le garde-fou `pay_ticket` (§5) **rendrait donc la vente à emporter impossible**. Une règle comptable
 qui bloque un cas d'usage courant est une erreur de conception, pas une rigueur.
 
@@ -1414,7 +1603,7 @@ Conséquences UI : `table_number` devient nullable quand `service_mode = 'takeaw
 groupe par table **ou** par « À emporter » ; le nom du client (`tickets.customer_name`, déjà présent)
 devient le repère pour l'emporté.
 
-### 14.2 Paiement anticipé — le garde-fou §5 doit être assoupli, pas levé
+### 15.2 Paiement anticipé — le garde-fou §5 doit être assoupli, pas levé
 
 Cas terrain que le garde-fou actuel bloque : paiement d'avance, emporté payé avant préparation,
 table qui veut partir.
@@ -1432,9 +1621,9 @@ Le moyen de paiement est **mémorisé sur le ticket** (`tickets.payment_method`,
 (payer les boissons maintenant et le plat après suppose de fractionner une addition — chantier à
 part entière).
 
-### 14.3 Typologie des consommables — `is_transversal` binaire est un biais de marge
+### 15.3 Typologie des consommables — `is_transversal` binaire est un biais de marge
 
-§15 admettait que `is_transversal` est « binaire alors que la réalité ne l'est pas » **sans en tirer
+§16 admettait que `is_transversal` est « binaire alors que la réalité ne l'est pas » **sans en tirer
 de conséquence**. Aveu sans correction.
 
 L'argument qui tranche : ce n'est pas une imprécision mais un **biais systématique**. L'huile de
@@ -1447,7 +1636,7 @@ Typologie à 4 niveaux remplaçant le booléen :
 
 | `cost_mode` | Exemples | Décrément stock | Inclus au coût du plat |
 |---|---|---|---|
-| `direct` | poulet, riz, poisson | ✅ par recette | ✅ au CUMP |
+| `direct` | poulet, riz, poisson | ✅ par recette | ✅ **coût FEFO des lots consommés** (§15.13) |
 | `global` | sel, gaz, eau | ❌ stock simple + alerte | ❌ charge indirecte cuisine |
 | ⭐ `per_dish_flat` | **huile de friture**, charbon, emballage | ❌ | ✅ **forfait par plat** |
 | `cost_only` | — | ❌ non suivi | ✅ |
@@ -1455,7 +1644,7 @@ Typologie à 4 niveaux remplaçant le booléen :
 Le niveau `per_dish_flat` est ce qui manquait : il évite la fausse précision (personne ne pèse
 l'huile) **tout en** attribuant le coût aux plats qui le supportent réellement.
 
-### 14.4 `cancel_reason` structuré, pas du texte libre
+### 15.4 `cancel_reason` structuré, pas du texte libre
 
 §6 dit « avec un motif court » — donc du texte libre. Sans énumération, impossible de distinguer une
 **fuite de stock** d'un **problème d'organisation** ou d'une **mauvaise carte**.
@@ -1471,11 +1660,11 @@ cancel_reason ENUM :
 ```
 
 Un champ texte libre reste utile **en complément**, jamais à la place. C'est la structure qui rend
-les annulations analysables — et donc actionnables pour le promoteur (cf. métrique des pertes, §7).
+les annulations analysables — et donc actionnables pour le promoteur (cf. métrique des pertes, §8).
 
-### 14.5 Inventaire physique et ajustements de stock
+### 15.5 Inventaire physique et ajustements de stock
 
-§7 pose l'obligation **trois fois**, le rythme **nulle part**. Compter tous les ingrédients chaque
+§8 pose l'obligation **trois fois**, le rythme **nulle part**. Compter tous les ingrédients chaque
 jour est irréaliste en restaurant.
 
 #### Le mécanisme existe déjà pour le bar — le calquer
@@ -1497,10 +1686,10 @@ même garde-fou sur `other`. Le promoteur retrouve un geste qu'il connaît déj�
 
 | Point | Bar (`stock_adjustments`) | Ingrédients |
 |---|---|---|
-| `old_stock`/`new_stock` | `CHECK >= 0` | ⚠ **PAS de contrainte** — stock négatif autorisé (§4.4, §13.6) |
+| `old_stock`/`new_stock` | `CHECK >= 0` | ⚠ **PAS de contrainte** — stock négatif autorisé (§4.4, §14.6) |
 | Cible de l'ajustement | le produit | ⚠ **le lot** (`ingredient_lot_id`) — sinon quel coût imputer ? |
 
-Le second point est le plus important : en FIFO/FEFO (§14.13), un ajustement doit désigner **quel
+Le second point est le plus important : en FIFO/FEFO (§15.13), un ajustement doit désigner **quel
 lot** est concerné, sinon la perte n'est pas valorisable. Par défaut : imputer au lot le plus proche
 de l'expiration (cohérent avec FEFO), avec possibilité de choisir explicitement.
 
@@ -1518,13 +1707,13 @@ Motifs adaptés à la cuisine, en réutilisant l'énumération existante là où
 |---|---|
 | `inventory_count` | écart constaté au comptage — le cas le plus fréquent |
 | `loss_damage` | casse, renversement |
-| `expiration` | périmé — **recoupe la 5ᵉ métrique** (§7), à réconcilier pour ne pas compter deux fois |
+| `expiration` | périmé — **recoupe la 5ᵉ métrique** (§8), à réconcilier pour ne pas compter deux fois |
 | `theft_report` | vol suspecté |
 | `donation_sample` | ⭐ couvre le **repas du personnel**, poste réel et souvent invisible en maquis |
 | `other` | notes obligatoires |
 
 ⚠ **Point de vigilance** : `expiration` en ajustement manuel **et** péremption automatique de lot
-(§14.13) mesurent la même perte. Il faut que la péremption automatique **crée** l'ajustement plutôt
+(§15.13) mesurent la même perte. Il faut que la péremption automatique **crée** l'ajustement plutôt
 que de coexister avec lui, sinon la perte est comptée deux fois.
 
 #### ⭐ Gel par période — le point le plus important
@@ -1536,10 +1725,10 @@ l'outil** — ce qui coûte plus cher qu'une imprécision assumée.
 Mécanisme : une période clôturée refuse tout ajustement antérieur à sa date de gel ; l'écart constaté
 après clôture s'impute sur la **période courante**, avec une note de rattachement.
 
-Note : ces motifs recoupent `cancel_reason` (§14.4) et `service_alerts` (§14.10) — même logique
+Note : ces motifs recoupent `cancel_reason` (§15.4) et `service_alerts` (§15.10) — même logique
 partout dans le module : **catégoriser rend analysable**.
 
-### 14.6 Portions : couche de saisie, pas manque du modèle
+### 15.6 Portions : couche de saisie, pas manque du modèle
 
 `yield_factor` (§4.1) et `usage_unit` couvrent déjà le **calcul** : un poulet de 1,5 kg acheté ne
 donne pas 1,5 kg vendable, et `yield_factor` l'exprime.
@@ -1551,7 +1740,7 @@ fausses.
 
 **Portée** : couche de présentation, pas refonte du modèle.
 
-### 14.7 Vente sans bon : bon implicite dès qu'un plat entre dans le panier
+### 15.7 Vente sans bon : bon implicite dès qu'un plat entre dans le panier
 
 **Cas non examiné par le plan.** Le bon est **entièrement optionnel** aujourd'hui : `sales.ticket_id`
 est nullable, `p_ticket_id` a `DEFAULT NULL`
@@ -1569,15 +1758,23 @@ bon, ce champ serait NULL et **le plat flotterait sans support pendant sa prépa
 
 **Options écartées** :
 - *`kitchen_orders.ticket_id` nullable* → deux chemins de rattachement à maintenir, et `pay_ticket`
-  perd toute prise sur ces plats, donc le paiement anticipé (§14.2) devient impossible pour eux.
+  perd toute prise sur ces plats, donc le paiement anticipé (§15.2) devient impossible pour eux.
 - *Exiger explicitement un bon* → friction inutile : le serveur ne devrait pas avoir à comprendre
   qu'un plat « exige un bon ». La règle est déductible par le système.
 
-**Décision : bon implicite.** Dès qu'un plat entre dans le panier, un bon est créé automatiquement
+> ⚠ **Règle affinée (3ᵉ revue)** : le critère n'est **pas** « un plat entre dans le panier » mais
+> « **une ligne crée un délai ou un suivi cuisine** » — donc `on_order` et `batch_finish` seulement.
+> Un plat `batch` ou `precooked` vendu immédiatement **ne déclenche aucun bon**, sauf si le panier
+> contient **aussi** une ligne à préparation (l'addition ne doit pas être fragmentée). Le tableau des
+> régimes (§15.8) disait déjà « bon : non » pour ces deux régimes — la formulation ci-dessous était
+> trop large.
+
+**Décision : bon implicite.** Dès qu'une ligne à préparation entre dans le panier, un bon est créé
+automatiquement
 si aucun n'est sélectionné. **Toutes les lignes du panier y sont rattachées**, boissons incluses —
 sinon l'addition serait fragmentée, ce qui contredirait « un ticket = une addition » (§5).
 
-Selon le `service_mode` (§14.1), le bon change de sens sans changer de structure :
+Selon le `service_mode` (§15.1), le bon change de sens sans changer de structure :
 
 | `service_mode` | Repère affiché sur le bon |
 |---|---|
@@ -1592,7 +1789,7 @@ plat → jamais pour un bar pur.
 Un bon implicite consomme donc un numéro visible dans le suivi. Acceptable, mais à ne pas découvrir
 en production — le promoteur verra plus de bons qu'il n'en a créés manuellement.
 
-### 14.8 ⭐⭐ `production_mode` : quatre régimes de production
+### 15.8 ⭐⭐ `production_mode` : quatre régimes de production
 
 Le plan supposait que **tout** plat passe par la cuisine à la commande. Faux, et de loin : c'est
 même le cas **minoritaire** dans un maquis béninois.
@@ -1633,7 +1830,7 @@ Fin de jour : reste conservable → report ; sinon discarded_qty = perte valoris
 ⚠ **Piège à éviter** : décrémenter les ingrédients à chaque portion servie **double-compterait** la
 matière déjà consommée le matin. Le service ne touche **que** `remaining_qty`.
 
-Le coût de la portion est un **CUMP de 2ᵉ niveau** : `coût du lot / portions_per_batch`, figé à la
+Le coût de la portion est un **coût moyen de lot** : `coût du lot / portions_per_batch`, figé à la
 production.
 
 Métrique la plus utile de ce régime : « 20 portions cuisinées, 14 vendues, 6 jetées » → **signal de
@@ -1655,10 +1852,11 @@ La recette a donc deux volets : `recipe_components` (portions de lots prélevée
 `dish_ingredients` filtré sur `consumed_at_stage = 'finish'`.
 
 ```
-coût du plat = Σ(portions de lot × unit_cost du lot) + Σ(ingrédients de finition × CUMP)
+coût du plat = Σ(portions de lot × unit_cost du lot)
+             + Σ(ingrédients de finition × coût FEFO des lots consommés)   -- §15.13
 ```
 
-⭐ **C'est ici que `cost_mode = per_dish_flat` (§14.3) trouve sa justification la plus nette** :
+⭐ **C'est ici que `cost_mode = per_dish_flat` (§15.3) trouve sa justification la plus nette** :
 l'huile de friture appartient à la **finition**, pas au lot. Un poulet bouilli le matin ne consomme
 pas d'huile ; le même poulet frit à la commande en consomme. Les deux mécanismes se combinent
 exactement à cet endroit.
@@ -1673,7 +1871,7 @@ Vente immédiate, aucun `kitchen_order`, aucun bon implicite. **Seul régime où
 possible** : un plat précuisiné a un **stock réel dénombrable** (12 beignets sur le présentoir), donc
 il est plus proche d'un `bar_product` que d'un plat cuisiné. Une pâtisserie retournée intacte
 retourne au présentoir, exactement comme une bière remise au frigo — ce qui lève partiellement la
-limite du §13.1.
+limite du §14.1.
 
 #### ⭐ Aucun régime n'est « normal » pour un plat donné
 
@@ -1709,7 +1907,7 @@ déduit au lieu de l'exiger.
 
 Libellés en langage clair, jamais de jargon technique dans l'UI.
 
-### 14.9 Régime hybride : intention configurée + basculement automatique
+### 15.9 Régime hybride : intention configurée + basculement automatique
 
 Le régime déclaré est une **intention**, l'état du lot est un **fait**. Un même plat peut changer de
 régime au fil de la journée — un maquis peut braiser 10 poulets le matin (`batch_finish`) puis braiser
@@ -1753,9 +1951,9 @@ de bloquer sur le stock interdit de décider à la place du cuisinier.**
 #### Le déclenchement : à la première commande, pas à l'épuisement
 
 Le mécanisme bascule seul ; la **disponibilité** est confirmée par un humain, au moment où la question
-se pose réellement — cf. §14.10.
+se pose réellement — cf. §15.10.
 
-### 14.10 ⭐ Alertes de service : l'app détecte, l'humain tranche
+### 15.10 ⭐ Alertes de service : l'app détecte, l'humain tranche
 
 Généralisation du point précédent. Le basculement de régime n'est qu'un cas particulier d'un besoin
 plus large : **un point de décision unique en cas de rupture**, quel qu'en soit le déclencheur.
@@ -1803,7 +2001,7 @@ ne les traite**. Trois règles :
 3. une résolution `ignore` **tient jusqu'à la fin du service** — sinon la question revient et
    l'utilisateur apprend à cliquer sans lire.
 
-Même raisonnement que l'anti-spam du bouton Relancer (§8) : un mécanisme de notification sans
+Même raisonnement que l'anti-spam du bouton Relancer (§9) : un mécanisme de notification sans
 garde-fou devient un mécanisme ignoré.
 
 #### Bénéfice non anticipé : un historique de gestion
@@ -1813,7 +2011,7 @@ Les alertes résolues constituent une donnée exploitable :
 > « 14 ruptures ce mois-ci, dont 9 sur le poisson, dont 6 le vendredi »
 
 Ça ne dit pas seulement qu'il y a eu des ruptures — ça dit que **l'approvisionnement du jeudi est
-sous-dimensionné**. Même mécanisme que `cancel_reason` structuré (§14.4) : catégoriser rend
+sous-dimensionné**. Même mécanisme que `cancel_reason` structuré (§15.4) : catégoriser rend
 analysable.
 
 Et ça alimente directement le **chantier de prévision** (prochain de la roadmap) : un historique de
@@ -1825,9 +2023,20 @@ Livrer d'abord `batch_depleted` et `ingredient_shortage` (un plat, une décision
 **transversal** ensuite (décision groupée sur plusieurs plats → UI plus complexe). Mais la structure
 `service_alerts` doit être prévue **dès le départ pour les trois**, sinon elle est à refaire.
 
-### 14.11 File de récupération : resservir un plat prêt non retiré
+### 15.11 File de récupération : resservir un plat prêt non retiré
 
-Concept absent du plan **et** des POS examinés. Il ne s'agit **pas** d'un retour (impossible, §13.1)
+> ⚠ **Découpage V1 / Post-V1 (3ᵉ revue)** : la revue recommandait de retirer ce mécanisme de la V1
+> (risque juridique, socle cuisine non validé terrain). **Nuance retenue** — ce n'est pas la *file*
+> qu'il faut retirer, c'est la **remise en vente** :
+>
+> | Élément | Phase |
+> |---|---|
+> | **Enregistrement** de la perte (`consumed_at` sans `sale_id`) | ✅ **V1** — c'est la 4ᵉ métrique (§8), coût nul, aucun risque |
+> | **Remise en vente** d'un plat récupéré | ⏸ **Post-V1** — décision sanitaire, à valider terrain d'abord |
+>
+> Mesurer une perte n'engage rien ; proposer de resservir engage une responsabilité.
+
+Concept absent du plan **et** des POS examinés. Il ne s'agit **pas** d'un retour (impossible, §14.1)
 mais d'une **fenêtre de rattrapage avant que la perte devienne définitive**.
 
 ```
@@ -1839,7 +2048,7 @@ plat ready → non retiré (client parti, erreur, refus)
 
 Élégance du mécanisme : il **réutilise le modèle existant**. La matière est déjà décrémentée (à
 `ready`, §6), donc resservir ne redécrémente rien — il n'y a **que la vente** à créer. C'est
-exactement la métrique de perte du §7 (`consumed_at IS NOT NULL AND sale_id IS NULL`), avec une
+exactement la métrique de perte du §8 (`consumed_at IS NOT NULL AND sale_id IS NULL`), avec une
 possibilité d'annulation.
 
 **Périmètre** : `on_order` et `batch_finish` uniquement (plats finis). Sans objet pour `batch` (la
@@ -1870,12 +2079,12 @@ celui qui le consomme (paie). Traitement retenu :
 - **`computed_cost = 0`** sur la ligne récupérée — la matière a déjà été imputée à la première.
 
 Sans cette mise à zéro, **le même coût matière serait compté deux fois** : la marge du plat récupéré
-paraîtrait nulle alors qu'elle est totale. C'est la condition pour que la métrique de marge (§7)
+paraîtrait nulle alors qu'elle est totale. C'est la condition pour que la métrique de marge (§8)
 reste juste.
 
-### 14.12 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
+### 15.12 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
 
-§15 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
+§16 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
 ingrédients dans 10 plats — précisément la saisie identifiée comme **principal coût d'adoption**.
 
 Dans la cuisine ouest-africaine, sauces, marinades, bouillons et bases se répètent
@@ -1891,7 +2100,7 @@ Limite V1 : **un seul niveau d'imbrication** (une base ne peut pas contenir une 
 
 ---
 
-### 14.13 ⭐⭐ Valorisation des ingrédients : FIFO/FEFO, pas CUMP
+### 15.13 ⭐⭐ Valorisation des ingrédients : FIFO/FEFO, pas CUMP
 
 **Décision** : les **ingrédients** sont valorisés en **FIFO** (`ingredient_lots`) ; les **boissons**
 gardent le **CUMP** inchangé.
@@ -1932,7 +2141,7 @@ et il est spécifique aux ingrédients : ce sont des **denrées à courte durée
 | Lot périmé → perte valorisée | — | chiffrer ce que la péremption coûte |
 | Historique de pertes par ingrédient | — | « vous perdez 8 % de vos tomates » → achats surdimensionnés |
 
-Même logique que `service_alerts` (§14.10) et `cancel_reason` (§14.4) : **catégoriser rend
+Même logique que `service_alerts` (§15.10) et `cancel_reason` (§15.4) : **catégoriser rend
 actionnable**.
 
 #### La périssabilité résout l'objection « le FIFO valorise à un prix périmé »
@@ -1976,7 +2185,7 @@ définition** — à quel prix ?
 valorisé au **dernier prix connu**, et **marqué comme anomalie — jamais silencieux**.
 
 Ainsi la règle « jamais bloquant » est préservée **et** le FIFO reste honnête : l'écart devient
-**visible** au lieu d'être absorbé, et il alimente directement l'écart théorique/réel (§7).
+**visible** au lieu d'être absorbé, et il alimente directement l'écart théorique/réel (§8).
 
 #### ⚠ Réserve : quatre niveaux de valorisation en cascade
 
@@ -1992,7 +2201,7 @@ aussi problématique qu'un calcul faux, parce qu'il n'est pas cru.
 
 ---
 
-## 15. Points de vigilance
+## 16. Points de vigilance
 
 **Ce qui peut mal tourner :**
 
@@ -2010,21 +2219,21 @@ aussi problématique qu'un calcul faux, parce qu'il n'est pas cru.
 
 **Faiblesses assumées de cette réflexion :**
 
-- ~~`is_transversal` binaire~~ → **résolu en §14.3** : typologie `cost_mode` à 4 niveaux, dont
+- ~~`is_transversal` binaire~~ → **résolu en §15.3** : typologie `cost_mode` à 4 niveaux, dont
   `per_dish_flat` pour l'huile de friture.
-- ~~Sous-recettes écartées~~ → **résolu en §14.12** : `recipe_components` minimal dès la V1, un seul
+- ~~Sous-recettes écartées~~ → **résolu en §15.12** : `recipe_components` minimal dès la V1, un seul
   niveau d'imbrication.
-- ~~`7021` non confirmé par une source normative~~ → **tranché en §9** : `7021` est un code de
+- ~~`7021` non confirmé par une source normative~~ → **tranché en §10** : `7021` est un code de
   **ventilation géographique** (« produits finis dans la Région »), donc détourné. Nomenclature
   retenue : comptes à **3 chiffres** (`601`/`701` bar, `602`/`702` cuisine, `603`, `6052`).
-- **Reste ouvert : 3 questions à un comptable OHADA (§9)** — validation de `701`/`702`,
+- **Reste ouvert : 3 questions à un comptable OHADA (§10)** — validation de `701`/`702`,
   personnalisation des sous-comptes à 4 chiffres, et **déclaration en annexe de la coexistence
-  CUMP + FIFO** (§14.13). Plus un **correctif en attente** sur `7011`/`6011` en production,
+  CUMP + FIFO** (§15.13). Plus un **correctif en attente** sur `7011`/`6011` en production,
   volontairement **non appliqué** faute de source normative.
 
 ---
 
-## 16. Ce qui a été corrigé en cours de réflexion
+## 17. Ce qui a été corrigé en cours de réflexion
 
 Traçabilité des erreurs redressées, pour ne pas les refaire :
 
@@ -2037,23 +2246,23 @@ Traçabilité des erreurs redressées, pour ne pas les refaire :
 | « Renommer *Gestion Commandes* pour lever l'homonymie » | Devenu inutile : l'onglet contient réellement commandes cuisine + validations. C'est l'onglet cuisine qui est renommé **Service** |
 | « Rôle cuisinier : risque très faible » | **Élevé** : 56 fichiers, 17 migrations, 30 permissions |
 | « L'inventaire physique est optionnel (phase 4) » | **Obligatoire** : sans lui, la « marge précise » vendue est fausse |
-| Plafond `maxMembers` non vu, puis qualifié de blocage imposant de réserver le module à Pro/Max | **Faux blocage** : un petit resto (promoteur + cuisinier + serveur, avec ou sans gérant) tient dans Starter. Erreur de généralisation depuis le cas le plus gros (§11.1) |
+| Plafond `maxMembers` non vu, puis qualifié de blocage imposant de réserver le module à Pro/Max | **Faux blocage** : un petit resto (promoteur + cuisinier + serveur, avec ou sans gérant) tient dans Starter. Erreur de généralisation depuis le cas le plus gros (§12.1) |
 | « Le plat doit être un `bar_product` pour bénéficier des promotions » | **Faux** : les promotions ciblent des `UUID[]` **sans FK**. L'argument principal de l'héritage reposait sur une hypothèse non vérifiée → `dishes` autonome (§4.5) |
 
 ### Corrections issues de la revue externe (30/07/2026)
 
 | Point soulevé | Traitement |
 |---|---|
-| **Séquençage phase 3/4 incohérent** : le RPC de consommation en phase 4 alors que la vente naît avec décrément atomique | ✅ **Accepté** — `serve_kitchen_item` déplacé en phase 3 (§12). Erreur réelle : la décision §6 a été prise après l'écriture du séquençage, sans le corriger |
+| **Séquençage phase 3/4 incohérent** : le RPC de consommation en phase 4 alors que la vente naît avec décrément atomique | ✅ **Accepté** — `serve_kitchen_item` déplacé en phase 3 (§13). Erreur réelle : la décision §6 a été prise après l'écriture du séquençage, sans le corriger |
 | **Divergence `kitchen_orders.status` / `kitchen_order_items.status`** | ✅ **Accepté** — statut canonique sur la ligne, parent dérivé (§4.3) |
 | **`bar_id` manquant sur les tables cuisine** | ✅ **Accepté** — ajouté, conforme à la convention multi-tenant du projet (§4.1) |
 | **Items de vente à typer (`item_type`)** | ✅ **Accepté**, avec correction factuelle : il n'existe **pas** de table `sale_items` — `sales.items` est du **JSONB sans FK**. Le risque est donc *plus* élevé (échec silencieux, pas erreur SQL) → §4.2 |
 | **`pay_ticket` plus fragile qu'annoncé** (propage `payment_method` aux ventes) | ✅ **Accepté** — le garde-fou passe de « à ajouter » à **prérequis bloquant** (§5) |
-| **Rôle cuisinier : protéger par permission, pas par rôle brut** | ✅ **Accepté** — livrables de phase 0 formalisés (§11.4) |
-| **Offline : idempotence par transition, `serve` le plus durci** | ✅ **Accepté** (§10) |
-| **Vue par table dans le Service** | ✅ **Accepté** — regroupement par `table_number` obligatoire, sans plan de salle graphique (§8) |
-| **`ScopeSwitcher` : « filtrage client obligatoire » trop rigide** | ✅ **Accepté** — règle reformulée en « zéro refetch au changement de portée » (§8) |
-| **Positionnement produit phase 2** | ✅ **Accepté** — « costing cuisine », pas « gestion restauration » (§12) |
+| **Rôle cuisinier : protéger par permission, pas par rôle brut** | ✅ **Accepté** — livrables de phase 0 formalisés (§12.5) |
+| **Offline : idempotence par transition, `serve` le plus durci** | ✅ **Accepté** (§11) |
+| **Vue par table dans le Service** | ✅ **Accepté** — regroupement par `table_number` obligatoire, sans plan de salle graphique (§9) |
+| **`ScopeSwitcher` : « filtrage client obligatoire » trop rigide** | ✅ **Accepté** — règle reformulée en « zéro refetch au changement de portée » (§9) |
+| **Positionnement produit phase 2** | ✅ **Accepté** — « costing cuisine », pas « gestion restauration » (§13) |
 
 ### Correction post-revue : moment du décrément (30/07/2026)
 
@@ -2063,7 +2272,7 @@ Traçabilité des erreurs redressées, pour ne pas les refaire :
 
 **Modèle corrigé** : décrément + snapshot du coût à **`ready`** (charge engagée), création de la
 vente à **`served`** (produit constaté). Deux faits comptables distincts, deux RPC idempotents
-(§10). Gains : les pertes cuisine deviennent **attribuables** (§7), et `mark_ready` remplace `serve`
+(§11). Gains : les pertes cuisine deviennent **attribuables** (§8), et `mark_ready` remplace `serve`
 comme RPC le plus sensible — **aucun RPC ne touche plus au stock et au CA simultanément**.
 
 > Origine : remarque métier du fondateur. Deuxième fois qu'une intuition terrain corrige une
@@ -2073,7 +2282,7 @@ comme RPC le plus sensible — **aucun RPC ne touche plus au stock et au CA simu
 ### Audit interne du plan (30/07/2026) — 7 failles
 
 Audit systématique du plan contre le code, à la recherche des raisonnements **par analogie** non
-vérifiés. Détail complet en **§13**.
+vérifiés. Détail complet en **§14**.
 
 | # | Faille | Gravité | Nature de l'erreur |
 |---|---|---|---|
@@ -2092,8 +2301,8 @@ vérifiés. Détail complet en **§13**.
 | Statut | Points | Détail |
 |---|---|---|
 | **Déjà traités** | 1, 2, 3, 11 | Le point 1 (« la vente naît trop tard ») **recommandait exactement la décision déjà prise** en §6 — matière à `ready`, CA à `served` |
-| **Intégrés** | 4, 5, 6, 7, 8, 9, 12 | → §14 |
-| **Écarté** | 10 (rôle « chef cuisine ») | Un 2ᵉ rôle doublerait le coût du §11.4 (56 fichiers, 17 migrations) pour un besoin non confirmé. La distinction est déjà servie par des **permissions** séparées (`canManageIngredientStock` ≠ `canViewKitchenOrders`) |
+| **Intégrés** | 4, 5, 6, 7, 8, 9, 12 | → §15 |
+| **Écarté** | 10 (rôle « chef cuisine ») | Un 2ᵉ rôle doublerait le coût du §12.5 (56 fichiers, 17 migrations) pour un besoin non confirmé. La distinction est déjà servie par des **permissions** séparées (`canManageIngredientStock` ≠ `canViewKitchenOrders`) |
 
 ### Question du fondateur : vente combinée sans bon (30/07/2026)
 
@@ -2103,7 +2312,7 @@ Cas **jamais examiné** par le plan, alors que la vente sans bon est le comporte
 de l'app (`sales.ticket_id` nullable, `p_ticket_id DEFAULT NULL`). Le modèle rattachait pourtant la
 commande cuisine au ticket (§4.1) — sans bon, un plat en préparation n'aurait **aucun support**.
 
-Résolu en **§14.7** : bon implicite créé dès qu'un plat entre dans le panier, toutes lignes
+Résolu en **§15.7** : bon implicite créé dès qu'un plat entre dans le panier, toutes lignes
 rattachées (addition non fragmentée).
 
 ### ⭐⭐ Quatre régimes de production — le manque le plus important (31/07/2026)
@@ -2122,12 +2331,12 @@ Trois précisions successives du fondateur ont construit le modèle :
 
 Le modèle final tient sur **deux axes** (matière issue d'un lot ? commande déclenchant une
 production ?) dont les 4 combinaisons donnent les 4 régimes — ce qui garantit qu'il n'y a **pas de
-cinquième cas caché**. Détail en §14.8.
+cinquième cas caché**. Détail en §15.8.
 
 Trois conséquences non anticipées :
 1. **Piège du double comptage** : décrémenter les ingrédients à chaque portion de `batch` servie
    compterait deux fois la matière consommée le matin. Le service ne touche que `remaining_qty`.
-2. **`cost_mode = per_dish_flat` (§14.3) trouve ici sa justification la plus nette** : l'huile de
+2. **`cost_mode = per_dish_flat` (§15.3) trouve ici sa justification la plus nette** : l'huile de
    friture appartient à la **finition**, pas au lot. Deux corrections indépendantes se rejoignent.
 3. **Correction de séquençage** : j'avais proposé de reporter les lots en phase 4-5 ; avec
    `batch_finish`, les deux régimes de lot couvrent la majorité de ce qu'un maquis vend réellement →
@@ -2139,9 +2348,9 @@ Deux apports du fondateur sur le même fil :
 
 | Remarque | Correction |
 |---|---|
-| « Chaque maquis a sa spécificité pour un même plat, 2 régimes différents peuvent être adoptés » | **Normativité fausse retirée** (§14.8) : la doc installait « grillades → `on_order` », « plats du jour → `batch` » comme s'il existait une bonne réponse par plat. Le modèle le permettait déjà (`dishes` est par bar) — c'était la documentation qui était en tort. Simplification au passage : **3 choix pour le promoteur**, `batch`/`batch_finish` étant **déduit de la recette** |
-| « Config explicite préalable + basculement automatique au fil de la journée » | **§14.9** : le régime déclaré est une *intention*, `remaining_qty` un *fait*. Lève une imprécision de ma réponse (« bascule sans rien demander ») : l'app bascule le **mécanisme** seule, mais **jamais la disponibilité** — lot épuisé ≠ plat encore produisible, et le stock d'ingrédients ne peut pas servir de garde-fou puisqu'il est *jamais bloquant* (§4.4) |
-| « Donner la possibilité entière au restau de décider : retirer le plat, approvisionner, cuire par lot, préparer à la commande… » | **§14.10 `service_alerts`** — généralisation : le basculement de régime n'était qu'un cas particulier. 3 déclencheurs × 5 résolutions, l'app **détecte et propose**, l'humain **tranche**. Le cas **transversal** (gaz, huile) justifie la généralisation : c'est une décision de **carte**, pas de plat |
+| « Chaque maquis a sa spécificité pour un même plat, 2 régimes différents peuvent être adoptés » | **Normativité fausse retirée** (§15.8) : la doc installait « grillades → `on_order` », « plats du jour → `batch` » comme s'il existait une bonne réponse par plat. Le modèle le permettait déjà (`dishes` est par bar) — c'était la documentation qui était en tort. Simplification au passage : **3 choix pour le promoteur**, `batch`/`batch_finish` étant **déduit de la recette** |
+| « Config explicite préalable + basculement automatique au fil de la journée » | **§15.9** : le régime déclaré est une *intention*, `remaining_qty` un *fait*. Lève une imprécision de ma réponse (« bascule sans rien demander ») : l'app bascule le **mécanisme** seule, mais **jamais la disponibilité** — lot épuisé ≠ plat encore produisible, et le stock d'ingrédients ne peut pas servir de garde-fou puisqu'il est *jamais bloquant* (§4.4) |
+| « Donner la possibilité entière au restau de décider : retirer le plat, approvisionner, cuire par lot, préparer à la commande… » | **§15.10 `service_alerts`** — généralisation : le basculement de régime n'était qu'un cas particulier. 3 déclencheurs × 5 résolutions, l'app **détecte et propose**, l'humain **tranche**. Le cas **transversal** (gaz, huile) justifie la généralisation : c'est une décision de **carte**, pas de plat |
 
 Bénéfice non anticipé : l'historique des alertes résolues (« 9 ruptures sur le poisson, dont 6 le
 vendredi ») alimentera le **chantier de prévision**, prochain de la roadmap.
@@ -2165,7 +2374,7 @@ les deux** (CUMP en 2 variantes, et FIFO/PEPS). L'obstacle réglementaire n'exis
 **Argument décisif, que je n'avais pas identifié** : le FIFO est la **seule méthode qui permette de
 gérer la péremption**. Le CUMP, sans dates, ne peut ni alerter avant expiration, ni valoriser une
 perte, ni historiser les pertes par ingrédient. Sur des denrées à courte durée, ce n'est pas un
-détail — c'est un poste de perte structurel (→ 5ᵉ métrique, §7).
+détail — c'est un poste de perte structurel (→ 5ᵉ métrique, §8).
 
 **Simplification obtenue** : la « double marge » (réalisée FIFO + prix du jour) que j'avais proposée
 devient **redondante** puisque le FIFO ≈ prix du jour sur denrées fraîches. Une seule marge, un écran
@@ -2179,8 +2388,8 @@ cuisine c'est la date de péremption qui commande, pas la date d'achat.
 Question du fondateur : *« as-tu prévu l'inventaire physique avec ajustement de stock pour divers
 motifs ? »*
 
-**Réponse honnête : le principe oui, la structure non.** §14.5 posait le rythme et les motifs en
-**prose**, sans table ni énumération — donc rien d'implémentable. Et §7 posait l'obligation trois fois
+**Réponse honnête : le principe oui, la structure non.** §15.5 posait le rythme et les motifs en
+**prose**, sans table ni énumération — donc rien d'implémentable. Et §8 posait l'obligation trois fois
 sans jamais décrire le mécanisme.
 
 Vérification faite, **le mécanisme existe déjà pour le bar** :
@@ -2192,9 +2401,9 @@ Trois adaptations imposées par le modèle cuisine, que le simple calque n'aurai
 
 | Point | Raison |
 |---|---|
-| **Pas de `CHECK >= 0`** sur les quantités | Le stock d'ingrédients est *jamais bloquant* (§4.4) et peut être négatif (§13.6) — la contrainte du bar ferait échouer l'ajustement |
-| ⭐ Ajustement porté par le **lot** (`ingredient_lot_id`) | En FIFO/FEFO (§14.13), sans lot désigné **la perte n'est pas valorisable**. Défaut : le lot le plus proche de l'expiration |
-| ⚠ `expiration` **doit créer** l'ajustement, pas coexister | La péremption automatique de lot (§14.13) et le motif manuel `expiration` mesurent **la même perte** → sinon **comptée deux fois** |
+| **Pas de `CHECK >= 0`** sur les quantités | Le stock d'ingrédients est *jamais bloquant* (§4.4) et peut être négatif (§14.6) — la contrainte du bar ferait échouer l'ajustement |
+| ⭐ Ajustement porté par le **lot** (`ingredient_lot_id`) | En FIFO/FEFO (§15.13), sans lot désigné **la perte n'est pas valorisable**. Défaut : le lot le plus proche de l'expiration |
+| ⚠ `expiration` **doit créer** l'ajustement, pas coexister | La péremption automatique de lot (§15.13) et le motif manuel `expiration` mesurent **la même perte** → sinon **comptée deux fois** |
 
 Observation utile : le motif existant `donation_sample` couvre le **repas du personnel** — poste réel
 et souvent invisible en maquis. L'énumération du bar était plus adaptée à la cuisine que prévu.
@@ -2215,7 +2424,7 @@ restauration — elle est dans le code depuis l'origine.
 | Ce que j'affirmais | Réalité |
 |---|---|
 | §1 : `7011`/`6011` = « investissement minime, **bien choisi** » | ⛔ **Erreur de nomenclature**, pas préparation |
-| §9 : `7021` = « Ventes de repas » | ⛔ Code de **ventilation géographique** détourné |
+| §10 : `7021` = « Ventes de repas » | ⛔ Code de **ventilation géographique** détourné |
 | La *logique* boissons (marchandises) / repas (produits finis) | ✅ **Juste** — c'est ce que SYSCOHADA prescrit |
 
 **Nomenclature retenue** : comptes à **3 chiffres** (`601`/`701` bar, `602`/`702` cuisine, `603`,
@@ -2224,7 +2433,7 @@ restauration — elle est dans le code depuis l'origine.
 **Décision assumée : le code en production n'est PAS corrigé.** Ma source est un référentiel en ligne,
 pas un avis professionnel ; l'erreur produit un export *inhabituel*, pas un calcul faux (les montants
 sont justes, l'étiquette est mauvaise) ; et rien n'est urgent. Corriger sur cette base, dans un module
-comptable en production, serait prendre un risque pour gagner peu. Correctif documenté en §9, à
+comptable en production, serait prendre un risque pour gagner peu. Correctif documenté en §10, à
 appliquer après validation.
 
 **Enseignement** : cette vérification a été faite **parce qu'une réserve avait été écrite** et
@@ -2233,10 +2442,10 @@ doutes fonctionne — à condition de finir par les lever (cf. enseignement 5 : 
 mais non corrigée reste une faille »).
 
 Apports les plus précieux :
-- **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
-  Ni la contre-analyse, ni la 1ʳᵉ revue, ni l'audit §13 ne l'avaient vu. Et il **invalidait** le
+- **§15.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
+  Ni la contre-analyse, ni la 1ʳᵉ revue, ni l'audit §14 ne l'avaient vu. Et il **invalidait** le
   garde-fou `pay_ticket` (§5) pour la vente à emporter.
-- **§14.3 `cost_mode`** — meilleur que l'analyse initiale : §15 admettait que `is_transversal` était
+- **§15.3 `cost_mode`** — meilleur que l'analyse initiale : §16 admettait que `is_transversal` était
   trop binaire **sans en tirer de conséquence**. L'argument décisif manquait : c'est un **biais
   systématique** (marge des plats frits sous-estimée, mijotés surestimée), donc le classement des
   plats par rentabilité — livrable de la phase 2 — serait faux.
@@ -2249,17 +2458,77 @@ Apports les plus précieux :
    incohérence ailleurs (deux journées comptables possibles). Chaque correction doit être re-auditée.
 3. **13.2 montre le coût d'une vérification partielle** : avoir lu `target_product_ids` sans lire
    `target_type` a produit un argument surestimé dans une décision structurante.
-4. **Un audit technique ne remplace pas un test métier.** Le §13 a été mené contre le code et a
-   trouvé 7 failles ; il n'a trouvé **aucun** des 7 manques du §14, parce que ceux-là ne sont
+4. **Un audit technique ne remplace pas un test métier.** Le §14 a été mené contre le code et a
+   trouvé 7 failles ; il n'a trouvé **aucun** des 7 manques du §15, parce que ceux-là ne sont
    visibles qu'en simulant un service réel (un client qui emporte, un plat frit, une sauce de base
    partagée). Les deux angles sont nécessaires.
 5. **Une faiblesse admise mais non corrigée reste une faille.** `is_transversal` et les
-   sous-recettes étaient tous deux signalés en §15 comme « à reconsidérer » — et sont restés en
+   sous-recettes étaient tous deux signalés en §16 comme « à reconsidérer » — et sont restés en
    l'état jusqu'à ce qu'un tiers en démontre l'impact. Documenter un doute ne le résout pas.
 
 ---
 
-## 17. Sources externes consultées
+### ⭐⭐ 3ᵉ revue externe (31/07/2026) — cohérence interne
+
+**La plus utile des trois.** Les deux précédentes cherchaient des oublis métier ; celle-ci attaque la
+**cohérence interne du plan**. Et son diagnostic central est juste : *« le modèle est devenu plus juste
+métier, mais il n'est pas encore stabilisé techniquement »*.
+
+#### 5 contradictions internes confirmées — de ma responsabilité
+
+| Endroit | Texte fautif | Origine |
+|---|---|---|
+| §4.4 | « `computed_cost` figé **à la commande** » | avant la dissociation `ready`/`served` |
+| §5 (schéma) | « vente créée **+ ingrédients décrémentés** » à `served` | idem |
+| §7 | « vente et décrément devenant **simultanés** » | idem |
+| §15.3 | `direct` → « au **CUMP** » | avant le passage au FIFO |
+| §15.8 | formule `batch_finish` → « × **CUMP** » | idem |
+
+**Ces contradictions ne sont pas des étourderies.** Chaque correction a été appliquée *localement* sans
+rebalayer le document — exactement le risque que j'avais moi-même inscrit en enseignement
+méthodologique (« chaque correction doit être re-auditée ») et que **je n'ai pas appliqué**.
+
+#### Points acceptés sans réserve
+
+| Point | Traitement |
+|---|---|
+| `paid` ne signifie plus « terminé » | ✅ §6.3 — séparer `payment_status` / `fulfillment_status` (`tickets.status` n'a qu'un axe, vérifié) |
+| ⛔ **Trou financier** : plat prépayé puis annulé | ✅ §12.4.b — **manque non vu** lors de l'assouplissement de §15.2. Argent encaissé sans contrepartie ni restitution |
+| `precooked` techniquement orphelin | ✅ §12.4.c — ni stock (`dishes` n'en a pas) ni retour (`returns.product_id` → `bar_products`) → **reporté Post-V1** |
+| `recipe_components` mélange modèle et instance | ✅ §12.4.d — séparer `dish_recipe_components` / `kitchen_item_batch_consumptions` |
+| Lot de régularisation ne se résorbe pas | ✅ §12.4.e — un appro compense d'abord les régularisations, écart de prix tracé |
+| `current_stock` dérivé **ou** colonne ? | ✅ §12.4.f — à trancher explicitement |
+| `promotion_applications.product_id NOT NULL` | ✅ §14.2 — vérifié ; mon point ne couvrait que le **ciblage**, pas la traçabilité |
+| Phase 3 trop grosse | ✅ §13 — découpée **3A / 3B / 3C / 3D** |
+| Bon implicite doit exclure `batch`/`precooked` | ✅ §15.7 — critère corrigé : « une ligne **crée un délai** », pas « un plat entre dans le panier » |
+| ⭐ **Machine d'état manquante** | ✅ **§6** — le livrable qui explique *mécaniquement* les 5 contradictions |
+
+#### Points ajustés plutôt qu'adoptés
+
+| Point | Ma position |
+|---|---|
+| Deux `business_date` (opérationnelle + comptable) | ⚠ **Non** : deux sources de vérité temporelle = rapports qui cessent de s'accorder. **Une seule** `business_date` comptable (§14.4) ; `ready_at`/`served_at` restent lisibles comme horodatages bruts (§6.6) |
+| Retirer la file de récupération de la V1 | ⚠ **Nuancé** : retirer la **remise en vente** (Post-V1), garder l'**enregistrement** de la perte en V1 — coût nul, aucun risque, c'est la 4ᵉ métrique (§15.11) |
+| Motifs de correction de vente spécifiques cuisine | ✅ Retenu sur le fond (`cancel_sale` ne couvre pas remboursement / geste commercial / plat offert) — à intégrer avec §12.4.b, même sujet |
+
+#### Motif systématique révélé
+
+Troisième table où **« produit » signifie implicitement `bar_products`** : `sales.items` (§4.2),
+`returns.product_id` (§14.1), `promotion_applications.product_id` (§14.2). **À traiter comme un motif,
+pas trois cas isolés** — tout `product_id` sans FK doit être audité avant la phase 3A.
+
+#### Recommandation finale de la revue, adoptée
+
+> *« Avant d'écrire une migration, produire une machine d'état unique pour ticket,
+> kitchen_order_item, production_batch, sale, avec les transitions autorisées et leurs effets
+> comptables. »*
+
+C'est **§6**, désormais déclarée **référence unique faisant foi**. Sans elle, chaque correction locale
+pouvait contredire une autre section sans que rien ne le signale — ce qui s'est produit 5 fois.
+
+---
+
+## 18. Sources externes consultées
 
 - [Slant POS — ingredient usage tracking](https://blog.slantco.com/how-pos-systems-help-track-ingredient-usage-and-profitability/)
 - [Restaurant365 — food inventory management](https://www.restaurant365.com/blog/food-inventory-management/)
