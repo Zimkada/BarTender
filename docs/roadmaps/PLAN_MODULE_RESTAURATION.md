@@ -11,10 +11,13 @@
 >    **péremption** ; les **boissons** gardent le **CUMP** inchangé (§15.13). SYSCOHADA autorise les
 >    deux.
 >
-> ✅ **Les 6 décisions du §12.4 sont tranchées** (31/07/2026) — plus aucun blocage avant la phase 3A.
-> Reste **un** arbitrage : le **périmètre des promotions** `'all'`/`'category'` (§14.2). Le blocage
-> « retour de plat » (§14.1) **tombe en V1** : son seul cas légitime (`precooked`) est un
+> ✅ **Plus aucun blocage** (31/07/2026) : les 6 décisions du §12.4 sont tranchées, le périmètre des
+> promotions est fixé (§14.2 — `'all'` = boissons, les plats se ciblent explicitement), et le blocage
+> « retour de plat » (§14.1) **tombe en V1** puisque son seul cas légitime (`precooked`) est un
 > `bar_product`, pas un plat (§12.4.c).
+>
+> ⏳ **Reste hors du plan** : validation par un comptable OHADA (3 questions, §10) et confrontation
+> terrain à un bar-resto réel.
 >
 > **Deux passes de revue** : §14 = audit **technique** contre le code (7 failles) ; §15 = test
 > **« service réel »** (13 corrections métier, dont `service_mode` pour l'emporté — angle mort
@@ -240,6 +243,14 @@ kitchen_item_batch_consumptions      -- ⭐ l'INSTANCE : lots réellement préle
   kitchen_order_item_id
   production_batch_id
   quantity, unit_cost    -- le coût vit ICI, pas sur la recette
+
+-- ⭐ EXISTANT — ajouts pour les promotions (cf. 14.2)
+bar_categories
+  type                   -- ⭐ 'product' | 'dish' — une catégorie n'est JAMAIS mixte
+promotions
+  target_type            -- + 'dish' / 'all_dishes' ; 'all' reste = BOISSONS seulement
+promotion_applications
+  item_type, item_id     -- ⭐ discriminant (product|dish) — sinon analytics faux (§14.2)
 
 prepaid_resolutions                  -- ⭐ plat prépayé puis annulé (cf. 12.4.b)
   id, bar_id, ticket_id, kitchen_order_item_id
@@ -1220,15 +1231,17 @@ permet 4 personnes, passez à Pro pour en ajouter ») et non une erreur techniqu
 
 `dishes` autonome. Analyse complète et coûts acceptés en **§4.5**.
 
-### 12.3 ⛔ Retour de plat et périmètre des promotions — révélés à l'audit
+### 12.3 ✅ Retour de plat et périmètre des promotions — TRANCHÉS
 
-Deux blocages découverts lors de l'audit du 30/07 (§14.1 et §14.2), tous deux à trancher **avant**
-la phase 3 :
+Deux blocages découverts lors de l'audit du 30/07 (§14.1 et §14.2), **tous deux résolus le
+31/07/2026** :
 
-- **Retour de plat impossible** (`returns.product_id` FK `NOT NULL` vers `bar_products`). Décision
-  recommandée : pas de retour de plat en V1, `cancel_sale` pour les cas réels.
-- **Périmètre des promotions** (`target_type = 'all'` / `'category'`). Décision recommandée : rendre
-  le périmètre explicite plutôt que laisser un comportement indéfini qui détruirait la marge.
+- **Retour de plat** (`returns.product_id` FK `NOT NULL` vers `bar_products`) → **le blocage tombe en
+  V1** : son seul cas légitime était `precooked`, qui est un `bar_product` et non un plat (§12.4.c).
+  Les plats cuisinés se traitent par annulation de ligne (avant `served`) ou `cancel_sale` (après).
+- **Périmètre des promotions** → **`'all'` = boissons uniquement**, les plats exigent un ciblage
+  explicite, catégories non mixtes, **alerte de marge minimum** sur les plats (§14.2). Rétrocompatible
+  à 100 % : aucun changement de comportement en production.
 
 ### 12.4 ✅ Six décisions révélées par la 3ᵉ revue — TRANCHÉES (31/07/2026)
 
@@ -1421,13 +1434,13 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§12.5) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §15.3) + **`ingredient_lots` FIFO/FEFO** (§15.13) + `ingredient_supplies` + écran appro + saisie en portions (§15.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (mais table neuve, aucune reprise) |
-| **2** | `dishes` (+ **`production_mode`**, §15.8) + `dish_ingredients` + **`dish_recipe_components`** (§15.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **2** | `dishes` (+ **`production_mode`**, §15.8) + `dish_ingredients` + **`dish_recipe_components`** (§15.12) + marge théorique + **`bar_categories.type`** (§14.2) | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
 | **3A** | Machine d'état (§6) + `tickets.fulfillment_status` (§12.4.a) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + `kitchen_item_batch_consumptions` (§12.4.d) + format `sales.items` (§4.2) + bon implicite (§15.7) + régimes **`on_order`** et **`batch_finish`** + arbitrages §14.1 à §14.6 | Prise de commande opérationnelle, **sans emporté ni prépaiement** | **Élevé** — touche au flux de vente |
 | **3B** | `service_mode` (§15.1) + **paiement anticipé** (§15.2) + `prepaid_amount` + **`prepaid_resolutions`** — remboursement espèces **ou** substitution (§12.4.b) | Vente à emporter | **Élevé** — `cash_refund` = sortie de caisse à contrôler |
 | **3C** | **`production_batches`** + régime **`batch`** complet + résorption des régularisations (§12.4.e) | Riz sauce, plats du jour — **le cas dominant en maquis** | Moyen |
 | **3D** | **`service_alerts`** (§15.10) | Décision de rupture outillée | Faible |
 | **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §15.5) + écart théorique/réel + **enregistrement** des pertes (§15.11) | Détection gaspillage et fuites | Moyen |
-| **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§10) | Vision consolidée bar + resto | Faible |
+| **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§10) + **promotions plats** (`target_type 'dish'`, `promotion_applications.item_type`, **alerte de marge**, §14.2) | Vision consolidée bar + resto, promos cuisine sécurisées | Faible |
 | **Post-V1** | `precooked` géré comme plat (§12.4.c — **couvert en V1 via `bar_products`**) + **remise en vente** des plats récupérés (§15.11) + retour de plat cuisiné | — | Reporté volontairement |
 
 > ⭐ **Découpage de la phase 3 (3ᵉ revue, 31/07/2026).** La phase 3 avait grossi à chaque ajout sans
@@ -1503,7 +1516,8 @@ sur la cuisine tant que ce n'est pas livré).
 ## 14. Failles identifiées à l'audit (30/07/2026)
 
 > Audit du plan contre le code réel, en cherchant les endroits raisonnés **par analogie** avec le
-> flux boissons sans vérification. Sept failles. **Les failles 13.1 et 13.2 sont bloquantes.**
+> flux boissons sans vérification. Sept failles — les deux bloquantes (13.1, 13.2) sont désormais
+> **résolues** : 13.1 tombe en V1 (§12.4.c) et 13.2 est tranchée ci-dessous.
 >
 > Origine commune de 13.1, 13.3 et 13.4 : le flux de vente a été analysé **sans ses satellites**
 > (retours, échanges, journée comptable).
@@ -1549,7 +1563,7 @@ qui est comptablement juste (§6). Avant `served`, une annulation de ligne suffi
 > - **après `served`** : `cancel_sale` — CA annulé, matière consommée (comptablement juste, §6) ;
 > - **prêt mais non retiré** : enregistrement de la perte (§15.11).
 
-### 13.2 ⛔ BLOQUANTE — `target_type = 'all'` promeut les plats par accident
+### 13.2 ✅ TRANCHÉE — `target_type = 'all'` promouvait les plats par accident
 
 Les promotions ont trois modes de ciblage
 ([059](../../supabase/migrations/059_create_promotions_and_events.sql)) :
@@ -1570,8 +1584,71 @@ Deux modes cassent :
 Ce n'est pas un détail : **une remise involontaire sur les plats détruit la marge** — précisément la
 métrique que le module est censé protéger (§8).
 
-**À trancher** : soit un `target_scope: 'bar' | 'kitchen' | 'both'`, soit `'all'` signifie « tous les
-produits bar » et les plats exigent un ciblage explicite. Le silence n'est pas une option.
+### ✅ TRANCHÉ (31/07/2026) — `'all'` = boissons, les plats se ciblent explicitement
+
+**En clair, la règle suppose trois choses :**
+
+1. **Une promo « sur tout » ne touche jamais la cuisine.** « −10 % sur tout » → **les boissons
+   seulement**. Pour remiser un plat, il faut le désigner (le plat, ou une catégorie de plats).
+2. **Une catégorie est soit boisson, soit plat — jamais les deux.** Pas de catégorie mixte
+   « Vendredi soir » contenant bières *et* poulet braisé. C'est la contrepartie de la garantie : des
+   catégories mixtes rendraient impossible d'empêcher une promo de franchir la frontière.
+3. **Un avertissement s'affiche si la remise écrase la marge d'un plat.**
+
+| Décision | Effet |
+|---|---|
+| `'all'` = tous les **produits** (boissons) | ⭐ **Zéro changement en production** |
+| Nouveau `target_type` `'dish'` / `'all_dishes'` | Ciblage cuisine **explicite** |
+| `bar_categories.type` (`'product'` \| `'dish'`) | `'category'` ne franchit **jamais** la frontière |
+| **Alerte de marge minimum sur les plats** | Le promoteur décide en connaissance de cause |
+| ~~`target_scope: 'bar'\|'kitchen'\|'both'`~~ | ❌ **Écarté** — sur-ingénierie (cf. ci-dessous) |
+
+#### Les trois raisons, la première étant décisive
+
+**1. Le principe de moindre surprise ne joue que dans un sens.** Un promoteur crée « −10 % sur tout »
+en pensant à son happy hour. Deux erreurs sont possibles, et elles ne coûtent pas la même chose :
+
+| Erreur | Conséquence |
+|---|---|
+| Les plats sont remisés **sans qu'il le veuille** | ⛔ **Perte d'argent invisible** |
+| Les plats **ne sont pas** remisés alors qu'il le voulait | ✅ Il le constate aussitôt et corrige |
+
+→ **L'erreur par défaut doit être celle qui ne coûte rien.**
+
+**2. Rétrocompatibilité gratuite.** Toutes les promotions existantes ont été créées par des bars purs,
+où `'all'` a toujours signifié « mes boissons ». Cette lecture ne change **aucun comportement en
+production** — invariance du §3 satisfaite sans effort.
+
+**3. Une marge plat n'a rien à voir avec une marge boisson.** −10 % sur une bière entame une marge de
+revente confortable. **La même remise sur un plat à 12 % de marge matière le vend à perte.** Ce ne sont
+pas les mêmes objets économiques ; les traiter d'un seul geste est une erreur de conception, pas une
+commodité.
+
+#### ⭐ Garde-fou : alerte de marge minimum (et non blocage)
+
+Quand une promotion ferait passer un plat sous un seuil de marge matière, avertir **à la création** :
+
+> « Cette remise porte le poulet braisé à **4 %** de marge matière (coût 1 450 F, prix remisé
+> 1 510 F). Confirmer ? »
+
+**Alerte, jamais blocage** : vendre à perte pour écouler un lot proche de la péremption est une
+décision commerciale **légitime** (§15.13). Mais elle doit être prise en le sachant.
+
+Ce garde-fou n'existe pas pour les boissons et n'a pas besoin d'exister : leur marge est stable et
+connue. Celle d'un plat **varie avec le coût des ingrédients**, donc le promoteur n'a pas le chiffre
+en tête.
+
+#### Pourquoi `target_scope` est écarté
+
+Je l'avais moi-même proposé. C'est un **axe supplémentaire à croiser** avec `target_type` → 3 × 3
+combinaisons à documenter, tester et expliquer, pour un besoin (« promouvoir bar et cuisine d'un seul
+geste ») dont **rien ne prouve l'existence**. S'il apparaît, **deux promotions** le couvrent : mieux
+vaut deux objets simples qu'un objet à deux dimensions.
+
+#### Ce que ça coûte au promoteur
+
+**Un geste en plus** quand il veut une promo sur les deux : deux promotions au lieu d'une. C'est le
+**seul** inconvénient réel — à mettre en face de « vendre un plat à perte sans le savoir ».
 
 #### ⚠ Complément (3ᵉ revue) : l'historique analytics reste faux même avec un ciblage correct
 
@@ -2643,6 +2720,31 @@ pas trois cas isolés** — tout `product_id` sans FK doit être audité avant l
 **Effet de bord favorable de (c)** : le blocage bloquant §14.1 (retour de plat impossible par la FK
 `returns.product_id`) **tombe en V1** — le seul cas légitime était `precooked`, désormais traité comme
 produit. La FK ne redeviendra un obstacle que Post-V1.
+
+#### ✅ Dernier arbitrage : périmètre des promotions (§14.2)
+
+**Décision : `'all'` = boissons uniquement**, les plats exigent un ciblage explicite.
+
+Ce qui a tranché — **le principe de moindre surprise ne joue que dans un sens** :
+
+| Erreur possible | Conséquence |
+|---|---|
+| Plats remisés **sans que le promoteur le veuille** | ⛔ perte d'argent **invisible** |
+| Plats **non** remisés alors qu'il le voulait | ✅ constaté aussitôt, corrigé |
+
+→ L'erreur par défaut doit être **celle qui ne coûte rien**. Et cette lecture est **rétrocompatible à
+100 %** : les promotions existantes ont été créées par des bars purs, où `'all'` a toujours signifié
+« mes boissons ».
+
+Trois conséquences : catégories **non mixtes** (`bar_categories.type`), nouveau `target_type`
+`'dish'`, et **alerte de marge minimum** sur les plats — parce qu'une remise de 10 % est indolore sur
+une bière mais **vend à perte** un plat à 12 % de marge matière.
+
+`target_scope: 'bar'|'kitchen'|'both'`, que j'avais moi-même proposé, est **écarté** : 3 × 3
+combinaisons pour un besoin dont rien ne prouve l'existence. Deux promotions distinctes le couvrent.
+
+**Coût pour le promoteur** : un geste en plus s'il veut une promo sur les deux. C'est le seul
+inconvénient, à mettre en face de « vendre un plat à perte sans le savoir ».
 
 #### Recommandation finale de la revue, adoptée
 
