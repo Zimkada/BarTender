@@ -16,10 +16,11 @@
 >
 > ⛔ **Prérequis EXTERNES, non levés** :
 > 1. **validation par un comptable OHADA** — 3 questions, §10 (dont la coexistence CUMP + FIFO) ;
-> 2. **entretien terrain avec 2-3 bars-restos** — conditionne l'ordre des sous-phases 3C/3D (§14).
+> 2. **entretien terrain avec 2-3 bars-restos** — conditionne l'ordre des sous-phases (§14) — ✅ LEVÉ le 31/07.
 >
-> 📋 **§13 = règles à implémenter** (prescriptif). **§6 = machine d'état faisant foi.**
-> **`MATRICE_RBAC_CUISINIER.md`** à produire avant la phase 0 (§13.15).
+> 📋 **§13 = règles à implémenter** (prescriptif), dont **§13.15 = conventions de code** relevées dans
+> la configuration réelle du projet. **§6 = machine d'état faisant foi.**
+> **`MATRICE_RBAC_CUISINIER.md`** à produire avant la phase 0 (§13.16).
 >
 > **Deux passes de revue** : §15 = audit **technique** contre le code (7 failles) ; §16 = test
 > **« service réel »** (13 corrections métier, dont `service_mode` pour l'emporté — angle mort
@@ -557,9 +558,8 @@ lui, réelle en dessous.
 ### Garde-fous — prérequis bloquants de la phase 3
 
 **1. `pay_ticket` doit refuser la fermeture s'il reste des `kitchen_order_items` non
-`served`/`cancelled`** — ⚠ **règle assouplie en §16.2** : cette interdiction bloquerait la vente à
-emporter (payée avant préparation). Le paiement anticipé du ticket entier est finalement supporté,
-avec le moyen de paiement mémorisé sur le ticket et appliqué aux ventes créées ensuite.
+`served`/`cancelled`** — ✅ **règle maintenue sans assouplissement en V1** (l'emporté payé d'avance est
+Post-V1, §14). L'assouplissement décrit en §16.2 ne s'appliquera qu'avec l'emporté.
 
 Ce n'est pas une précaution mais une **nécessité de cohérence comptable**. `pay_ticket` a évolué :
 il prend désormais `p_payment_method` et **propage le moyen de paiement aux ventes du ticket**
@@ -1666,7 +1666,75 @@ dish_refused | quality_issue | wrong_dish | commercial_gesture
 **V1 : annulation totale uniquement.** La remise partielle (`partial_refund_needed`) est **Post-V1** —
 elle suppose de fractionner une vente, ce qui est un chantier distinct.
 
-### 13.15 Matrice RBAC — livrable séparé
+### 13.15 Conventions de code à respecter — vérifiées dans la configuration réelle
+
+> Relevé le 31/07/2026 dans `tsconfig.app.json`, `eslint.config.js`, le design system et les
+> conventions de migration. **Ce sont les règles effectives du projet, pas des préférences.**
+
+#### TypeScript — `strict` est actif
+
+`tsconfig.app.json` : `strict: true`, **`noUnusedLocals`**, **`noUnusedParameters`**,
+`noFallthroughCasesInSwitch`, `target: ES2020`, alias **`@/*` → `./src/*`**.
+
+| Règle | Application au module cuisine |
+|---|---|
+| **Pas de `any`** | 48 occurrences existent (surtout dans les tests et un `supabase.rpc(x as any)`). **Aucune nouvelle** dans le code cuisine : utiliser `unknown` + type guard |
+| `noUnusedParameters` | Préfixer `_` les paramètres inutilisés (`argsIgnorePattern: '^_'` en ESLint) |
+| Types discriminés | `production_mode`, `cost_mode`, `item_type`, `cancel_reason`, `resolution` → **unions littérales**, jamais `string` |
+| `getErrorMessage(error: unknown)` | [`src/utils/errorHandler.ts`](../../src/utils/errorHandler.ts) — à utiliser dans **tous** les `catch`, jamais `error.message` |
+| `undefined`, jamais `null`, pour les params RPC Supabase | Convention établie du projet |
+
+#### Architecture — 3 couches de hooks
+
+```
+hooks/queries/    useIngredientsQueries, useDishesQueries, useKitchenOrdersQueries
+hooks/mutations/  useKitchenMutations, useIngredientMutations, useBatchMutations
+hooks/pivots/     useUnifiedKitchen  (orchestrateur : query + offline + optimistic)
+```
+
+- **`AppContext` = actions**, les données passent par les Pivot Hooks. Ne **rien** ajouter aux données
+  d'`AppContext` (règle anti-God-Object).
+- Services dans `src/services/supabase/` : `ingredients.service.ts`, `dishes.service.ts`,
+  `kitchenOrders.service.ts` — pattern `TicketsService` (classe statique + `handleSupabaseError` +
+  détection `networkManager` + `offlineQueue`).
+- Clés React Query hiérarchiques + `CACHE_STRATEGY` : la file cuisine est du temps réel
+  (`salesAndStock`), les recettes du quasi-statique (`products`).
+
+#### Design system — CVA + `cn()`, jamais de Tailwind ad hoc
+
+- Composants avec ≥ 2 variantes → **CVA** + `cn()` (`clsx` + `tailwind-merge`), pattern de
+  [`Button.tsx`](../../src/components/ui/Button.tsx) : `forwardRef`, `VariantProps<typeof xVariants>`.
+- **Story Storybook obligatoire** pour tout nouveau composant UI (règle du projet).
+- Couleurs : `.btn-brand`, `bg-brand-*` (theming par-bar) ou `COLORS`/`COMPONENTS` de
+  `colorSystem.ts` — **jamais** `amber-500` en dur dans un composant partagé. Max **3 couleurs
+  sémantiques**.
+- Pages : `TabbedPageHeader` / `SimplePageHeader` du design system, **jamais** de bouton retour ad hoc.
+- Routes : **`lazyWithRetry`**, jamais `lazy`.
+- `displayName` sur chaque composant.
+
+#### Migrations SQL
+
+- Nommage **obligatoire** : `YYYYMMDDHHMMSS_description_slug.sql` (jamais de numérotation
+  séquentielle).
+- Utiliser [`MIGRATION_TEMPLATE.sql`](../migrations/MIGRATION_TEMPLATE.sql) : sections METADATA,
+  BUSINESS CONTEXT, TECHNICAL SOLUTION, AFFECTED COMPONENTS, TESTING CHECKLIST, `BREAKING_CHANGE`
+  explicite.
+- **Exécution à la main dans le SQL Editor** (jamais `db push`) → fournir **pré-vol** (`pg_proc`) et
+  **post-vol** (privilèges).
+- ⚠ **`CREATE OR REPLACE` perd les grants** : re-`REVOKE`/`GRANT` systématique +
+  `has_function_privilege('anon', ...)` en post-vol.
+- Tous les RPC : `SECURITY DEFINER` + `SET search_path` + guard « membre actif du bar » + `FOR UPDATE`
+  sur les lignes touchées.
+- RLS activée sur **chaque** nouvelle table, filtrée par `bar_id`.
+
+#### Tests
+
+- Vitest, pattern Arrange/Act/Assert.
+- **Obligatoires** : la machine d'état (§6) transition par transition, l'idempotence des RPC, le calcul
+  FEFO, les permissions du rôle `cuisinier`, et le **test d'invariance** (§3 : aucune requête cuisine
+  si `has_restaurant = false`).
+
+### 13.16 Matrice RBAC — livrable séparé
 
 Rôle × permission × route × RPC sur **56 fichiers** et **17 migrations** : ce n'est pas un paragraphe
 de plan mais un **outil de migration et de vérification**.
@@ -1683,33 +1751,73 @@ RLS `bar_members`) **avant** d'ajouter le rôle `cuisinier`. Ajouter d'abord fer
 
 | Phase | Contenu | Valeur livrée | Risque |
 |---|---|---|---|
-| **Pré-0** | **`MATRICE_RBAC_CUISINIER.md`** (§13.15) + suppression des décisions par **rôle brut** dans les zones critiques | Aucune — outil de migration | — |
+| **Pré-0** | **`MATRICE_RBAC_CUISINIER.md`** (§13.16) + suppression des décisions par **rôle brut** dans les zones critiques | Aucune — outil de migration | — |
 | **0** | Ajout rôle `cuisinier` + `has_restaurant` + permissions + **`operatingMode = 'full'` exigé** (§13.4) | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §16.3) + **`ingredient_lots` FIFO/FEFO** (§16.13) + `ingredient_supplies` + **vue de cohérence des caches** (§13.11) + écran appro + saisie en portions (§16.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (table neuve, aucune reprise) |
 | **2** | `dishes` (+ **`production_mode`**, §16.8) + `dish_ingredients` + **`dish_recipe_components`** (1 niveau garanti par RPC, §13.8) + marge théorique + **`bar_categories.type` + backfill** (§13.10) + **assistant d'onboarding recettes** (§13.12) | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3A** | Machine d'état (§6) + `fulfillment_status` piloté par RPC (§13.7) + `isTicketClosed` (§13.6) + **checklist `sales.items`** (§13.9) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§16.7) + régime **`on_order`** seul + arbitrages §15.1 à §15.6 | Prise de commande à table, **sans emporté, sans prépaiement, sans lot** | **Élevé** — touche au flux de vente |
-| **3B** | `service_mode` (§16.1) + paiement anticipé (§16.2) + **`ticket_payment_events`** (§13.1) + `canRefundPrepaidKitchenItem` + motifs cuisine de `cancel_sale` (§13.14) | Vente à emporter | **Élevé** — `cash_refund` = sortie de caisse (Z de caisse + audit log) |
-| **3C** | **`production_batches`** (+ `status`, §13.3) + **`kitchen_item_batch_consumptions`** (§12.4.d) + régime **`batch_finish`** | Spaghetti-poulet, alloco-poisson | Moyen |
-| **3D** | Régime **`batch`** complet + **`ingredient_stock_debts`** (§13.2) + **`service_alerts`** (§16.10) | Riz sauce, plats du jour — **le cas dominant en maquis** | Moyen |
+| **3A** | Machine d'état (§6) + `fulfillment_status` piloté par RPC (§13.7) + `isTicketClosed` (§13.6) + **checklist `sales.items`** (§13.9) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§16.7) + motifs cuisine de `cancel_sale` (§13.14) + régime **`on_order`** seul + arbitrages §15.1 à §15.6 | Prise de commande à table, **sans emporté, sans prépaiement, sans lot** | **Élevé** — touche au flux de vente |
+| **3B** | **`production_batches`** (+ `status`, §13.3) + **`kitchen_item_batch_consumptions`** (§12.4.d) + régime **`batch_finish`** | Spaghetti-poulet, alloco-poisson | Moyen |
+| **3C** | Régime **`batch`** complet + **`ingredient_stock_debts`** (§13.2) + **`service_alerts`** (§16.10) | Riz sauce, plats du jour | Moyen |
 | **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §16.5) + écart théorique/réel + **enregistrement** des pertes (§16.11) | Détection gaspillage et fuites | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes **`602`/`702`/`603`/`6052`** (§10) + **promotions plats** (`target_type 'dish'`, `promotion_applications.item_type`, **alerte de marge**, §15.2) | Vision consolidée bar + resto, promos cuisine sécurisées | Faible |
-| **Post-V1** | `precooked` géré comme plat (§12.4.c — **couvert en V1 via `bar_products`**) + **remise en vente** des plats récupérés (§16.11) + retour de plat cuisiné | — | Reporté volontairement |
+| **Post-V1** | ⭐ **Emporté + paiement anticipé** (`service_mode`, `ticket_payment_events`, §16.1-16.2) + `precooked` géré comme plat (§12.4.c — **déjà couvert via `bar_products`**) + **remise en vente** des plats récupérés (§16.11) + retour de plat cuisiné + remise partielle | — | Reporté volontairement |
 
 ### Règles de livraison
 
-1. **Ne jamais livrer 3A→3D ensemble.** Chaque sous-phase est livrable et testable seule.
-2. **Un seul régime de production par sous-phase** : `on_order` (3A), `batch_finish` (3C), `batch`
-   (3D). Ajouter deux régimes d'un coup rend les régressions indiscernables.
+1. **Ne jamais livrer 3A→3C ensemble.** Chaque sous-phase est livrable et testable seule.
+2. **Un seul régime de production par sous-phase** : `on_order` (3A), `batch_finish` (3B), `batch`
+   (3C). Ajouter deux régimes d'un coup rend les régressions indiscernables.
 3. **Les prérequis §13 correspondants sont livrés AVEC leur phase**, jamais après.
-4. **`MATRICE_RBAC_CUISINIER.md` (§13.15) précède la phase 0** — et la suppression des décisions par
+4. **`MATRICE_RBAC_CUISINIER.md` (§13.16) précède la phase 0** — et la suppression des décisions par
    rôle brut précède l'ajout du rôle.
 
-### Réserve terrain — conditionne l'ordre 3C / 3D
+### ✅ Réserve terrain LEVÉE (31/07/2026)
 
-L'ordre `batch_finish` (3C) puis `batch` (3D) suppose que le service à table domine. **Si `batch` est
-le cas dominant chez les clients réels, inverser 3C et 3D.**
+Réponses du fondateur, qui **confirment l'ordre** et **réduisent le périmètre V1** :
 
-Seul le terrain le tranche : **une heure avec 2-3 promoteurs de maquis** avant de figer cet ordre.
+| Question | Réponse | Conséquence |
+|---|---|---|
+| `batch` ou service à table ? | **Le service à table domine** | ✅ Ordre **3A → 3B → 3C** confirmé |
+| L'emporté payé d'avance ? | **Pas une priorité** | ⛔ **3B sort de la V1** |
+
+#### ⛔ 3B retiré de la V1 — ce qui disparaît avec
+
+| Élément | Sort |
+|---|---|
+| `service_mode` (`dine_in`/`takeaway`, §16.1) | Post-V1 |
+| Paiement anticipé + assouplissement de `pay_ticket` (§16.2) | Post-V1 |
+| `ticket_payment_events` (§13.1) | Post-V1 |
+| `canRefundPrepaidKitchenItem` | Post-V1 |
+| ⭐ **Trou financier du prépaiement (§12.4.b)** | **Disparaît** — le besoin n'existe pas |
+
+⭐ **Conséquence favorable** : le garde-fou **d'origine** de `pay_ticket` redevient valide **sans
+assouplissement** — un ticket ne peut pas être payé s'il reste des `kitchen_order_items` non
+`served`/`cancelled`. Le point le plus lourd de la 3ᵉ revue s'évapore parce que le cas d'usage n'est
+pas prioritaire.
+
+`tickets.fulfillment_status` (§12.4.a) **reste néanmoins utile** : il porte l'état cuisine du ticket et
+alimente `isTicketClosed` (§13.6).
+
+### 🎯 Articulation avec le chantier IA — la vraie raison du séquençage
+
+**Objectif du fondateur** : que le modèle cuisine existe **avant** la conception de l'IA, pour éviter
+de refaire prompts, requêtes et métriques.
+
+**L'objectif est juste, mais il porte sur le *modèle*, pas sur la *livraison*** :
+
+| Ce qui doit précéder l'IA | Statut |
+|---|---|
+| Le **modèle** de données cuisine (tables, métriques, sémantique) | ✅ **Déjà acquis** — c'est ce document |
+| Les **données** cuisine accumulées | ⏳ Plusieurs mois d'usage réel requis |
+
+Livrer la restauration juste avant l'IA ne donnerait à celle-ci **aucun historique cuisine** à
+exploiter — or la roadmap pose que l'IA exige d'abord « des données de bars en situation réelle sur une
+période significative ».
+
+**→ Conséquence sur la priorité** : livrer **les phases 1 et 2 tôt** est ce qui sert le mieux le
+chantier IA, parce que c'est ce qui **démarre la collecte**. Elles ne touchent pas au flux de vente
+(risque faible) et délivrent déjà la valeur vendable (« costing cuisine »). 3A peut suivre quand la
+prise de commande est voulue ; l'IA peut être **conçue en parallèle**, sur un schéma désormais connu.
 
 ### Le noyau de la phase 3 : deux RPC atomiques
 
@@ -1997,7 +2105,10 @@ mérite d'être dit.
 > antérieure — 4 de ses 12 points étaient déjà traités — mais ses apports métier restants sont réels
 > et l'un d'eux est meilleur que l'analyse initiale) ; **question du fondateur** pour §16.7.
 
-### 16.1 ⭐ ANGLE MORT — `service_mode` : le plan suppose partout « table »
+### 16.1 ⏸ POST-V1 — `service_mode` : le plan supposait partout « table »
+
+> ⏸ **Reporté Post-V1 (31/07/2026)** : l'emporté n'est pas une priorité (§14). Angle mort réel, mais
+> hors périmètre V1 — conservé ici car il devra être traité intégralement le jour où l'emporté arrive.
 
 **Aucune occurrence** de « emporté », « takeaway » ou `service_mode` dans le plan avant cette
 section. Ni la contre-analyse, ni la revue externe, ni l'audit §15 ne l'avaient vu.
@@ -2019,7 +2130,11 @@ Conséquences UI : `table_number` devient nullable quand `service_mode = 'takeaw
 groupe par table **ou** par « À emporter » ; le nom du client (`tickets.customer_name`, déjà présent)
 devient le repère pour l'emporté.
 
-### 16.2 Paiement anticipé — le garde-fou §5 doit être assoupli, pas levé
+### 16.2 ⏸ POST-V1 — Paiement anticipé
+
+> ⏸ **Reporté Post-V1 (31/07/2026)** : l'emporté payé d'avance n'est pas prioritaire (§14).
+> ⭐ **Conséquence favorable** : le garde-fou **d'origine** de `pay_ticket` reste valide **sans
+> assouplissement**, et le trou financier du §12.4.b **disparaît** — le besoin n'existe pas.
 
 Cas terrain que le garde-fou actuel bloque : paiement d'avance, emporté payé avant préparation,
 table qui veut partir.
@@ -2934,7 +3049,7 @@ méthodologique (« chaque correction doit être re-auditée ») et que **je n'a
 | Lot de régularisation ne se résorbe pas | ✅ §12.4.e — un appro compense d'abord les régularisations, écart de prix tracé |
 | `current_stock` dérivé **ou** colonne ? | ✅ §12.4.f — à trancher explicitement |
 | `promotion_applications.product_id NOT NULL` | ✅ §15.2 — vérifié ; mon point ne couvrait que le **ciblage**, pas la traçabilité |
-| Phase 3 trop grosse | ✅ §14 — découpée **3A / 3B / 3C / 3D** |
+| Phase 3 trop grosse | ✅ §14 — découpée **3A / 3B / 3C** (l'ancien 3B — emporté — est sorti de la V1) |
 | Bon implicite doit exclure `batch`/`precooked` | ✅ §16.7 — critère corrigé : « une ligne **crée un délai** », pas « un plat entre dans le panier » |
 | ⭐ **Machine d'état manquante** | ✅ **§6** — le livrable qui explique *mécaniquement* les 5 contradictions |
 
