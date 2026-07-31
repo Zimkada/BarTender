@@ -240,6 +240,15 @@ ingredient_supplies                  -- miroir de supplies
   id, bar_id, ingredient_id, quantity, unit_cost, total_cost
   supplier, business_date, created_by
 
+ingredient_adjustments               -- ⭐ calque stock_adjustments (cf. 14.5)
+  id, bar_id, ingredient_id
+  ingredient_lot_id      -- ⭐ QUEL lot est ajusté (sinon coût non imputable en FIFO)
+  old_qty, new_qty, delta -- ⚠ PAS de CHECK >= 0 (stock négatif autorisé, §4.4)
+  reason                 -- inventory_count | loss_damage | donation_sample
+                         -- | expiration | theft_report | other  (même ENUM que le bar)
+  notes                  -- obligatoires si reason = 'other'
+  adjusted_by, adjusted_at, business_date
+
 kitchen_orders                       -- extension du ticket, PAS un doublon
   id, bar_id ⭐, ticket_id
   status                 -- DÉRIVÉ des lignes, jamais écrit directement (cf. 4.3)
@@ -638,7 +647,7 @@ l'argument de vente le plus fort.
 
 **Conséquence** : l'inventaire physique périodique des ingrédients est **obligatoire**, pas
 optionnel. Sans lui le module ne mesure que du théorique, et la « marge précise » promise est
-fausse.
+fausse. Mécanisme, rythme, motifs d'ajustement et gel par période : **§14.5**.
 
 ### Quatrième métrique : les pertes cuisine mesurées
 
@@ -1091,7 +1100,7 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 | **1** | `ingredients` (+ `cost_mode`, §14.3) + **`ingredient_lots` FIFO/FEFO** (§14.13) + `ingredient_supplies` + écran appro + saisie en portions (§14.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (mais table neuve, aucune reprise) |
 | **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
 | **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **`service_alerts`** (§14.10, cas plat) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
-| **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.11) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
+| **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.11) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
 > ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
@@ -1396,23 +1405,71 @@ cancel_reason ENUM :
 Un champ texte libre reste utile **en complément**, jamais à la place. C'est la structure qui rend
 les annulations analysables — et donc actionnables pour le promoteur (cf. métrique des pertes, §7).
 
-### 14.5 Inventaire : rythme et gel par période
+### 14.5 Inventaire physique et ajustements de stock
 
 §7 pose l'obligation **trois fois**, le rythme **nulle part**. Compter tous les ingrédients chaque
 jour est irréaliste en restaurant.
+
+#### Le mécanisme existe déjà pour le bar — le calquer
+
+[`stock_adjustments`](../../supabase/migrations/20260118000001_create_stock_adjustments_table.sql)
+gère déjà l'ajustement manuel des `bar_products`, avec **6 motifs contraints** et un audit complet :
+
+```sql
+reason CHECK (reason IN ('inventory_count', 'loss_damage', 'donation_sample',
+                         'expiration', 'theft_report', 'other'))
+old_stock, new_stock, delta, notes, adjusted_by, adjusted_at
+CONSTRAINT notes_required_for_other  -- notes obligatoires si motif = 'other'
+```
+
+**Ne pas réinventer** : `ingredient_adjustments` reprend la même structure, la même énumération et le
+même garde-fou sur `other`. Le promoteur retrouve un geste qu'il connaît déjà côté bar.
+
+**Deux différences imposées par le modèle cuisine** :
+
+| Point | Bar (`stock_adjustments`) | Ingrédients |
+|---|---|---|
+| `old_stock`/`new_stock` | `CHECK >= 0` | ⚠ **PAS de contrainte** — stock négatif autorisé (§4.4, §13.6) |
+| Cible de l'ajustement | le produit | ⚠ **le lot** (`ingredient_lot_id`) — sinon quel coût imputer ? |
+
+Le second point est le plus important : en FIFO/FEFO (§14.13), un ajustement doit désigner **quel
+lot** est concerné, sinon la perte n'est pas valorisable. Par défaut : imputer au lot le plus proche
+de l'expiration (cohérent avec FEFO), avec possibilité de choisir explicitement.
+
+#### Rythme réaliste
 
 | Fréquence | Portée |
 |---|---|
 | Quotidien | **Comptage rapide** des ingrédients critiques uniquement (viande, poisson) |
 | Hebdomadaire | **Inventaire complet** |
-| À la demande | **Ajustement avec motif** : casse, perte, repas du personnel, erreur d'achat, vol suspecté |
+| À la demande | **Ajustement ponctuel** avec motif |
 
-⭐ **Gel par période** — le point le plus important : une fois la marge d'une période calculée et
-communiquée au promoteur, un inventaire tardif ne doit **pas** la réécrire. Sans gel, les chiffres
-changent après coup et le promoteur perd confiance dans l'outil.
+Motifs adaptés à la cuisine, en réutilisant l'énumération existante là où elle convient :
 
-Note : les motifs d'ajustement recoupent `cancel_reason` (§14.4) — même logique, catégoriser pour
-rendre analysable.
+| Motif | Usage cuisine |
+|---|---|
+| `inventory_count` | écart constaté au comptage — le cas le plus fréquent |
+| `loss_damage` | casse, renversement |
+| `expiration` | périmé — **recoupe la 5ᵉ métrique** (§7), à réconcilier pour ne pas compter deux fois |
+| `theft_report` | vol suspecté |
+| `donation_sample` | ⭐ couvre le **repas du personnel**, poste réel et souvent invisible en maquis |
+| `other` | notes obligatoires |
+
+⚠ **Point de vigilance** : `expiration` en ajustement manuel **et** péremption automatique de lot
+(§14.13) mesurent la même perte. Il faut que la péremption automatique **crée** l'ajustement plutôt
+que de coexister avec lui, sinon la perte est comptée deux fois.
+
+#### ⭐ Gel par période — le point le plus important
+
+Une fois la marge d'une période calculée et communiquée au promoteur, un inventaire tardif ne doit
+**pas** la réécrire. Sans gel, les chiffres changent après coup et **le promoteur perd confiance dans
+l'outil** — ce qui coûte plus cher qu'une imprécision assumée.
+
+Mécanisme : une période clôturée refuse tout ajustement antérieur à sa date de gel ; l'écart constaté
+après clôture s'impute sur la **période courante**, avec une note de rattachement.
+
+Note : ces motifs recoupent `cancel_reason` (§14.4) et `service_alerts` (§14.10) — même logique
+partout dans le module : **catégoriser rend analysable**.
 
 ### 14.6 Portions : couche de saisie, pas manque du modèle
 
@@ -2043,6 +2100,31 @@ plus simple. L'alerte de dérive suffit pour signaler un saut de prix.
 
 **Raffinement ajouté** : **FEFO** plutôt que FIFO strict (`ORDER BY expires_at, received_at`) — en
 cuisine c'est la date de péremption qui commande, pas la date d'achat.
+
+### Inventaire physique et ajustements : structure manquante (31/07/2026)
+
+Question du fondateur : *« as-tu prévu l'inventaire physique avec ajustement de stock pour divers
+motifs ? »*
+
+**Réponse honnête : le principe oui, la structure non.** §14.5 posait le rythme et les motifs en
+**prose**, sans table ni énumération — donc rien d'implémentable. Et §7 posait l'obligation trois fois
+sans jamais décrire le mécanisme.
+
+Vérification faite, **le mécanisme existe déjà pour le bar** :
+[`stock_adjustments`](../../supabase/migrations/20260118000001_create_stock_adjustments_table.sql) —
+6 motifs contraints, `old_stock`/`new_stock`/`delta`, audit complet, et un
+`CONSTRAINT notes_required_for_other`. Il n'y avait rien à inventer, seulement à **calquer**.
+
+Trois adaptations imposées par le modèle cuisine, que le simple calque n'aurait pas données :
+
+| Point | Raison |
+|---|---|
+| **Pas de `CHECK >= 0`** sur les quantités | Le stock d'ingrédients est *jamais bloquant* (§4.4) et peut être négatif (§13.6) — la contrainte du bar ferait échouer l'ajustement |
+| ⭐ Ajustement porté par le **lot** (`ingredient_lot_id`) | En FIFO/FEFO (§14.13), sans lot désigné **la perte n'est pas valorisable**. Défaut : le lot le plus proche de l'expiration |
+| ⚠ `expiration` **doit créer** l'ajustement, pas coexister | La péremption automatique de lot (§14.13) et le motif manuel `expiration` mesurent **la même perte** → sinon **comptée deux fois** |
+
+Observation utile : le motif existant `donation_sample` couvre le **repas du personnel** — poste réel
+et souvent invisible en maquis. L'énumération du bar était plus adaptée à la cuisine que prévu.
 
 Apports les plus précieux :
 - **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
