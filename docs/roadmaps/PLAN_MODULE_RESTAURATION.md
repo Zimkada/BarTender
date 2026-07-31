@@ -12,7 +12,7 @@
 > impossible (§13.1) et le périmètre des promotions `'all'`/`'category'` est indéfini (§13.2).
 >
 > **Deux passes de revue** : §13 = audit **technique** contre le code (7 failles) ; §14 = test
-> **« service réel »** (10 corrections métier, dont `service_mode` pour l'emporté — angle mort
+> **« service réel »** (12 corrections métier, dont `service_mode` pour l'emporté — angle mort
 > complet — et `cost_mode` pour l'huile de friture).
 
 ---
@@ -195,7 +195,7 @@ dishes
   production_mode        -- ⭐⭐ on_order | batch | batch_finish | precooked (cf. 14.8)
                          --    remplace requires_preparation, trop binaire
   preparation_time_min   -- calibre les seuils d'alerte de retard
-  resale_window_min      -- ⭐ délai de récupération d'un plat non retiré (cf. 14.9)
+  resale_window_min      -- ⭐ délai de récupération d'un plat non retiré (cf. 14.11)
   is_batch_base          -- ⭐ true = lot produit puis prélevé (riz cuit, poulet bouilli)
   portions_per_batch     -- ⭐ rendement du lot (5 kg riz ≈ 20 portions)
   photo_url
@@ -207,7 +207,7 @@ dish_ingredients                     -- recette : ingrédients bruts
   yield_factor           -- pertes de préparation (épluchage, parage)
   consumed_at_stage      -- ⭐ 'batch' | 'finish' (cf. 14.8 batch_finish)
 
-recipe_components                    -- ⭐ sous-recettes ET prélèvement de lots (14.10)
+recipe_components                    -- ⭐ sous-recettes ET prélèvement de lots (14.12)
   dish_id                -- le plat composé
   base_dish_id           -- la base réutilisable (sauce, marinade) OU le lot prélevé
   quantity               -- portions de base consommées
@@ -1057,9 +1057,9 @@ cuisine sans dupliquer la liste des rôles autorisés à chaque point de contrô
 |---|---|---|---|
 | **0** | Audit + ajout rôle `cuisinier` (§11.4) + `has_restaurant` + permissions | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §14.3) + `ingredient_supplies` + CUMP + écran appro + saisie en portions (§14.6) | Le promoteur suit ses achats cuisine, aujourd'hui invisibles | Faible — réutilise le CUMP |
-| **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.10) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
-| **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.9) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
+| **2** | `dishes` (+ **`production_mode`**, §14.8) + `dish_ingredients` + **`recipe_components`** (§14.12) + marge théorique | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
+| **3** | Extension ticket + écran Service + statuts + **`mark_kitchen_item_ready` et `serve_kitchen_item`** + **`production_batches`** (§14.8) + format `sales.items` (§4.2) + `service_mode` (§14.1) + paiement anticipé (§14.2) + bon implicite (§14.7) + **`service_alerts`** (§14.10, cas plat) + **arbitrages §13.1 à §13.6** | Prise de commande opérationnelle **pour les 4 régimes** | **Élevé** — touche au flux de vente |
+| **4** | Inventaire physique d'ingrédients (rythme + **gel par période**, §14.5) + écart théorique/réel + **file de récupération** (§14.11) | Détection gaspillage et fuites, récupération des plats non retirés | Moyen |
 | **5** | `ScopeSwitcher` + dashboard resto + comptes 602/6052/7021/603 | Vision consolidée bar + resto | Faible |
 
 > ⚠ **Correction d'une incohérence du plan initial** : le RPC de consommation des ingrédients était
@@ -1167,7 +1167,7 @@ qui est comptablement juste (§6). Avant `served`, une annulation de ligne suffi
 > `precooked` sera implémenté (phase 4+), pas en V1.
 >
 > Pour les plats cuisinés, la vraie réponse au besoin métier n'est pas le retour mais la **file de
-> récupération** (§14.9) : resservir un plat prêt non retiré dans un délai court, ou assumer la perte.
+> récupération** (§14.11) : resservir un plat prêt non retiré dans un délai court, ou assumer la perte.
 
 ### 13.2 ⛔ BLOQUANTE — `target_type = 'all'` promeut les plats par accident
 
@@ -1273,12 +1273,12 @@ mérite d'être dit.
 ## 14. Test « service réel » — corrections métier (30/07/2026)
 
 > Le plan avait été audité **techniquement** (§13) mais jamais confronté à un service de 40 couverts
-> un vendredi soir. Cette section corrige 10 manques métier, dont **trois angles morts complets** :
+> un vendredi soir. Cette section corrige 12 manques métier, dont **trois angles morts complets** :
 > `service_mode` (§14.1), la vente sans bon (§14.7) et surtout **les quatre régimes de production**
 > (§14.8) — le plan supposait que tout plat est préparé à la commande, alors que c'est le cas
 > **minoritaire** dans un maquis béninois.
 >
-> Sources : **seconde revue externe** pour §14.1 à §14.6 et §14.10 (elle portait sur une version
+> Sources : **seconde revue externe** pour §14.1 à §14.6 et §14.12 (elle portait sur une version
 > antérieure — 4 de ses 12 points étaient déjà traités — mais ses apports métier restants sont réels
 > et l'un d'eux est meilleur que l'analyse initiale) ; **question du fondateur** pour §14.7.
 
@@ -1517,16 +1517,157 @@ il est plus proche d'un `bar_product` que d'un plat cuisiné. Une pâtisserie re
 retourne au présentoir, exactement comme une bière remise au frigo — ce qui lève partiellement la
 limite du §13.1.
 
-#### Réserve : risque d'adoption
+#### ⭐ Aucun régime n'est « normal » pour un plat donné
 
-Ce modèle à 4 régimes est bien plus lourd que le booléen initial. Le risque n'est pas technique mais
-**d'adoption** : un promoteur devra choisir le régime de chaque plat, et un mauvais choix produit des
-données fausses.
+**Correction d'une normativité fausse** introduite par la première rédaction (« grillades →
+`on_order` », « plats du jour → `batch` »). **Chaque maquis a sa propre pratique pour un même plat**,
+et aucune n'est plus juste que l'autre :
 
-Atténuations : **régime par défaut selon la catégorie** (grillades → `on_order`, plats du jour →
-`batch`), libellés en langage clair (ci-dessus), et jamais de jargon technique dans l'UI.
+| Maquis A | Maquis B |
+|---|---|
+| Braise à la commande, 30 min d'attente | Braise 20 poulets le matin, réchauffe à la commande |
+| `on_order` | `batch_finish` |
 
-### 14.9 File de récupération : resservir un plat prêt non retiré
+Même plat, même nom, deux économies différentes. `dishes` étant **par bar** (`bar_id`), le modèle le
+permet déjà techniquement — c'est la **documentation** qui installait à tort une norme.
+
+**Conséquence** : pas de régime imposé par catégorie. Un défaut peut être *suggéré* à la création
+d'un plat, jamais appliqué silencieusement.
+
+#### Simplification : 3 choix pour le promoteur, 4 régimes en interne
+
+Le risque d'adoption reste réel (un mauvais choix produit des données fausses), mais il se réduit en
+ne demandant que ce que le promoteur sait :
+
+| Ce qu'il déclare | Régime déduit |
+|---|---|
+| « Je le prépare à la commande » | `on_order` |
+| « Je le prépare d'avance » | `batch` **ou** `batch_finish` — **déduit de la recette** |
+| « Il est déjà prêt à vendre » | `precooked` |
+
+La distinction `batch` / `batch_finish` **n'a pas à être demandée** : si la recette contient des
+ingrédients marqués `consumed_at_stage = 'finish'`, il y a une finition ; sinon, non. Le système le
+déduit au lieu de l'exiger.
+
+Libellés en langage clair, jamais de jargon technique dans l'UI.
+
+### 14.9 Régime hybride : intention configurée + basculement automatique
+
+Le régime déclaré est une **intention**, l'état du lot est un **fait**. Un même plat peut changer de
+régime au fil de la journée — un maquis peut braiser 10 poulets le matin (`batch_finish`) puis braiser
+à la commande le soir (`on_order`) — sans qu'il faille créer deux plats homonymes (ce qui fausserait
+les statistiques et la marge par plat).
+
+```
+production_mode = intention du promoteur   (config explicite, par plat, par bar)
+remaining_qty   = réalité du moment        (le lot est-il épuisé ?)
+
+Régime effectif = intention, sauf lot épuisé → repli sur on_order
+```
+
+#### Ce que l'app décide seule — et ce qu'elle ne décide PAS
+
+Distinction essentielle : l'app **constate un fait** (`remaining_qty = 0`), elle ne **décide** pas.
+
+| Action | Qui |
+|---|---|
+| Constater le lot épuisé | **App**, automatique |
+| Adapter le délai affiché | **App**, automatique |
+| Router vers le circuit de production | **App**, automatique |
+| **Le plat reste-t-il vendable ?** | ⚠ **Humain** — jamais l'app |
+
+⚠ **Lot épuisé ≠ le plat reste disponible.** Trois situations que le système **ne peut pas
+distinguer** :
+
+| Situation réelle | Ce que le système voit | Bonne réaction |
+|---|---|---|
+| Il reste des poulets crus | `remaining_qty = 0` | Basculer en `on_order` |
+| Plus de poulet cru du tout | `remaining_qty = 0` | **Couper le plat** |
+| Cuisinier débordé, 45 min | `remaining_qty = 0` | Couper ou avertir |
+
+Basculer automatiquement dans les trois cas laisserait un serveur **vendre un plat que la cuisine ne
+peut pas produire** — la promesse impossible qui provoque une annulation en cuisine.
+
+Et le stock d'ingrédients **ne peut pas** servir de garde-fou : le plan pose qu'il est *jamais
+bloquant* (§4.4), donc un stock théorique à 0 n'interdit pas de servir. **La même raison qui interdit
+de bloquer sur le stock interdit de décider à la place du cuisinier.**
+
+#### Le déclenchement : à la première commande, pas à l'épuisement
+
+Le mécanisme bascule seul ; la **disponibilité** est confirmée par un humain, au moment où la question
+se pose réellement — cf. §14.10.
+
+### 14.10 ⭐ Alertes de service : l'app détecte, l'humain tranche
+
+Généralisation du point précédent. Le basculement de régime n'est qu'un cas particulier d'un besoin
+plus large : **un point de décision unique en cas de rupture**, quel qu'en soit le déclencheur.
+
+L'app ne peut pas trancher, parce que la bonne réponse dépend d'informations qu'elle n'a pas : le
+fournisseur est-il ouvert, y a-t-il quelqu'un pour aller au marché, combien de temps avant le rush.
+
+| Déclencheur | Plats touchés | Options réalisables |
+|---|---|---|
+| Lot épuisé | 1 plat | couper · cuire un lot · préparer à la commande |
+| Ingrédient **spécifique** en rupture | les plats qui l'utilisent | couper · s'approvisionner · changer la recette |
+| ⭐ Ingrédient **transversal** en rupture | **toute une famille** | s'approvisionner · couper la famille |
+
+⭐ **Le cas transversal justifie la généralisation.** Une rupture de **gaz** ne touche pas un plat :
+elle touche **tous les plats qui cuisent**. Une rupture d'**huile** touche tous les plats frits. La
+décision porte donc sur un **ensemble** de plats, et les options ne sont pas les mêmes — personne ne
+« prépare à la commande » sans gaz. C'est une décision de **carte**, pas de plat.
+
+```
+service_alerts
+  id, bar_id
+  trigger_type      -- batch_depleted | ingredient_shortage | transversal_shortage
+  trigger_ref       -- le lot ou l'ingrédient concerné
+  affected_dishes   -- calculé : les plats réellement touchés
+  raised_at
+  resolution        -- disable_dishes | resupply | produce_batch | switch_to_on_order | ignore
+  resolved_by, resolved_at, note
+```
+
+Chaque résolution déclenche une action concrète : `disable_dishes` → `is_available = false` sur les
+plats concernés ; `produce_batch` → ouvre la déclaration de lot ; `resupply` → ouvre l'appro cuisine ;
+`switch_to_on_order` → plat vendable avec délai long.
+
+**`ignore` compte autant que les autres** : le cuisinier sait parfois qu'il a de quoi tenir même si le
+stock théorique dit non. Cohérent avec « stock jamais bloquant » (§4.4).
+
+#### ⚠ Anti-sur-sollicitation — obligatoire
+
+Une alerte à chaque seuil franchi, en pleine affluence, sur un téléphone posé en cuisine : **personne
+ne les traite**. Trois règles :
+
+1. l'alerte se déclenche **quand elle bloque quelque chose** (une commande arrive), pas au
+   franchissement d'un seuil théorique ;
+2. **une seule alerte** par ingrédient et par service, jamais de répétition ;
+3. une résolution `ignore` **tient jusqu'à la fin du service** — sinon la question revient et
+   l'utilisateur apprend à cliquer sans lire.
+
+Même raisonnement que l'anti-spam du bouton Relancer (§8) : un mécanisme de notification sans
+garde-fou devient un mécanisme ignoré.
+
+#### Bénéfice non anticipé : un historique de gestion
+
+Les alertes résolues constituent une donnée exploitable :
+
+> « 14 ruptures ce mois-ci, dont 9 sur le poisson, dont 6 le vendredi »
+
+Ça ne dit pas seulement qu'il y a eu des ruptures — ça dit que **l'approvisionnement du jeudi est
+sous-dimensionné**. Même mécanisme que `cancel_reason` structuré (§14.4) : catégoriser rend
+analysable.
+
+Et ça alimente directement le **chantier de prévision** (prochain de la roadmap) : un historique de
+ruptures horodatées est exactement ce qu'un moteur de suggestion sait exploiter.
+
+#### Périmètre V1
+
+Livrer d'abord `batch_depleted` et `ingredient_shortage` (un plat, une décision) ; le cas
+**transversal** ensuite (décision groupée sur plusieurs plats → UI plus complexe). Mais la structure
+`service_alerts` doit être prévue **dès le départ pour les trois**, sinon elle est à refaire.
+
+### 14.11 File de récupération : resservir un plat prêt non retiré
 
 Concept absent du plan **et** des POS examinés. Il ne s'agit **pas** d'un retour (impossible, §13.1)
 mais d'une **fenêtre de rattrapage avant que la perte devienne définitive**.
@@ -1574,7 +1715,7 @@ Sans cette mise à zéro, **le même coût matière serait compté deux fois** :
 paraîtrait nulle alors qu'elle est totale. C'est la condition pour que la métrique de marge (§7)
 reste juste.
 
-### 14.10 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
+### 14.12 Sous-recettes : de « écartées » à `recipe_components` minimal en V1
 
 §15 reconnaissait la contradiction : écarter les sous-recettes oblige à dupliquer les mêmes
 ingrédients dans 10 plats — précisément la saisie identifiée comme **principal coût d'adoption**.
@@ -1612,7 +1753,7 @@ Limite V1 : **un seul niveau d'imbrication** (une base ne peut pas contenir une 
 
 - ~~`is_transversal` binaire~~ → **résolu en §14.3** : typologie `cost_mode` à 4 niveaux, dont
   `per_dish_flat` pour l'huile de friture.
-- ~~Sous-recettes écartées~~ → **résolu en §14.10** : `recipe_components` minimal dès la V1, un seul
+- ~~Sous-recettes écartées~~ → **résolu en §14.12** : `recipe_components` minimal dès la V1, un seul
   niveau d'imbrication.
 - **`7021` non confirmé par une source normative (§9)** — seule faiblesse structurelle encore
   ouverte. À valider par un comptable OHADA avant d'écrire du code comptable.
@@ -1727,6 +1868,19 @@ Trois conséquences non anticipées :
 3. **Correction de séquençage** : j'avais proposé de reporter les lots en phase 4-5 ; avec
    `batch_finish`, les deux régimes de lot couvrent la majorité de ce qu'un maquis vend réellement →
    **phase 3 obligatoire**, sinon périmètre invendable.
+
+### Flexibilité de configuration et alertes de service (31/07/2026)
+
+Deux apports du fondateur sur le même fil :
+
+| Remarque | Correction |
+|---|---|
+| « Chaque maquis a sa spécificité pour un même plat, 2 régimes différents peuvent être adoptés » | **Normativité fausse retirée** (§14.8) : la doc installait « grillades → `on_order` », « plats du jour → `batch` » comme s'il existait une bonne réponse par plat. Le modèle le permettait déjà (`dishes` est par bar) — c'était la documentation qui était en tort. Simplification au passage : **3 choix pour le promoteur**, `batch`/`batch_finish` étant **déduit de la recette** |
+| « Config explicite préalable + basculement automatique au fil de la journée » | **§14.9** : le régime déclaré est une *intention*, `remaining_qty` un *fait*. Lève une imprécision de ma réponse (« bascule sans rien demander ») : l'app bascule le **mécanisme** seule, mais **jamais la disponibilité** — lot épuisé ≠ plat encore produisible, et le stock d'ingrédients ne peut pas servir de garde-fou puisqu'il est *jamais bloquant* (§4.4) |
+| « Donner la possibilité entière au restau de décider : retirer le plat, approvisionner, cuire par lot, préparer à la commande… » | **§14.10 `service_alerts`** — généralisation : le basculement de régime n'était qu'un cas particulier. 3 déclencheurs × 5 résolutions, l'app **détecte et propose**, l'humain **tranche**. Le cas **transversal** (gaz, huile) justifie la généralisation : c'est une décision de **carte**, pas de plat |
+
+Bénéfice non anticipé : l'historique des alertes résolues (« 9 ruptures sur le poisson, dont 6 le
+vendredi ») alimentera le **chantier de prévision**, prochain de la roadmap.
 
 Apports les plus précieux :
 - **§14.1 `service_mode`** — angle mort **total** : 0 occurrence d'« emporté » dans 1323 lignes.
