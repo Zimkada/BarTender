@@ -285,6 +285,28 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
       expect(withAccounting.sort()).toEqual(['promoteur', 'super_admin']);
     });
 
+    it('⚠️ canDeleteProducts : le gérant l\'a en table, mais l\'UI le bloque', () => {
+      // ⛔ CONTRADICTION ASSUMÉE, relevée par l'audit du 02/08/2026.
+      //
+      // La table accorde canDeleteProducts au gérant, mais
+      // `useInventoryActions.handleDeleteClick` le refuse par un test de rôle
+      // explicite (« Seul le Promoteur peut supprimer un produit — risque de
+      // perte d'historique »). Aucune RLS ne double ce garde côté base.
+      //
+      // Ce test EXISTE pour que la divergence reste visible : si quelqu'un
+      // « nettoie » ce test de rôle en le remplaçant par la permission — le
+      // réflexe naturel après le chantier RBAC — le gérant gagnerait
+      // silencieusement le droit de supprimer des produits.
+      //
+      // ⚠️ À faire évoluer AVEC useInventoryActions, jamais seul :
+      //   - si canDeleteProducts passe à false pour le gérant, le garde devient
+      //     redondant et peut être remplacé par la permission ;
+      //   - s'il reste true, le garde doit rester un test de rôle explicite.
+      expect(ROLE_PERMISSIONS.gerant.canDeleteProducts).toBe(true);
+      expect(ROLE_PERMISSIONS.serveur.canDeleteProducts).toBe(false);
+      expect(ROLE_PERMISSIONS.cuisinier.canDeleteProducts).toBe(false);
+    });
+
     it('la création de bars reste réservée à promoteur et super_admin', () => {
       const withBarCreation = CURRENT_ROLES.filter(
         (role) => ROLE_PERMISSIONS[role].canCreateBars

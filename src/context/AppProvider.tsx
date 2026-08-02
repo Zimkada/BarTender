@@ -138,6 +138,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         //    ⚠️ Sans effet sur les 4 rôles historiques : tous ont canSell = true
         //    (invariant vérifié par rbac-role-baseline).
         if (!!currentSession && !hasPermission('canSell')) {
+            // ⚠️ Message explicite, comme le cas voisin : un refus muet laisse
+            // l'utilisateur cliquer sans comprendre pourquoi rien ne se passe.
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('Votre rôle ne permet pas de vendre.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
             return;
         }
 

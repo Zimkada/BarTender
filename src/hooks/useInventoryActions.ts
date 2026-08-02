@@ -91,6 +91,21 @@ export function useInventoryActions() {
 
     const handleDeleteClick = (product: Product) => {
         // 🛡️ SÉCURITÉ : Bloquer les gérants pour protéger l'historique
+        //
+        // ⛔⛔ NE PAS REMPLACER PAR `hasPermission('canDeleteProducts')` ⛔⛔
+        //
+        // La table dit `canDeleteProducts: true` pour le gérant — ce test le
+        // CONTREDIT volontairement. Le nettoyage RBAC du 02/08/2026 a converti
+        // 20 décisions par rôle en permissions ; celle-ci a été LAISSÉE telle
+        // quelle parce que la convertir ÉLARGIRAIT les droits du gérant, avec
+        // perte d'historique produit à la clé.
+        //
+        // ⚠️ Contradiction assumée, à trancher côté métier (audit du 02/08/2026) :
+        //   - soit `canDeleteProducts: false` pour le gérant (aligne la table
+        //     sur l'intention réelle de ce garde) ;
+        //   - soit une permission dédiée si le gérant doit pouvoir supprimer.
+        // Tant que l'arbitrage n'est pas rendu, ce test de rôle est le seul
+        // rempart — aucune RLS ne le double côté base.
         if (['gerant', 'serveur'].includes(currentSession?.role || '')) {
             showError("Action Refusée : Seul le Promoteur peut supprimer un produit (Risque de perte d'historique). Veuillez le contacter.");
             return;
