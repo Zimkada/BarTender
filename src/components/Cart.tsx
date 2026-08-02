@@ -74,6 +74,14 @@ export function Cart({
   const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string): Promise<boolean> => {
     if (items.length === 0) return false;
 
+    // ⛔ Dernier rempart client : sans canSell, aucune vente n'est tentée.
+    //    create_sale_idempotent la refuserait de toute façon (guard liste
+    //    blanche), mais autant ne pas laisser l'utilisateur aller jusque-là.
+    if (!!currentSession && !hasPermission('canSell')) {
+      toast.error("Votre rôle ne permet pas d'enregistrer une vente.", { duration: 4000 });
+      return false;
+    }
+
     let serverId: string | undefined;
 
     // 🔴 BLOCKING LOGIC : SERVER OFFLINE MODE
@@ -150,7 +158,10 @@ export function Cart({
   // 🛡️ En mode simplifié, le panier est masqué à qui ne crée pas les ventes —
   // même règle que QuickSaleFlow et create_sale_idempotent. Par permission.
   const isServerRole = !!currentSession && !hasPermission('canValidateSales');
-  const shouldHide = hideFloatingButton || (isSimplifiedMode && isServerRole);
+  // ⛔ Qui n'a PAS canSell ne voit JAMAIS le panier, quel que soit le mode
+  //    (constat du 02/08/2026 : un cuisinier y accédait en mode complet).
+  const cannotSell = !!currentSession && !hasPermission('canSell');
+  const shouldHide = hideFloatingButton || cannotSell || (isSimplifiedMode && isServerRole);
 
   // --- RENDER ---
   return (

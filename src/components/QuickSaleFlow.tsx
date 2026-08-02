@@ -171,6 +171,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const handleCheckout = useCallback(async (assignedServerName?: string, paymentMethod: PaymentMethod = 'cash', ticketId?: string): Promise<boolean> => {
     if (cart.length === 0 || !currentSession || !currentBar) return false;
 
+    // ⛔ Dernier rempart client : sans canSell, aucune vente n'est tentée.
+    //    create_sale_idempotent la refuserait (guard liste blanche), mais
+    //    autant ne pas laisser l'utilisateur composer puis échouer.
+    if (!hasPermission('canSell')) {
+      toast.error("Votre rôle ne permet pas d'enregistrer une vente.", { duration: 4000 });
+      return false;
+    }
+
     // 1. Resolve Server ID (if Simplified Mode)
     let serverId: string | undefined;
 
@@ -302,6 +310,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   if (!isOpen) return null;
 
   // ACCESS CHECK
+  // ⛔ Sans canSell, l'écran de vente rapide n'est JAMAIS accessible, quel que
+  //    soit le mode (constat du 02/08/2026 : un cuisinier y accédait en mode
+  //    complet). Sans effet sur les 4 rôles historiques, qui ont tous canSell.
+  if (!!currentSession && !hasPermission('canSell')) {
+    return null;
+  }
+
   // 🛡️ En mode simplifié, seul qui peut valider ses propres ventes accède à la
   // vente rapide — le gérant crée les ventes (cf. create_sale_idempotent, qui
   // applique la même règle côté DB). Piloté par permission, jamais par rôle brut.

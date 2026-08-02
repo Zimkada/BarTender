@@ -131,6 +131,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [currentBar?.id, setCart]);
 
     const addToCart = useCallback((product: Product) => {
+        // ⛔ Qui n'a PAS le droit de vendre ne compose pas de panier — quel que
+        //    soit le mode opérationnel. Constaté en test le 02/08/2026 : un
+        //    cuisinier (canSell = false) pouvait remplir un panier et voir
+        //    « LANCER LA VENTE » en mode complet, la vente n'échouant qu'au RPC.
+        //    ⚠️ Sans effet sur les 4 rôles historiques : tous ont canSell = true
+        //    (invariant vérifié par rbac-role-baseline).
+        if (!!currentSession && !hasPermission('canSell')) {
+            return;
+        }
+
         // Check if server in simplified mode - prevent adding to cart
         // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6 zone 4)
         const isServerRole = !!currentSession && !hasPermission('canValidateSales');

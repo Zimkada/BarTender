@@ -453,6 +453,22 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
       expect(differsFromServeur.length).toBeGreaterThan(0);
     });
 
+    it('⛔ canSell est le SEUL critère de blocage du panier, pas le mode', () => {
+      // ⭐ Constaté en test réel le 02/08/2026 : les gardes de AppProvider.addToCart,
+      // Cart et QuickSaleFlow ne testaient que `isSimplifiedMode && ...`. En mode
+      // COMPLET — le seul où la cuisine existe (§13.4) — un cuisinier pouvait
+      // remplir un panier et voir « LANCER LA VENTE ». La vente échouait au RPC
+      // (guard liste blanche), mais après coup.
+      //
+      // Ces trois écrans testent désormais canSell, indépendamment du mode.
+      // Cet invariant garantit que le correctif reste neutre pour les rôles
+      // vendeurs : si un rôle historique perdait canSell, le test le signalerait.
+      const canSell = ALL_ROLES.filter((r) => ROLE_PERMISSIONS[r].canSell);
+
+      expect(canSell.sort()).toEqual(['gerant', 'promoteur', 'serveur', 'super_admin']);
+      expect(ROLE_PERMISSIONS.cuisinier.canSell).toBe(false);
+    });
+
     it('ne porte aucune permission super_admin', () => {
       for (const permission of OPTIONAL_PERMISSIONS) {
         expect(cuisinier[permission] ?? false).toBe(false);
