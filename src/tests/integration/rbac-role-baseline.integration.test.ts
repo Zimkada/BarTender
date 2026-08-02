@@ -345,8 +345,30 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
     // hasPermission() lit currentSession.permissions. Ce helper est donc le seul
     // point de passage entre ROLE_PERMISSIONS et l'UI.
 
-    it.each(CURRENT_ROLES)('retourne les permissions de %s', (role) => {
+    it.each(ALL_ROLES)('retourne les permissions de %s', (role) => {
       expect(getPermissionsByRole(role)).toEqual(ROLE_PERMISSIONS[role]);
+    });
+
+    it('⭐ toute permission NOUVELLE est immédiatement visible pour un rôle donné', () => {
+      // ⛔ BUG CONSTATÉ EN PROD le 02/08/2026 : hasPermission lisait
+      // `currentSession.permissions`, une COPIE figée au login et PERSISTÉE
+      // (useDataStore). L'ajout de `canValidateSales` a rendu les sessions
+      // existantes obsolètes — les ventes d'un promoteur naissaient `pending`
+      // parce que la permission manquait de sa session restaurée.
+      //
+      // hasPermission dérive désormais du RÔLE via getPermissionsByRole.
+      // Ce test garantit que la table est complète pour chaque rôle : si une
+      // permission y manquait, elle serait `undefined` et donc refusée
+      // silencieusement — exactement le symptôme d'origine.
+      for (const role of ALL_ROLES) {
+        const derived = getPermissionsByRole(role);
+        for (const permission of REQUIRED_PERMISSIONS) {
+          expect(
+            typeof derived[permission],
+            `${role}.${permission} absente de la table → refusée silencieusement`
+          ).toBe('boolean');
+        }
+      }
     });
 
     it('un serveur ne reçoit pas la lecture globale des ventes', () => {
