@@ -10,7 +10,7 @@ import { useStockMutations } from './mutations/useStockMutations';
 
 export function useInventoryActions() {
     const { currentBar } = useBarContext();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const { showSuccess, showError } = useFeedback();
 
     const { addProduct, updateProduct, deleteProduct } = useStock();
@@ -90,24 +90,19 @@ export function useInventoryActions() {
     };
 
     const handleDeleteClick = (product: Product) => {
-        // 🛡️ SÉCURITÉ : Bloquer les gérants pour protéger l'historique
+        // 🛡️ Piloté par PERMISSION, jamais par rôle brut.
         //
-        // ⛔⛔ NE PAS REMPLACER PAR `hasPermission('canDeleteProducts')` ⛔⛔
+        // ⭐ ARBITRAGE MÉTIER (02/08/2026) : le gérant assure la gestion
+        // quotidienne du bar, il DOIT pouvoir retirer un produit du catalogue.
         //
-        // La table dit `canDeleteProducts: true` pour le gérant — ce test le
-        // CONTREDIT volontairement. Le nettoyage RBAC du 02/08/2026 a converti
-        // 20 décisions par rôle en permissions ; celle-ci a été LAISSÉE telle
-        // quelle parce que la convertir ÉLARGIRAIT les droits du gérant, avec
-        // perte d'historique produit à la clé.
-        //
-        // ⚠️ Contradiction assumée, à trancher côté métier (audit du 02/08/2026) :
-        //   - soit `canDeleteProducts: false` pour le gérant (aligne la table
-        //     sur l'intention réelle de ce garde) ;
-        //   - soit une permission dédiée si le gérant doit pouvoir supprimer.
-        // Tant que l'arbitrage n'est pas rendu, ce test de rôle est le seul
-        // rempart — aucune RLS ne le double côté base.
-        if (['gerant', 'serveur'].includes(currentSession?.role || '')) {
-            showError("Action Refusée : Seul le Promoteur peut supprimer un produit (Risque de perte d'historique). Veuillez le contacter.");
+        // L'ancien garde bloquait les gérants au motif d'un « risque de perte
+        // d'historique ». Vérification faite, ce motif était FACTUELLEMENT FAUX :
+        // `deleteProduct` appelle `ProductsService.deactivateProduct`, un SOFT
+        // DELETE (`is_active: false`). Aucune ligne n'est effacée, les ventes
+        // passées restent intactes. Le blocage protégeait donc contre un risque
+        // qui n'existait pas.
+        if (!hasPermission('canDeleteProducts')) {
+            showError("Action Refusée : votre rôle ne permet pas de retirer un produit du catalogue.");
             return;
         }
         setProductToDelete(product);

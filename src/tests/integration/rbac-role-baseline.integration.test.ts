@@ -285,23 +285,17 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
       expect(withAccounting.sort()).toEqual(['promoteur', 'super_admin']);
     });
 
-    it('⚠️ canDeleteProducts : le gérant l\'a en table, mais l\'UI le bloque', () => {
-      // ⛔ CONTRADICTION ASSUMÉE, relevée par l'audit du 02/08/2026.
+    it('le gérant peut retirer un produit du catalogue (arbitrage 02/08/2026)', () => {
+      // ⭐ Le gérant assure la gestion quotidienne du bar — décision métier.
       //
-      // La table accorde canDeleteProducts au gérant, mais
-      // `useInventoryActions.handleDeleteClick` le refuse par un test de rôle
-      // explicite (« Seul le Promoteur peut supprimer un produit — risque de
-      // perte d'historique »). Aucune RLS ne double ce garde côté base.
+      // `useInventoryActions.handleDeleteClick` le bloquait par un test de rôle,
+      // au motif d'un « risque de perte d'historique ». Motif FACTUELLEMENT FAUX :
+      // deleteProduct → ProductsService.deactivateProduct, un SOFT DELETE
+      // (`is_active: false`). Aucune ligne effacée, ventes passées intactes.
       //
-      // Ce test EXISTE pour que la divergence reste visible : si quelqu'un
-      // « nettoie » ce test de rôle en le remplaçant par la permission — le
-      // réflexe naturel après le chantier RBAC — le gérant gagnerait
-      // silencieusement le droit de supprimer des produits.
-      //
-      // ⚠️ À faire évoluer AVEC useInventoryActions, jamais seul :
-      //   - si canDeleteProducts passe à false pour le gérant, le garde devient
-      //     redondant et peut être remplacé par la permission ;
-      //   - s'il reste true, le garde doit rester un test de rôle explicite.
+      // Le garde suit désormais cette permission. Si elle repassait à false
+      // pour le gérant, l'UI le bloquerait automatiquement — les deux ne
+      // peuvent plus diverger.
       expect(ROLE_PERMISSIONS.gerant.canDeleteProducts).toBe(true);
       expect(ROLE_PERMISSIONS.serveur.canDeleteProducts).toBe(false);
       expect(ROLE_PERMISSIONS.cuisinier.canDeleteProducts).toBe(false);
