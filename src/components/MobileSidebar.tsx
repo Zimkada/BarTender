@@ -31,6 +31,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { usePlan } from '../hooks/usePlan';
 import type { FeatureKey } from '../config/plans';
+import type { UserRole } from '../types';
 import { IconButton } from './ui/IconButton';
 import { networkManager } from '../services/NetworkManager';
 import { useNotifications } from './Notifications';
@@ -47,7 +48,12 @@ interface MenuItem {
   id: string;
   label: string;
   icon: React.ReactNode;
-  roles: ('super_admin' | 'promoteur' | 'gerant' | 'serveur')[];
+  /**
+   * ⭐ Aligné sur `UserRole` : un rôle absent d'un tableau `roles` ne voit pas
+   * l'entrée. Motif « liste blanche » — sûr par construction à l'ajout d'un rôle.
+   * Le cuisinier ne voit donc AUCUNE entrée tant qu'on ne l'y ajoute pas.
+   */
+  roles: UserRole[];
   action?: () => void;
   path?: string;
   /** Feature du plan requise pour afficher cet item */

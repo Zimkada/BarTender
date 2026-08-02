@@ -132,7 +132,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const addToCart = useCallback((product: Product) => {
         // Check if server in simplified mode - prevent adding to cart
-        const isServerRole = currentSession?.role === 'serveur';
+        // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6 zone 4)
+        const isServerRole = !!currentSession && !hasPermission('canValidateSales');
 
         if (isSimplifiedMode && isServerRole) {
             import('react-hot-toast').then(({ default: toast }) => {
@@ -145,7 +146,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         baseAddToCart(product);
-    }, [baseAddToCart, isSimplifiedMode, currentSession?.role]);
+    }, [baseAddToCart, isSimplifiedMode, currentSession, hasPermission]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
         baseUpdateCartQuantity(productId, quantity);
@@ -299,7 +300,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             customerName: saleData.customerName,
             customerPhone: saleData.customerPhone,
             notes: saleData.notes,
-            status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
+            // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis)
+            status: hasPermission('canValidateSales') ? 'validated' : 'pending',
             serverId: saleData.serverId,
             ticketId: saleData.ticketId
         };
@@ -354,7 +356,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.log('[AppProvider.addReturn] Calling returnsMutations.createReturn.mutate');
 
         // ✅ NEW: Auto-validate if created by Manager/Admin
-        const finalStatus = (currentSession.role === 'promoteur' || currentSession.role === 'gerant')
+        // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis).
+        // canManageInventory gouverne déjà les retours ici (cf. updateReturn/deleteReturn)
+        // et a le même profil : true pour super_admin/promoteur/gerant, false pour serveur.
+        const finalStatus = hasPermission('canManageInventory')
             ? 'approved'
             : 'pending';
 
@@ -366,7 +371,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             status: finalStatus, // Override the status from the UI
             businessDate: getCurrentBusinessDateString(currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR)
         });
-    }, [currentBar, currentSession, returnsMutations]);
+    }, [currentBar, currentSession, returnsMutations, hasPermission]);
 
     const provideExchange = useCallback(async (returnData: Pick<Return, 'saleId' | 'productId' | 'productName' | 'productVolume' | 'quantitySold' | 'quantityReturned' | 'reason' | 'returnedAt' | 'refundAmount' | 'isRefunded' | 'autoRestock' | 'manualRestockRequired'> & Partial<Return>, swapProduct: Product, ticketId?: string) => {
         if (!currentBar || !currentSession) return;
@@ -388,7 +393,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 barId: currentBar.id,
                 returnedBy: currentSession.userId,
                 server_id: serverId || undefined,
-                status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'approved' : 'pending',
+                // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis)
+                status: hasPermission('canManageInventory') ? 'approved' : 'pending',
                 businessDate: getCurrentBusinessDateString(currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR)
             });
 
@@ -410,7 +416,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 sourceReturnId: finalReturnId, // 🛡️ FIX P2: Magic Swap traçabilité (typage correct, interface Sale L322)
                 idempotencyKey: saleIdempotencyKey, // ✅ Clé fixe pour protéger des retries
                 serverId: serverId || undefined,
-                status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
+                // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis)
+                status: hasPermission('canValidateSales') ? 'validated' : 'pending',
                 paymentMethod: 'cash',
                 ticketId: ticketId || undefined, // ✅ Rattachement au bon original si présent
                 notes: `Échange Produit (Source: Retour #${finalReturnId.slice(0, 8)})`
@@ -439,15 +446,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
             throw error;
         }
-    }, [currentBar, currentSession, returnsMutations, salesMutations]);
+    }, [currentBar, currentSession, returnsMutations, salesMutations, hasPermission]);
 
     const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
         console.log('[AppProvider.updateReturn] CALLED for:', returnId, 'with:', updates);
 
-        // ✅ FIX: Allow if Manager/Promoteur OR if they have the permission
-        const canUpdate = hasPermission('canManageInventory') ||
-            currentSession?.role === 'gerant' ||
-            currentSession?.role === 'promoteur';
+        // 🛡️ Par permission seule : le `|| role === 'gerant'/'promoteur'` historique
+        // était redondant (ces rôles ont canManageInventory) et aurait laissé passer
+        // tout futur rôle ajouté à la liste (MATRICE_RBAC_CUISINIER §5.1bis).
+        const canUpdate = hasPermission('canManageInventory');
 
         if (!canUpdate || !currentBar || !currentSession) {
             console.error('[AppProvider.updateReturn] BLOCKED by permission check!', {
@@ -465,9 +472,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const deleteReturn = useCallback((returnId: string) => {
         console.log('[AppProvider.deleteReturn] CALLED for:', returnId);
 
-        const canDelete = hasPermission('canManageInventory') ||
-            currentSession?.role === 'gerant' ||
-            currentSession?.role === 'promoteur';
+        // 🛡️ Par permission seule — même raison que updateReturn ci-dessus.
+        const canDelete = hasPermission('canManageInventory');
 
         if (!canDelete || !currentBar || !currentSession) {
             console.error('[AppProvider.deleteReturn] BLOCKED by permission check!', {

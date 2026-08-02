@@ -33,7 +33,16 @@ export enum OnboardingStep {
   COMPLETE = 'complete',
 }
 
-export type UserRole = 'promoteur' | 'gerant' | 'serveur' | 'owner' | 'manager' | 'bartender';
+/**
+ * ⚠️ DUPLICATION de `UserRole` (types/index.ts) + alias legacy (owner/manager/
+ * bartender). Union inline indépendante : le compilateur ne signale PAS un oubli.
+ * À synchroniser à la main (MATRICE_RBAC_CUISINIER.md §10).
+ *
+ * ⭐ `cuisinier` n'a PAS de parcours d'onboarding dédié : `getStepSequence` le fait
+ * tomber dans son `default` (WELCOME → ROLE_DETECTED → COMPLETE), parcours minimal
+ * et non bloquant. Un parcours cuisine est un chantier produit, hors phase 0.
+ */
+export type UserRole = 'promoteur' | 'gerant' | 'serveur' | 'cuisinier' | 'owner' | 'manager' | 'bartender';
 
 /**
  * Step data stored in localStorage for persistence

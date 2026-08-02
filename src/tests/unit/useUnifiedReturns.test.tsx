@@ -21,9 +21,23 @@ vi.mock('../../hooks/queries/useReturnsQueries', () => ({
   returnKeys: { all: ['returns'] },
 }));
 
+// Le périmètre de lecture est piloté par permission (MATRICE_RBAC_CUISINIER §6).
+// Ce mock simule un gérant : canViewAllSales = true → voit tous les retours.
+const { mockHasPermission } = vi.hoisted(() => ({
+  mockHasPermission: (permission: string): boolean => {
+    const gerantPermissions: Record<string, boolean> = {
+      canViewAllSales: true,
+      canViewOwnSales: true,
+      canSell: true,
+    };
+    return gerantPermissions[permission] ?? false;
+  },
+}));
+
 vi.mock('../../context/AuthContext', () => ({
   useAuth: vi.fn(() => ({
     currentSession: { userId: 'user-123', role: 'gérant' },
+    hasPermission: mockHasPermission,
   })),
 }));
 

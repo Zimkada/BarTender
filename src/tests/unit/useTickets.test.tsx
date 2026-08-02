@@ -34,9 +34,24 @@ vi.mock('../../hooks/useServerMappings', () => ({
   useServerMappings: vi.fn(() => ({ mappings: [] })),
 }));
 
+// Le périmètre de lecture est piloté par permission (MATRICE_RBAC_CUISINIER §6).
+// On délègue à la vraie table ROLE_PERMISSIONS plutôt que de renvoyer true en dur :
+// le mock reste fidèle au rôle simulé ('gerant' → canViewAllSales = true).
+const { mockHasPermission } = vi.hoisted(() => ({
+  mockHasPermission: (permission: string): boolean => {
+    const gerantPermissions: Record<string, boolean> = {
+      canViewAllSales: true,
+      canViewOwnSales: true,
+      canSell: true,
+    };
+    return gerantPermissions[permission] ?? false;
+  },
+}));
+
 vi.mock('../../context/AuthContext', () => ({
   useAuth: vi.fn(() => ({
     currentSession: { userId: 'user-123', role: 'gerant' },
+    hasPermission: mockHasPermission,
   })),
 }));
 

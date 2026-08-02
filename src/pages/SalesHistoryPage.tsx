@@ -57,7 +57,7 @@ export default function SalesHistoryPage() {
     const { returns: unifiedReturns, getReturnsBySale: getReturnsBySaleFromHook } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
     const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const { isMobile } = useViewport();
     const { showSuccess, showError } = useFeedback();
 
@@ -167,7 +167,10 @@ export default function SalesHistoryPage() {
     }, [selectedSaleId, unifiedSales, selectedSaleDetail]);
 
     // ✨ Filter metrics for servers
-    const isServerRole = currentSession?.role === 'serveur';
+    // 🛡️ Périmètre piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6)
+    // ⚠️ `!!currentSession &&` : sans session, hasPermission() renvoie false et
+    // restreindrait le périmètre — divergent de l'ancien `role === 'serveur'`.
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
     const serverIdForAnalytics = isServerRole ? currentSession?.userId : undefined;
 
     // HOOK: Statistiques & Top Produits

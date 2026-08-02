@@ -80,7 +80,7 @@ export default function ReturnsPage() {
     return id ? usersMap.get(id) || null : null;
   }, [usersMap]);
   const { formatPrice } = useCurrencyFormatter();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { showSuccess, showError } = useFeedback();
   const { isMobile } = useViewport();
 
@@ -88,7 +88,9 @@ export default function ReturnsPage() {
   // Les serveurs peuvent maintenant créer des demandes en mode complet, 
   // mais seuls gérants/promoteurs peuvent valider.
   // En mode simplifié, les serveurs ne peuvent ni vendre ni retourner.
-  const isServer = currentSession?.role === "serveur";
+  // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6) : la
+  // validation des retours suit canManageInventory, comme dans AppProvider.
+  const isServer = !!currentSession && !hasPermission('canManageInventory');
   const { isSimplifiedMode } = useBarContext();
   const canCreate = !isServer || !isSimplifiedMode;
   const isReadOnly = isServer;
@@ -193,7 +195,8 @@ export default function ReturnsPage() {
 
   const getReturnableSales = useMemo((): Sale[] => {
     const currentBusinessDate = getCurrentBusinessDateString(closeHour);
-    const isServerRole = currentSession?.role === "serveur";
+    // 🛡️ Périmètre de lecture par PERMISSION (MATRICE_RBAC_CUISINIER §6)
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
 
     return sales.filter((sale) => {
       if (sale.status !== "validated") return false;
@@ -208,7 +211,7 @@ export default function ReturnsPage() {
 
       return true;
     });
-  }, [sales, closeHour, currentSession]);
+  }, [sales, closeHour, currentSession, hasPermission]);
 
   const createReturn = async (
     saleId: string,

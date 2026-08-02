@@ -1,7 +1,20 @@
 // types/index.ts - VERSION UNIFIÉE MULTI-TENANT
 
 // ===== UTILISATEURS & AUTHENTIFICATION =====
-export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
+/**
+ * Rôles applicatifs.
+ *
+ * ⚠️ Source de vérité, mais DUPLIQUÉE : `types/guide.ts` et `OnboardingContext.tsx`
+ * redéclarent cette union, et `utils/validation.ts` porte une liste blanche runtime.
+ * Le compilateur ne détecte QUE les oublis ici (via ROLE_PERMISSIONS) — les autres
+ * sont des unions inline structurellement indépendantes.
+ * Consolidation = dette assumée (MATRICE_RBAC_CUISINIER.md §10).
+ *
+ * ⭐ `cuisinier` (02/08/2026) : rôle TRANSVERSAL au même niveau que `serveur` (4),
+ * permissions DISJOINTES — produit sans vendre, là où le serveur vend sans produire.
+ * Ce n'est PAS un 5e niveau hiérarchique.
+ */
+export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur' | 'cuisinier';
 
 export interface User {
   id: string;
@@ -625,6 +638,12 @@ export interface RolePermissions {
 
   // Ventes
   canSell: boolean;
+  /**
+   * ⭐ Ses ventes naissent `validated` au lieu de `pending`.
+   * Qui ne l'a pas voit ses ventes passer par la validation du gérant.
+   * Remplace le test `role === 'serveur'` de QuickSaleFlow (MATRICE_RBAC_CUISINIER §6).
+   */
+  canValidateSales: boolean;
   canCancelSales: boolean;
   canViewAllSales: boolean;
   canViewOwnSales: boolean;
@@ -646,6 +665,34 @@ export interface RolePermissions {
 
   // Promotions (NEW)
   canManagePromotions: boolean;
+
+  // ===== CUISINE / RESTAURATION =====
+  // Voir docs/roadmaps/MATRICE_RBAC_CUISINIER.md §3 et PLAN_MODULE_RESTAURATION.md §12.5.
+  // ⚠️ Volontairement DISJOINTES des permissions bar : le stock ingrédients n'est pas
+  // canManageInventory (casiers), et la file cuisine n'est pas canViewAllSales.
+
+  /** Voir la file cuisine. ⚠️ Le serveur l'a aussi : il doit voir ce qui est `ready` pour le retirer (§6.1). */
+  canViewKitchenOrders: boolean;
+  /** Faire avancer la production : `accept` / `start` / `mark_ready`. Le serveur ne l'a pas. */
+  canUpdateKitchenOrderStatus: boolean;
+  /** ⭐ `serve` — crée la VENTE (§6.1). Disjointe de canUpdateKitchenOrderStatus : qui produit ne vend pas. */
+  canServeKitchenItem: boolean;
+  /** Plats, `dish_ingredients`, sous-recettes (§13.8). */
+  canManageRecipes: boolean;
+  /** Appros ingrédients, lots FEFO (§16.13), inventaire physique (§16.5). */
+  canManageIngredientStock: boolean;
+  /**
+   * Annuler une ligne de commande cuisine.
+   * ⚠️ Borne TEMPORELLE non exprimable par une permission : après `ready` la matière est
+   * consommée, l'annulation devient une décision de gestion (§6.1). Le RPC
+   * `cancel_kitchen_order_item` doit trancher sur le STATUT — cette permission n'est
+   * que le premier filtre.
+   */
+  canCancelKitchenOrderItem: boolean;
+  /** Rembourser un plat prépayé — sortie de caisse, gérant/promoteur seulement en V1 (§13.1). */
+  canRefundPrepaidKitchenItem: boolean;
+  /** Coût matière et marge des plats (§8). Information de gestion : voir les quantités ≠ voir les montants. */
+  canViewKitchenCosts: boolean;
 
   // Paramètres
   canManageSettings: boolean;
@@ -674,6 +721,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageInventory: true,
     canViewInventory: true,
     canSell: true,
+    canValidateSales: true,
     canCancelSales: true,
     canViewAllSales: true,
     canViewOwnSales: true,
@@ -687,6 +735,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canClaimConsignment: true,
     canViewConsignments: true,
     canManagePromotions: true, // NEW
+    // Cuisine — accès total
+    canViewKitchenOrders: true,
+    canUpdateKitchenOrderStatus: true,
+    canServeKitchenItem: true,
+    canManageRecipes: true,
+    canManageIngredientStock: true,
+    canCancelKitchenOrderItem: true,
+    canRefundPrepaidKitchenItem: true,
+    canViewKitchenCosts: true,
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: true,
@@ -707,6 +764,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageInventory: true,
     canViewInventory: true,
     canSell: true,
+    canValidateSales: true,
     canCancelSales: true,
     canViewAllSales: true,
     canViewOwnSales: true,
@@ -720,6 +778,15 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canClaimConsignment: true,
     canViewConsignments: true,
     canManagePromotions: true, // NEW
+    // Cuisine — accès total (propriétaire de l'établissement)
+    canViewKitchenOrders: true,
+    canUpdateKitchenOrderStatus: true,
+    canServeKitchenItem: true,
+    canManageRecipes: true,
+    canManageIngredientStock: true,
+    canCancelKitchenOrderItem: true,
+    canRefundPrepaidKitchenItem: true,
+    canViewKitchenCosts: true,
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: true,
@@ -735,6 +802,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageInventory: true,
     canViewInventory: true,
     canSell: true,
+    canValidateSales: true,
     canCancelSales: false,
     canViewAllSales: true,
     canViewOwnSales: true,
@@ -748,6 +816,17 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canClaimConsignment: true,
     canViewConsignments: true,
     canManagePromotions: true, // NEW
+    // Cuisine — accès complet : le gérant pilote le service au quotidien.
+    // ⚠️ canViewKitchenCosts = true bien que canViewAccounting soit false : la marge
+    // matière est un outil de pilotage opérationnel (§8), pas de la comptabilité.
+    canViewKitchenOrders: true,
+    canUpdateKitchenOrderStatus: true,
+    canServeKitchenItem: true,
+    canManageRecipes: true,
+    canManageIngredientStock: true,
+    canCancelKitchenOrderItem: true,
+    canRefundPrepaidKitchenItem: true,
+    canViewKitchenCosts: true,
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: false,
@@ -763,6 +842,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageInventory: false,
     canViewInventory: false,
     canSell: true,
+    // ⭐ false : les ventes du serveur naissent 'pending' et passent par la
+    // validation du gérant — comportement historique, inchangé.
+    canValidateSales: false,
     canCancelSales: false,
     canViewAllSales: false,
     canViewOwnSales: true,
@@ -776,6 +858,80 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canClaimConsignment: false,
     canViewConsignments: false,
     canManagePromotions: false, // NEW
+    // Cuisine — le serveur est à l'INTERFACE salle/cuisine, pas en production :
+    // il voit la file (pour repérer ce qui est `ready`) et sert (ce qui crée la
+    // vente, §6.1), mais ne fait PAS avancer la production ni ne voit les coûts.
+    canViewKitchenOrders: true,
+    canUpdateKitchenOrderStatus: false,
+    canServeKitchenItem: true,
+    canManageRecipes: false,
+    canManageIngredientStock: false,
+    canCancelKitchenOrderItem: false,
+    canRefundPrepaidKitchenItem: false,
+    canViewKitchenCosts: false,
+    canManageSettings: false,
+    canManageBarInfo: false,
+    canCreateBars: false,
+    canSwitchBars: false,
+  },
+  /**
+   * ⭐ CUISINIER (02/08/2026) — rôle TRANSVERSAL de niveau 4, comme le serveur.
+   *
+   * ⛔ NE JAMAIS écrire `...ROLE_PERMISSIONS.serveur` puis surcharger : il
+   * hériterait de `canSell: true` et `canViewOwnSales: true`, exactement les deux
+   * permissions que MATRICE_RBAC_CUISINIER.md §2 lui refuse. Les 35 valeurs sont
+   * écrites une par une — c'est aussi ce qui rend la revue possible.
+   *
+   * Principe : il PRODUIT sans vendre, là où le serveur VEND sans produire.
+   * Tous ses droits viennent des permissions cuisine, aucune des permissions bar.
+   */
+  cuisinier: {
+    // Utilisateurs — métier de production, pas d'encadrement
+    canManageUsers: false,
+    canCreateManagers: false,
+    canCreateServers: false,
+    // Produits (boissons) — hors de son périmètre
+    canAddProducts: false,
+    canEditProducts: false,
+    canDeleteProducts: false,
+    // ⚠️ Stock BOISSONS (casiers) : non. Son stock passe par canManageIngredientStock.
+    canManageInventory: false,
+    canViewInventory: false,
+    // ⭐ Ventes — AUCUNE. La vente naît du `serve` par le serveur (§6.1).
+    canSell: false,
+    canValidateSales: false,
+    canCancelSales: false,
+    canViewAllSales: false,
+    // ⚠️ false et non true : un cuisinier n'a AUCUNE vente propre (il ne vend pas).
+    // `true` afficherait un écran vide et trompeur.
+    canViewOwnSales: false,
+    // Analytics — ses indicateurs passent par ses propres écrans
+    canViewAnalytics: false,
+    canExportData: false,
+    canViewForecasting: false,
+    // Comptabilité — aucune
+    canViewAccounting: false,
+    // ⚠️ Les appros INGRÉDIENTS ne passent PAS par là : canManageIngredientStock.
+    canManageExpenses: false,
+    canManageSalaries: false,
+    // Consignations — mécanisme boissons
+    canCreateConsignment: false,
+    canClaimConsignment: false,
+    canViewConsignments: false,
+    canManagePromotions: false,
+    // ⭐ Cuisine — la TOTALITÉ de ses droits est ici
+    canViewKitchenOrders: true,
+    canUpdateKitchenOrderStatus: true,
+    canServeKitchenItem: false,      // ⭐ `serve` crée la vente — cohérent avec canSell: false
+    canManageRecipes: true,
+    canManageIngredientStock: true,
+    // ⚠️ Borne TEMPORELLE non exprimable ici : le cuisinier annule AVANT `ready`
+    // seulement. Après, la matière est consommée → décision du gérant (§6.1).
+    // C'est le RPC cancel_kitchen_order_item qui tranche sur le STATUT.
+    canCancelKitchenOrderItem: true,
+    canRefundPrepaidKitchenItem: false, // Sortie de caisse — gérant/promoteur (§13.1)
+    canViewKitchenCosts: false,         // Voit les QUANTITÉS, pas les MONTANTS (§8)
+    // Paramètres & multi-bar — aucun
     canManageSettings: false,
     canManageBarInfo: false,
     canCreateBars: false,

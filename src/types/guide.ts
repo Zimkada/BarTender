@@ -3,7 +3,12 @@
  * Modern, type-safe guide infrastructure for post-onboarding
  */
 
-export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
+/**
+ * ⚠️ DUPLICATION de `UserRole` (types/index.ts). Union inline structurellement
+ * indépendante : le compilateur ne signale PAS un oubli ici.
+ * Doit rester synchronisée à la main (MATRICE_RBAC_CUISINIER.md §10).
+ */
+export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur' | 'cuisinier';
 
 export type GuideDifficulty = 'beginner' | 'intermediate' | 'advanced';
 

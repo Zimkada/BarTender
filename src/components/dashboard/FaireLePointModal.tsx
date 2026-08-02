@@ -20,7 +20,7 @@ interface FaireLePointModalProps {
 }
 
 export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) {
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const { currentBar } = useBarContext();
     const queryClient = useQueryClient();
     const { formatPrice } = useCurrencyFormatter();
@@ -30,7 +30,9 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
     const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
-    const isManagerOrPromoter = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
+    // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis) :
+    // afficher le nom du serveur relève de la visibilité inter-collègues.
+    const isManagerOrPromoter = !!currentSession && hasPermission('canViewAllSales');
 
     // View Details Logic
     const [viewDetailsId, setViewDetailsId] = useState<string | null>(null);

@@ -14,14 +14,16 @@ interface BonStripProps {
 
 export function BonStrip({ tickets }: BonStripProps) {
     const { formatPrice } = useCurrencyFormatter();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const [showModal, setShowModal] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [viewDetailsId, setViewDetailsId] = useState<string | null>(null);
 
     if (tickets.length === 0) return null;
 
-    const isManagerOrPromoter = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
+    // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis) :
+    // afficher le nom du serveur relève de la visibilité inter-collègues.
+    const isManagerOrPromoter = !!currentSession && hasPermission('canViewAllSales');
 
     return (
         <motion.div

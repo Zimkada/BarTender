@@ -71,14 +71,14 @@ interface PurchaseOrdersTabProps {
 
 export function PurchaseOrdersTab({ barId }: PurchaseOrdersTabProps) {
     const { formatPrice } = useCurrencyFormatter();
-    const { currentSession } = useAuth();
+    const { hasPermission } = useAuth();
     const { showSuccess, showError } = useFeedback();
     const { data: orders, isLoading, refetch } = usePurchaseOrders(barId);
     const { cancelOrder, markAsOrdered, closePartialOrder } = usePurchaseOrdersMutations(barId);
 
-    const canManage = currentSession?.role === 'promoteur'
-        || currentSession?.role === 'gerant'
-        || currentSession?.role === 'super_admin';
+    // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis) :
+    // canManageInventory a exactement ce profil (les 3 rôles gestionnaires).
+    const canManage = hasPermission('canManageInventory');
 
     const [filterMode, setFilterMode] = useState<FilterMode>('active');
     const [creationMode, setCreationMode] = useState<CreationMode>('list');

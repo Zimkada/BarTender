@@ -112,7 +112,7 @@ export const useSalesMutations = (barId: string, options?: {
     stockChecker?: (productId: string) => { availableStock: number } | null;
 }) => {
     const queryClient = useQueryClient();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const { currentBar, isSimplifiedMode } = useBarContext();
 
     // ✅ CRITICAL FIX: Call useCanWorkOffline() at top-level (React Hooks Rules)
@@ -230,7 +230,11 @@ export const useSalesMutations = (barId: string, options?: {
                 : (currentSession?.userId || '');
 
             const role = currentSession?.role;
-            const isManagerOrAdmin = role === 'super_admin' || role === 'promoteur' || role === 'gerant';
+            // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis).
+            // ⚠️ Ce calcul ÉCRASE le status passé par QuickSaleFlow : sans cet alignement,
+            // canValidateSales serait inopérant sur ce chemin. Équivalence stricte —
+            // canValidateSales est true pour super_admin/promoteur/gerant, false pour serveur.
+            const isManagerOrAdmin = !!currentSession && hasPermission('canValidateSales');
 
             // 🛡️ DECISION CRITIQUE (V11.4): Une vente offline par un gérant/admin est VALIDÉE par défaut.
             // Cela évite qu'elle ne disparaisse du CA global après synchronisation.

@@ -268,10 +268,15 @@ function buildTransitionSales(
 export function useRevenueStats(options: { startDate?: string; endDate?: string; enabled?: boolean } = {}): RevenueStats {
     const queryClient = useQueryClient();
     const { currentBar, operatingMode } = useBarContext();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
 
     const currentBarId = currentBar?.id || '';
-    const isServerRole = currentSession?.role === 'serveur';
+    // 🛡️ Périmètre de lecture piloté par PERMISSION, jamais par rôle brut.
+    // ⚠️ Cette valeur entre dans la query key statsKeys.summary : elle reste un
+    // booléen primitif, donc aucune instabilité de référence introduite.
+    // ⚠️ `!!currentSession &&` : sans session, hasPermission() renvoie false et
+    // restreindrait le périmètre — divergent de l'ancien `role === 'serveur'`.
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
 
     const todayStr = getCurrentBusinessDateString(currentBar?.closingHour);
     const {

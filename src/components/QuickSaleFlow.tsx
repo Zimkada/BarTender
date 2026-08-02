@@ -36,7 +36,7 @@ interface QuickSaleFlowProps {
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // --- HOOKS & CONTEXTS ---
   const { currentBar, isSimplifiedMode } = useBarContext();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { isMobile } = useViewport();
   const { formatPrice } = useCurrencyFormatter();
 
@@ -222,7 +222,11 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         paymentMethod,
         serverId,
         ticketId: ticketId || undefined,
-        status: (currentSession.role === 'serveur') ? 'pending' : 'validated',
+        // 🛡️ Statut piloté par PERMISSION, jamais par rôle brut : sans
+        // canValidateSales, la vente naît 'pending' et passe par le gérant.
+        // ⛔ Avant, tout rôle ≠ 'serveur' créait des ventes directement validées —
+        // un futur rôle (cuisinier) en aurait hérité (MATRICE_RBAC_CUISINIER §6, zone 5).
+        status: hasPermission('canValidateSales') ? 'validated' : 'pending',
         notes: isSimplifiedMode ? `Serveur: ${assignedServerName}` : undefined,
         idempotencyKey: saleIdempotencyKeyRef.current // ⭐ UUID stable par panier
       });
@@ -248,7 +252,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       toast.error(error instanceof Error ? error.message : 'Erreur vente');
       return false; // ⭐ Échec — CartDrawer conserve server/bon pour permettre le retry
     }
-  }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile]);
+  }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile, hasPermission]);
 
 
   // --- HELPERS ---
@@ -298,7 +302,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   if (!isOpen) return null;
 
   // ACCESS CHECK
-  if (isSimplifiedMode && currentSession?.role === 'serveur') {
+  // 🛡️ En mode simplifié, seul qui peut valider ses propres ventes accède à la
+  // vente rapide — le gérant crée les ventes (cf. create_sale_idempotent, qui
+  // applique la même règle côté DB). Piloté par permission, jamais par rôle brut.
+  if (isSimplifiedMode && !!currentSession && !hasPermission('canValidateSales')) {
     return null;
   }
 

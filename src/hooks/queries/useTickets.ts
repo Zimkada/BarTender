@@ -102,8 +102,15 @@ export interface TicketWithSummary extends Ticket {
  */
 export function useTickets(barId: string | undefined) {
     const queryClient = useQueryClient();
-    const { currentSession } = useAuth();
-    const isServerRole = currentSession?.role === 'serveur';
+    const { currentSession, hasPermission } = useAuth();
+    // 🛡️ Périmètre de lecture piloté par PERMISSION, jamais par rôle brut : un rôle
+    // sans canViewAllSales ne voit que ses propres bons (MATRICE_RBAC_CUISINIER §6).
+    // ⚠️ `!!currentSession &&` : hasPermission() renvoie false sans session, ce qui
+    // restreindrait le périmètre au lieu de l'ouvrir — sûr, mais divergent de
+    // l'ancien `role === 'serveur'` (false sans session). On conserve l'équivalence
+    // stricte : pas de session ⟹ pas de restriction (les queries sont de toute
+    // façon désactivées, et RootLayout redirige avant tout rendu).
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
 
     // ⚡ Egress: fenêtre bornée à journée courante + veille (garde-fou egress —
     // évite le Cas 2 full-scan de getBarSales, items jsonb inclus, cap 500).

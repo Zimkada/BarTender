@@ -50,9 +50,11 @@ const DEFAULT_HISTORY_DAYS = 7; // Optimized for responsive loading
 
 export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistoryModalProps) {
     const { currentBar } = useBarContext();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     // Promoteur uniquement — aligné avec le RPC serveur (get_user_role = 'promoteur').
-    const canManageSupplies = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
+    // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis) :
+    // canManageExpenses a exactement ce profil (super_admin + promoteur seulement).
+    const canManageSupplies = hasPermission('canManageExpenses');
     const { reverseSupply } = useStockMutations(currentBar?.id);
     const [history, setHistory] = useState<TimelineEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -211,8 +213,10 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                             <span className="font-medium">
                                                 {/* ✨ PRIVACY: Anonymiser pour les serveurs si ce n'est pas eux */}
                                                 {(() => {
-                                                    // ✨ Fix: Use top-level hook reference
-                                                    const isServer = currentSession?.role === 'serveur';
+                                                    // 🛡️ Anonymisation pilotée par PERMISSION, jamais par rôle brut :
+                                                    // qui n'a pas canViewAllSales ne voit pas le nom de ses collègues
+                                                    // (cf. MATRICE_RBAC_CUISINIER §6).
+                                                    const isServer = !!currentSession && !hasPermission('canViewAllSales');
                                                     const currentUserName = currentSession?.userName;
 
                                                     if (isServer && event.user !== currentUserName && event.user !== 'Inconnu') {

@@ -50,7 +50,7 @@ interface ExpenseManagerProps {
 }
 
 function ExpenseManagerContent({ period }: ExpenseManagerProps) {
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
@@ -75,7 +75,9 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   const { reverseSupply, updateSupplyMetadata } = useStockMutations(currentBar?.id);
   // Promoteur uniquement — le RPC serveur rejette aussi les gérants,
   // mais on aligne l'UI pour éviter une action vouée à échouer.
-  const canManageSupplies = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
+  // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis) :
+  // canManageExpenses a exactement ce profil (super_admin + promoteur seulement).
+  const canManageSupplies = hasPermission('canManageExpenses');
 
   // State
   const [showExpenseModal, setShowExpenseModal] = useState(false);

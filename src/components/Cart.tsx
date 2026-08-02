@@ -29,7 +29,7 @@ export function Cart({
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const { isMobile } = useViewport();
   const { currentBar, isSimplifiedMode } = useBarContext();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { getProductStockInfo } = useStock();
   const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
@@ -79,7 +79,10 @@ export function Cart({
     // 🔴 BLOCKING LOGIC : SERVER OFFLINE MODE
     // Utilise networkManager pour respecter la grace period (état "unstable" != offline)
     const isOffline = networkManager.getDecision().shouldBlock;
-    const isServer = currentSession?.role === 'serveur';
+    // 🛡️ Piloté par PERMISSION, jamais par rôle brut : qui ne peut pas valider ses
+    // propres ventes ne peut pas non plus les créer hors ligne (elles resteraient
+    // 'pending' sans que le gérant les voie). Cf. MATRICE_RBAC_CUISINIER §6 zone 4.
+    const isServer = !!currentSession && !hasPermission('canValidateSales');
 
     if (isOffline && isServer) {
       toast.error(
@@ -144,7 +147,9 @@ export function Cart({
     }
   };
 
-  const isServerRole = currentSession?.role === 'serveur';
+  // 🛡️ En mode simplifié, le panier est masqué à qui ne crée pas les ventes —
+  // même règle que QuickSaleFlow et create_sale_idempotent. Par permission.
+  const isServerRole = !!currentSession && !hasPermission('canValidateSales');
   const shouldHide = hideFloatingButton || (isSimplifiedMode && isServerRole);
 
   // --- RENDER ---
