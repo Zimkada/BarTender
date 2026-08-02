@@ -17,6 +17,7 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
 import { getErrorMessage } from '../../utils/errorHandler';
+import { dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 
 // ===== TYPES =====
 
@@ -257,6 +258,12 @@ export class IngredientsService {
     const limit = new Date();
     limit.setDate(limit.getDate() + withinDays);
 
+    // ⚠️ `dateToYYYYMMDD` et NON `toISOString().split('T')[0]` : ce dernier
+    // convertit en UTC. Au Bénin (UTC+1), un appel à 00h30 locale produirait
+    // la date de la VEILLE — la fenêtre serait décalée d'un jour et un lot
+    // périmant le jour même serait manqué. Le helper utilise les getters locaux.
+    const limitDate = dateToYYYYMMDD(limit);
+
     try {
       const { data, error } = await supabase
         .from('ingredient_lots')
@@ -265,7 +272,7 @@ export class IngredientsService {
         .eq('status', 'active')
         .gt('remaining_qty', 0)
         .not('expires_at', 'is', null)
-        .lte('expires_at', limit.toISOString().split('T')[0])
+        .lte('expires_at', limitDate)
         .order('expires_at', { ascending: true });
 
       if (error) throw error;
