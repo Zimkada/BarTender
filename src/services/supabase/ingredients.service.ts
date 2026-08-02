@@ -131,7 +131,14 @@ export interface ConsumptionItem {
 
 export interface ConsumeResult extends RpcEnvelope {
   total_cost: number;
-  items: ConsumptionItem[];
+  /**
+   * ⚠️ Peut être `null` : sur le chemin de rejeu, le RPC construit ce tableau
+   * par `jsonb_agg`, qui retourne NULL si aucune ligne n'est agrégée. Le garde
+   * `v_existing > 0` rend ce cas inatteignable aujourd'hui, mais la garantie
+   * repose sur deux blocs SQL distincts — le type reste fidèle au contrat
+   * réel plutôt qu'à ce qui est probable.
+   */
+  items: ConsumptionItem[] | null;
   idempotent_replay: boolean;
 }
 

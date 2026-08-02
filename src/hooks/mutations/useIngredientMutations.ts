@@ -72,6 +72,12 @@ export function useIngredientMutations() {
    *
    * ⭐ Le coût reste borné : ces queries ne sont montées que sur les écrans
    * cuisine, et uniquement si `hasRestaurant` (§3).
+   *
+   * ⚠️ Branchée sur `onSettled` et NON `onSuccess` : une mutation peut réussir
+   * CÔTÉ SERVEUR puis échouer côté réseau (timeout après le commit, coupure).
+   * Le RPC est transactionnel, donc la base est cohérente — mais le cache
+   * client, lui, resterait périmé et afficherait un stock faux. Invalider dans
+   * les deux cas coûte un refetch ; ne pas le faire coûte un chiffre faux.
    */
   const invalidateKitchenStock = () => {
     queryClient.invalidateQueries({ queryKey: ingredientKeys.all });
@@ -98,9 +104,8 @@ export function useIngredientMutations() {
         notes: input.notes,
       });
     },
+    onSettled: invalidateKitchenStock,
     onSuccess: (result) => {
-      invalidateKitchenStock();
-
       import('react-hot-toast').then(({ default: toast }) => {
         // ⚠️ Un rejeu ne doit PAS annoncer un second approvisionnement : le
         // gérant croirait avoir saisi deux livraisons.
@@ -152,15 +157,20 @@ export function useIngredientMutations() {
         businessDate: input.businessDate,
       });
     },
+    onSettled: invalidateKitchenStock,
     onSuccess: (result) => {
-      invalidateKitchenStock();
-
       if (result.idempotent_replay) return; // Rejeu : rien de neuf à annoncer
 
       // ⭐ Le stock négatif est SILENCIEUX côté base (§4.4) mais doit être
       // VISIBLE côté humain — sinon il s'accumule sans que personne n'agisse,
       // et le coût matière dérive avec lui.
-      const withDebt = result.items.filter((item) => (item.qty_from_debt ?? 0) > 0);
+      //
+      // ⚠️ `?? []` : sur le chemin de rejeu, `items` provient d'un `jsonb_agg`
+      // qui retourne NULL si aucune ligne n'est agrégée. Le garde `v_existing > 0`
+      // du RPC rend ce cas inatteignable aujourd'hui — mais cette garantie repose
+      // sur deux blocs SQL séparés, et un TypeError ici casserait l'écran entier
+      // pour une raison invisible. Le coût de la garde est nul.
+      const withDebt = (result.items ?? []).filter((item) => (item.qty_from_debt ?? 0) > 0);
 
       if (withDebt.length > 0) {
         import('react-hot-toast').then(({ default: toast }) => {
@@ -196,9 +206,8 @@ export function useIngredientMutations() {
         businessDate: input.businessDate,
       });
     },
+    onSettled: invalidateKitchenStock,
     onSuccess: (result) => {
-      invalidateKitchenStock();
-
       import('react-hot-toast').then(({ default: toast }) => {
         if (result.idempotent_replay) {
           // ⭐ reason_mismatch : l'appelant demandait une AUTRE cause que celle

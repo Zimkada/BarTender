@@ -291,6 +291,40 @@ describe('useIngredientMutations — les anomalies ne sont jamais tues', () => {
     });
   });
 
+  describe('🔄 Invalidation du cache', () => {
+    it('⭐ invalide MÊME en cas d\'échec (onSettled, pas onSuccess)', async () => {
+      // Une mutation peut réussir CÔTÉ SERVEUR puis échouer côté réseau
+      // (timeout après le commit). La base est cohérente — le cache client, lui,
+      // afficherait un stock faux. Invalider dans les deux cas coûte un refetch ;
+      // ne pas le faire coûte un chiffre faux.
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      );
+
+      mockReceiveSupply.mockRejectedValue(new Error('Timeout réseau'));
+
+      const { result } = renderHook(() => useIngredientMutations(), { wrapper });
+
+      await act(async () => {
+        await expect(
+          result.current.receiveSupply.mutateAsync({ ingredientId: 'ing-1', qty: 5, unitCost: 300 })
+        ).rejects.toThrow();
+      });
+
+      await waitFor(() => {
+        expect(
+          invalidateSpy,
+          'Le cache doit être invalidé même sur échec — sinon il reste périmé'
+        ).toHaveBeenCalled();
+      });
+    });
+  });
+
   describe('⛔ Erreurs', () => {
     it('sans bar sélectionné, la mutation échoue proprement', async () => {
       const { result } = renderHook(() => useIngredientMutations(), { wrapper: createWrapper() });
