@@ -1535,6 +1535,56 @@ contradictoires.
 **UX à l'activation** : proposer explicitement le passage en mode complet, avec l'explication
 (« la cuisine nécessite un compte pour le cuisinier »). Ne **jamais** basculer le mode silencieusement.
 
+**État d'implémentation (02/08/2026)** : appliqué dans `BarContext.hasRestaurant`, qui exige
+`settings.hasRestaurant === true` **ET** `operatingMode === 'full'`. Un bar dont le drapeau serait
+`true` en base alors qu'il est repassé en simplifié n'expose donc pas la cuisine — l'incohérence est
+rendue inoffensive au lieu d'être subie. Couvert par `BarContext.test.ts`.
+
+#### ⏸ Question rouverte : une « cuisine simplifiée » est-elle possible ? — POST-V1
+
+> Soulevée par le fondateur le 02/08/2026 : *« ne peut-on pas permettre au gérant d'enregistrer les
+> opérations cuisine en mode simplifié, en les simplifiant comme pour les ventes de boissons ? »*
+>
+> La question est **fondée** et le §13.4 ci-dessus tranchait plus fermement que le §15.7, qui
+> qualifiait le point de « non bloquant, à trancher ». Cette sous-section lève la tension.
+
+**Le parallèle avec les ventes est réel.** En mode simplifié, le gérant enregistre une vente et
+**attribue** un serveur par son nom : le serveur n'a pas de compte, c'est une chaîne
+(`serversList`, `server_name_mappings`). Le principe est *un seul opérateur authentifié, plusieurs
+acteurs nommés*.
+
+**Pourquoi il ne se transpose pas directement.** La différence n'est pas le nombre de comptes, c'est
+la **nature de l'objet enregistré** :
+
+| | Vente de boisson | Production d'un plat |
+|---|---|---|
+| Forme | événement **instantané** | **séquence** dans le temps (§6.1) |
+| Enregistrement | un seul, a posteriori | 3 à 5 transitions horodatées |
+| Effet de `mark_ready` | — | ⭐ **décrément FEFO + coût matière figé** |
+
+Un gérant qui saisirait les transitions a posteriori les **inventerait** : « le plat était prêt à
+19h42 » suppose que quelqu'un l'a constaté à 19h42. Or `mark_ready` n'est pas un horodatage
+décoratif — il déclenche la consommation de matière et fige `computed_cost`, donc toute la chaîne de
+marge (§8).
+
+**Le cas qui resterait légitime** : un bar-resto où le gérant fait **réellement** tout — il prend la
+commande, il cuisine, il sert. Les transitions ne sont alors pas fictives, elles sont simplement
+toutes faites par la même personne. Une « cuisine simplifiée » y aurait du sens : pas d'écran
+cuisinier, pas de file d'attente, le gérant enregistre un plat vendu et le stock se décrémente.
+
+**Décision : POST-V1.** Trois raisons, par ordre de poids :
+
+1. Cela **double les chemins à tester** dans la machine d'état — le cœur du module, et l'endroit où
+   une erreur coûte le plus cher ;
+2. Les métriques qui font la valeur du module (écart théorique/réel, temps de préparation, pertes
+   §8) supposent des transitions **constatées**, pas déclarées. Un mode dégradé produirait des
+   chiffres d'apparence identique mais de fiabilité moindre — sans que rien ne le signale ;
+3. Mode minoritaire : la V1 doit prouver sa valeur sur le cas nominal avant de se ramifier.
+
+⚠ **Signal terrain à surveiller** : si une part significative des bars-restos s'avère être en mode
+simplifié, cet arbitrage remonte en priorité. Ce n'est pas un refus de principe mais un
+séquencement — le besoin est réel, la V1 n'est pas le bon moment.
+
 ### 13.5 Offline cuisine — règles strictes
 
 | Opération | Offline |
@@ -2090,6 +2140,15 @@ Non bloquant (mode minoritaire), mais le plan affirmait une cohérence **non vé
 le plus probable est qu'un bar-resto en mode simplifié donne quand même un compte au cuisinier — ce
 qui signifie que « mode simplifié » et « restauration » sont partiellement contradictoires, et
 mérite d'être dit.
+
+> **✅ TRANCHÉ — voir §13.4.** La restauration exige le mode complet en V1, et c'est **appliqué**
+> (`BarContext.hasRestaurant` teste les deux conditions). L'hypothèse formulée ici était la bonne :
+> un bar-resto donne un compte à son cuisinier.
+>
+> ⏸ La variante « cuisine simplifiée » — le gérant seul enregistrant tout, comme il le fait pour les
+> ventes — a été rouverte le 02/08/2026 puis **reportée Post-V1**. Le raisonnement complet, et
+> pourquoi le parallèle avec les ventes ne se transpose pas (événement instantané vs séquence
+> horodatée déclenchant le décrément FEFO), est en **§13.4**.
 
 ---
 
