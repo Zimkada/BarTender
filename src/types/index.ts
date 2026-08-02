@@ -93,6 +93,23 @@ export interface BarSettings {
     tvaRate?: number;
     customCategoryMappings?: Record<string, string>;
   };
+  /**
+   * ⭐ Cet établissement fait aussi de la restauration (module cuisine).
+   *
+   * ⚠️ ABSENT ou `false` ⟹ bar PUR : l'application doit être **strictement
+   * identique** à aujourd'hui — pas un menu, pas un onglet, pas un octet
+   * d'egress supplémentaire (PLAN_MODULE_RESTAURATION.md §3, contrainte de plus
+   * haut niveau du chantier). Tous les clients actuels sont dans ce cas.
+   *
+   * ⛔ `true` exige `operatingMode === 'full'` (§13.4) : un cuisinier a besoin
+   * d'un compte pour faire avancer les statuts de production, ce que le mode
+   * simplifié exclut par définition. Ne JAMAIS basculer le mode silencieusement.
+   *
+   * ⚠️ Désactiver ne supprime RIEN (§3) : les ventes de plats déjà réalisées
+   * restent consultables en comptabilité. Le drapeau masque les écrans, il
+   * n'efface pas l'historique.
+   */
+  hasRestaurant?: boolean;
   [key: string]: unknown; // Allow extra dynamic settings
 }
 
