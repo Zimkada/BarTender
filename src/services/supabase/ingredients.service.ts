@@ -103,10 +103,20 @@ interface RpcEnvelope {
 
 export interface SupplyResult extends RpcEnvelope {
   lot_id: string | null;
-  qty_received: number;
-  qty_settled_debts: number;
-  qty_stocked: number;
   idempotent_replay: boolean;
+  /**
+   * ⚠️ ABSENTS sur un REJEU (`idempotent_replay === true`).
+   *
+   * Le RPC ne retourne alors que `success`, `lot_id` et `idempotent_replay` :
+   * les quantités du premier appel ne sont pas relues, ce qui évite une lecture
+   * inutile. Les déclarer non-optionnels ferait mentir le type — l'appelant
+   * lirait `undefined` sans que TypeScript ne le signale.
+   *
+   * ⭐ Toujours tester `idempotent_replay` avant de les utiliser.
+   */
+  qty_received?: number;
+  qty_settled_debts?: number;
+  qty_stocked?: number;
 }
 
 export interface ConsumptionItem {
@@ -127,13 +137,19 @@ export interface ConsumeResult extends RpcEnvelope {
 
 export interface DiscardResult extends RpcEnvelope {
   lot_id: string;
-  ingredient_id?: string;
   lost_qty: number;
   lost_value: number;
-  reason?: DiscardReason;
   status: IngredientLotStatus;
   idempotent_replay: boolean;
-  /** true si un rejeu demandait une cause différente de celle déjà figée. */
+  /** ⚠️ ABSENTS sur un rejeu — le RPC ne relit pas le lot d'origine. */
+  ingredient_id?: string;
+  reason?: DiscardReason;
+  /**
+   * ⭐ Présent UNIQUEMENT sur rejeu. `true` si l'appelant demandait une cause
+   * différente de celle déjà figée : la perte n'est PAS re-catégorisée.
+   * Sans ce champ, une correction de motif échouerait silencieusement — or
+   * c'est la distinction subie/évitable qui fait la valeur de la métrique.
+   */
   reason_mismatch?: boolean;
 }
 
@@ -159,9 +175,18 @@ function unwrapRpc<T extends RpcEnvelope>(data: unknown, context: string): T {
   return result;
 }
 
-/** Les opérations de stock cuisine exigent le réseau (§13.5). */
-function assertOnline(operation: string): void {
-  if (!networkManager.isOnline()) {
+/**
+ * Les opérations de stock cuisine exigent le réseau (§13.5).
+ *
+ * ⚠️ `shouldBlockNetworkOps()` et NON `isOnline()` : ce dernier renvoie `false`
+ * dès l'état `unstable`, c'est-à-dire sur une connexion DÉGRADÉE MAIS PRÉSENTE.
+ * Le projet a explicitement tranché que `unstable` ne bloque pas — on laisse
+ * les services tenter avec leurs timeouts propres (NetworkManager:366).
+ * Utiliser `isOnline()` refuserait un appro légitime en zone de réseau faible,
+ * ce qui est le quotidien du terrain visé.
+ */
+function assertNetworkAvailable(operation: string): void {
+  if (networkManager.shouldBlockNetworkOps()) {
     throw new Error(
       `Connexion requise pour ${operation}. Les opérations de stock cuisine ne peuvent pas être mises en attente.`
     );
@@ -266,7 +291,7 @@ export class IngredientsService {
     businessDate?: string;
     notes?: string;
   }): Promise<SupplyResult> {
-    assertOnline('enregistrer un approvisionnement');
+    assertNetworkAvailable('enregistrer un approvisionnement');
 
     try {
       const { data, error } = await supabase.rpc('receive_ingredient_supply', {
@@ -305,7 +330,7 @@ export class IngredientsService {
     referenceType?: 'kitchen_order_item' | 'production_batch' | 'inventory_adjustment' | 'manual';
     businessDate?: string;
   }): Promise<ConsumeResult> {
-    assertOnline('consommer du stock cuisine');
+    assertNetworkAvailable('consommer du stock cuisine');
 
     try {
       const { data, error } = await supabase.rpc('consume_ingredients_fefo', {
@@ -341,7 +366,7 @@ export class IngredientsService {
     notes?: string;
     businessDate?: string;
   }): Promise<DiscardResult> {
-    assertOnline('sortir un lot du stock');
+    assertNetworkAvailable('sortir un lot du stock');
 
     try {
       const { data, error } = await supabase.rpc('discard_ingredient_lot', {
