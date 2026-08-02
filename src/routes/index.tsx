@@ -27,6 +27,10 @@ const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
 // === Composants refactorisés en pages (export default) ===
 const InventoryPage = lazyWithRetry(() => import('../pages/InventoryPage'));
 const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
+// ⭐ Module restauration — chargé UNIQUEMENT à la navigation, et jamais
+// préchargé (§3 : « aucun préchargement de la route cuisine si
+// has_restaurant = false »). Sur un bar pur, ce chunk n'est jamais téléchargé.
+const IngredientsPage = lazyWithRetry(() => import('../pages/IngredientsPage'));
 // SettingsPage is lazy loaded above
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
@@ -106,6 +110,18 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute permission="canViewInventory" />,
         children: [
           { index: true, element: <InventoryPage /> },
+        ],
+      },
+      {
+        // ⭐ Stock cuisine — double garde (§3, §13.15) :
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL directe
+        //   canManageIngredientStock : gérant, promoteur et cuisinier ; pas le serveur
+        path: 'kitchen/ingredients',
+        element: (
+          <ProtectedRoute permission="canManageIngredientStock" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <IngredientsPage /> },
         ],
       },
       { path: 'analytics', element: <AnalyticsPage /> },
