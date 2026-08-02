@@ -38,6 +38,11 @@ vi.mock('../../components/Notifications', () => ({
   useNotifications: () => ({ showNotification: vi.fn() }),
 }));
 
+// MobileNavigation ne se rend qu'en mobile.
+vi.mock('../../hooks/useViewport', () => ({
+  useViewport: () => ({ isMobile: true }),
+}));
+
 vi.mock('../../services/NetworkManager', () => ({
   networkManager: {
     getDecision: () => ({ shouldBlock: false, shouldShowBanner: false, reason: 'online' }),
@@ -50,6 +55,7 @@ vi.mock('../../services/NetworkManager', () => ({
 }));
 
 import { MobileSidebar } from '../../components/MobileSidebar';
+import { MobileNavigation } from '../../components/MobileNavigation';
 
 /**
  * ⚠️ `currentMenu` pilote l'auto-ouverture du groupe actif.
@@ -139,5 +145,60 @@ describe('Entrée de menu « Cuisine » (§3, §9)', () => {
       renderSidebar('serveur', true);
       expect(screen.queryByText('Retours')).not.toBeNull();
     });
+  });
+});
+
+// ===== Navigation mobile (barre du bas) =====
+
+const renderMobileNav = (role: UserRole, hasRestaurant: boolean) => {
+  mockUseAuth.mockReturnValue({
+    currentSession: { userId: 'u-1', role, userName: 'Test' },
+    logout: vi.fn(),
+  });
+  mockUseBarContext.mockReturnValue({ hasRestaurant });
+
+  return render(
+    <MemoryRouter>
+      <MobileNavigation onShowQuickSale={vi.fn()} />
+    </MemoryRouter>
+  );
+};
+
+describe('MobileNavigation — le cuisinier n\'a pas une barre vide (§9)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('⛔ le cuisinier a AU MOINS une entrée', () => {
+    // ⭐ Le défaut trouvé à l'audit : `roles` était typé
+    // `'promoteur' | 'gerant' | 'serveur'` et le filtre passait par un cast
+    // `as readonly string[]` — le compilateur ne signalait RIEN. Un cuisinier
+    // obtenait une barre VIDE : un bandeau de 64 px sans aucun bouton.
+    renderMobileNav('cuisinier', true);
+
+    expect(
+      screen.queryByLabelText('Ingrédients'),
+      'Le cuisinier doit avoir au moins une entrée — sinon la barre est un bandeau vide'
+    ).not.toBeNull();
+  });
+
+  it('⛔ sur un bar PUR, le cuisinier ne voit pas l\'entrée cuisine', () => {
+    renderMobileNav('cuisinier', false);
+    expect(screen.queryByLabelText('Ingrédients')).toBeNull();
+  });
+
+  it('⚠️ les autres rôles n\'ont RIEN de nouveau (§9, plafond atteint)', () => {
+    // §9 : « Autres rôles : ne rien ajouter, plafond atteint. La Cuisine reste
+    // au menu latéral. » La barre ne rend que 5 entrées.
+    renderMobileNav('promoteur', true);
+    expect(screen.queryByLabelText('Ingrédients')).toBeNull();
+
+    renderMobileNav('serveur', true);
+    expect(screen.queryByLabelText('Ingrédients')).toBeNull();
+  });
+
+  it('les entrées existantes du serveur sont intactes', () => {
+    renderMobileNav('serveur', true);
+    expect(screen.queryByLabelText('Retours')).not.toBeNull();
   });
 });
