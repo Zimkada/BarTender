@@ -30,6 +30,30 @@ import { cn } from '../lib/utils';
 
 type TabId = 'stock' | 'expiring';
 
+/**
+ * Fenêtre d'alerte de péremption, en jours.
+ *
+ * ⚠️ Source unique : passée au pivot ET affichée dans les libellés. Écrite en
+ * dur aux deux endroits, un changement de fenêtre rendrait l'affichage faux
+ * sans qu'aucun test ne le signale — l'écran annoncerait « 3 jours » en
+ * listant les lots de 7.
+ */
+const EXPIRY_WINDOW_DAYS = 3;
+
+/**
+ * Formate une date SQL (`YYYY-MM-DD`) en date française.
+ *
+ * ⚠️ Découpage manuel plutôt que `new Date(iso)` : ce dernier interprète une
+ * date SEULE comme de l'UTC minuit. Sur un fuseau négatif, « 2026-08-05 »
+ * s'afficherait « 04/08/2026 » — la veille. Même piège que la fenêtre de
+ * péremption, corrigé côté service.
+ */
+const formatExpiryDate = (isoDate: string): string => {
+  const [year, month, day] = isoDate.split('-');
+  if (!year || !month || !day) return isoDate;
+  return `${day}/${month}/${year}`;
+};
+
 export default function IngredientsPage() {
   const navigate = useNavigate();
   const { currentBar } = useBarContext();
@@ -48,7 +72,7 @@ export default function IngredientsPage() {
     lowStockIngredients,
     ingredientsInDebt,
     isLoading,
-  } = useUnifiedKitchen(currentBar?.id);
+  } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS);
 
   const { receiveSupply } = useIngredientMutations();
 
@@ -65,6 +89,16 @@ export default function IngredientsPage() {
         setResetSignal((n) => n + 1);
         setShowSupplyModal(false);
       },
+      // ⛔ PAS de `onError` qui incrémenterait resetSignal.
+      //
+      // Sur échec, la modale reste ouverte AVEC LA MÊME CLÉ — c'est voulu :
+      // l'utilisateur réessaie la MÊME opération. Si l'échec était en réalité
+      // un timeout après un commit réussi côté serveur, le retry serait
+      // reconnu comme un rejeu et ne créerait PAS un second lot.
+      //
+      // Renouveler la clé ici transformerait chaque retry en nouvel appro —
+      // exactement le doublon que tout le mécanisme existe pour empêcher.
+      // Le toast d'erreur est géré par useIngredientMutations.
     });
   };
 
@@ -122,7 +156,7 @@ export default function IngredientsPage() {
                 </p>
                 <p className="text-caption text-amber-700/80 dark:text-amber-400/80">
                   {expiringLots.length} lot{expiringLots.length > 1 ? 's' : ''} périme
-                  {expiringLots.length > 1 ? 'nt' : ''} sous 3 jours
+                  {expiringLots.length > 1 ? 'nt' : ''} sous {EXPIRY_WINDOW_DAYS} jours
                 </p>
               </div>
             )}
@@ -226,7 +260,7 @@ export default function IngredientsPage() {
               <EmptyState
                 icon={Clock}
                 message="Rien ne périme"
-                subMessage="Aucun lot n'arrive à expiration dans les 3 prochains jours."
+                subMessage={`Aucun lot n'arrive à expiration dans les ${EXPIRY_WINDOW_DAYS} prochains jours.`}
               />
             ) : (
               <div className="space-y-2">
@@ -254,7 +288,7 @@ export default function IngredientsPage() {
                             {formatPrice(Math.round(lot.remaining_qty * lot.unit_cost))}
                           </p>
                           <p className="text-caption text-muted-foreground">
-                            expire le {lot.expires_at}
+                            expire le {lot.expires_at ? formatExpiryDate(lot.expires_at) : '—'}
                           </p>
                         </div>
                       </div>
