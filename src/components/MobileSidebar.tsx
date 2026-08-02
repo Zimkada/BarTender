@@ -26,8 +26,10 @@ import {
   ShoppingCart,
   Boxes,
   Wallet,
+  ChefHat,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
 import { useNavigate } from 'react-router-dom';
 import { usePlan } from '../hooks/usePlan';
 import type { FeatureKey } from '../config/plans';
@@ -58,6 +60,13 @@ interface MenuItem {
   path?: string;
   /** Feature du plan requise pour afficher cet item */
   feature?: FeatureKey;
+  /**
+   * ⭐ Entrée du module restauration : masquée si le bar n'a pas la cuisine
+   * activée (§3). Sur un bar pur, l'entrée n'existe pas — pas un item grisé,
+   * pas un item vide : « un bar pur ne doit pas être PRESQUE inchangé, il doit
+   * être STRICTEMENT identique ».
+   */
+  requiresRestaurant?: boolean;
 }
 
 /** Groupe de menus repliable. Tous se comportent pareil : icône, libellé, chevron. */
@@ -86,6 +95,8 @@ export function MobileSidebar({
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
   const { hasFeature } = usePlan();
+  // ⭐ §3 — conditionne l'entrée Cuisine. Sur un bar pur, elle n'existe pas.
+  const { hasRestaurant } = useBarContext();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
   const prefersReducedMotion = useReducedMotion();
@@ -166,6 +177,11 @@ export function MobileSidebar({
     { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/dashboard' },
     { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/sales' },
     { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'gerant'], path: '/inventory' },
+    // ⭐ UNE SEULE entrée cuisine, après Inventaire — même registre mental (§9).
+    // Elle mène à une page à onglets, comme Inventaire : pas quatre entrées.
+    // ⚠️ Le SERVEUR en est absent volontairement : « il ne gère pas la cuisine,
+    // il vend des plats — lui ajouter un menu serait une erreur » (§9).
+    { id: 'kitchen', label: 'Cuisine', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
     { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
     { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
@@ -179,7 +195,10 @@ export function MobileSidebar({
 
   const isVisible = (item: MenuItem) =>
     !!currentSession && item.roles.includes(currentSession.role)
-    && (!item.feature || hasFeature(item.feature));
+    && (!item.feature || hasFeature(item.feature))
+    // ⭐ §3 — sur un bar pur, l'entrée cuisine n'apparaît pas du tout.
+    //    `hasRestaurant` exige déjà le mode complet (§13.4).
+    && (!item.requiresRestaurant || hasRestaurant);
 
   const visibleMenus = menuItems.filter(isVisible);
   const byId = (id: string) => menuItems.find(m => m.id === id);
@@ -208,7 +227,11 @@ export function MobileSidebar({
         buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'dailyDashboard', 'history']),
         // Icones d entete distinctes de celles des items qu ils contiennent :
         // Boxes vs Package (Inventaire), Wallet vs DollarSign (Comptabilite).
-        buildGroup('stock', 'Produits et stock', <Boxes size={18} />, ['returns', 'consignments', 'inventory']),
+        // ⚠️ 'kitchen' listé ICI, sinon l'entrée serait invisible pour promoteur
+        //    et gérant : les groupes énumèrent leurs items explicitement.
+        //    Placée après 'inventory' — même registre mental (§9). Le filtre
+        //    isVisible la retire d'office sur un bar pur.
+        buildGroup('stock', 'Produits et stock', <Boxes size={18} />, ['returns', 'consignments', 'inventory', 'kitchen']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),
