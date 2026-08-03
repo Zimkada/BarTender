@@ -14,7 +14,7 @@
  * et c'est leur ÉCART qui est la métrique clé du module (§8).
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Trash2, AlertTriangle, TrendingUp, Info } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../common/EmptyState';
@@ -76,13 +76,28 @@ export function RecipeEditor({
   const [lines, setLines] = useState<RecipeLineDraft[]>([]);
 
   /**
-   * ⚠️ Synchronise le brouillon sur la recette chargée.
+   * ⚠️⚠️ Le brouillon est initialisé UNE SEULE FOIS par plat.
    *
-   * Dépend de `recipe` seul : ajouter `lines` créerait une boucle (setLines
-   * déclenche l'effet qui rappelle setLines). L'utilisateur qui modifie son
-   * brouillon ne doit PAS le voir écrasé par un refetch en arrière-plan.
+   * Défaut trouvé à la code review : dépendre de `recipe` (le tableau de React
+   * Query) faisait ÉCRASER LA SAISIE EN COURS à chaque refetch en arrière-plan
+   * — expiration du staleTime, retour de focus sur la fenêtre, invalidation
+   * déclenchée par une autre mutation. Le cuisinier perdait sa recette en
+   * train d'être écrite, sans avoir rien fait.
+   *
+   * ⭐ Le ref mémorise le plat déjà initialisé : les rafraîchissements
+   * ultérieurs du MÊME plat ne touchent plus au brouillon, tandis qu'ouvrir un
+   * AUTRE plat le recharge. `recipe` peut donc rester dans les dépendances
+   * (première valeur utile à l'arrivée des données) sans effet destructeur.
    */
+  const initializedForDishId = useRef<string | null>(null);
+
   useEffect(() => {
+    // Attendre les données : initialiser sur un tableau vide figerait le
+    // brouillon avant l'arrivée de la recette réelle.
+    if (isLoadingCost && recipe.length === 0) return;
+    if (initializedForDishId.current === dish.id) return;
+
+    initializedForDishId.current = dish.id;
     setLines(
       recipe.map((r) => ({
         key: nextKey(),
@@ -93,7 +108,7 @@ export function RecipeEditor({
         consumed_at_stage: r.consumed_at_stage,
       }))
     );
-  }, [recipe]);
+  }, [dish.id, recipe, isLoadingCost]);
 
   /** Index O(1) — évite un `find` par ligne rendue. */
   const ingredientsById = useMemo(() => {

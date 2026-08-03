@@ -71,6 +71,13 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
    * ⚠️ On renvoie le plat COMPLET et non un patch : `upsert_dish` remplace les
    * champs qu'il reçoit. N'envoyer que `is_available` effacerait la catégorie,
    * le temps de préparation et le rendement.
+   *
+   * ⭐ `photo_url` est volontairement OMIS — et c'est SÛR depuis
+   * 20260803130000 : le RPC ne l'écrit que si la CLÉ est présente dans le
+   * payload. Avant ce correctif, chaque bascule effaçait la photo du plat.
+   * ⚠️ Ne pas « compléter » ce payload avec `photo_url: dish.photo_url` en
+   * croyant bien faire : `DishRow.photo_url` peut être NULL, ce qui
+   * réintroduirait l'effacement par un autre chemin.
    */
   const toggleAvailability = (dish: DishRow) => {
     upsertDish.mutate({
