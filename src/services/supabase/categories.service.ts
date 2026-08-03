@@ -41,7 +41,12 @@ export class CategoriesService {
           global_category:global_categories (*)
         `)
                 .eq('bar_id', barId)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                // 🛡️ §3 — BOISSONS uniquement. Ce service alimente le catalogue
+                // produits : sans ce filtre, les catégories de plats
+                // (type='dish') y remonteraient pour les bars-restos.
+                // Les catégories de plats se lisent via getDishCategories().
+                .eq('type', 'product');
 
             if (error) {
                 throw new Error('Erreur lors de la récupération des catégories');
@@ -65,7 +70,9 @@ export class CategoriesService {
           global_category:global_categories (*)
         `)
                 .eq('bar_id', barId)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                // 🛡️ §3 — BOISSONS uniquement, même raison que getCategories.
+                .eq('type', 'product');
 
             if (error) throw error;
             return data || [];
@@ -89,6 +96,10 @@ export class CategoriesService {
                 custom_name: data.name,
                 custom_color: data.color || '#3B82F6',
                 is_active: true,
+                // 🛡️ §3 — explicite plutôt que de compter sur le DEFAULT SQL :
+                // ce service crée des catégories de BOISSONS. Les catégories de
+                // plats passeront par leur propre service (type='dish').
+                type: 'product',
             };
             console.log('[CategoriesService] Payload:', payload);
 
@@ -127,6 +138,8 @@ export class CategoriesService {
                 bar_id: barId,
                 global_category_id: globalCategoryId,
                 is_active: true,
+                // 🛡️ §3 — le catalogue global ne contient que des boissons.
+                type: 'product',
             };
 
             const { data: newCategory, error } = await supabase
