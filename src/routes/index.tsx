@@ -31,6 +31,11 @@ const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
 // préchargé (§3 : « aucun préchargement de la route cuisine si
 // has_restaurant = false »). Sur un bar pur, ce chunk n'est jamais téléchargé.
 const IngredientsPage = lazyWithRetry(() => import('../pages/IngredientsPage'));
+// ⭐ Découpage du 03/08/2026 : « Plats » a sa propre route.
+// ⚠️ §3 — chunk lazy DISTINCT. Chaque route cuisine ajoutée est un chunk de
+// plus à tenir hors préchargement pour les bars purs : la garde
+// `requiresRestaurant` ci-dessous est donc obligatoire sur CHACUNE.
+const DishesPage = lazyWithRetry(() => import('../pages/DishesPage'));
 // SettingsPage is lazy loaded above
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
@@ -122,6 +127,19 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <IngredientsPage /> },
+        ],
+      },
+      {
+        // ⭐ Plats — page issue du découpage du 03/08/2026.
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL
+        //   canManageRecipes   : gérant, promoteur et cuisinier ; PAS le serveur
+        //     (§9 : « il ne gère pas la cuisine, il vend des plats »)
+        path: 'kitchen/dishes',
+        element: (
+          <ProtectedRoute permission="canManageRecipes" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <DishesPage /> },
         ],
       },
       { path: 'analytics', element: <AnalyticsPage /> },

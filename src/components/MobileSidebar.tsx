@@ -27,6 +27,8 @@ import {
   Boxes,
   Wallet,
   ChefHat,
+  UtensilsCrossed,
+  Carrot,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -177,11 +179,13 @@ export function MobileSidebar({
     { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/dashboard' },
     { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/sales' },
     { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'gerant'], path: '/inventory' },
-    // ⭐ UNE SEULE entrée cuisine, après Inventaire — même registre mental (§9).
-    // Elle mène à une page à onglets, comme Inventaire : pas quatre entrées.
-    // ⚠️ Le SERVEUR en est absent volontairement : « il ne gère pas la cuisine,
-    // il vend des plats — lui ajouter un menu serait une erreur » (§9).
-    { id: 'kitchen', label: 'Cuisine', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
+    // ⭐ DÉCOUPAGE DU 03/08/2026 — « Cuisine » n'est plus UNE entrée mais un
+    // GROUPE (cf. §9 « Menu latéral », arbitrage). La page unique atteignait
+    // 3 onglets et en aurait eu 5 en phase 3, dont un à masquer au cuisinier.
+    // ⚠️ Le SERVEUR reste absent des deux : « il ne gère pas la cuisine, il
+    //    vend des plats — lui ajouter un menu serait une erreur » (§9).
+    { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
+    { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
     { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
     { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
@@ -222,26 +226,17 @@ export function MobileSidebar({
   };
 
   /**
-   * ⭐ Entrée SOLO — un item rendu au premier niveau, sans tiroir.
-   *
-   * §9 impose « une seule entrée » pour la cuisine (pas quatre : elle mène à une
-   * page à onglets). Un tiroir « Cuisine » à un seul item coûterait un clic pour
-   * rien ; l'enfouir dans « Produits et stock » la rendait invisible au premier
-   * coup d'oeil, à côté de Retours et Consignations qui sont un autre métier.
-   */
-  const buildSolo = (item: MenuItem | undefined): MenuItem | null =>
-    item && isVisible(item) ? item : null;
-
-  /**
-   * Séquence du menu, groupes et entrées solo mélangés — l'ORDRE D'AFFICHAGE se
-   * lit ici et nulle part ailleurs. Le rendu se contente de la parcourir.
+   * Séquence du menu — l'ORDRE D'AFFICHAGE se lit ici et nulle part ailleurs.
    *
    * ⚠️ Concerne UNIQUEMENT la liste groupée (promoteur/gérant). Le cuisinier et
-   * le serveur ont une liste plate : `visibleMenus` contient déjà tous leurs
-   * items, cuisine comprise. Rendre une entrée solo pour eux l'afficherait EN
-   * DOUBLE.
+   * le serveur ont une liste PLATE : `visibleMenus` contient déjà tous leurs
+   * items.
+   *
+   * ⭐ Le mécanisme d'entrée SOLO a été retiré le 03/08/2026 : « Cuisine » en
+   * était le seul usage, et elle est devenue un GROUPE. Le réintroduire pour
+   * un futur besoin est trivial ; le garder sans usage ne l'était pas.
    */
-  const menuEntries: (MenuGroup | MenuItem)[] = isGrouped
+  const menuEntries: MenuGroup[] = isGrouped
     ? ([
         // ShoppingCart et non Zap : Zap identifie déjà « Vente rapide » dans ce groupe.
         buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'dailyDashboard', 'history']),
@@ -251,11 +246,13 @@ export function MobileSidebar({
         // ⭐ Cuisine ENTRE stock et finances : elle garde le voisinage stock
         //    (« même registre mental », §9) sans passer devant Vente, l'écran le
         //    plus utilisé.
-        buildSolo(byId('kitchen')),
+        // ⚠️ C'est un GROUPE depuis le 03/08/2026, plus une entrée solo : il
+        //    accueillera Service et Appro en phase 3 sans redevenir illisible.
+        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenDishes', 'kitchenIngredients']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),
-      ].filter((e): e is MenuGroup | MenuItem => e !== null))
+      ].filter((g): g is MenuGroup => g !== null))
     : [];
 
   /** Une entrée solo n'a pas d'`items` — c'est ce qui la distingue d'un groupe. */

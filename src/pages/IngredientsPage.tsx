@@ -15,28 +15,33 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, Clock, Plus, TrendingDown, UtensilsCrossed, ChefHat } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedPageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
-import { DishesTab } from '../components/kitchen/DishesTab';
 import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
 import { useUnifiedKitchen } from '../hooks/pivots/useUnifiedKitchen';
-import { useUnifiedDishes } from '../hooks/pivots/useUnifiedDishes';
-import { useDishCategories } from '../hooks/queries/useDishesQueries';
 import { useIngredientMutations } from '../hooks/mutations/useIngredientMutations';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { cn } from '../lib/utils';
 
 /**
- * ⚠️ Ordre des onglets : « Plats » d'abord (§9 le place avant Ingrédients).
- * C'est aussi l'ordre d'usage — on saisit ses plats, puis on suit son stock.
- * Les onglets Service et Appro du §9 arriveront en phases 3 et ultérieure.
+ * ⭐ DÉCOUPAGE DU 03/08/2026 — « Plats » est sorti d'ici pour devenir sa propre
+ * page (`DishesPage`), première étape du passage de Cuisine en groupe de menu.
+ *
+ * ⚠️ « Appro » RESTE un onglet et ne devient pas une page : l'approvisionnement
+ * EST une opération d'ingrédients, et il était déjà ici sous forme de bouton
+ * dans l'en-tête. En faire un onglet formalise ce qui existait.
+ * Coût assumé : c'est le SEUL onglet conditionnel par rôle du module — le §9
+ * pose que « le cuisinier ne voit jamais l'onglet Appro (il touche à l'argent) ».
+ * Un onglet masqué reste acceptable ; c'est toute une PAGE à onglets
+ * conditionnels qui devenait ingérable.
  */
-type TabId = 'dishes' | 'stock' | 'expiring';
+type TabId = 'stock' | 'expiring' | 'supply';
 
 /**
  * Fenêtre d'alerte de péremption, en jours.
@@ -67,6 +72,13 @@ export default function IngredientsPage() {
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
 
+  /**
+   * ⭐ §9 — le cuisinier ne voit pas l'Appro : il « touche à l'argent ».
+   * `canViewKitchenCosts` porte cette distinction (quantités oui, montants non).
+   */
+  const { hasPermission } = useAuth();
+  const canViewCosts = hasPermission('canViewKitchenCosts');
+
   const [activeTab, setActiveTab] = useState<TabId>('stock');
   const [showSupplyModal, setShowSupplyModal] = useState(false);
   const [preselectedIngredient, setPreselectedIngredient] = useState<string | undefined>();
@@ -83,32 +95,6 @@ export default function IngredientsPage() {
   } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS);
 
   const { receiveSupply } = useIngredientMutations();
-
-  /**
-   * ⭐ Les plats réutilisent les ingrédients DÉJÀ chargés par
-   * `useUnifiedKitchen` ci-dessus — le pivot les compose, aucune requête de
-   * plus. Seule la liste des plats est un fetch supplémentaire.
-   */
-  const { dishes, availableIngredients, isLoading: isLoadingDishes } = useUnifiedDishes(
-    currentBar?.id
-  );
-
-  const { data: dishCategoryRows = [] } = useDishCategories(currentBar?.id);
-
-  /**
-   * ⚠️ Normalisation ici et non dans la query : une catégorie de plats est
-   * toujours custom (pas de catalogue global de plats), mais le type de la
-   * table autorise `custom_name` à être NULL. Le repli garantit qu'aucune
-   * option de sélecteur ne s'affiche vide.
-   */
-  const dishCategories = useMemo(
-    () =>
-      dishCategoryRows.map((c) => ({
-        id: c.id,
-        name: c.custom_name || c.name || 'Sans nom',
-      })),
-    [dishCategoryRows]
-  );
 
   const openSupply = (ingredientId?: string) => {
     setPreselectedIngredient(ingredientId);
@@ -140,7 +126,6 @@ export default function IngredientsPage() {
   // élément rendu — le design system l'instancie lui-même avec ses propres props.
   const tabs = useMemo(
     () => [
-      { id: 'dishes', label: 'Plats', icon: UtensilsCrossed },
       { id: 'stock', label: 'Stock', icon: Package },
       {
         id: 'expiring',
@@ -150,24 +135,27 @@ export default function IngredientsPage() {
         badge: expiringLots.length > 0 ? expiringLots.length : undefined,
         badgeVariant: 'alert' as const,
       },
+      // ⭐ §9 — « Le cuisinier ne voit jamais l'onglet Appro (il touche à
+      // l'argent) ». `canViewKitchenCosts` porte exactement cette distinction :
+      // le cuisinier voit les QUANTITÉS, pas les MONTANTS (§8).
+      // ⚠️ Filtré ICI et non masqué en CSS : un onglet caché resterait
+      // atteignable au clavier et présent dans le DOM.
+      ...(canViewCosts
+        ? [{ id: 'supply', label: 'Appro', icon: Plus }]
+        : []),
     ],
-    [expiringLots.length]
+    [expiringLots.length, canViewCosts]
   );
 
   return (
     <div className="min-h-screen bg-brand-subtle pb-20">
-      {/* ⚠️ Titre « Cuisine » et non « Stock cuisine » : la page ne porte plus
-          que le stock depuis l'ajout de l'onglet Plats. Le §9 la nomme
-          « Cuisine ». */}
+      {/* ⚠️ Titre « Ingrédients » depuis le découpage : « Plats » a sa propre
+          page, cet écran ne porte plus que le stock et son appro. */}
       <TabbedPageHeader
-        title="Cuisine"
+        title="Ingrédients"
         // Le sous-titre suit l'onglet : compter des ingrédients pendant qu'on
         // regarde des plats serait un chiffre hors sujet.
-        subtitle={
-          activeTab === 'dishes'
-            ? `${dishes.length} plat${dishes.length > 1 ? 's' : ''}`
-            : `${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}`
-        }
+        subtitle={`${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}`}
         icon={<ChefHat size={22} />}
         tabs={tabs}
         activeTab={activeTab}
@@ -177,7 +165,7 @@ export default function IngredientsPage() {
           // ⚠️ « Appro » masqué sur l'onglet Plats : l'action y serait sans
           // rapport avec ce qui est affiché. L'onglet Plats a son propre
           // bouton « Nouveau plat ».
-          activeTab === 'dishes' ? undefined : (
+          activeTab === 'supply' ? undefined : (
             <Button size="sm" onClick={() => openSupply()}>
               <Plus size={16} className="mr-1.5" />
               Appro
@@ -193,7 +181,7 @@ export default function IngredientsPage() {
             ⚠️ Masqués sur l'onglet Plats : ces alertes portent sur le STOCK.
             Les y laisser repousserait la liste des plats vers le bas pour une
             information sans rapport avec ce que l'utilisateur regarde. */}
-        {activeTab !== 'dishes' && (expiringValue > 0 || ingredientsInDebt.length > 0) && (
+        {activeTab !== 'supply' && (expiringValue > 0 || ingredientsInDebt.length > 0) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {expiringValue > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 p-4">
@@ -235,22 +223,28 @@ export default function IngredientsPage() {
           </div>
         )}
 
-        {/* ===== Onglet Plats =====
-            ⚠️ Rendu AVANT la garde `isLoading` ci-dessous : celle-ci porte sur
-            le chargement des INGRÉDIENTS. L'onglet Plats gère son propre état
-            de chargement — le soumettre à la garde des ingrédients le
-            laisserait vide alors que ses données sont prêtes. */}
-        {activeTab === 'dishes' && (
-          <DishesTab
-            barId={currentBar?.id}
-            dishes={dishes}
-            ingredients={availableIngredients}
-            categories={dishCategories}
-            isLoading={isLoadingDishes}
-          />
+        {/* ===== Onglet Appro =====
+            ⭐ Le formulaire est rendu DIRECTEMENT dans l'onglet, sans modale :
+            l'onglet EST l'écran d'approvisionnement. Ouvrir une modale
+            par-dessus un onglet dédié serait un empilement inutile.
+            ⚠️ La modale reste utilisée pour l'appro CIBLÉ depuis la liste de
+            stock (bouton par ingrédient) — deux chemins, un seul formulaire. */}
+        {activeTab === 'supply' && canViewCosts && (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <SupplyForm
+              ingredients={ingredients}
+              onSubmit={handleSupply}
+              // ⚠️ En modale, « Annuler » ferme. Dans un onglet il n'y a rien à
+              // fermer : le geste équivalent est de revenir au stock. Laisser
+              // un `() => {}` produirait un bouton mort.
+              onCancel={() => setActiveTab('stock')}
+              isSubmitting={receiveSupply.isPending}
+              resetSignal={resetSignal}
+            />
+          </div>
         )}
 
-        {isLoading && activeTab !== 'dishes' && (
+        {isLoading && activeTab !== 'supply' && (
           <p className="text-center text-muted-foreground py-8">Chargement…</p>
         )}
 

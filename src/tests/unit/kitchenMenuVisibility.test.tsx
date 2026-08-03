@@ -62,12 +62,12 @@ import { MobileNavigation } from '../../components/MobileNavigation';
  *
  * Promoteur et gérant obtiennent des TIROIRS repliés : le libellé d'une entrée
  * n'est PAS dans le DOM tant que son groupe est fermé. On ouvre donc le groupe
- * « Produits et stock » via `currentMenu='inventory'` — sinon le test
- * mesurerait l'état des tiroirs et non la règle de visibilité.
+ * « Cuisine » via `currentMenu='kitchenIngredients'` — sinon le test mesurerait
+ * l'état des tiroirs et non la règle de visibilité.
  *
  * Le cuisinier, lui, a une liste PLATE (isGrouped = false).
  */
-const renderSidebar = (role: UserRole, hasRestaurant: boolean, currentMenu = 'inventory') => {
+const renderSidebar = (role: UserRole, hasRestaurant: boolean, currentMenu = 'kitchenIngredients') => {
   mockUseAuth.mockReturnValue({
     currentSession: { userId: 'u-1', role, userName: 'Test' },
     logout: vi.fn(),
@@ -86,8 +86,15 @@ const renderSidebar = (role: UserRole, hasRestaurant: boolean, currentMenu = 'in
   );
 };
 
-/** L'entrée Cuisine est-elle présente dans le DOM ? */
-const kitchenEntry = () => screen.queryByText('Cuisine');
+/**
+ * ⭐ DÉCOUPAGE DU 03/08/2026 — « Cuisine » est un GROUPE, plus une entrée.
+ *
+ * On teste donc la présence des SOUS-ENTRÉES (« Plats », « Ingrédients ») et
+ * non du libellé « Cuisine » : pour le CUISINIER, qui a une liste PLATE,
+ * l'entête de groupe n'existe pas — seules ses entrées sont rendues.
+ * Chercher « Cuisine » ferait échouer le test pour la mauvaise raison.
+ */
+const kitchenEntry = () => screen.queryByText('Ingrédients');
 
 describe('Entrée de menu « Cuisine » (§3, §9)', () => {
   beforeEach(() => {
@@ -115,7 +122,9 @@ describe('Entrée de menu « Cuisine » (§3, §9)', () => {
     it('⚠️ les entrées EXISTANTES ne sont pas affectées', () => {
       // Non-régression : ajouter `requiresRestaurant` au type ne doit rien
       // changer aux items qui ne le portent pas.
-      renderSidebar('promoteur', false);
+      // ⚠️ `currentMenu='inventory'` EXPLICITE : le défaut ouvre désormais le
+      // groupe Cuisine, où Inventaire et Retours ne figurent pas.
+      renderSidebar('promoteur', false, 'inventory');
 
       expect(screen.queryByText('Inventaire')).not.toBeNull();
       expect(screen.queryByText('Retours')).not.toBeNull();
@@ -137,7 +146,7 @@ describe('Entrée de menu « Cuisine » (§3, §9)', () => {
     });
   });
 
-  describe('⭐ Entrée de PREMIER NIVEAU (hors tiroir)', () => {
+  describe('⭐ GROUPE Cuisine (découpage du 03/08/2026)', () => {
     /**
      * ⚠️ Ce test vérifie l'UNICITÉ, pas la simple présence.
      *
@@ -145,20 +154,20 @@ describe('Entrée de menu « Cuisine » (§3, §9)', () => {
      * (tiroir ou premier niveau) : il ne prouverait rien. Le vrai risque du
      * double rendu est le DOUBLON, et il a deux causes distinctes, chacune
      * vérifiée par injection :
-     *   1. 'kitchen' laissé dans buildGroup('stock', …) → doublon promoteur/gérant
-     *   2. garde `isGrouped` retirée de topLevelItems → doublon cuisinier
-     *        (sa liste plate contient déjà tous les items visibles)
+     *   1. une entrée listée dans DEUX groupes → doublon promoteur/gérant
+     *   2. un mécanisme d'entrée solo réintroduit sans garde `isGrouped`
+     *        → doublon cuisinier (sa liste plate contient déjà tout)
      */
     it.each<UserRole>(['promoteur', 'gerant', 'cuisinier'])(
       'rendue une SEULE fois pour %s',
       (role) => {
-        // currentMenu='inventory' ouvre le groupe « Produits et stock » : si
-        // 'kitchen' y figurait encore, l'entrée apparaîtrait deux fois.
-        renderSidebar(role, true, 'inventory');
+        // Groupe Cuisine ouvert : si l'entrée figurait AUSSI ailleurs (ancien
+        // mécanisme d'entrée solo), elle apparaîtrait deux fois.
+        renderSidebar(role, true, 'kitchenIngredients');
 
         expect(
-          screen.getAllByText('Cuisine'),
-          `L'entrée Cuisine est dupliquée pour ${role} : elle est rendue à la fois au premier niveau et dans un groupe`
+          screen.getAllByText('Ingrédients'),
+          `L'entrée Ingrédients est dupliquée pour ${role}`
         ).toHaveLength(1);
       }
     );
