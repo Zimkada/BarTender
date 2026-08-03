@@ -861,6 +861,55 @@ Insertion après *Inventaire* (même registre mental), icône `ChefHat`, filtre 
 `rôle + currentBar.hasRestaurant`. Une entrée, pas quatre — elle mène à une page à onglets,
 comme Inventaire.
 
+> ⭐⭐ **ARBITRAGE DU 03/08/2026 — cette prescription est RÉVISÉE pour la phase 3.**
+>
+> **Décision : « Cuisine » devient un GROUPE de menu avec sous-entrées, et le découpage est
+> la PREMIÈRE tâche de la phase 3 — avant d'écrire l'onglet Service.**
+>
+> **Ce qui a changé depuis la rédaction de ce §9 :**
+>
+> | Moment | Onglets de la page | Verdict |
+> |---|---|---|
+> | Écriture du plan | 0 (page inexistante) | entrée unique évidente |
+> | Fin phase 1 | 2 (Stock, Péremption) | entrée unique encore juste |
+> | **Fin phase 2** | **3** (Plats, Stock, Péremption) | limite atteinte |
+> | Phase 3 prévue | **5** (+ Service, + Appro) | **illisible sur mobile** |
+>
+> **Trois arguments pour le groupe :**
+>
+> 1. **Cinq onglets ne tiennent pas sur mobile**, et l'un d'eux (Appro) doit être masqué au
+>    cuisinier — un `TabbedPageHeader` à onglets conditionnels par rôle devient vite
+>    incompréhensible à maintenir.
+> 2. **Les écrans ont des rythmes d'usage opposés** : *Service* est du temps réel pour le
+>    cuisinier en plein rush ; *Plats* est de la configuration pour le promoteur. Les mettre
+>    au même niveau mélange deux métiers.
+> 3. **Le RBAC est plus propre par route** : un onglet masqué reste dans le bundle et dans le
+>    DOM ; une route gardée par `ProtectedRoute` ne se charge pas du tout.
+>
+> ⭐ **Ce §9 le prévoyait déjà à moitié** : il prescrit « 3 items (Commandes / Recettes /
+> Ingrédients) » pour le cuisinier en navigation mobile — donc une navigation ÉCLATÉE pour lui,
+> et une entrée unique pour le promoteur. Le groupe réconcilie les deux publics.
+>
+> **⚠️ POURQUOI PAS MAINTENANT (fin phase 2) :** *Service* et *Appro* n'existent pas encore.
+> Découper aujourd'hui créerait 4 routes dont 2 mèneraient à des pages vides, à remplir ensuite.
+> Découper au début de la phase 3, c'est écrire les nouvelles pages directement au bon endroit —
+> même travail, une seule fois. Et on saura alors ce que *Service* contient vraiment.
+>
+> **⚠️ RISQUE §3 À TRAITER AU DÉCOUPAGE — le point le plus facile à rater :**
+> chaque route est un chunk lazy. Aujourd'hui, un bar pur ne télécharge **jamais** le chunk
+> cuisine (une seule route à surveiller). Avec 4 routes, ce sont **4 chunks** à tenir hors
+> préchargement : 4 occasions d'oublier au lieu d'une. Prévoir un test §3 par route, sur le
+> modèle de `dishesInvariance.test.tsx`.
+>
+> **Structure cible :**
+> ```
+> Cuisine  (groupe, icône ChefHat)
+>   ├─ Service       → cuisinier, gérant, promoteur   (phase 3)
+>   ├─ Plats         → gérant, promoteur              (existe : onglet Plats)
+>   ├─ Ingrédients   → cuisinier, gérant, promoteur   (existe : onglets Stock + Péremption)
+>   └─ Appro         → gérant, promoteur UNIQUEMENT   (§9 : le cuisinier touche à l'argent)
+> ```
+
 ### Navigation mobile
 
 - **Cuisinier** : 3 items (Commandes / Recettes / Ingrédients) — c'est son outil principal.
@@ -1805,7 +1854,7 @@ RLS `bar_members`) **avant** d'ajouter le rôle `cuisinier`. Ajouter d'abord fer
 | **0** | Ajout rôle `cuisinier` + `has_restaurant` + permissions + **`operatingMode = 'full'` exigé** (§13.4) | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §16.3) + **`ingredient_lots` FIFO/FEFO** (§16.13) + `ingredient_supplies` + **vue de cohérence des caches** (§13.11) + écran appro + saisie en portions (§16.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (table neuve, aucune reprise) |
 | **2** | `dishes` (+ **`production_mode`**, §16.8) + `dish_ingredients` + **`dish_recipe_components`** (1 niveau garanti par RPC, §13.8) + marge théorique + **`bar_categories.type` + backfill** (§13.10) + **assistant d'onboarding recettes** (§13.12) | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3A** | Machine d'état (§6) + `fulfillment_status` piloté par RPC (§13.7) + `isTicketClosed` (§13.6) + **checklist `sales.items`** (§13.9) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§16.7) + motifs cuisine de `cancel_sale` (§13.14) + régime **`on_order`** seul + arbitrages §15.1 à §15.6 | Prise de commande à table, **sans emporté, sans prépaiement, sans lot** | **Élevé** — touche au flux de vente |
+| **3A** | ⭐ **PRÉREQUIS : découpage de la page Cuisine en groupe de menu** (arbitrage 03/08/2026, cf. §9 « Menu latéral ») — à faire AVANT d'écrire l'écran Service, sinon la page atteint 5 onglets illisibles sur mobile · Machine d'état (§6) + `fulfillment_status` piloté par RPC (§13.7) + `isTicketClosed` (§13.6) + **checklist `sales.items`** (§13.9) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§16.7) + motifs cuisine de `cancel_sale` (§13.14) + régime **`on_order`** seul + arbitrages §15.1 à §15.6 | Prise de commande à table, **sans emporté, sans prépaiement, sans lot** | **Élevé** — touche au flux de vente |
 | **3B** | **`production_batches`** (+ `status`, §13.3) + **`kitchen_item_batch_consumptions`** (§12.4.d) + régime **`batch_finish`** | Spaghetti-poulet, alloco-poisson | Moyen |
 | **3C** | Régime **`batch`** complet + **`ingredient_stock_debts`** (§13.2) + **`service_alerts`** (§16.10) | Riz sauce, plats du jour | Moyen |
 | **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §16.5) + écart théorique/réel + **enregistrement** des pertes (§16.11) | Détection gaspillage et fuites | Moyen |
