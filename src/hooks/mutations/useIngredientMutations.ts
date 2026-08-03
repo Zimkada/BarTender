@@ -25,6 +25,8 @@ import {
   type SupplyResult,
   type ConsumeResult,
   type DiscardResult,
+  type IngredientInput,
+  type IngredientRow,
 } from '../../services/supabase/ingredients.service';
 
 export interface ReceiveSupplyInput {
@@ -236,5 +238,37 @@ export function useIngredientMutations() {
     },
   });
 
-  return { receiveSupply, consumeIngredients, discardLot };
+  /**
+   * Crée ou modifie un ingrédient.
+   *
+   * ⭐ Chaînon qui MANQUAIT à la phase 1 : sans lui, aucun ingrédient ne
+   * pouvait naître hors d'un INSERT manuel en SQL.
+   *
+   * ⚠️ `onSettled` et non `onSuccess`, comme les autres mutations de ce
+   * fichier : une mutation peut réussir CÔTÉ SERVEUR puis échouer côté réseau.
+   * Le cache resterait alors périmé et l'ingrédient créé n'apparaîtrait pas.
+   */
+  const upsertIngredient = useMutation<IngredientRow, Error, IngredientInput>({
+    meta: { suppressGlobalError: true }, // onError local gère le toast
+    mutationFn: async (ingredient) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      return IngredientsService.upsertIngredient(barId, ingredient);
+    },
+    onSettled: invalidateKitchenStock,
+    onSuccess: (ingredient) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.success(`« ${ingredient.name} » enregistré`);
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg);
+      });
+    },
+  });
+
+  return { receiveSupply, consumeIngredients, discardLot, upsertIngredient };
 }

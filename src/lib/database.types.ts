@@ -7172,6 +7172,10 @@ export type Database = {
         Returns: Json
       }
       upsert_dish: { Args: { p_bar_id: string; p_dish: Json }; Returns: Json }
+      upsert_ingredient: {
+        Args: { p_bar_id: string; p_ingredient: Json }
+        Returns: Json
+      }
       validate_sale: {
         Args: { p_sale_id: string; p_validated_by: string }
         Returns: undefined

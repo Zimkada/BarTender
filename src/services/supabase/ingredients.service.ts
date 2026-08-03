@@ -18,6 +18,7 @@ import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { dateToYYYYMMDD } from '../../utils/businessDateHelpers';
+import type { Json } from '../../lib/database.types';
 
 // ===== TYPES =====
 
@@ -201,6 +202,29 @@ function assertNetworkAvailable(operation: string): void {
   }
 }
 
+/**
+ * Champs modifiables d'un ingrédient. `id` absent = création.
+ *
+ * ⚠️ `current_stock` et `last_unit_cost` sont ABSENTS volontairement : ce sont
+ * des caches alimentés par les RPC de lot. Les exposer permettrait de
+ * « corriger » un stock à la main, contournant le FEFO et la table des dettes
+ * (§13.2) — le RPC les refuse de toute façon.
+ */
+export interface IngredientInput {
+  id?: string;
+  name: string;
+  /** kg, L, pièce… ⚠️ FIGÉE dès qu'un lot ou une recette existe. */
+  unit: string;
+  cost_mode?: IngredientCostMode;
+  /** Obligatoire si `cost_mode = 'per_dish_flat'`, interdit sinon. */
+  flat_cost_per_dish?: number | null;
+  min_stock_alert?: number | null;
+}
+
+interface UpsertIngredientResult extends RpcEnvelope {
+  ingredient: IngredientRow;
+}
+
 export class IngredientsService {
   // ===== LECTURE =====
 
@@ -283,6 +307,41 @@ export class IngredientsService {
   }
 
   // ===== ÉCRITURE (RPC uniquement) =====
+
+  // ===== ÉCRITURE (RPC) =====
+
+  /**
+   * Crée ou modifie un ingrédient.
+   *
+   * ⭐ Chaînon qui MANQUAIT à la phase 1 : sans lui, aucun ingrédient ne
+   * pouvait naître hors d'un INSERT manuel en SQL — donc pas d'appro, pas de
+   * recette, pas de marge. Tout le module en dépendait.
+   *
+   * ⚠️ L'UNITÉ est FIGÉE dès qu'un lot ou une recette existe. Le RPC refuse le
+   * changement plutôt que de convertir : passer « kg » à « g » ne convertit
+   * RIEN, un stock de 12,5 kg deviendrait 12,5 g. Coût faux d'un facteur 1000,
+   * sans la moindre erreur.
+   */
+  static async upsertIngredient(
+    barId: string,
+    ingredient: IngredientInput
+  ): Promise<IngredientRow> {
+    assertNetworkAvailable('enregistrer un ingrédient');
+
+    try {
+      const { data, error } = await supabase.rpc('upsert_ingredient', {
+        p_bar_id: barId,
+        // ⚠️ `Json` et non `Record<string, unknown>` : ce dernier n'est pas
+        // assignable à Json, dont l'index signature est récursive.
+        p_ingredient: ingredient as unknown as Json,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<UpsertIngredientResult>(data, 'Enregistrement de l\'ingrédient').ingredient;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
 
   /**
    * Enregistre un approvisionnement.

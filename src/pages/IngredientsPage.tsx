@@ -15,16 +15,17 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedPageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
+import { IngredientForm } from '../components/kitchen/IngredientForm';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { useUnifiedKitchen } from '../hooks/pivots/useUnifiedKitchen';
+import { useUnifiedKitchen, type IngredientWithAlerts } from '../hooks/pivots/useUnifiedKitchen';
 import { useIngredientMutations } from '../hooks/mutations/useIngredientMutations';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { cn } from '../lib/utils';
@@ -84,6 +85,10 @@ export default function IngredientsPage() {
   const [preselectedIngredient, setPreselectedIngredient] = useState<string | undefined>();
   /** Incrémenté après un enregistrement confirmé → nouvelle clé d'idempotence. */
   const [resetSignal, setResetSignal] = useState(0);
+  /** Formulaire d'ingrédient : création, ou édition d'un existant. */
+  const [editingIngredient, setEditingIngredient] = useState<
+    { mode: 'create' } | { mode: 'edit'; ingredient: IngredientWithAlerts } | null
+  >(null);
 
   const {
     ingredients,
@@ -94,7 +99,7 @@ export default function IngredientsPage() {
     isLoading,
   } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS);
 
-  const { receiveSupply } = useIngredientMutations();
+  const { receiveSupply, upsertIngredient } = useIngredientMutations();
 
   const openSupply = (ingredientId?: string) => {
     setPreselectedIngredient(ingredientId);
@@ -119,6 +124,14 @@ export default function IngredientsPage() {
       // Renouveler la clé ici transformerait chaque retry en nouvel appro —
       // exactement le doublon que tout le mécanisme existe pour empêcher.
       // Le toast d'erreur est géré par useIngredientMutations.
+    });
+  };
+
+  const handleSaveIngredient = (values: Parameters<typeof upsertIngredient.mutate>[0]) => {
+    upsertIngredient.mutate(values, {
+      onSuccess: () => setEditingIngredient(null),
+      // Sur échec, le formulaire RESTE ouvert avec sa saisie : l'utilisateur
+      // corrige au lieu de tout retaper. Le toast d'erreur vient de la mutation.
     });
   };
 
@@ -249,23 +262,29 @@ export default function IngredientsPage() {
               <EmptyState
                 icon={Package}
                 message="Aucun ingrédient"
-                subMessage="Enregistrez un approvisionnement pour suivre le coût réel de vos plats."
-                // ⭐ Une action, pas seulement un constat. Avant le découpage,
-                // le bouton « Appro » de l'en-tête offrait cette porte de
-                // sortie ; sans lui, le message resterait un cul-de-sac.
-                // ⚠️ Masquée au cuisinier : il ne voit pas l'onglet Appro (§9),
-                // le bouton l'enverrait vers un onglet inexistant pour lui.
+                // ⭐ §13.12 — « ingrédients critiques d'abord » : le parcours
+                // commence par CRÉER un ingrédient, pas par l'approvisionner.
+                // Orienter vers l'appro serait un cul-de-sac : son sélecteur
+                // serait vide.
+                subMessage="Commencez par vos ingrédients principaux — ceux qui portent le coût de vos plats."
                 action={
-                  canViewCosts ? (
-                    <Button onClick={() => setActiveTab('supply')}>
-                      <Plus size={16} className="mr-1.5" />
-                      Enregistrer un appro
-                    </Button>
-                  ) : undefined
+                  <Button onClick={() => setEditingIngredient({ mode: 'create' })}>
+                    <Plus size={16} className="mr-1.5" />
+                    Nouvel ingrédient
+                  </Button>
                 }
               />
             ) : (
               <div className="space-y-2">
+                {/* ⭐ Création accessible en permanence, pas seulement depuis
+                    l'état vide : on ajoute des ingrédients au fil du temps. */}
+                <div className="flex justify-end">
+                  <Button size="sm" onClick={() => setEditingIngredient({ mode: 'create' })}>
+                    <Plus size={16} className="mr-1.5" />
+                    Nouvel ingrédient
+                  </Button>
+                </div>
+
                 {ingredients.map((ingredient) => (
                   <div
                     key={ingredient.id}
@@ -305,15 +324,29 @@ export default function IngredientsPage() {
                       </div>
                     </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openSupply(ingredient.id)}
-                      className="shrink-0"
-                    >
-                      <Plus size={14} className="mr-1" />
-                      Appro
-                    </Button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* ⚠️ Zone de tap ≥ 44px — cohérent avec le reste du
+                          module (mains humides en cuisine). */}
+                      <button
+                        type="button"
+                        onClick={() => setEditingIngredient({ mode: 'edit', ingredient })}
+                        className="h-11 w-11 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                        aria-label={`Modifier ${ingredient.name}`}
+                      >
+                        <Pencil size={16} />
+                      </button>
+
+                      {/* ⭐ Appro CIBLÉ : présélectionne l'ingrédient. C'est ce
+                          que l'onglet Appro ne fait pas — d'où sa survie. */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openSupply(ingredient.id)}
+                      >
+                        <Plus size={14} className="mr-1" />
+                        Appro
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -390,6 +423,39 @@ export default function IngredientsPage() {
           onSubmit={handleSupply}
           onCancel={() => setShowSupplyModal(false)}
         />
+      </Modal>
+
+      <Modal
+        open={editingIngredient !== null}
+        onClose={() => setEditingIngredient(null)}
+        title={
+          editingIngredient?.mode === 'edit' ? 'Modifier l\'ingrédient' : 'Nouvel ingrédient'
+        }
+      >
+        {editingIngredient && (
+          <IngredientForm
+            ingredient={
+              editingIngredient.mode === 'edit' ? editingIngredient.ingredient : undefined
+            }
+            /**
+             * ⚠️ L'unité est figée dès qu'un stock existe. On l'indique AVANT
+             * la saisie plutôt que de laisser découvrir le refus serveur.
+             *
+             * ⭐ `current_stock !== 0` est une APPROXIMATION du garde serveur,
+             * qui compte les lots actifs ET les recettes. Elle est
+             * volontairement PLUS PERMISSIVE : le serveur reste la seule
+             * autorité et refusera si besoin. L'inverse — bloquer côté client
+             * un cas que le serveur accepterait — serait pire.
+             */
+            isUnitLocked={
+              editingIngredient.mode === 'edit' &&
+              editingIngredient.ingredient.current_stock !== 0
+            }
+            isSaving={upsertIngredient.isPending}
+            onSave={handleSaveIngredient}
+            onCancel={() => setEditingIngredient(null)}
+          />
+        )}
       </Modal>
     </div>
   );
