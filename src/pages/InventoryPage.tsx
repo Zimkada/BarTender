@@ -1,4 +1,4 @@
-import { useState, Suspense, lazy, useEffect } from 'react';
+import { useState, Suspense, lazy, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Package, BarChart3, Zap, AlertCircle, ClipboardList, Folder, ArrowDownAZ, TrendingDown, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +7,8 @@ import { Product } from '../types';
 // Hooks & Context
 import { useAuth } from '../context/AuthContext';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useUnifiedDishes } from '../hooks/pivots/useUnifiedDishes';
+import { useDishCategories } from '../hooks/queries/useDishesQueries';
 import { useInventoryFilter } from '../hooks/useInventoryFilter';
 import { useInventoryActions } from '../hooks/useInventoryActions';
 import { usePurchaseOrders } from '../hooks/queries/usePurchaseOrdersQueries';
@@ -23,6 +25,8 @@ import { SearchBar } from '../components/common/SearchBar';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { InventoryList } from '../components/inventory/InventoryList';
+import { CatalogScopeSwitcher, type CatalogScope } from '../components/inventory/CatalogScopeSwitcher';
+import { DishCatalogList } from '../components/inventory/DishCatalogList';
 import { InventoryExportModal } from '../components/inventory/InventoryExportModal';
 import { InventoryOperations } from '../components/inventory/InventoryOperations';
 import { InventoryStats } from '../components/inventory/InventoryStats';
@@ -59,6 +63,34 @@ export default function InventoryPage() {
         isLoading: isLoadingProducts
     } = useUnifiedStock(currentBar?.id, { skipSupplies: viewMode === 'products' });
 
+    /**
+     * ⭐ Portée du catalogue — Tout / Boissons / Plats.
+     *
+     * ⚠️ Défaut 'all' et non 'products' : le promoteur d'un bar-resto doit voir
+     * son offre COMPLÈTE en arrivant. Sur un bar pur, la valeur n'a aucun effet
+     * (le sélecteur n'existe pas et `dishes` est vide) — §3 préservé.
+     */
+    const [catalogScope, setCatalogScope] = useState<CatalogScope>('all');
+
+    /**
+     * ⭐ §3 — `hasRestaurant` conditionne l'AFFICHAGE du sélecteur, mais pas le
+     * montage des hooks : ceux-ci portent déjà leur propre garde `enabled`.
+     * Sur un bar pur, `dishes` reste vide SANS qu'aucune requête ne parte.
+     */
+    const { hasRestaurant } = useBarContext();
+    const { dishes, isLoading: isLoadingDishes } = useUnifiedDishes(currentBar?.id);
+    const { data: dishCategoryRows = [] } = useDishCategories(currentBar?.id);
+
+    /** Nom de catégorie par id — les plats n'embarquent que `category_id`. */
+    const dishCategoryNames = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const c of dishCategoryRows) {
+            map.set(c.id, c.custom_name || c.name || 'Sans nom');
+        }
+        return map;
+    }, [dishCategoryRows]);
+
+
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();
     const { formatPrice } = useCurrencyFormatter();
@@ -94,6 +126,21 @@ export default function InventoryPage() {
         barSettings: currentBar?.settings,
         getProductStockInfo
     });
+
+    /**
+     * Recherche appliquée aux plats.
+     *
+     * ⚠️ Filtrage LOCAL, comme pour les produits : la liste est déjà en cache.
+     * Une requête serveur par frappe annulerait les 3 vagues d'optimisation
+     * d'egress.
+     * ⚠️ Déclaré ICI et non plus haut avec les autres données plats :
+     * `searchTerm` n'existe qu'à partir de ce point (TDZ sinon).
+     */
+    const filteredDishes = useMemo(() => {
+        if (!searchTerm.trim()) return dishes;
+        const needle = searchTerm.toLowerCase();
+        return dishes.filter((d) => d.name.toLowerCase().includes(needle));
+    }, [dishes, searchTerm]);
 
     const {
         // Modal States
@@ -200,8 +247,30 @@ export default function InventoryPage() {
                                     </Button>
                                 </div>
 
-                                {/* Ligne 2 : Trier + Filtrer */}
-                                <div className="flex flex-wrap items-center gap-3">
+                                {/* ⭐ Ligne 2 : portée du catalogue.
+                                    §3 — ne rend RIEN sur un bar pur : le
+                                    composant s'auto-masque via hasRestaurant,
+                                    l'écran est alors STRICTEMENT identique. */}
+                                <CatalogScopeSwitcher
+                                    scope={catalogScope}
+                                    onScopeChange={setCatalogScope}
+                                    hasRestaurant={hasRestaurant}
+                                    productCount={sortedProducts.length}
+                                    dishCount={filteredDishes.length}
+                                />
+
+                                {/* Ligne 3 : Trier + Filtrer
+                                    ⚠️ Masquée en portée « Plats » : le tri par
+                                    stock et le filtre Anomalies portent sur des
+                                    notions qui n'existent PAS pour un plat
+                                    (stock, écart d'inventaire). Les laisser
+                                    serait proposer des contrôles sans effet. */}
+                                <div
+                                    className={cn(
+                                        'flex flex-wrap items-center gap-3',
+                                        catalogScope === 'dishes' && 'hidden'
+                                    )}
+                                >
                                     <div className="flex items-center gap-2">
                                         <span className="text-micro text-muted-foreground uppercase">Trier</span>
                                         <div
@@ -266,22 +335,59 @@ export default function InventoryPage() {
                                 </div>
                             </div>
 
-                            {/* Liste Produits */}
-                            {isLoadingProducts ? (
-                                <ProductGridSkeleton count={isMobile ? 4 : 8} />
-                            ) : (
-                                <div data-guide="inventory-table">
-                                    <InventoryList
-                                        products={sortedProducts}
-                                        categories={categories}
-                                        getProductStockInfo={getProductStockInfo}
-                                        getDisplayCostForProduct={getDisplayCostForProduct}
-                                        barSettings={currentBar?.settings}
-                                        onEdit={handleEditProduct}
-                                        onAdjust={handleAdjustStock}
-                                        onDelete={handleDeleteClick}
-                                        onHistory={handleViewHistory}
+                            {/* ⭐ Liste Produits — masquée en portée « Plats ».
+                                ⚠️ Les deux listes sont DISTINCTES, jamais
+                                fusionnées : InventoryList est bâtie pour des
+                                produits STOCKÉS (stock, coût d'achat,
+                                ajustements, historique). Un plat n'a rien de
+                                cela — c'est précisément pourquoi `dishes` est
+                                une table autonome (§4.5). Les fusionner
+                                exigerait des champs mensongers. */}
+                            {catalogScope !== 'dishes' && (
+                                isLoadingProducts ? (
+                                    <ProductGridSkeleton count={isMobile ? 4 : 8} />
+                                ) : (
+                                    <div data-guide="inventory-table">
+                                        <InventoryList
+                                            products={sortedProducts}
+                                            categories={categories}
+                                            getProductStockInfo={getProductStockInfo}
+                                            getDisplayCostForProduct={getDisplayCostForProduct}
+                                            barSettings={currentBar?.settings}
+                                            onEdit={handleEditProduct}
+                                            onAdjust={handleAdjustStock}
+                                            onDelete={handleDeleteClick}
+                                            onHistory={handleViewHistory}
+                                            searchTerm={searchTerm}
+                                        />
+                                    </div>
+                                )
+                            )}
+
+                            {/* ⭐ Liste Plats — §3 : `hasRestaurant` en garde,
+                                sinon un bar pur afficherait un titre de section
+                                « Plats » suivi d'un vide. */}
+                            {hasRestaurant && catalogScope !== 'products' &&
+                             /* ⚠️ En portée « Tout », un catalogue sans plat ne
+                                doit PAS afficher l'état vide des plats sous les
+                                boissons : l'écran dirait « aucun plat » alors
+                                que l'utilisateur regarde ses boissons. L'état
+                                vide n'a de sens qu'en portée « Plats ». */
+                             (catalogScope === 'dishes' || filteredDishes.length > 0) && (
+                                <div className="space-y-2">
+                                    {/* Le titre de section n'apparaît qu'en
+                                        portée « Tout » : ailleurs, le sélecteur
+                                        dit déjà ce qu'on regarde. */}
+                                    {catalogScope === 'all' && filteredDishes.length > 0 && (
+                                        <h3 className="text-micro text-muted-foreground uppercase pt-2">
+                                            Plats
+                                        </h3>
+                                    )}
+                                    <DishCatalogList
+                                        dishes={filteredDishes}
+                                        categoryNames={dishCategoryNames}
                                         searchTerm={searchTerm}
+                                        isLoading={isLoadingDishes}
                                     />
                                 </div>
                             )}
