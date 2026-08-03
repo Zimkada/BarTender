@@ -1749,9 +1749,18 @@ seulement ces trois-là.
 > PRODUIT ? ».
 >
 > **Trois cibles de la table ci-dessous n'existent pas en SQL** (forecasting, exports,
-> résumés de ticket) : elles vivent côté client, où **72 lectures** de `sale.items` restent
-> à balayer — second volet d'inventaire, risque moindre car le typage TS rend la confusion
-> visible à la compilation.
+> résumés de ticket) : elles vivent côté client.
+>
+> ⭐ **VOLET CLIENT FAIT → [`INVENTAIRE_SALES_ITEMS_CLIENT.md`](INVENTAIRE_SALES_ITEMS_CLIENT.md)**
+> Résultat : sur 33 fichiers itérant sur `sales.items`, **DEUX seulement** exigent un filtre
+> (`AnalyticsView.tsx` pour la répartition du CA par catégorie, `useSalesExport.ts` pour
+> l'export CSV). Le reste est couvert par le correctif SQL, correct par nature (comptage
+> d'articles), mort, ou protégé par le compilateur.
+>
+> ⭐ **Le typage fait l'inventaire à notre place** : quand `SaleItem` recevra `item_type`
+> comme champ OBLIGATOIRE, tout code construisant un item sans le renseigner cassera à la
+> compilation. C'est la différence structurelle avec le JSONB, qui ne signale rien — et une
+> raison de plus pour que le champ ne soit **pas** optionnel dans le type.
 
 ### 13.10 `bar_categories.type` — backfill et étanchéité
 
