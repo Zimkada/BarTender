@@ -59,6 +59,82 @@ export class CategoriesService {
     }
 
     /**
+     * ⭐ Catégories de PLATS (§13.10) — module restauration.
+     *
+     * ⚠️ N'appeler que si `hasRestaurant` : §3, pas un octet d'egress sur un
+     * bar pur. La query `useDishCategories` porte la garde.
+     *
+     * ⚠️ Pas de jointure `global_categories` ici, contrairement aux boissons :
+     * il n'existe pas de catalogue global de plats. Une catégorie de plats est
+     * toujours propre au bar (custom_name), ce qui rend la requête plus légère.
+     */
+    static async getDishCategories(barId: string): Promise<BarCategory[]> {
+        try {
+            const { data, error } = await supabase
+                .from('bar_categories')
+                .select('*')
+                .eq('bar_id', barId)
+                .eq('is_active', true)
+                .eq('type', 'dish');
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ⭐ Créer une catégorie de PLATS.
+     *
+     * ⚠️ Distincte de `createCustomCategory` par le seul `type`, mais méthode
+     * SÉPARÉE volontairement : un paramètre `type` optionnel sur la méthode
+     * existante ferait dépendre l'étanchéité d'un argument qu'on peut oublier.
+     * Deux méthodes explicites valent mieux qu'un drapeau silencieux.
+     *
+     * ⚠️ L'unicité en base est `UNIQUE (bar_id, name)` et NE CONNAÎT PAS le
+     * `type` (relevé en prod au pré-vol du 03/08/2026) : une catégorie de plats
+     * ne peut donc pas porter le même nom qu'une catégorie de boissons. Le
+     * doublon est intercepté ici pour éviter une erreur Postgres brute.
+     */
+    static async createDishCategory(
+        barId: string,
+        data: { name: string; color?: string }
+    ): Promise<BarCategory> {
+        try {
+            const payload: BarCategoryInsert = {
+                bar_id: barId,
+                custom_name: data.name,
+                custom_color: data.color || '#F59E0B',
+                is_active: true,
+                type: 'dish',
+            };
+
+            const { data: newCategory, error } = await supabase
+                .from('bar_categories')
+                .insert(payload)
+                .select()
+                .single();
+
+            if (error || !newCategory) {
+                // 23505 = violation d'unicité. Le message Postgres brut
+                // ('duplicate key value violates unique constraint...') serait
+                // incompréhensible pour un promoteur.
+                if (error?.code === '23505') {
+                    throw new Error(
+                        `Le nom « ${data.name} » est déjà utilisé par une autre catégorie de ce bar.`
+                    );
+                }
+                throw new Error(error?.message || 'Erreur lors de la création de la catégorie');
+            }
+
+            return newCategory;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
      * Récupérer les catégories d'un bar avec les données globales
      */
     static async getBarCategoriesWithGlobal(barId: string): Promise<CategoryWithGlobal[]> {
