@@ -92,6 +92,11 @@ const kitchenEntry = () => screen.queryByText('Cuisine');
 describe('Entrée de menu « Cuisine » (§3, §9)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // ⚠️ MobileSidebar PERSISTE les groupes ouverts dans localStorage. Sans ce
+    // nettoyage, un test qui déplie un tiroir le laisse ouvert pour les
+    // suivants : l'état fuit et les assertions sur les tiroirs deviennent
+    // dépendantes de l'ordre d'exécution.
+    localStorage.clear();
   });
 
   describe('⛔ Bar PUR — l\'entrée n\'existe pas', () => {
@@ -132,6 +137,68 @@ describe('Entrée de menu « Cuisine » (§3, §9)', () => {
     });
   });
 
+  describe('⭐ Entrée de PREMIER NIVEAU (hors tiroir)', () => {
+    /**
+     * ⚠️ Ce test vérifie l'UNICITÉ, pas la simple présence.
+     *
+     * Un test « l'entrée est visible » resterait vert dans les deux placements
+     * (tiroir ou premier niveau) : il ne prouverait rien. Le vrai risque du
+     * double rendu est le DOUBLON, et il a deux causes distinctes, chacune
+     * vérifiée par injection :
+     *   1. 'kitchen' laissé dans buildGroup('stock', …) → doublon promoteur/gérant
+     *   2. garde `isGrouped` retirée de topLevelItems → doublon cuisinier
+     *        (sa liste plate contient déjà tous les items visibles)
+     */
+    it.each<UserRole>(['promoteur', 'gerant', 'cuisinier'])(
+      'rendue une SEULE fois pour %s',
+      (role) => {
+        // currentMenu='inventory' ouvre le groupe « Produits et stock » : si
+        // 'kitchen' y figurait encore, l'entrée apparaîtrait deux fois.
+        renderSidebar(role, true, 'inventory');
+
+        expect(
+          screen.getAllByText('Cuisine'),
+          `L'entrée Cuisine est dupliquée pour ${role} : elle est rendue à la fois au premier niveau et dans un groupe`
+        ).toHaveLength(1);
+      }
+    );
+
+    it('placée ENTRE « Produits et stock » et « Finances »', () => {
+      // ⭐ L'ordre compte : en tête de menu, Cuisine passait devant « Vente »,
+      // l'écran le plus utilisé. Elle doit suivre le groupe stock (même
+      // registre mental, §9) sans le précéder.
+      // ⚠️ On compare les positions RÉELLES dans le DOM : se fier à l'ordre du
+      // tableau source ne prouverait rien sur ce qui est rendu.
+      const { container } = renderSidebar('promoteur', true, 'home');
+
+      const labels = Array.from(container.querySelectorAll('span'))
+        .map(el => el.textContent)
+        .filter((t): t is string => !!t);
+
+      const stock = labels.indexOf('Produits et stock');
+      const kitchen = labels.indexOf('Cuisine');
+      const finances = labels.indexOf('Finances');
+
+      expect(stock, 'groupe « Produits et stock » introuvable').toBeGreaterThan(-1);
+      expect(kitchen, 'entrée « Cuisine » introuvable').toBeGreaterThan(-1);
+      expect(finances, 'groupe « Finances » introuvable').toBeGreaterThan(-1);
+
+      expect(kitchen, 'Cuisine doit venir APRÈS « Produits et stock »').toBeGreaterThan(stock);
+      expect(kitchen, 'Cuisine doit venir AVANT « Finances »').toBeLessThan(finances);
+    });
+
+    it('n\'ouvre aucun tiroir : elle n\'appartient à aucun groupe', () => {
+      // currentMenu='kitchen' ne doit PAS auto-ouvrir « Produits et stock ».
+      // Si un tiroir s'ouvrait, ses items seraient dans le DOM.
+      renderSidebar('promoteur', true, 'kitchen');
+
+      expect(
+        screen.queryByText('Consignations'),
+        'Le groupe « Produits et stock » ne doit pas s\'ouvrir pour un écran cuisine'
+      ).toBeNull();
+    });
+  });
+
   describe('⭐ Le SERVEUR n\'a PAS d\'entrée cuisine', () => {
     it('absente même avec la cuisine active', () => {
       // §9 : « Le serveur ne gère pas la cuisine, il vend des plats : lui
@@ -167,6 +234,11 @@ const renderMobileNav = (role: UserRole, hasRestaurant: boolean) => {
 describe('MobileNavigation — le cuisinier n\'a pas une barre vide (§9)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // ⚠️ MobileSidebar PERSISTE les groupes ouverts dans localStorage. Sans ce
+    // nettoyage, un test qui déplie un tiroir le laisse ouvert pour les
+    // suivants : l'état fuit et les assertions sur les tiroirs deviennent
+    // dépendantes de l'ordre d'exécution.
+    localStorage.clear();
   });
 
   it('⛔ le cuisinier a AU MOINS une entrée', () => {

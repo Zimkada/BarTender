@@ -221,27 +221,52 @@ export function MobileSidebar({
     return items.length > 0 ? { id, label, icon, items } : null;
   };
 
-  const menuGroups: MenuGroup[] = isGrouped
+  /**
+   * ⭐ Entrée SOLO — un item rendu au premier niveau, sans tiroir.
+   *
+   * §9 impose « une seule entrée » pour la cuisine (pas quatre : elle mène à une
+   * page à onglets). Un tiroir « Cuisine » à un seul item coûterait un clic pour
+   * rien ; l'enfouir dans « Produits et stock » la rendait invisible au premier
+   * coup d'oeil, à côté de Retours et Consignations qui sont un autre métier.
+   */
+  const buildSolo = (item: MenuItem | undefined): MenuItem | null =>
+    item && isVisible(item) ? item : null;
+
+  /**
+   * Séquence du menu, groupes et entrées solo mélangés — l'ORDRE D'AFFICHAGE se
+   * lit ici et nulle part ailleurs. Le rendu se contente de la parcourir.
+   *
+   * ⚠️ Concerne UNIQUEMENT la liste groupée (promoteur/gérant). Le cuisinier et
+   * le serveur ont une liste plate : `visibleMenus` contient déjà tous leurs
+   * items, cuisine comprise. Rendre une entrée solo pour eux l'afficherait EN
+   * DOUBLE.
+   */
+  const menuEntries: (MenuGroup | MenuItem)[] = isGrouped
     ? ([
         // ShoppingCart et non Zap : Zap identifie déjà « Vente rapide » dans ce groupe.
         buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'dailyDashboard', 'history']),
         // Icones d entete distinctes de celles des items qu ils contiennent :
         // Boxes vs Package (Inventaire), Wallet vs DollarSign (Comptabilite).
-        // ⚠️ 'kitchen' listé ICI, sinon l'entrée serait invisible pour promoteur
-        //    et gérant : les groupes énumèrent leurs items explicitement.
-        //    Placée après 'inventory' — même registre mental (§9). Le filtre
-        //    isVisible la retire d'office sur un bar pur.
-        buildGroup('stock', 'Produits et stock', <Boxes size={18} />, ['returns', 'consignments', 'inventory', 'kitchen']),
+        buildGroup('stock', 'Produits et stock', <Boxes size={18} />, ['returns', 'consignments', 'inventory']),
+        // ⭐ Cuisine ENTRE stock et finances : elle garde le voisinage stock
+        //    (« même registre mental », §9) sans passer devant Vente, l'écran le
+        //    plus utilisé.
+        buildSolo(byId('kitchen')),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),
-      ].filter((g): g is MenuGroup => g !== null))
+      ].filter((e): e is MenuGroup | MenuItem => e !== null))
     : [];
+
+  /** Une entrée solo n'a pas d'`items` — c'est ce qui la distingue d'un groupe. */
+  const isGroup = (entry: MenuGroup | MenuItem): entry is MenuGroup => 'items' in entry;
 
   // Le groupe contenant l'écran courant s'ouvre de lui-même : sans ça, l'utilisateur
   // ne voit plus où il se trouve.
-  const activeGroupId = menuGroups.find(
-    g => g.items.some(item => item.id === currentMenu)
+  // ⚠️ Une entrée solo n'appartient à aucun groupe : `activeGroupId` est alors
+  // `undefined` et aucun tiroir ne s'ouvre — c'est le comportement voulu.
+  const activeGroupId = menuEntries.find(
+    (entry): entry is MenuGroup => isGroup(entry) && entry.items.some(item => item.id === currentMenu)
   )?.id;
 
   // ⭐ Uniquement à la transition fermée → ouverte : l'auto-ouverture ne doit jamais
@@ -340,7 +365,12 @@ export function MobileSidebar({
 
             <div className="flex-1 overflow-y-auto p-2">
               {isGrouped
-                ? menuGroups.map((group) => {
+                ? menuEntries.map((entry) => {
+                  // ⭐ Entrée solo : rendue telle quelle, à sa place dans la
+                  // séquence — pas de tiroir, donc visible sans aucun clic.
+                  if (!isGroup(entry)) return renderMenuItem(entry);
+
+                  const group = entry;
                   const isGroupOpen = openGroupIds.includes(group.id);
                   const hasActiveItem = group.items.some(item => item.id === currentMenu);
 
