@@ -15,20 +15,28 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, Clock, Plus, TrendingDown } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Plus, TrendingDown, UtensilsCrossed, ChefHat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedPageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
+import { DishesTab } from '../components/kitchen/DishesTab';
 import { useBarContext } from '../context/BarContext';
 import { useUnifiedKitchen } from '../hooks/pivots/useUnifiedKitchen';
+import { useUnifiedDishes } from '../hooks/pivots/useUnifiedDishes';
+import { useDishCategories } from '../hooks/queries/useDishesQueries';
 import { useIngredientMutations } from '../hooks/mutations/useIngredientMutations';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { cn } from '../lib/utils';
 
-type TabId = 'stock' | 'expiring';
+/**
+ * ⚠️ Ordre des onglets : « Plats » d'abord (§9 le place avant Ingrédients).
+ * C'est aussi l'ordre d'usage — on saisit ses plats, puis on suit son stock.
+ * Les onglets Service et Appro du §9 arriveront en phases 3 et ultérieure.
+ */
+type TabId = 'dishes' | 'stock' | 'expiring';
 
 /**
  * Fenêtre d'alerte de péremption, en jours.
@@ -76,6 +84,32 @@ export default function IngredientsPage() {
 
   const { receiveSupply } = useIngredientMutations();
 
+  /**
+   * ⭐ Les plats réutilisent les ingrédients DÉJÀ chargés par
+   * `useUnifiedKitchen` ci-dessus — le pivot les compose, aucune requête de
+   * plus. Seule la liste des plats est un fetch supplémentaire.
+   */
+  const { dishes, availableIngredients, isLoading: isLoadingDishes } = useUnifiedDishes(
+    currentBar?.id
+  );
+
+  const { data: dishCategoryRows = [] } = useDishCategories(currentBar?.id);
+
+  /**
+   * ⚠️ Normalisation ici et non dans la query : une catégorie de plats est
+   * toujours custom (pas de catalogue global de plats), mais le type de la
+   * table autorise `custom_name` à être NULL. Le repli garantit qu'aucune
+   * option de sélecteur ne s'affiche vide.
+   */
+  const dishCategories = useMemo(
+    () =>
+      dishCategoryRows.map((c) => ({
+        id: c.id,
+        name: c.custom_name || c.name || 'Sans nom',
+      })),
+    [dishCategoryRows]
+  );
+
   const openSupply = (ingredientId?: string) => {
     setPreselectedIngredient(ingredientId);
     setShowSupplyModal(true);
@@ -106,6 +140,7 @@ export default function IngredientsPage() {
   // élément rendu — le design system l'instancie lui-même avec ses propres props.
   const tabs = useMemo(
     () => [
+      { id: 'dishes', label: 'Plats', icon: UtensilsCrossed },
       { id: 'stock', label: 'Stock', icon: Package },
       {
         id: 'expiring',
@@ -121,27 +156,44 @@ export default function IngredientsPage() {
 
   return (
     <div className="min-h-screen bg-brand-subtle pb-20">
+      {/* ⚠️ Titre « Cuisine » et non « Stock cuisine » : la page ne porte plus
+          que le stock depuis l'ajout de l'onglet Plats. Le §9 la nomme
+          « Cuisine ». */}
       <TabbedPageHeader
-        title="Stock cuisine"
-        subtitle={`${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}`}
-        icon={<Package size={22} />}
+        title="Cuisine"
+        // Le sous-titre suit l'onglet : compter des ingrédients pendant qu'on
+        // regarde des plats serait un chiffre hors sujet.
+        subtitle={
+          activeTab === 'dishes'
+            ? `${dishes.length} plat${dishes.length > 1 ? 's' : ''}`
+            : `${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}`
+        }
+        icon={<ChefHat size={22} />}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as TabId)}
         onBack={() => navigate('/')}
         actions={
-          <Button size="sm" onClick={() => openSupply()}>
-            <Plus size={16} className="mr-1.5" />
-            Appro
-          </Button>
+          // ⚠️ « Appro » masqué sur l'onglet Plats : l'action y serait sans
+          // rapport avec ce qui est affiché. L'onglet Plats a son propre
+          // bouton « Nouveau plat ».
+          activeTab === 'dishes' ? undefined : (
+            <Button size="sm" onClick={() => openSupply()}>
+              <Plus size={16} className="mr-1.5" />
+              Appro
+            </Button>
+          )
         }
       />
 
       <div className="px-4 sm:px-6 space-y-4 mt-4">
         {/* ⭐ Les deux chiffres qui n'existent nulle part ailleurs.
             Affichés AVANT les listes : un montant déclenche l'action,
-            une liste demande d'abord d'être lue. */}
-        {(expiringValue > 0 || ingredientsInDebt.length > 0) && (
+            une liste demande d'abord d'être lue.
+            ⚠️ Masqués sur l'onglet Plats : ces alertes portent sur le STOCK.
+            Les y laisser repousserait la liste des plats vers le bas pour une
+            information sans rapport avec ce que l'utilisateur regarde. */}
+        {activeTab !== 'dishes' && (expiringValue > 0 || ingredientsInDebt.length > 0) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {expiringValue > 0 && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/30 p-4">
@@ -183,7 +235,22 @@ export default function IngredientsPage() {
           </div>
         )}
 
-        {isLoading && (
+        {/* ===== Onglet Plats =====
+            ⚠️ Rendu AVANT la garde `isLoading` ci-dessous : celle-ci porte sur
+            le chargement des INGRÉDIENTS. L'onglet Plats gère son propre état
+            de chargement — le soumettre à la garde des ingrédients le
+            laisserait vide alors que ses données sont prêtes. */}
+        {activeTab === 'dishes' && (
+          <DishesTab
+            barId={currentBar?.id}
+            dishes={dishes}
+            ingredients={availableIngredients}
+            categories={dishCategories}
+            isLoading={isLoadingDishes}
+          />
+        )}
+
+        {isLoading && activeTab !== 'dishes' && (
           <p className="text-center text-muted-foreground py-8">Chargement…</p>
         )}
 

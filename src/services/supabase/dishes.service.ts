@@ -18,6 +18,7 @@
 
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
+import type { Json } from '../../lib/database.types';
 
 // ===== TYPES =====
 
@@ -280,7 +281,11 @@ export class DishesService {
     try {
       const { data, error } = await supabase.rpc('upsert_dish', {
         p_bar_id: barId,
-        p_dish: dish as unknown as Record<string, unknown>,
+        // ⚠️ `Json` (type généré Supabase) et non `Record<string, unknown>` :
+        // ce dernier n'est pas assignable à Json, dont l'index signature est
+        // récursive. Le double cast passe par `unknown` car DishInput contient
+        // des `undefined` optionnels, absents de Json.
+        p_dish: dish as unknown as Json,
       });
 
       if (error) throw error;
@@ -314,7 +319,7 @@ export class DishesService {
       const { data, error } = await supabase.rpc('replace_dish_recipe', {
         p_bar_id: barId,
         p_dish_id: dishId,
-        p_lines: lines as unknown as Record<string, unknown>[],
+        p_lines: lines as unknown as Json,
       });
 
       if (error) throw error;
