@@ -7085,6 +7085,10 @@ export type Database = {
         }
         Returns: Json
       }
+      replace_dish_recipe: {
+        Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
+        Returns: Json
+      }
       reverse_supply: { Args: { p_supply_id: string }; Returns: Json }
       safe_refresh_materialized_view: {
         Args: {
@@ -7166,6 +7170,7 @@ export type Database = {
         }
         Returns: Json
       }
+      upsert_dish: { Args: { p_bar_id: string; p_dish: Json }; Returns: Json }
       validate_sale: {
         Args: { p_sale_id: string; p_validated_by: string }
         Returns: undefined
