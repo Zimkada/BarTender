@@ -32,7 +32,6 @@ import { useMemo, useCallback } from 'react';
 import { useDishes } from '../queries/useDishesQueries';
 import { useUnifiedKitchen } from './useUnifiedKitchen';
 import type { DishRow } from '../../services/supabase/dishes.service';
-import type { IngredientWithAlerts } from './useUnifiedKitchen';
 
 /**
  * ⚠️ PAS de champ `hasRecipe` ni `recipeLineCount` sur les plats de la liste.
@@ -96,18 +95,6 @@ export function useUnifiedDishes(barId: string | undefined) {
     [dishesById]
   );
 
-  /**
-   * Ingrédients sélectionnables dans une recette.
-   *
-   * ⚠️ Aucun filtre sur `cost_mode` : les 4 modes sont légitimes dans une
-   * recette (§16.3). Un `global` (sel) n'entre pas au coût du plat mais fait
-   * bien partie de la recette — l'exclure ici la rendrait incomplète.
-   */
-  const availableIngredients = useMemo<IngredientWithAlerts[]>(
-    () => ingredients,
-    [ingredients]
-  );
-
   const refetch = useCallback(() => {
     refetchDishes();
     refetchIngredients();
@@ -116,7 +103,20 @@ export function useUnifiedDishes(barId: string | undefined) {
   return {
     // Données
     dishes,
-    availableIngredients,
+    /**
+     * Ingrédients sélectionnables dans une recette — réexposés tels quels
+     * depuis le pivot cuisine, sans requête supplémentaire.
+     *
+     * ⚠️ Aucun filtre sur `cost_mode` : les 4 modes sont légitimes dans une
+     * recette (§16.3). Un `global` (sel) n'entre pas au coût du plat mais fait
+     * bien partie de la recette — l'exclure la rendrait incomplète.
+     *
+     * ⚠️ PAS de `useMemo` ici : la référence vient déjà mémoïsée de
+     * useUnifiedKitchen. Un useMemo qui retourne son entrée avec la même
+     * dépendance ne calcule RIEN — c'est un alias déguisé en optimisation,
+     * qui laisse croire à un traitement inexistant.
+     */
+    availableIngredients: ingredients,
 
     // Sous-ensembles prêts à afficher
     unavailableDishes,
