@@ -1725,14 +1725,23 @@ seulement ces trois-là.
 > | — | ⭐ **`bar_product_audit_log.product_id`** sans FK, **non mentionné ici** |
 >
 > **Résultat du balayage** : 6 fonctions à traiter (3 écartées après vérification),
-> **4 vues MATÉRIALISÉES**, 2 tables sans FK. Les 6 autres colonnes `product_id` du schéma
+> **3 vues MATÉRIALISÉES**, 2 tables sans FK. Les 6 autres colonnes `product_id` du schéma
 > ont une FK : un `dish_id` y serait rejeté par la base. Le rayon d'exposition est donc plus
-> ÉTROIT que ce §13.9 le laissait craindre — mais il contient un objet de plus.
+> ÉTROIT que ce §13.9 le laissait craindre — mais il contient deux objets de plus
+> (`bar_ancillary_stats_mat`, `admin_generate_bar_report`).
 >
 > ⚠️ **Le point le plus grave n'était pas dans cette checklist** : les vues MATÉRIALISÉES
 > *stockent* leur résultat. Un plat qui y entre y **reste** jusqu'au prochain `REFRESH`.
 > → **Le filtre doit être posé AVANT la première vente d'un plat**, sinon un `REFRESH`
 > complet sera nécessaire pour purger l'historique agrégé.
+> ⏱️ Délai mesuré : les triggers `pg_notify` avec un débounce de 10 min, le cron rafraîchit
+> toutes les 30 min. Une donnée fausse est figée dans la vue jusqu'au refresh suivant.
+>
+> ⭐ **Deux vues sont HORS périmètre, contrairement à ce qu'un balayage textuel suggère** :
+> `top_products_by_period_mat` est une **vue MORTE** (retirée du refresh par la migration
+> `20260607160000` — le dashboard passe par `get_top_products_aggregated` qui lit les tables
+> brutes), et `bar_stats_multi_period_mat` est une **cascade** de `daily_sales_summary_mat`
+> qui hérite donc du correctif de sa source.
 >
 > ⭐ **Contre-exemple utile** : `compute_sale_items_count` lit `sales.items` et ne doit
 > **PAS** être filtré — c'est un compteur d'articles vendus, et un plat *est* un article
