@@ -43,7 +43,9 @@ type ViewMode = 'products' | 'operations' | 'stats' | 'orders';
 type SortMode = 'category' | 'alphabetical' | 'stock';
 
 export default function InventoryPage() {
-    const { currentBar } = useBarContext();
+    // ⭐ `hasRestaurant` extrait ICI : un second useBarContext() plus bas
+    // serait un doublon, et le verrou de portée §3 en a besoin.
+    const { currentBar, hasRestaurant } = useBarContext();
     const location = useLocation();
     const navigate = useNavigate();
     const searchParams = new URLSearchParams(location.search);
@@ -70,14 +72,31 @@ export default function InventoryPage() {
      * son offre COMPLÈTE en arrivant. Sur un bar pur, la valeur n'a aucun effet
      * (le sélecteur n'existe pas et `dishes` est vide) — §3 préservé.
      */
-    const [catalogScope, setCatalogScope] = useState<CatalogScope>('all');
+    const [rawCatalogScope, setCatalogScope] = useState<CatalogScope>('all');
 
     /**
-     * ⭐ §3 — `hasRestaurant` conditionne l'AFFICHAGE du sélecteur, mais pas le
-     * montage des hooks : ceux-ci portent déjà leur propre garde `enabled`.
-     * Sur un bar pur, `dishes` reste vide SANS qu'aucune requête ne parte.
+     * ⭐⭐ §3 — VERROU : sur un bar pur, la portée est TOUJOURS 'all'.
+     *
+     * `rawCatalogScope` n'est aujourd'hui modifiable que par le sélecteur, qui
+     * ne se rend pas sans `hasRestaurant` — le cas est donc inatteignable.
+     * Mais rien ne l'empêche STRUCTURELLEMENT : un futur `?scope=dishes` dans
+     * l'URL, un état persisté en localStorage, ou un bar qui désactive sa
+     * cuisine alors que la portée est sur 'dishes' feraient DISPARAÎTRE le
+     * catalogue de boissons — sans erreur, sans log, sans rien.
+     *
+     * Ce verrou rend l'invariance indépendante de la façon dont la portée est
+     * arrivée là. §3 : « un bar pur doit être STRICTEMENT identique ».
      */
-    const { hasRestaurant } = useBarContext();
+    const catalogScope: CatalogScope = hasRestaurant ? rawCatalogScope : 'all';
+
+    /**
+     * ⚠️ `hasRestaurant` vient du même `useBarContext()` que `currentBar`
+     * ci-dessus : un second appel au même hook serait un doublon inutile.
+     *
+     * ⭐ §3 — `hasRestaurant` conditionne l'AFFICHAGE, jamais le montage des
+     * hooks : ceux-ci portent déjà leur propre garde `enabled`. Sur un bar pur,
+     * `dishes` reste vide SANS qu'aucune requête ne parte.
+     */
     const { dishes, isLoading: isLoadingDishes } = useUnifiedDishes(currentBar?.id);
     const { data: dishCategoryRows = [] } = useDishCategories(currentBar?.id);
 
@@ -251,12 +270,28 @@ export default function InventoryPage() {
                                     §3 — ne rend RIEN sur un bar pur : le
                                     composant s'auto-masque via hasRestaurant,
                                     l'écran est alors STRICTEMENT identique. */}
+                                {/* ⚠️ Compteurs MASQUÉS quand le filtre Anomalies
+                                    est actif.
+                                    `sortedProducts` subit ce filtre, `filteredDishes`
+                                    NON (un plat n'a pas d'anomalie de stock). Le
+                                    total « Tout » deviendrait alors la somme d'un
+                                    ensemble filtré et d'un ensemble qui ne l'est
+                                    pas — un chiffre ne correspondant à rien.
+                                    Mieux vaut aucun compteur qu'un compteur faux. */}
                                 <CatalogScopeSwitcher
                                     scope={catalogScope}
-                                    onScopeChange={setCatalogScope}
+                                    onScopeChange={(next) => {
+                                        setCatalogScope(next);
+                                        // ⚠️ Le filtre Anomalies est MASQUÉ en portée
+                                        // « Plats ». S'il restait actif, l'utilisateur
+                                        // reviendrait en « Boissons » avec une liste
+                                        // amputée sans plus voir le contrôle qui en
+                                        // est la cause — un filtre fantôme.
+                                        if (next === 'dishes') setShowAnomalies(false);
+                                    }}
                                     hasRestaurant={hasRestaurant}
-                                    productCount={sortedProducts.length}
-                                    dishCount={filteredDishes.length}
+                                    productCount={showAnomalies ? undefined : sortedProducts.length}
+                                    dishCount={showAnomalies ? undefined : filteredDishes.length}
                                 />
 
                                 {/* Ligne 3 : Trier + Filtrer
