@@ -151,27 +151,21 @@ export default function IngredientsPage() {
     <div className="min-h-screen bg-brand-subtle pb-20">
       {/* ⚠️ Titre « Ingrédients » depuis le découpage : « Plats » a sa propre
           page, cet écran ne porte plus que le stock et son appro. */}
+      {/* ⭐ PAS de bouton « Appro » dans l'en-tête depuis le découpage.
+          Il appelait `openSupply()` SANS ingrédient — exactement ce que fait
+          désormais l'onglet Appro, visible juste en dessous, et en mieux :
+          formulaire en pleine page plutôt qu'en modale.
+          ⚠️ L'appro CIBLÉ (depuis une ligne de stock, avec `ingredient.id`)
+          reste indispensable : lui présélectionne l'ingrédient. C'est le seul
+          usage restant de la modale. */}
       <TabbedPageHeader
         title="Ingrédients"
-        // Le sous-titre suit l'onglet : compter des ingrédients pendant qu'on
-        // regarde des plats serait un chiffre hors sujet.
         subtitle={`${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}`}
         icon={<ChefHat size={22} />}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as TabId)}
         onBack={() => navigate('/')}
-        actions={
-          // ⚠️ « Appro » masqué sur l'onglet Plats : l'action y serait sans
-          // rapport avec ce qui est affiché. L'onglet Plats a son propre
-          // bouton « Nouveau plat ».
-          activeTab === 'supply' ? undefined : (
-            <Button size="sm" onClick={() => openSupply()}>
-              <Plus size={16} className="mr-1.5" />
-              Appro
-            </Button>
-          )
-        }
       />
 
       <div className="px-4 sm:px-6 space-y-4 mt-4">
@@ -255,7 +249,20 @@ export default function IngredientsPage() {
               <EmptyState
                 icon={Package}
                 message="Aucun ingrédient"
-                subMessage="Ajoutez vos ingrédients pour suivre le coût réel de vos plats."
+                subMessage="Enregistrez un approvisionnement pour suivre le coût réel de vos plats."
+                // ⭐ Une action, pas seulement un constat. Avant le découpage,
+                // le bouton « Appro » de l'en-tête offrait cette porte de
+                // sortie ; sans lui, le message resterait un cul-de-sac.
+                // ⚠️ Masquée au cuisinier : il ne voit pas l'onglet Appro (§9),
+                // le bouton l'enverrait vers un onglet inexistant pour lui.
+                action={
+                  canViewCosts ? (
+                    <Button onClick={() => setActiveTab('supply')}>
+                      <Plus size={16} className="mr-1.5" />
+                      Enregistrer un appro
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : (
               <div className="space-y-2">
