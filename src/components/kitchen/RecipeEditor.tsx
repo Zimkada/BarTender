@@ -27,7 +27,9 @@ import type {
   ConsumedAtStage,
   DishCostResult,
 } from '../../services/supabase/dishes.service';
-import type { IngredientWithAlerts } from '../../hooks/pivots/useUnifiedKitchen';
+import type { IngredientWithAlerts, } from '../../hooks/pivots/useUnifiedKitchen';
+import type { IngredientInput } from '../../services/supabase/ingredients.service';
+import { IngredientForm } from './IngredientForm';
 
 /**
  * Seuil d'alerte de marge (§9 : « la marge est l'élément central de la carte,
@@ -60,6 +62,21 @@ interface Props {
   isSaving: boolean;
   onSave: (lines: RecipeLineInput[]) => void;
   onCancel: () => void;
+  /**
+   * ⭐ Création d'ingrédient EN LIGNE — §13.12.
+   *
+   * « La saisie initiale est le principal risque d'abandon. » Un cuisinier qui
+   * découvre au milieu de sa recette qu'il lui manque « piment » ne doit pas
+   * avoir à tout abandonner pour aller le créer ailleurs.
+   *
+   * ⚠️ Le formulaire ouvert est le MÊME que celui de l'écran Ingrédients, pas
+   * une version « rapide » : `unit` et `cost_mode` conditionnent le coût du
+   * plat. Un ingrédient créé sans eux produirait une marge fausse sans signal.
+   *
+   * Retourne l'id créé pour que la ligne en cours le sélectionne aussitôt.
+   */
+  onCreateIngredient: (ingredient: IngredientInput) => Promise<string | null>;
+  isCreatingIngredient: boolean;
 }
 
 let draftCounter = 0;
@@ -74,10 +91,22 @@ export function RecipeEditor({
   isSaving,
   onSave,
   onCancel,
+  onCreateIngredient,
+  isCreatingIngredient,
 }: Props) {
   const { formatPrice } = useCurrencyFormatter();
 
   const [lines, setLines] = useState<RecipeLineDraft[]>([]);
+
+  /**
+   * Clé de la ligne qui a demandé un nouvel ingrédient — `null` si le
+   * formulaire est fermé.
+   *
+   * ⚠️ On mémorise la LIGNE et non un simple booléen : l'ingrédient créé doit
+   * être affecté à la ligne qui l'a demandé, pas à la dernière ni à la
+   * première. Avec plusieurs lignes vides, un booléen se tromperait de cible.
+   */
+  const [creatingForLine, setCreatingForLine] = useState<string | null>(null);
 
   /**
    * ⚠️⚠️ Le brouillon est initialisé UNE SEULE FOIS par plat.
@@ -141,6 +170,24 @@ export function RecipeEditor({
 
   const removeLine = (key: string) => {
     setLines((prev) => prev.filter((l) => l.key !== key));
+    // ⚠️ Si la ligne supprimée attendait un ingrédient, refermer le formulaire :
+    // il n'aurait plus de cible à qui affecter la création.
+    if (creatingForLine === key) setCreatingForLine(null);
+  };
+
+  const handleCreateIngredient = async (values: IngredientInput) => {
+    const lineKey = creatingForLine;
+    if (!lineKey) return;
+
+    const createdId = await onCreateIngredient(values);
+
+    // ⚠️ En cas d'échec (nom déjà pris), le formulaire RESTE ouvert avec sa
+    // saisie : l'utilisateur corrige au lieu de tout retaper. Le toast d'erreur
+    // vient de la mutation.
+    if (createdId) {
+      updateLine(lineKey, { ingredient_id: createdId });
+      setCreatingForLine(null);
+    }
   };
 
   /**
@@ -286,6 +333,31 @@ export function RecipeEditor({
                     ))}
                   </select>
 
+                  {/* ⭐ §13.12 — créer l'ingrédient SANS quitter la recette.
+                      Le cuisinier qui découvre qu'il lui manque « piment » ne
+                      doit pas abandonner sa saisie pour aller le créer.
+                      ⚠️ Masqué si la ligne a déjà un ingrédient : le bouton
+                      n'aurait plus de sens. */}
+                  {!line.ingredient_id && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCreatingForLine(creatingForLine === line.key ? null : line.key)
+                      }
+                      className={cn(
+                        'h-10 w-10 flex-shrink-0 inline-flex items-center justify-center rounded-md border transition-colors',
+                        creatingForLine === line.key
+                          ? 'border-brand-primary bg-brand-subtle text-brand-primary'
+                          : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'
+                      )}
+                      aria-label="Créer un nouvel ingrédient"
+                      aria-expanded={creatingForLine === line.key}
+                      title="Nouvel ingrédient"
+                    >
+                      <Plus size={18} />
+                    </button>
+                  )}
+
                   {/* ⚠️ Zone de tap ≥ 44px (§9) : mains humides ou grasses. */}
                   <button
                     type="button"
@@ -368,6 +440,44 @@ export function RecipeEditor({
                     Facultatif
                   </label>
                 </div>
+
+                {/* ⭐ Formulaire EN LIGNE, jamais une seconde modale.
+                    `RecipeEditor` vit DÉJÀ dans une modale (z-[1000] fixe, avec
+                    focus trap) : en imbriquer une seconde ferait se superposer
+                    deux couches au même niveau, et les deux focus traps se
+                    disputeraient le clavier.
+                    ⚠️ C'est le MÊME formulaire que l'écran Ingrédients, pas une
+                    version « rapide » : `unit` et `cost_mode` conditionnent le
+                    coût du plat. */}
+                {creatingForLine === line.key && (
+                  <div
+                    className="mt-3 pt-3 border-t border-border"
+                    onKeyDown={(e) => {
+                      // ⚠️⚠️ `Modal` écoute Escape sur `document` SANS filtrer la
+                      // cible. Sans stopPropagation, Échap fermerait TOUTE la
+                      // modale de recette : l'utilisateur perdrait à la fois sa
+                      // saisie d'ingrédient (6 champs) ET son brouillon de
+                      // recette — pour un geste qui ne devait fermer qu'un
+                      // sous-formulaire.
+                      // ⭐ Même défaut trouvé ce matin sur la création de
+                      // catégorie ; le contexte est ici plus coûteux.
+                      // ⚠️ Placé sur le CONTENEUR et non dans IngredientForm :
+                      // celui-ci sert aussi hors modale (écran Ingrédients), où
+                      // il ne doit rien intercepter.
+                      if (e.key === 'Escape') {
+                        e.stopPropagation();
+                        setCreatingForLine(null);
+                      }
+                    }}
+                  >
+                    <p className="text-sm font-medium mb-3">Nouvel ingrédient</p>
+                    <IngredientForm
+                      isSaving={isCreatingIngredient}
+                      onSave={handleCreateIngredient}
+                      onCancel={() => setCreatingForLine(null)}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

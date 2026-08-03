@@ -29,6 +29,7 @@ import { DishForm } from './DishForm';
 import { RecipeEditor, LOW_MARGIN_THRESHOLD } from './RecipeEditor';
 import { useDishRecipe, useDishCost, useAllDishCosts } from '../../hooks/queries/useDishesQueries';
 import { useDishMutations } from '../../hooks/mutations/useDishMutations';
+import { useIngredientMutations } from '../../hooks/mutations/useIngredientMutations';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { cn } from '../../lib/utils';
 import type {
@@ -38,6 +39,7 @@ import type {
   DishCostSummary,
 } from '../../services/supabase/dishes.service';
 import type { IngredientWithAlerts } from '../../hooks/pivots/useUnifiedKitchen';
+import type { IngredientInput } from '../../services/supabase/ingredients.service';
 
 interface DishCategoryOption {
   id: string;
@@ -58,15 +60,28 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
   const { formatPrice } = useCurrencyFormatter();
   const { upsertDish, replaceRecipe, createDishCategory, getProductionModeLabel } =
     useDishMutations();
+  const { upsertIngredient } = useIngredientMutations();
+
+  /**
+   * ⭐ Création d'ingrédient depuis la RECETTE (§13.12).
+   *
+   * ⚠️ `mutateAsync` et non `mutate` : l'éditeur a besoin de l'id pour
+   * l'affecter à la ligne en cours. Le `catch` est indispensable — mutateAsync
+   * rejette, et une promesse rejetée non capturée remonterait en erreur non
+   * gérée. Le toast d'erreur est déjà émis par la mutation.
+   */
+  const handleCreateIngredient = async (values: IngredientInput): Promise<string | null> => {
+    try {
+      const created = await upsertIngredient.mutateAsync(values);
+      return created.id;
+    } catch {
+      return null;
+    }
+  };
 
   /**
    * Crée une catégorie et retourne son id, pour que le formulaire la
-   * sélectionne aussitôt.
-   *
-   * ⚠️ `mutateAsync` et non `mutate` : le formulaire a besoin du RÉSULTAT pour
-   * pré-sélectionner la catégorie créée. Le `catch` est indispensable —
-   * `mutateAsync` rejette, et une promesse rejetée non capturée remonterait en
-   * erreur non gérée. Le toast d'erreur est déjà émis par la mutation.
+   * sélectionne aussitôt. Même contrat que `handleCreateIngredient`.
    */
   const handleCreateCategory = async (name: string): Promise<string | null> => {
     try {
@@ -378,6 +393,8 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
             isSaving={replaceRecipe.isPending}
             onSave={handleSaveRecipe}
             onCancel={() => setModal({ kind: 'none' })}
+            onCreateIngredient={handleCreateIngredient}
+            isCreatingIngredient={upsertIngredient.isPending}
           />
         )}
       </Modal>
