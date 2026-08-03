@@ -24,6 +24,7 @@ import {
   type DishRow,
   type DishIngredientRow,
   type DishCostResult,
+  type DishCostSummary,
 } from '../../services/supabase/dishes.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import type { Database } from '../../lib/database.types';
@@ -39,6 +40,8 @@ export const dishKeys = {
     [...dishKeys.all, 'recipe', barId, dishId] as const,
   cost: (barId: string, dishId: string) =>
     [...dishKeys.all, 'cost', barId, dishId] as const,
+  /** Coûts de TOUS les plats — clé distincte du coût unitaire. */
+  allCosts: (barId: string) => [...dishKeys.all, 'all-costs', barId] as const,
   /**
    * ⚠️ Sous `dishes` et NON sous `stockKeys.categories` : les deux listes
    * doivent s'invalider INDÉPENDAMMENT. Créer une catégorie de plats ne doit
@@ -107,6 +110,31 @@ export function useDishCost(barId: string | undefined, dishId: string | undefine
     queryKey: dishKeys.cost(barId ?? '', dishId ?? ''),
     queryFn: () => DishesService.getDishCost(barId as string, dishId as string),
     enabled: !!barId && !!dishId && hasRestaurant,
+    ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * ⭐ Coûts et marges de TOUS les plats — UN appel pour la liste entière.
+ *
+ * C'est ce qui rend le livrable de la phase 2 réel : « le promoteur découvre la
+ * marge réelle de ses plats ». Sans cette query, il faudrait ouvrir 15 recettes
+ * une par une pour comparer — personne ne le ferait.
+ *
+ * ⚠️ `salesAndStock` (5 min) et NON `products` : les coûts dépendent des LOTS
+ * en stock, qui se vident à chaque plat produit. Un cache de 30 min afficherait
+ * des marges calculées sur des lots déjà consommés.
+ *
+ * ⭐ Remplace tout appel en boucle à `useDishCost` : 40 plats = 1 requête.
+ */
+export function useAllDishCosts(barId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<DishCostSummary[]>({
+    queryKey: dishKeys.allCosts(barId ?? ''),
+    queryFn: () => DishesService.getAllDishCosts(barId as string),
+    // ⭐ §3 — aucune requête sur un bar pur.
+    enabled: !!barId && hasRestaurant,
     ...CACHE_STRATEGY.salesAndStock,
   });
 }

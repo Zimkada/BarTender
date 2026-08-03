@@ -36,8 +36,12 @@ import type { IngredientWithAlerts } from '../../hooks/pivots/useUnifiedKitchen'
  * ⚠️ 25 % est une valeur de départ, pas une vérité comptable. Elle signale
  * « regardez ce plat », elle ne dit pas « ce plat est mauvais » : un plat
  * d'appel à faible marge peut être délibéré.
+ *
+ * ⭐ EXPORTÉ et consommé par `DishesTab` : deux constantes séparées
+ * finiraient par diverger, et la liste alerterait sur des plats que la recette
+ * juge sains — ou l'inverse.
  */
-const LOW_MARGIN_THRESHOLD = 25;
+export const LOW_MARGIN_THRESHOLD = 25;
 
 interface RecipeLineDraft extends RecipeLineInput {
   /** Clé de rendu stable — l'ingredient_id ne l'est pas (il peut être vide). */

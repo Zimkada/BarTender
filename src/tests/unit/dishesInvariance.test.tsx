@@ -31,6 +31,7 @@ import { ReactNode } from 'react';
 const mockGetDishes = vi.fn(() => Promise.resolve([]));
 const mockGetDishRecipe = vi.fn(() => Promise.resolve([]));
 const mockGetDishCost = vi.fn(() => Promise.resolve({ success: true }));
+const mockGetAllDishCosts = vi.fn(() => Promise.resolve([]));
 const mockGetDishCategories = vi.fn(() => Promise.resolve([]));
 
 vi.mock('../../services/supabase/dishes.service', () => ({
@@ -38,6 +39,7 @@ vi.mock('../../services/supabase/dishes.service', () => ({
     getDishes: (...args: unknown[]) => mockGetDishes(...(args as [])),
     getDishRecipe: (...args: unknown[]) => mockGetDishRecipe(...(args as [])),
     getDishCost: (...args: unknown[]) => mockGetDishCost(...(args as [])),
+    getAllDishCosts: (...args: unknown[]) => mockGetAllDishCosts(...(args as [])),
   },
 }));
 
@@ -61,6 +63,7 @@ import {
   useDishes,
   useDishRecipe,
   useDishCost,
+  useAllDishCosts,
   useDishCategories,
 } from '../../hooks/queries/useDishesQueries';
 
@@ -113,6 +116,19 @@ describe('Invariance des bars purs — aucune requête plats (§3)', () => {
       expect(mockGetDishCost).not.toHaveBeenCalled();
     });
 
+    it('⭐ useAllDishCosts n\'appelle PAS le service', async () => {
+      // ⚠️ Query la PLUS coûteuse du module : elle parcourt tous les plats,
+      // toutes leurs recettes et tous les lots. La laisser partir sur un bar
+      // pur serait le pire des cas d'egress injustifié.
+      renderHook(() => useAllDishCosts(BAR_ID), { wrapper: createWrapper() });
+      await letQueriesSettle();
+
+      expect(
+        mockGetAllDishCosts,
+        'La query de marges est partie sur un bar PUR — c\'est la plus lourde du module (§3)'
+      ).not.toHaveBeenCalled();
+    });
+
     it('⭐ useDishCategories n\'appelle PAS le service', async () => {
       // ⚠️ Cette query lit `bar_categories`, une table que les bars PURS
       // utilisent déjà pour leurs boissons. La garde §3 est donc encore plus
@@ -150,6 +166,13 @@ describe('Invariance des bars purs — aucune requête plats (§3)', () => {
       await letQueriesSettle();
 
       expect(mockGetDishCategories).toHaveBeenCalledWith(BAR_ID);
+    });
+
+    it('useAllDishCosts appelle bien le service', async () => {
+      renderHook(() => useAllDishCosts(BAR_ID), { wrapper: createWrapper() });
+      await letQueriesSettle();
+
+      expect(mockGetAllDishCosts).toHaveBeenCalledWith(BAR_ID);
     });
 
     it('useDishRecipe et useDishCost exigent un dishId', async () => {

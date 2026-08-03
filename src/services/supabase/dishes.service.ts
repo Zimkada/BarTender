@@ -131,6 +131,33 @@ export interface DishCostLine {
   counted_in_total: boolean;
 }
 
+/**
+ * Coût d'un plat dans la vue de LISTE — sans le détail ligne par ligne.
+ *
+ * ⚠️ Volontairement plus pauvre que `DishCostResult` : 40 plats × 8 ingrédients
+ * feraient 320 objets que la liste n'affiche pas.
+ */
+export interface DishCostSummary {
+  dish_id: string;
+  price: number;
+  total_cost: number;
+  margin: number;
+  /** `null` si le prix est 0 (plat offert) — l'UI affiche « — », jamais 0 %. */
+  margin_rate: number | null;
+  /**
+   * ⭐ 0 = recette NON SAISIE. La marge vaut alors le prix entier, ce que l'UI
+   * doit distinguer d'une marge réellement excellente : c'est « coût inconnu »,
+   * pas « très rentable ».
+   */
+  line_count: number;
+  has_estimated_cost: boolean;
+}
+
+interface AllDishCostsResult extends RpcEnvelope {
+  costs: DishCostSummary[];
+  count: number;
+}
+
 export interface DishCostResult extends RpcEnvelope {
   dish_id: string;
   dish_name: string;
@@ -261,6 +288,30 @@ export class DishesService {
 
       if (error) throw error;
       return unwrapRpc<DishCostResult>(data, 'Calcul du coût du plat');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * ⭐ Coûts et marges de TOUS les plats, en UN appel.
+   *
+   * C'est ce qui permet d'afficher la marge sur chaque ligne de la liste (§9)
+   * sans produire un N+1 : 40 plats en une requête, pas 40 requêtes.
+   *
+   * ⚠️ Le serveur garantit un calcul IDENTIQUE à `getDishCost` (même ordre
+   * FEFO, mêmes cost_mode, même division par yield_factor). Une divergence
+   * afficherait deux marges différentes pour le même plat selon l'écran — la
+   * concordance est vérifiée au post-vol de la migration.
+   */
+  static async getAllDishCosts(barId: string): Promise<DishCostSummary[]> {
+    try {
+      const { data, error } = await supabase.rpc('calculate_all_dish_costs', {
+        p_bar_id: barId,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<AllDishCostsResult>(data, 'Calcul des marges').costs ?? [];
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

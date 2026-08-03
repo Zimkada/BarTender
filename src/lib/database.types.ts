@@ -6075,6 +6075,7 @@ export type Database = {
       auth_user_id: { Args: never; Returns: string }
       auto_activate_scheduled_promotions: { Args: never; Returns: undefined }
       auto_expire_promotions: { Args: never; Returns: undefined }
+      calculate_all_dish_costs: { Args: { p_bar_id: string }; Returns: Json }
       calculate_dish_cost: {
         Args: { p_bar_id: string; p_dish_id: string }
         Returns: Json
