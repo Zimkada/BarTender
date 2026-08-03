@@ -1710,6 +1710,40 @@ statistique de bar (§3).
 `returns.product_id`, `promotion_applications.product_id`). **Auditer tout `product_id` sans FK**, pas
 seulement ces trois-là.
 
+> ⭐⭐ **INVENTAIRE FAIT LE 03/08/2026 → [`INVENTAIRE_SALES_ITEMS.md`](INVENTAIRE_SALES_ITEMS.md)**
+>
+> Relevé **en production** (`pg_get_functiondef` / `pg_get_viewdef` / `pg_constraint`), et non
+> par vérification de cette checklist point par point — leçon du Pré-0, où l'inventaire par
+> motif a dû être repris trois fois.
+>
+> **Ce que le relevé CORRIGE dans ce §13.9 :**
+>
+> | Affirmation ci-dessus | Réalité vérifiée |
+> |---|---|
+> | `returns.product_id` sans FK | ❌ **A une FK** — protégé par construction |
+> | `promotion_applications.product_id` sans FK | ✅ exact |
+> | — | ⭐ **`bar_product_audit_log.product_id`** sans FK, **non mentionné ici** |
+>
+> **Résultat du balayage** : 6 fonctions à traiter (3 écartées après vérification),
+> **4 vues MATÉRIALISÉES**, 2 tables sans FK. Les 6 autres colonnes `product_id` du schéma
+> ont une FK : un `dish_id` y serait rejeté par la base. Le rayon d'exposition est donc plus
+> ÉTROIT que ce §13.9 le laissait craindre — mais il contient un objet de plus.
+>
+> ⚠️ **Le point le plus grave n'était pas dans cette checklist** : les vues MATÉRIALISÉES
+> *stockent* leur résultat. Un plat qui y entre y **reste** jusqu'au prochain `REFRESH`.
+> → **Le filtre doit être posé AVANT la première vente d'un plat**, sinon un `REFRESH`
+> complet sera nécessaire pour purger l'historique agrégé.
+>
+> ⭐ **Contre-exemple utile** : `compute_sale_items_count` lit `sales.items` et ne doit
+> **PAS** être filtré — c'est un compteur d'articles vendus, et un plat *est* un article
+> vendu. La question n'est pas « lit-il les items ? » mais « produit-il une statistique
+> PRODUIT ? ».
+>
+> **Trois cibles de la table ci-dessous n'existent pas en SQL** (forecasting, exports,
+> résumés de ticket) : elles vivent côté client, où **72 lectures** de `sale.items` restent
+> à balayer — second volet d'inventaire, risque moindre car le typage TS rend la confusion
+> visible à la compilation.
+
 ### 13.10 `bar_categories.type` — backfill et étanchéité
 
 1. **Backfill** : toutes les catégories existantes → `type = 'product'` ;
