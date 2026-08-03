@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import type { DishRow, DishInput } from '../../services/supabase/dishes.service';
@@ -32,15 +32,55 @@ interface Props {
   isSaving: boolean;
   onSave: (dish: DishInput) => void;
   onCancel: () => void;
+  /**
+   * ⭐ Création de catégorie EN LIGNE.
+   *
+   * Le besoin naît ICI et nulle part ailleurs : « je crée mon plat, il me faut
+   * une catégorie qui n'existe pas encore ». Renvoyer vers un écran de gestion
+   * de catégories obligerait à abandonner la saisie en cours — le §13.12
+   * identifie précisément ce genre de friction comme risque d'abandon.
+   *
+   * Retourne l'id créé pour que le formulaire le sélectionne aussitôt.
+   */
+  onCreateCategory: (name: string) => Promise<string | null>;
+  isCreatingCategory: boolean;
 }
 
-export function DishForm({ dish, categories, isSaving, onSave, onCancel }: Props) {
+export function DishForm({
+  dish,
+  categories,
+  isSaving,
+  onSave,
+  onCancel,
+  onCreateCategory,
+  isCreatingCategory,
+}: Props) {
   const [name, setName] = useState(dish?.name ?? '');
   const [price, setPrice] = useState<string>(dish ? String(dish.price) : '');
   const [categoryId, setCategoryId] = useState(dish?.category_id ?? '');
   const [prepTime, setPrepTime] = useState<string>(
     dish?.preparation_time_min ? String(dish.preparation_time_min) : ''
   );
+
+  /** Saisie de nouvelle catégorie — repliée par défaut. */
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const handleCreateCategory = async () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+
+    const createdId = await onCreateCategory(trimmed);
+
+    // ⚠️ En cas d'échec (nom déjà pris), on GARDE la saisie ouverte et son
+    // contenu : l'utilisateur corrige au lieu de tout retaper. Le toast
+    // d'erreur est géré par la mutation.
+    if (createdId) {
+      setCategoryId(createdId);
+      setNewCategoryName('');
+      setShowNewCategory(false);
+    }
+  };
 
   /**
    * ⭐ « Préparé d'avance » = `is_batch_base` (le plat produit un lot).
@@ -149,22 +189,85 @@ export function DishForm({ dish, categories, isSaving, onSave, onCancel }: Props
         <label htmlFor="dish-category" className="block text-sm font-medium mb-1.5">
           Catégorie
         </label>
-        <select
-          id="dish-category"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">Sans catégorie</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        {categories.length === 0 && (
+        <div className="flex items-center gap-2">
+          <select
+            id="dish-category"
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className={cn(inputClass, 'flex-1 min-w-0')}
+          >
+            <option value="">Sans catégorie</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+
+          {/* ⚠️ Zone de tap ≥ 44px — cohérent avec le reste du module. */}
+          {!showNewCategory && (
+            <button
+              type="button"
+              onClick={() => setShowNewCategory(true)}
+              className="h-11 w-11 flex-shrink-0 inline-flex items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              aria-label="Créer une catégorie de plats"
+              title="Créer une catégorie"
+            >
+              <Plus size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* ⭐ Création EN LIGNE — évite d'abandonner la saisie du plat pour
+            aller créer une catégorie ailleurs (§13.12 : la friction est le
+            principal risque d'abandon). */}
+        {showNewCategory && (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              onKeyDown={(e) => {
+                // Entrée valide, Échap annule — attendu dans un champ inline.
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCreateCategory();
+                }
+                if (e.key === 'Escape') {
+                  setShowNewCategory(false);
+                  setNewCategoryName('');
+                }
+              }}
+              className={cn(inputClass, 'flex-1 min-w-0')}
+              placeholder="Grillades, Riz, Accompagnements…"
+              autoFocus
+              aria-label="Nom de la nouvelle catégorie"
+            />
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleCreateCategory}
+              disabled={isCreatingCategory || !newCategoryName.trim()}
+              className="flex-shrink-0"
+            >
+              {isCreatingCategory ? '…' : 'Créer'}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewCategory(false);
+                setNewCategoryName('');
+              }}
+              className="h-11 w-11 flex-shrink-0 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-accent transition-colors"
+              aria-label="Annuler la création de catégorie"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
+        {categories.length === 0 && !showNewCategory && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Aucune catégorie de plats pour l'instant — vous pourrez en créer plus tard.
+            Aucune catégorie de plats — utilisez le bouton + pour en créer une.
           </p>
         )}
       </div>

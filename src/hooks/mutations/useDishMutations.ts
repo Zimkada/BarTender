@@ -15,6 +15,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useBarContext } from '../../context/BarContext';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { dishKeys } from '../queries/useDishesQueries';
+import { CategoriesService } from '../../services/supabase/categories.service';
 import {
   DishesService,
   type DishRow,
@@ -146,9 +147,52 @@ export function useDishMutations() {
     },
   });
 
+  /**
+   * Crée une catégorie de PLATS (`type = 'dish'`).
+   *
+   * ⚠️ Écriture DIRECTE en table, sans RPC — contrairement aux plats et aux
+   * recettes. C'est cohérent avec l'existant : `bar_categories` accorde déjà
+   * INSERT à `authenticated` pour les catégories de boissons, et la RLS filtre
+   * par bar. Créer un RPC ici pour un seul INSERT sans logique métier serait
+   * une abstraction pour usage unique.
+   *
+   * ⚠️ Invalide UNIQUEMENT `dishKeys.categories` : créer une catégorie de plats
+   * ne doit pas refetcher le catalogue de boissons, qui vit sous `stockKeys`.
+   */
+  const createDishCategory = useMutation<
+    { id: string },
+    Error,
+    { name: string; color?: string }
+  >({
+    meta: { suppressGlobalError: true },
+    mutationFn: async (data) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      return CategoriesService.createDishCategory(barId, data);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: dishKeys.categories(currentBar?.id ?? ''),
+      });
+    },
+    onSuccess: () => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.success('Catégorie créée');
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg);
+      });
+    },
+  });
+
   return {
     upsertDish,
     replaceRecipe,
+    createDishCategory,
     /** Exposé pour l'UI : traduire un mode dérivé en langage clair. */
     getProductionModeLabel: (mode: DishProductionMode) => PRODUCTION_MODE_LABELS[mode],
   };

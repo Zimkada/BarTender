@@ -51,7 +51,26 @@ type ModalMode = { kind: 'none' } | { kind: 'dish'; dish?: DishRow } | { kind: '
 
 export function DishesTab({ barId, dishes, ingredients, categories, isLoading }: Props) {
   const { formatPrice } = useCurrencyFormatter();
-  const { upsertDish, replaceRecipe, getProductionModeLabel } = useDishMutations();
+  const { upsertDish, replaceRecipe, createDishCategory, getProductionModeLabel } =
+    useDishMutations();
+
+  /**
+   * Crée une catégorie et retourne son id, pour que le formulaire la
+   * sélectionne aussitôt.
+   *
+   * ⚠️ `mutateAsync` et non `mutate` : le formulaire a besoin du RÉSULTAT pour
+   * pré-sélectionner la catégorie créée. Le `catch` est indispensable —
+   * `mutateAsync` rejette, et une promesse rejetée non capturée remonterait en
+   * erreur non gérée. Le toast d'erreur est déjà émis par la mutation.
+   */
+  const handleCreateCategory = async (name: string): Promise<string | null> => {
+    try {
+      const created = await createDishCategory.mutateAsync({ name });
+      return created.id;
+    } catch {
+      return null;
+    }
+  };
 
   const [modal, setModal] = useState<ModalMode>({ kind: 'none' });
 
@@ -214,6 +233,8 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
             isSaving={upsertDish.isPending}
             onSave={handleSaveDish}
             onCancel={() => setModal({ kind: 'none' })}
+            onCreateCategory={handleCreateCategory}
+            isCreatingCategory={createDishCategory.isPending}
           />
         )}
       </Modal>

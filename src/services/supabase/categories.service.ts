@@ -92,19 +92,46 @@ export class CategoriesService {
      * existante ferait dépendre l'étanchéité d'un argument qu'on peut oublier.
      * Deux méthodes explicites valent mieux qu'un drapeau silencieux.
      *
-     * ⚠️ L'unicité en base est `UNIQUE (bar_id, name)` et NE CONNAÎT PAS le
-     * `type` (relevé en prod au pré-vol du 03/08/2026) : une catégorie de plats
-     * ne peut donc pas porter le même nom qu'une catégorie de boissons. Le
-     * doublon est intercepté ici pour éviter une erreur Postgres brute.
+     * ⚠️⚠️ L'UNICITÉ EN BASE NE PROTÈGE RIEN ICI — vérifié, pas supposé.
+     *
+     * La contrainte relevée en prod est `UNIQUE (bar_id, name)`, sur la colonne
+     * `name`. Or les catégories personnalisées — plats ET boissons, c'est le
+     * comportement existant du projet — écrivent `custom_name` et laissent
+     * `name` à NULL. En SQL, NULL n'entre PAS dans une contrainte d'unicité :
+     * deux catégories custom homonymes passent donc sans erreur.
+     *
+     * ⭐ D'où la garde APPLICATIVE ci-dessous. Sans elle, un promoteur pourrait
+     * créer deux fois « Grillades » et ne plus savoir laquelle rattacher à quel
+     * plat.
+     *
+     * ⚠️ Le garde 23505 est CONSERVÉ malgré tout : si `name` venait à être
+     * rempli un jour (backfill, autre chemin d'écriture), la contrainte
+     * mordrait et l'erreur Postgres brute serait illisible.
      */
     static async createDishCategory(
         barId: string,
         data: { name: string; color?: string }
     ): Promise<BarCategory> {
         try {
+            const trimmed = data.name.trim();
+            if (!trimmed) {
+                throw new Error('Le nom de la catégorie est obligatoire');
+            }
+
+            // ⭐ Garde applicative — l'unicité SQL ne mord pas sur `custom_name`
+            // (cf. commentaire ci-dessus). Comparaison insensible à la casse :
+            // « Grillades » et « grillades » sont la même catégorie.
+            const existing = await CategoriesService.getDishCategories(barId);
+            const clash = existing.some(
+                (c) => (c.custom_name || c.name || '').trim().toLowerCase() === trimmed.toLowerCase()
+            );
+            if (clash) {
+                throw new Error(`La catégorie « ${trimmed} » existe déjà.`);
+            }
+
             const payload: BarCategoryInsert = {
                 bar_id: barId,
-                custom_name: data.name,
+                custom_name: trimmed,
                 custom_color: data.color || '#F59E0B',
                 is_active: true,
                 type: 'dish',
