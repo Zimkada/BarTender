@@ -70,6 +70,13 @@ export function DishForm({
     const trimmed = newCategoryName.trim();
     if (!trimmed) return;
 
+    // ⚠️ Garde anti-double-soumission — le bouton « Créer » est désactivé
+    // pendant l'appel, mais la touche ENTRÉE contourne cette protection : une
+    // double frappe rapide enverrait deux requêtes. Comme la garde d'unicité
+    // lit AVANT d'écrire, les deux pourraient passer et créer un doublon.
+    // C'est la seule façon réaliste d'atteindre cette fenêtre de concurrence.
+    if (isCreatingCategory) return;
+
     const createdId = await onCreateCategory(trimmed);
 
     // ⚠️ En cas d'échec (nom déjà pris), on GARDE la saisie ouverte et son
@@ -233,6 +240,12 @@ export function DishForm({
                   handleCreateCategory();
                 }
                 if (e.key === 'Escape') {
+                  // ⚠️⚠️ INDISPENSABLE : `Modal` écoute Escape sur `document`
+                  // sans filtrer la cible. Sans stopPropagation, l'événement
+                  // remonte et FERME TOUTE LA MODALE — l'utilisateur qui voulait
+                  // seulement annuler la saisie de catégorie perdrait tout son
+                  // formulaire de plat.
+                  e.stopPropagation();
                   setShowNewCategory(false);
                   setNewCategoryName('');
                 }

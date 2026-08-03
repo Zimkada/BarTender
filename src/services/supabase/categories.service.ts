@@ -121,6 +121,19 @@ export class CategoriesService {
             // ⭐ Garde applicative — l'unicité SQL ne mord pas sur `custom_name`
             // (cf. commentaire ci-dessus). Comparaison insensible à la casse :
             // « Grillades » et « grillades » sont la même catégorie.
+            //
+            // ⚠️ Ne compare qu'aux catégories ACTIVES (getDishCategories filtre
+            // is_active = true) — c'est VOULU : une catégorie supprimée (soft
+            // delete) ne doit pas bloquer la re-création d'un homonyme. Même
+            // parti pris que l'index partiel `idx_ingredients_unique_name_per_bar`
+            // de la phase 1.
+            //
+            // ⚠️ Fenêtre de concurrence assumée : deux créations simultanées du
+            // même nom passeraient toutes deux la garde. Le cas suppose deux
+            // utilisateurs créant LA MÊME catégorie à LA MÊME seconde sur le
+            // même bar — négligeable ici, et le coût d'une vraie protection
+            // (contrainte SQL sur custom_name, donc migration d'une table en
+            // production) serait sans commune mesure.
             const existing = await CategoriesService.getDishCategories(barId);
             const clash = existing.some(
                 (c) => (c.custom_name || c.name || '').trim().toLowerCase() === trimmed.toLowerCase()
