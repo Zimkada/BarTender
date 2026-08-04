@@ -10,6 +10,8 @@ import {
   ExpenseCategoryCustom,
   CartItem,
 } from '../types';
+import type { KitchenCartItem } from '../hooks/useKitchenCart';
+import type { DishRow } from '../services/supabase/dishes.service';
 
 export interface AppContextType {
   // L'ÉTAT DES DONNÉES EST MAINTENANT GÉRÉ PAR LES SMART HOOKS (useUnifiedSales, etc.)
@@ -23,6 +25,30 @@ export interface AppContextType {
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+
+  /**
+   * ⭐ PANIER CUISINE — état SÉPARÉ du panier boissons (module restauration).
+   *
+   * ⚠️ Deux listes, mais UNE SEULE addition : à la validation, les deux
+   * partent sur le MÊME `ticket_id` (§16.7 — « sinon l'addition serait
+   * fragmentée »). La séparation est de SAISIE, pas de facturation.
+   *
+   * ⚠️ Un plat n'entre PAS dans `cart` : `CartItem.product` est typé `Product`
+   * et consommé par 11 fichiers du flux de vente commun à tous les bars. Sur
+   * un bar pur, `kitchenItems` reste vide et rien ne s'affiche — l'invariance
+   * du §3 est structurelle, pas conditionnelle.
+   */
+  kitchenItems: KitchenCartItem[];
+  addDish: (dish: DishRow) => void;
+  updateKitchenQuantity: (dishId: string, quantity: number) => void;
+  removeDish: (dishId: string) => void;
+  setDishModifiers: (dishId: string, modifiers: string[]) => void;
+  clearKitchenCart: () => void;
+  /** Quantités par `dish_id` — alimente les pastilles de `DishGrid`. */
+  kitchenQuantities: Record<string, number>;
+  /** ⚠️ INDICATIF : ces plats ne sont pas encore vendus (§6). */
+  kitchenTotal: number;
+  kitchenItemCount: number;
 
   // Catégories
   addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => Promise<Category>;

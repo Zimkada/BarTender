@@ -12,14 +12,35 @@ import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
 import { useStock } from '../context/hooks/useStock';
 import { ProductGridSkeleton } from '../components/skeletons';
+import { DishGrid } from '../components/kitchen/DishGrid';
+import {
+  CatalogScopeSwitcher,
+  type CatalogScope,
+} from '../components/inventory/CatalogScopeSwitcher';
+import { useDishes, useDishCategories } from '../hooks/queries/useDishesQueries';
 
 export default function HomePage() {
-  const { addToCart, cart } = useAppContext();
-  const { currentBar } = useBarContext();
+  const { addToCart, cart, addDish, kitchenQuantities } = useAppContext();
+  const { currentBar, hasRestaurant } = useBarContext();
 
   const { products, categories, getProductStockInfo, isLoading } = useStock();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  /**
+   * ⭐ Portée du catalogue — §9. `all` par défaut : le serveur voit tout et
+   * n'a rien à activer. Le sélecteur ne s'affiche QUE si le bar a une cuisine.
+   *
+   * ⚠️ Sur un bar pur, `hasRestaurant` est `false` : le sélecteur ne rend
+   * rien, les queries plats ne partent pas, et la portée reste `all` — donc
+   * la grille produits s'affiche exactement comme aujourd'hui (§3).
+   */
+  const [scope, setScope] = useState<CatalogScope>('all');
+
+  // ⭐ §3 — `enabled: hasRestaurant` dans les queries : ZÉRO requête sur un
+  // bar pur. La garde vit dans le hook, pas ici.
+  const { data: dishes = [], isLoading: isLoadingDishes } = useDishes(currentBar?.id);
+  const { data: dishCategories = [] } = useDishCategories(currentBar?.id);
 
   const productsWithAvailableStock = useMemo(() => {
     return products.map(product => {
@@ -53,6 +74,61 @@ export default function HomePage() {
     onlyInStock: false
   });
 
+  /**
+   * ⭐ Filtrage des plats — même recherche, mêmes règles que les produits.
+   *
+   * ⚠️ `selectedCategory` est PARTAGÉ entre les deux catalogues, et c'est
+   * voulu : leurs catégories sont disjointes (`bar_categories.type`). Choisir
+   * une catégorie de boissons vide donc la grille plats, et inversement — ce
+   * qui est exactement le comportement attendu d'un filtre.
+   */
+  const filteredDishes = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return dishes.filter((dish) => {
+      // ⛔ Les plats INACTIFS ne sont pas au menu. `is_available` (« coupé »)
+      // en revanche les laisse VISIBLES mais non commandables — le serveur
+      // doit pouvoir dire au client « c'est terminé pour ce soir ».
+      if (!dish.is_active) return false;
+      if (selectedCategory !== 'all' && dish.category_id !== selectedCategory) return false;
+      if (query && !dish.name.toLowerCase().includes(query)) return false;
+      return true;
+    });
+  }, [dishes, searchQuery, selectedCategory]);
+
+  /**
+   * Catégories de plats au format applicatif attendu par `CategoryFilter`.
+   *
+   * ⚠️ Repli sur `custom_name || name` comme dans `DishesPage` : une catégorie
+   * de plats est toujours custom, mais la table autorise `custom_name` à être
+   * NULL. Sans repli, une option de filtre s'afficherait vide.
+   */
+  const dishCategoriesUi = useMemo(
+    () =>
+      dishCategories.map((c) => ({
+        id: c.id,
+        name: c.custom_name || c.name || 'Sans nom',
+        barId: c.bar_id,
+        color: c.custom_color || c.color || '#f59e0b',
+        createdAt: c.created_at ? new Date(c.created_at) : new Date(),
+      })),
+    [dishCategories]
+  );
+
+  /** Ce que la portée courante donne à voir. */
+  const showProducts = scope === 'all' || scope === 'products';
+  /**
+   * ⚠️ En portée « Tout », la grille plats est masquée quand elle est VIDE :
+   * filtrer sur une catégorie de boissons afficherait sinon « Aucun plat au
+   * menu » sous les produits — un message qui accuse à tort alors que les
+   * plats ne sont simplement pas le sujet.
+   * En portée « Restau », l'état vide est au contraire la bonne réponse : on
+   * a demandé à voir les plats, il faut dire qu'il n'y en a pas.
+   */
+  const showDishes =
+    hasRestaurant &&
+    (scope === 'dishes' ||
+      (scope === 'all' && (isLoadingDishes || filteredDishes.length > 0)));
+
   // 2. Le retour anticipé est placé après tous les hooks
   if (!currentBar) {
     return (
@@ -82,9 +158,25 @@ export default function HomePage() {
 
           <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-subtle rounded-full border border-brand-subtle flex-shrink-0">
             <ShoppingCart size={14} className="text-brand-primary" />
+            {/* ⚠️ Le compteur suit la PORTÉE : afficher « 12 produits » en
+                portée Restau contredirait l'écran. Sur un bar pur, `scope`
+                vaut toujours `all` et `dishes` est vide — le libellé reste
+                donc « produits », strictement comme aujourd'hui (§3). */}
             <span className="text-caption text-brand-text">
-              <span className="font-semibold">{products.length}</span>
-              <span className="text-muted-foreground ml-1">produits</span>
+              <span className="font-semibold">
+                {scope === 'dishes'
+                  ? dishes.length
+                  : scope === 'products'
+                    ? products.length
+                    : products.length + dishes.length}
+              </span>
+              <span className="text-muted-foreground ml-1">
+                {scope === 'dishes'
+                  ? 'plats'
+                  : scope === 'products' || dishes.length === 0
+                    ? 'produits'
+                    : 'articles'}
+              </span>
             </span>
           </div>
         </div>
@@ -92,45 +184,107 @@ export default function HomePage() {
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="Rechercher un produit..."
+          /* ⚠️ Suit la portée : sur un bar pur, `hasRestaurant` est false et le
+             libellé reste identique a aujourd hui (§3). */
+          placeholder={
+            !hasRestaurant || scope === 'products'
+              ? 'Rechercher un produit...'
+              : scope === 'dishes'
+                ? 'Rechercher un plat...'
+                : 'Rechercher un produit ou un plat...'
+          }
           className="w-full"
         />
       </div>
 
+      {/* ⭐ Sélecteur de portée — ne rend RIEN sans cuisine (§3). Placé entre
+          la recherche et les catégories : il filtre plus largement qu'elles. */}
+      <CatalogScopeSwitcher
+        scope={scope}
+        onScopeChange={(next) => {
+          setScope(next);
+          // ⚠️ Réinitialiser la CATÉGORIE au changement de portée : les
+          // catégories sont disjointes entre boissons et plats. Garder
+          // « Bières » en passant sur Restau afficherait une grille vide
+          // sans que rien n'explique pourquoi.
+          setSelectedCategory('all');
+        }}
+        hasRestaurant={hasRestaurant}
+        productCount={products.length}
+        dishCount={dishes.length}
+      />
+
       {/* Category Filter */}
       <CategoryFilter
-        categories={categories}
+        categories={scope === 'dishes' ? dishCategoriesUi : categories}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         onEditCategory={handleEditCategory}
         onDeleteCategory={handleDeleteCategory}
         onAddCategory={handleAddCategory}
-        productCounts={products.reduce((acc: Record<string, number>, p) => {
-          acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
-          return acc;
-        }, {})}
+        productCounts={
+          scope === 'dishes'
+            ? dishes.reduce((acc: Record<string, number>, d) => {
+                if (d.category_id) acc[d.category_id] = (acc[d.category_id] || 0) + 1;
+                return acc;
+              }, {})
+            : products.reduce((acc: Record<string, number>, p) => {
+                acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
+                return acc;
+              }, {})
+        }
       />
 
       {/* Product Grid — plate, sans encadrement (aération) */}
-      <div className="min-h-[600px]">
-        {isLoading ? (
-          <ProductGridSkeleton count={12} />
-        ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <p className="text-body">Aucun produit trouvé</p>
+      <div className="min-h-[600px] space-y-6">
+        {/* ⚠️ BLOC INCHANGÉ pour un bar pur : `showProducts` vaut toujours
+            `true` quand la portée est `all`, qui est le défaut et la seule
+            valeur atteignable sans sélecteur (§3). */}
+        {showProducts && (
+          isLoading ? (
+            <ProductGridSkeleton count={12} />
+          ) : products.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <p className="text-body">Aucun produit trouvé</p>
+            </div>
+          ) : (
+            <ProductGrid
+              products={filteredProducts}
+              onAddToCart={handleAddToCart}
+              cart={cart}
+              getAvailableStock={(productId) => getProductStockInfo(productId)?.availableStock}
+              categoryName={
+                selectedCategory === 'all'
+                  ? undefined
+                  : categories.find(c => c.id === selectedCategory)?.name
+              }
+            />
+          )
+        )}
+
+        {/* ⭐ Grille des PLATS — jamais rendue sur un bar pur. */}
+        {showDishes && (
+          <div className="space-y-3">
+            {/* ⚠️ Titre affiché UNIQUEMENT en portée « Tout » : c'est là que
+                les deux grilles se suivent et qu'il faut les distinguer. En
+                portée « Restau », le sélecteur dit déjà ce qu'on regarde. */}
+            {scope === 'all' && filteredDishes.length > 0 && (
+              <h2 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
+                Cuisine
+              </h2>
+            )}
+            <DishGrid
+              dishes={filteredDishes}
+              onAddDish={addDish}
+              quantities={kitchenQuantities}
+              isLoading={isLoadingDishes}
+              categoryName={
+                selectedCategory === 'all'
+                  ? undefined
+                  : dishCategoriesUi.find(c => c.id === selectedCategory)?.name
+              }
+            />
           </div>
-        ) : (
-          <ProductGrid
-            products={filteredProducts}
-            onAddToCart={handleAddToCart}
-            cart={cart}
-            getAvailableStock={(productId) => getProductStockInfo(productId)?.availableStock}
-            categoryName={
-              selectedCategory === 'all'
-                ? undefined
-                : categories.find(c => c.id === selectedCategory)?.name
-            }
-          />
         )}
       </div>
 

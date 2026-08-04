@@ -31,7 +31,9 @@ import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
 import { useReturnsMutations } from '../hooks/mutations/useReturnsMutations';
 import { useCategoryMutations } from '../hooks/mutations/useCategoryMutations';
 import { useCart } from '../hooks/useCart';
+import { useKitchenCart } from '../hooks/useKitchenCart';
 import { useStock } from './hooks/useStock';
+import type { DishRow } from '../services/supabase/dishes.service';
 
 import { AppContext, AppContextType } from './AppContext';
 
@@ -125,10 +127,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
     });
 
+    /**
+     * ⭐ PANIER CUISINE — séparé du panier boissons (module restauration).
+     * Voir `useKitchenCart` : `CartItem.product` est typé `Product` et
+     * consommé par tout le flux de vente. Sur un bar pur, cette liste reste
+     * vide et aucune section cuisine ne s'affiche (§3).
+     */
+    const {
+        kitchenItems,
+        addDish: baseAddDish,
+        updateQuantity: updateKitchenQuantity,
+        removeDish,
+        setModifiers: setDishModifiers,
+        clearKitchenCart,
+        quantities: kitchenQuantities,
+        kitchenTotal,
+        kitchenItemCount,
+    } = useKitchenCart();
+
     // 🧹 Fix: Vider le panier quand on change de bar pour éviter les mélanges
     useEffect(() => {
         setCart([]);
-    }, [currentBar?.id, setCart]);
+        // ⚠️ Le panier CUISINE aussi : des plats d'un autre bar seraient
+        // refusés par `create_kitchen_order` (isolation par bar_id) — mais
+        // surtout, le serveur les verrait à l'écran comme s'ils étaient
+        // commandables ici.
+        clearKitchenCart();
+    }, [currentBar?.id, setCart, clearKitchenCart]);
 
     const addToCart = useCallback((product: Product) => {
         // ⛔ Qui n'a PAS le droit de vendre ne compose pas de panier — quel que
@@ -169,6 +194,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
         baseUpdateCartQuantity(productId, quantity);
     }, [baseUpdateCartQuantity]);
+
+    /**
+     * ⭐ Commander un plat obéit AUX MÊMES GARDES que vendre une boisson.
+     *
+     * ⚠️ Les deux règles sont RÉPLIQUÉES et non factorisées, volontairement :
+     * elles portent des messages différents et pourraient diverger (le §6.1
+     * autorise le serveur à SERVIR un plat sans le laisser en COMMANDER en
+     * mode simplifié). Une abstraction prématurée les figerait ensemble.
+     *
+     * ⛔ `canSell` : un cuisinier ne compose pas de commande. Il a
+     * `canViewKitchenOrders` pour PRODUIRE, jamais pour prendre commande.
+     *
+     * ⛔ Mode simplifié : décision du 04/08/2026 — le panier est masqué au
+     * serveur, cuisine comprise. Cohérent avec `create_sale_idempotent`, qui
+     * REFUSE déjà un serveur dans ce mode (whitelist_create_sale_roles:216).
+     */
+    const addDish = useCallback((dish: DishRow) => {
+        if (!!currentSession && !hasPermission('canSell')) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('Votre rôle ne permet pas de prendre une commande.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
+        const isServerRole = !!currentSession && !hasPermission('canValidateSales');
+        if (isSimplifiedMode && isServerRole) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('En mode simplifié, seul le gérant prend les commandes.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
+        baseAddDish(dish);
+    }, [baseAddDish, isSimplifiedMode, currentSession, hasPermission]);
     // --- END CART STATE & LOGIC ---
 
     // Filtrage automatique (désactivé dans AppProvider - géré par Smart Hooks)
@@ -539,6 +604,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings, users,
         customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
+        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers,
+        clearKitchenCart, kitchenQuantities, kitchenTotal, kitchenItemCount,
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,
@@ -550,6 +617,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings, users,
         customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
+        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers,
+        clearKitchenCart, kitchenQuantities, kitchenTotal, kitchenItemCount,
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,

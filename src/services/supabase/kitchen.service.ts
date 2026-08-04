@@ -335,6 +335,27 @@ export const KitchenService = {
    *
    * Le RPC délègue à `create_sale_idempotent` — jamais de réimplémentation :
    * deux chemins de création de vente finiraient par diverger.
+   *
+   * ⭐⭐ LA VENTE NAÎT EN `validated`, JAMAIS EN `pending` — ET C'EST VOULU.
+   *
+   * ⛔ NE PAS « corriger » en alignant sur `create_sale_idempotent`, qui met
+   * une vente de serveur en `pending` en mode complet. Ce n'est pas un oubli.
+   *
+   * La validation gérant contrôle la DISPONIBILITÉ PHYSIQUE : le gérant vérifie
+   * que le casier existe avant d'entériner la sortie. Une boisson peut être
+   * vendue puis se révéler absente — d'où le contrôle a posteriori.
+   *
+   * Pour un plat, cette vérification est DÉJÀ FAITE, plus tôt et plus
+   * sûrement : `mark_ready` appelle `consume_ingredients_fefo`, qui REFUSE la
+   * transition si le stock est insuffisant. Garde transactionnelle, pas
+   * vérification humaine.
+   *
+   * ⚠️ Et un plat ne peut PAS être servi sans être passé par `ready` : aucune
+   * vente cuisine ne peut donc naître sans que la matière soit sortie. Une
+   * validation a posteriori arriverait après la cuisson, après le service et
+   * après le décrément — trop tard pour tout.
+   *
+   * Décision tranchée le 04/08/2026, après le test terrain de la phase 3A.
    */
   async serveItem(
     barId: string,
