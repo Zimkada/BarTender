@@ -88,7 +88,20 @@ export function useKitchenMutations() {
         input.notes
       );
     },
-    onSettled: invalidateQueue,
+    /**
+     * ⚠️ INVALIDE AUSSI LES TICKETS — défaut trouvé à la code review du
+     * 04/08/2026.
+     *
+     * `create_kitchen_order` passe le ticket en `fulfillment_status =
+     * 'pending'` (§13.7) : il n'est PLUS CLÔTURABLE tant que ses plats ne
+     * sont pas servis. Sans cette invalidation, le cache garde l'ancienne
+     * valeur et le gérant croirait pouvoir encaisser un bon dont la cuisine
+     * n'a rien produit.
+     */
+    onSettled: () => {
+      invalidateQueue();
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+    },
     onError: (error) => {
       console.error('Envoi en cuisine échoué:', getErrorMessage(error));
     },
@@ -172,7 +185,22 @@ export function useKitchenMutations() {
       if (!barId) throw new Error('Aucun bar sélectionné');
       return KitchenService.cancelItem(barId, input.itemId, input.reason, input.note);
     },
-    onSettled: invalidateStockDependent,
+    /**
+     * ⚠️ LES TICKETS AUSSI — défaut trouvé à la code review du 04/08/2026.
+     *
+     * Annuler la DERNIÈRE ligne en cours repasse le ticket en
+     * `fulfillment_status = 'fulfilled'` (§13.7) : il redevient clôturable.
+     * Sans cette invalidation, le gérant verrait un bon encore bloqué en
+     * cuisine alors que plus rien n'y est attendu.
+     *
+     * ⚠️ `markReady` n'en a PAS besoin : il ne touche pas au ticket. Élargir
+     * son invalidation « par symétrie » ferait refetcher les tickets à chaque
+     * plat terminé, sur l'écran le plus sollicité du service.
+     */
+    onSettled: () => {
+      invalidateStockDependent();
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+    },
     onError: (error) => {
       console.error('Annulation échouée:', getErrorMessage(error));
     },

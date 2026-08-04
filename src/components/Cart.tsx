@@ -103,6 +103,29 @@ export function Cart({
     // 'pending' sans que le gérant les voie). Cf. MATRICE_RBAC_CUISINIER §6 zone 4.
     const isServer = !!currentSession && !hasPermission('canValidateSales');
 
+    /**
+     * ⛔⛔ LA CUISINE N'EST JAMAIS DISPONIBLE HORS LIGNE — §13.5.
+     *
+     * `createKitchenOrder` appelle `assertNetworkAvailable` et REFUSE hors
+     * ligne : le décrément FEFO dépend de l'état réel des lots, et deux
+     * appareils hors ligne produiraient deux réalités de stock
+     * irréconciliables.
+     *
+     * ⚠️ Défaut trouvé à la code review du 04/08/2026 : la garde ci-dessous
+     * ne couvre que les SERVEURS. Un gérant hors ligne passait, créait le bon
+     * à l'étape 1, puis voyait l'étape 2 échouer — laissant un TICKET
+     * ORPHELIN, vide, dans la liste des bons ouverts.
+     *
+     * ⭐ Bloqué ICI, AVANT toute écriture : rien de partiel ne se crée.
+     */
+    if (isOffline && kitchenItems.length > 0) {
+      toast.error(
+        "Connexion requise pour envoyer une commande en cuisine.\n\nLes boissons seules restent possibles.",
+        { duration: 6000, icon: '📡' }
+      );
+      return false;
+    }
+
     if (isOffline && isServer) {
       toast.error(
         "MODE HORS LIGNE RESTREINT\n\nVérifiez d'abord votre connexion internet.\n\nSi le problème persiste, demandez au Gérant de passer en MODE SIMPLIFIÉ.",
