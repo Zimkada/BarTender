@@ -14,6 +14,7 @@ import { useTickets } from '../hooks/queries/useTickets';
 import { TicketsService } from '../services/supabase/tickets.service';
 import { useStock } from '../context/hooks/useStock';
 import { networkManager } from '../services/NetworkManager';
+import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
 
 interface CartProps {
   isOpen: boolean;
@@ -33,6 +34,8 @@ export function Cart({
   const { getProductStockInfo } = useStock();
   const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
+  // ⭐ Envoi en cuisine — jamais appele sur un bar pur (kitchenItems vide).
+  const { createOrder: createKitchenOrder } = useKitchenMutations();
 
   // --- CONNECT TO APP CONTEXT ---
   const {
@@ -79,38 +82,8 @@ export function Cart({
 
   // --- CHECKOUT WRAPPER ---
   const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string): Promise<boolean> => {
-    /**
-     * ⚠️⚠️ ÉTAT TRANSITOIRE — la validation unifiée n'existe PAS ENCORE.
-     *
-     * `handleCheckout` ne vend que les BOISSONS. Les plats du panier cuisine
-     * ne partent nulle part : ils resteront sélectionnés après la vente.
-     *
-     * ⛔ Sans ce message, un panier de plats SEULS renvoyait `false` en
-     * silence : bouton actif, clic sans effet, aucune explication. Défaut
-     * trouvé à la code review du 04/08/2026.
-     *
-     * ⭐ À REMPLACER par l'enchaînement ticket → cuisine → boissons. Ce garde
-     * disparaîtra alors entièrement : c'est le point d'entrée de l'étape
-     * suivante.
-     */
-    if (items.length === 0) {
-      if (kitchenItems.length > 0) {
-        toast('L\'envoi en cuisine arrive bientôt. Ajoutez une boisson pour valider cette vente.', {
-          icon: 'ℹ️',
-          duration: 5000,
-        });
-      }
-      return false;
-    }
-
-    // ⚠️ Panier MIXTE : les boissons partent, les plats RESTENT dans le panier.
-    // Le serveur doit le savoir, sinon il croira la commande cuisine envoyée.
-    if (kitchenItems.length > 0) {
-      toast('Les boissons sont vendues. Les plats restent en attente — l\'envoi en cuisine arrive bientôt.', {
-        icon: 'ℹ️',
-        duration: 5000,
-      });
-    }
+    // ⚠️ Les DEUX paniers vides : rien à valider.
+    if (items.length === 0 && kitchenItems.length === 0) return false;
 
     // ⛔ Dernier rempart client : sans canSell, aucune vente n'est tentée.
     //    create_sale_idempotent la refuserait de toute façon (guard liste
@@ -161,8 +134,79 @@ export function Cart({
       }
     }
 
+    /**
+     * ⚠️ DÉCLARÉ AVANT LE `try` — scoping ES2020, piège documenté dans le
+     * CLAUDE.md du projet : une variable du `try` est inaccessible au
+     * `catch`.
+     *
+     * ⭐ `kitchenItems` sera vidé dès l'envoi confirmé ; sans ce drapeau, le
+     * `catch` ne saurait pas si les plats sont partis — donc ne pourrait pas
+     * dire au serveur s'il doit tout recommencer.
+     */
+    let kitchenSent = false;
+
     setLoading('checkout', true);
     try {
+      /**
+       * ⭐⭐ VALIDATION UNIFIÉE — ticket, puis CUISINE, puis boissons (§16.7).
+       *
+       * ⚠️ L'ORDRE EST LE POINT CENTRAL, et il est CONTRE-INTUITIF.
+       * La cuisine passe AVANT la vente : si les boissons échouent après, les
+       * plats sont en cuisine et leur vente naîtra au `serve` de toute façon
+       * (§6) — RIEN n'est encaissé à tort. L'ordre inverse aurait facturé des
+       * boissons pour une commande dont les plats n'existent nulle part.
+       * Entre « le client attend une boisson » et « le client paie ce qu'il
+       * n'aura pas », le premier se rattrape.
+       *
+       * ⚠️ Sur un bar pur, `kitchenItems` est vide : ce bloc entier est sauté
+       * et le chemin reste EXACTEMENT celui d'avant (§3).
+       */
+      let effectiveTicketId = ticketId;
+
+      if (kitchenItems.length > 0) {
+        /**
+         * ÉTAPE 1 — BON IMPLICITE (§16.7).
+         * `kitchen_orders.ticket_id` est NOT NULL : sans bon, le plat n'aurait
+         * aucun support pendant ses 10 à 40 min de préparation. Le serveur ne
+         * devrait pas avoir à comprendre qu'un plat « exige un bon » — la
+         * règle est déductible par le système.
+         */
+        if (!effectiveTicketId) {
+          const created = await handleCreateBon(serverId ?? null);
+          if (!created) {
+            // ⛔ Sans bon, la commande cuisine ne peut PAS exister. On arrête
+            // AVANT toute vente : mieux vaut ne rien faire que vendre des
+            // boissons dont les plats sont perdus.
+            toast.error('Impossible de créer le bon. Commande non enregistrée.');
+            return false;
+          }
+          effectiveTicketId = created;
+        }
+
+        // ÉTAPE 2 — LES PLATS PARTENT EN CUISINE.
+        await createKitchenOrder.mutateAsync({
+          ticketId: effectiveTicketId,
+          items: kitchenItems.map(i => ({
+            dish_id: i.dish.id,
+            quantity: i.quantity,
+            modifiers: i.modifiers && i.modifiers.length > 0 ? i.modifiers : undefined,
+          })),
+        });
+
+        // ⚠️ Vidé DÈS l'envoi confirmé : si la vente des boissons échoue
+        // ensuite, l'utilisateur ne doit PAS pouvoir renvoyer les mêmes plats
+        // en réessayant — ils sont déjà en cuisine.
+        clearKitchenCart();
+        kitchenSent = true;
+      }
+
+      // ÉTAPE 3 — LES BOISSONS. Rien à vendre si le panier n'en contient pas.
+      if (items.length === 0) {
+        showSuccess('🍽️ Commande envoyée en cuisine', 1500);
+        onToggle();
+        return true;
+      }
+
       const saleItems = calculatedItems.map(item => ({
         product_id: item.product.id,
         product_name: item.product.name,
@@ -180,13 +224,33 @@ export function Cart({
         paymentMethod,
         assignedTo,
         serverId,
-        ticketId
+        // ⚠️ Le ticket CREE a l etape 1, pas celui recu en parametre : sinon
+        // la vente partirait sans bon alors que les plats en ont un — deux
+        // additions la ou le §16.7 en exige UNE.
+        ticketId: effectiveTicketId
       });
       showSuccess('🎉 Vente validée !', 1000);
       onToggle();
       return true;
     } catch (e) {
       console.error(e); // Error handled by mutation
+      /**
+       * ⚠️⚠️ DIRE OÙ ON EN EST — c'est ici que le serveur doit comprendre.
+       *
+       * Le panier cuisine a été vidé DÈS l'envoi confirmé. S'il est vide alors
+       * qu'il contenait des plats, c'est que l'étape 2 a RÉUSSI et que l'échec
+       * vient des boissons : les plats sont en cuisine, il ne faut PAS
+       * recommencer la commande entière.
+       *
+       * ⛔ Sans ce message, le serveur relancerait tout et le client recevrait
+       * ses plats en DOUBLE — le RPC n'a aucune idempotence sur ce chemin.
+       */
+      if (kitchenSent) {
+        toast.error(
+          'Les plats sont bien partis en cuisine, mais la vente des boissons a echoue. Ne recommencez pas la commande — vendez les boissons seules.',
+          { duration: 8000 }
+        );
+      }
       return false;
     } finally {
       setLoading('checkout', false);
