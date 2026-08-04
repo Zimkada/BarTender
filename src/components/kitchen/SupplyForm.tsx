@@ -43,12 +43,15 @@ interface SupplyFormProps {
   /** Pré-sélection depuis une alerte de stock bas. */
   initialIngredientId?: string;
   /**
-   * Incrémenter cette valeur APRÈS un enregistrement confirmé pour préparer
-   * une seconde livraison : nouvelle clé d'idempotence + champs vidés.
+   * Incrémenter cette valeur APRÈS un enregistrement confirmé : nouvelle clé
+   * d'idempotence + formulaire ENTIÈREMENT vidé, ingrédient compris.
    *
-   * ⚠️ Un simple `key` React remonterait le composant et perdrait
-   * l'ingrédient sélectionné — or on enchaîne souvent plusieurs livraisons
-   * du même produit.
+   * ⭐ Le formulaire vide est le SIGNAL DE RÉUSSITE. Des champs encore
+   * remplis se lisent comme un échec et provoquent un second envoi — qui
+   * créerait un vrai second lot, la clé ayant été renouvelée (04/08/2026).
+   *
+   * ⚠️ NE PAS incrémenter sur ERREUR : la modale doit alors garder la MÊME
+   * clé pour que le retry soit reconnu comme un rejeu.
    */
   resetSignal?: number;
 }
@@ -108,6 +111,24 @@ export function SupplyForm({
   useEffect(() => {
     if (resetSignal === undefined || resetSignal === 0) return;
     setIdempotencyKey(generateUUID());
+    // ⭐⭐ REMISE À ZÉRO COMPLÈTE, y compris l'ingrédient et le
+    //    conditionnement — décision du 04/08/2026.
+    //
+    // ⚠️ Un formulaire qui reste rempli après validation ne dit pas « c'est
+    // enregistré » : il dit « rien ne s'est passé ». Le geste naturel est de
+    // re-cliquer — et comme la clé d'idempotence vient d'être RENOUVELÉE, ce
+    // second envoi crée un VRAI second lot. Le stock doublerait sans aucun
+    // message d'erreur.
+    //
+    // ⚠️ La garde d'idempotence ne couvre QUE le retry d'une opération
+    // échouée (même clé conservée, cf. `onSuccess` de la page). Elle
+    // n'a jamais protégé du renvoi APRÈS succès.
+    //
+    // Le champ vide est donc le signal de réussite : il n'y a plus rien à
+    // envoyer. Coût assumé : re-sélectionner l'ingrédient pour une seconde
+    // livraison du même produit — un clic contre un stock faux.
+    setIngredientId('');
+    setPackageSize('');
     setPackageCount('1');
     setPackagePrice('');
     setExpiresAt('');
