@@ -1,0 +1,398 @@
+/**
+ * KitchenService
+ * File de production cuisine — lecture directe, transitions par RPC.
+ *
+ * Voir PLAN_MODULE_RESTAURATION.md §6 (machine d'état), §9 (écran Service).
+ *
+ * ⭐⭐ POURQUOI AUCUNE ÉCRITURE DIRECTE
+ * `authenticated` n'a que SELECT sur `kitchen_orders` / `kitchen_order_items`.
+ * Chaque transition porte des EFFETS DE BORD indissociables du statut :
+ *   ready  → décrément FEFO + coût figé + horodatage d'idempotence
+ *   served → création d'une VENTE + mise à jour du ticket
+ * Un UPDATE direct changerait le statut SANS ces effets : la matière ne serait
+ * jamais décomptée, ou un plat partirait sans vente. La machine d'état n'est
+ * donc pas contournable — c'est une garantie de la BASE, pas du client.
+ *
+ * ⚠️ OFFLINE : comme les ingrédients (§13.5), ces opérations NE SONT PAS mises
+ * en file. `mark_ready` dépend de l'état réel des lots ; hors ligne sur deux
+ * appareils, il produirait deux réalités de stock irréconciliables.
+ */
+
+import { supabase, handleSupabaseError } from '../../lib/supabase';
+import { networkManager } from '../NetworkManager';
+import type { Json } from '../../lib/database.types';
+
+// ===== TYPES =====
+
+/**
+ * Statut d'une LIGNE — le statut canonique (§4.3).
+ * ⚠️ `kitchen_orders` n'a volontairement PAS de colonne `status` : il est
+ * dérivé par la vue `kitchen_order_status`, jamais stocké.
+ */
+export type KitchenItemStatus =
+  | 'pending'
+  | 'accepted'
+  | 'preparing'
+  | 'ready'
+  | 'served'
+  | 'cancelled';
+
+/** Statut DÉRIVÉ d'une commande. `empty` signale une commande sans ligne. */
+export type KitchenOrderStatus =
+  | 'empty'
+  | 'pending'
+  | 'preparing'
+  | 'ready'
+  | 'served'
+  | 'cancelled';
+
+export type ServiceMode = 'dine_in' | 'takeaway';
+
+/** Motifs structurés, jamais du texte libre (§16.4) : catégoriser rend actionnable. */
+export type KitchenCancelReason =
+  | 'out_of_stock'
+  | 'kitchen_error'
+  | 'server_input_error'
+  | 'customer_cancelled'
+  | 'substitution_offered';
+
+export interface KitchenOrderItemRow {
+  id: string;
+  bar_id: string;
+  kitchen_order_id: string;
+  dish_id: string;
+  quantity: number;
+  status: KitchenItemStatus;
+  accepted_by: string | null;
+  accepted_at: string | null;
+  ready_by: string | null;
+  ready_at: string | null;
+  served_by: string | null;
+  served_at: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  cancel_reason: KitchenCancelReason | null;
+  cancel_note: string | null;
+  reminder_count: number;
+  last_reminder_at: string | null;
+  modifiers: Json | null;
+  unit_price: number;
+  /** ⭐ Coût figé à `ready` — le coût RÉELLEMENT consommé, pas une estimation. */
+  computed_cost: number | null;
+  /** ⭐ Horodatage du décrément. Sert de garde d'idempotence côté serveur. */
+  consumed_at: string | null;
+  /** ⭐ NULL alors que `consumed_at` est renseigné ⟹ PERTE (§8). */
+  sale_id: string | null;
+  created_at: string;
+}
+
+/**
+ * Une ligne de la file, enrichie de son contexte d'affichage.
+ *
+ * ⚠️ Le nom du plat et le numéro de table sont RÉSOLUS PAR LE SERVEUR dans la
+ * même requête. Les recomposer côté client imposerait de charger la liste des
+ * plats et celle des tickets pour un simple affichage — trois requêtes là où
+ * une suffit, sur l'écran le plus rafraîchi du module.
+ */
+export interface KitchenQueueItem extends KitchenOrderItemRow {
+  dish_name: string;
+  ticket_id: string;
+  /** ⚠️ NULLABLE en base — une commande peut n'avoir aucune table (§9). */
+  table_number: number | null;
+  customer_name: string | null;
+  service_mode: ServiceMode;
+  order_notes: string | null;
+  order_created_at: string;
+}
+
+interface RpcEnvelope {
+  success: boolean;
+  error?: string;
+  invariant_violation?: boolean;
+}
+
+interface CreateOrderResult extends RpcEnvelope {
+  kitchen_order_id: string;
+  items_created: number;
+}
+
+interface TransitionResult extends RpcEnvelope {
+  item_id: string;
+  status: KitchenItemStatus;
+}
+
+interface MarkReadyResult extends TransitionResult {
+  computed_cost: number;
+  /** `true` si la ligne était déjà prête — le double-clic est le cas NOMINAL. */
+  already_ready?: boolean;
+}
+
+interface ServeResult extends TransitionResult {
+  sale_id: string;
+}
+
+interface CancelResult extends TransitionResult {
+  /** ⭐ `true` si la matière avait déjà été consommée : cette annulation COÛTE. */
+  was_loss: boolean;
+  lost_cost: number | null;
+}
+
+/** Une ligne à commander. `modifiers` porte « sans piment », « bien cuit ». */
+export interface KitchenOrderLineInput {
+  dish_id: string;
+  quantity: number;
+  modifiers?: Json;
+}
+
+// ===== HELPERS =====
+
+/**
+ * Déballe l'enveloppe `{ success, error }` des RPC.
+ *
+ * ⚠️ Un RPC qui renvoie `success: false` n'est PAS une erreur Supabase : sans ce
+ * contrôle, un échec métier passerait pour un succès et l'UI afficherait un
+ * plat comme prêt alors que le stock a refusé la sortie.
+ */
+function unwrapRpc<T extends RpcEnvelope>(data: unknown, context: string): T {
+  const result = data as T | null;
+
+  if (!result) {
+    throw new Error(`${context} : réponse vide du serveur`);
+  }
+
+  if (!result.success) {
+    const prefix = result.invariant_violation ? '[INVARIANT] ' : '';
+    throw new Error(`${prefix}${result.error ?? `${context} : échec sans motif`}`);
+  }
+
+  return result;
+}
+
+/**
+ * ⚠️ Les transitions cuisine ne sont PAS mises en file offline (§13.5).
+ * Un message clair vaut mieux qu'une file d'attente trompeuse : le cuisinier
+ * croirait le plat enregistré alors que le stock n'a rien décompté.
+ */
+function assertNetworkAvailable(operation: string): void {
+  if (networkManager.shouldBlockNetworkOps()) {
+    throw new Error(
+      `Connexion requise pour ${operation}. Les opérations cuisine ne peuvent pas être mises en attente.`
+    );
+  }
+}
+
+// ===== SERVICE =====
+
+export const KitchenService = {
+  /**
+   * File de production du jour — LA requête de l'écran Service.
+   *
+   * ⭐ UNE seule requête avec jointures imbriquées, et non trois recomposées
+   * côté client. C'est l'écran le plus rafraîchi du module : y multiplier les
+   * allers-retours annulerait une partie des trois vagues d'optimisation
+   * d'egress (§3).
+   *
+   * ⚠️ Les lignes `served` et `cancelled` sont EXCLUES : elles ne sont plus à
+   * produire. L'historique se consulte ailleurs — la file doit rester courte,
+   * sinon le cuisinier scrolle pour trouver ce qui l'attend.
+   */
+  async getQueue(barId: string): Promise<KitchenQueueItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('kitchen_order_items')
+        .select(
+          `*,
+           dishes!inner ( name ),
+           kitchen_orders!inner (
+             ticket_id, service_mode, notes, created_at,
+             tickets!inner ( table_number, customer_name )
+           )`
+        )
+        .eq('bar_id', barId)
+        .in('status', ['pending', 'accepted', 'preparing', 'ready'])
+        // ⭐ Ordre de PRODUCTION : le plus ancien d'abord. Une file cuisine se
+        // sert dans l'ordre d'arrivée, sinon les premières tables attendent
+        // pendant que les dernières sont servies.
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      type QueueRow = KitchenOrderItemRow & {
+        dishes: { name: string } | null;
+        kitchen_orders: {
+          ticket_id: string;
+          service_mode: ServiceMode;
+          notes: string | null;
+          created_at: string;
+          tickets: { table_number: number | null; customer_name: string | null } | null;
+        } | null;
+      };
+
+      return ((data ?? []) as QueueRow[]).map((row) => {
+        const { dishes, kitchen_orders, ...item } = row;
+        return {
+          ...item,
+          dish_name: dishes?.name ?? 'Plat inconnu',
+          ticket_id: kitchen_orders?.ticket_id ?? '',
+          table_number: kitchen_orders?.tickets?.table_number ?? null,
+          customer_name: kitchen_orders?.tickets?.customer_name ?? null,
+          service_mode: kitchen_orders?.service_mode ?? 'dine_in',
+          order_notes: kitchen_orders?.notes ?? null,
+          order_created_at: kitchen_orders?.created_at ?? item.created_at,
+        };
+      });
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Crée la commande cuisine d'un ticket.
+   * ⚠️ Un ticket ne peut porter QU'UNE commande (index unique) : le RPC
+   * réutilise la commande existante plutôt que d'échouer.
+   */
+  async createOrder(
+    barId: string,
+    ticketId: string,
+    items: KitchenOrderLineInput[],
+    serviceMode: ServiceMode = 'dine_in',
+    notes?: string
+  ): Promise<CreateOrderResult> {
+    assertNetworkAvailable('envoyer une commande en cuisine');
+
+    try {
+      const { data, error } = await supabase.rpc('create_kitchen_order', {
+        p_bar_id: barId,
+        p_ticket_id: ticketId,
+        // ⚠️ `Json` et non `Record<string, unknown>[]` : ce dernier n'est pas
+        // assignable à Json, dont l'index signature est récursive.
+        p_items: items as unknown as Json,
+        p_service_mode: serviceMode,
+        p_notes: notes ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<CreateOrderResult>(data, 'Envoi en cuisine');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /** `pending` | `accepted` → `preparing`. Le cuisinier prend la ligne en charge. */
+  async acceptItem(barId: string, itemId: string): Promise<TransitionResult> {
+    assertNetworkAvailable('accepter un plat');
+
+    try {
+      const { data, error } = await supabase.rpc('accept_kitchen_item', {
+        p_bar_id: barId,
+        p_item_id: itemId,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<TransitionResult>(data, 'Acceptation du plat');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * ⭐⭐ → `ready` : c'est ICI que la MATIÈRE est consommée (§6), pas au service.
+   *
+   * Le décrément FEFO, le figement du coût et l'horodatage se font en une
+   * transaction serveur. Si le stock est insuffisant, la transition ÉCHOUE —
+   * on ne déclare pas prêt un plat qu'on n'a pas pu produire.
+   *
+   * ⚠️ Idempotent : un second appel renvoie `already_ready` sans reconsommer.
+   * Le double-clic d'un cuisinier pressé est le cas NOMINAL, pas l'exception.
+   */
+  async markReady(
+    barId: string,
+    itemId: string,
+    businessDate?: Date
+  ): Promise<MarkReadyResult> {
+    assertNetworkAvailable('déclarer un plat prêt');
+
+    try {
+      const { data, error } = await supabase.rpc('mark_kitchen_item_ready', {
+        p_bar_id: barId,
+        p_item_id: itemId,
+        // ⚠️ `undefined` et non `null` : le RPC applique son propre défaut
+        // (journée comptable courante) quand le paramètre est absent.
+        p_business_date: businessDate
+          ? businessDate.toISOString().slice(0, 10)
+          : undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<MarkReadyResult>(data, 'Passage en prêt');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * ⭐ → `served` : c'est ICI que naît le CA. La matière est DÉJÀ sortie.
+   *
+   * Le RPC délègue à `create_sale_idempotent` — jamais de réimplémentation :
+   * deux chemins de création de vente finiraient par diverger.
+   */
+  async serveItem(
+    barId: string,
+    itemId: string,
+    paymentMethod?: string,
+    idempotencyKey?: string,
+    businessDate?: Date
+  ): Promise<ServeResult> {
+    assertNetworkAvailable('servir un plat');
+
+    try {
+      const { data, error } = await supabase.rpc('serve_kitchen_item', {
+        p_bar_id: barId,
+        p_item_id: itemId,
+        p_payment_method: paymentMethod ?? undefined,
+        p_idempotency_key: idempotencyKey ?? undefined,
+        p_business_date: businessDate
+          ? businessDate.toISOString().slice(0, 10)
+          : undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<ServeResult>(data, 'Service du plat');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Annule une ligne.
+   *
+   * ⭐ `was_loss` distingue les deux cas que tout oppose : annuler AVANT `ready`
+   * ne coûte rien, annuler APRÈS a déjà consommé la matière. L'UI doit le dire
+   * au gérant au moment où ça se produit — sinon la perte reste invisible.
+   *
+   * ⚠️ Le motif est OBLIGATOIRE et structuré : « annulé » sans cause ne permet
+   * de corriger aucun processus.
+   */
+  async cancelItem(
+    barId: string,
+    itemId: string,
+    reason: KitchenCancelReason,
+    note?: string
+  ): Promise<CancelResult> {
+    assertNetworkAvailable('annuler un plat');
+
+    try {
+      const { data, error } = await supabase.rpc('cancel_kitchen_item', {
+        p_bar_id: barId,
+        p_item_id: itemId,
+        p_reason: reason,
+        p_note: note ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<CancelResult>(data, 'Annulation du plat');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+};

@@ -36,6 +36,7 @@ const IngredientsPage = lazyWithRetry(() => import('../pages/IngredientsPage'));
 // plus à tenir hors préchargement pour les bars purs : la garde
 // `requiresRestaurant` ci-dessous est donc obligatoire sur CHACUNE.
 const DishesPage = lazyWithRetry(() => import('../pages/DishesPage'));
+const KitchenServicePage = lazyWithRetry(() => import('../pages/KitchenServicePage'));
 // SettingsPage is lazy loaded above
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
@@ -140,6 +141,21 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <DishesPage /> },
+        ],
+      },
+      {
+        // ⭐ Écran Service — la file de production (§9).
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL
+        //   canViewKitchenOrders : la permission la PLUS LARGE des trois pages
+        //     cuisine — le SERVEUR l'a aussi, car il doit voir ce qui est
+        //     `ready` pour le retirer (§6.1). Exiger `canManageRecipes` ici
+        //     l'exclurait de l'écran où il fait l'essentiel de son travail.
+        path: 'kitchen/service',
+        element: (
+          <ProtectedRoute permission="canViewKitchenOrders" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <KitchenServicePage /> },
         ],
       },
       { path: 'analytics', element: <AnalyticsPage /> },

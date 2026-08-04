@@ -182,8 +182,14 @@ export function MobileSidebar({
     // ⭐ DÉCOUPAGE DU 03/08/2026 — « Cuisine » n'est plus UNE entrée mais un
     // GROUPE (cf. §9 « Menu latéral », arbitrage). La page unique atteignait
     // 3 onglets et en aurait eu 5 en phase 3, dont un à masquer au cuisinier.
-    // ⚠️ Le SERVEUR reste absent des deux : « il ne gère pas la cuisine, il
-    //    vend des plats — lui ajouter un menu serait une erreur » (§9).
+    // ⚠️ Le SERVEUR est absent de « Plats » et « Ingrédients » : « il ne gère
+    //    pas la cuisine, il vend des plats — lui ajouter un menu serait une
+    //    erreur » (§9).
+    // ⭐ MAIS IL EST PRÉSENT SUR « SERVICE » — et c'est volontaire. Le §6.1 lui
+    //    donne `canViewKitchenOrders` ET `canServeKitchenItem` : c'est LUI qui
+    //    retire les plats prêts, et le `serve` crée la vente. L'en exclure le
+    //    priverait de l'écran où il fait l'essentiel de son travail en salle.
+    { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true },
     { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
     { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
@@ -248,7 +254,9 @@ export function MobileSidebar({
         //    plus utilisé.
         // ⚠️ C'est un GROUPE depuis le 03/08/2026, plus une entrée solo : il
         //    accueillera Service et Appro en phase 3 sans redevenir illisible.
-        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenDishes', 'kitchenIngredients']),
+        // ⭐ « Service » EN TÊTE : c'est l'écran ouvert pendant tout le service,
+        // alors que Plats et Ingrédients relèvent de la préparation en amont.
+        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenDishes', 'kitchenIngredients']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),
