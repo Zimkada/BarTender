@@ -6181,6 +6181,10 @@ export type Database = {
         Args: { p_impersonating_user_id: string }
         Returns: string
       }
+      accept_kitchen_item: {
+        Args: { p_bar_id: string; p_item_id: string }
+        Returns: Json
+      }
       accept_legal_terms: { Args: { p_version?: number }; Returns: boolean }
       acknowledge_refresh_alert: {
         Args: { p_alert_id: string }
@@ -6416,6 +6420,15 @@ export type Database = {
         Args: { p_bar_id: string; p_dish_id: string }
         Returns: Json
       }
+      cancel_kitchen_item: {
+        Args: {
+          p_bar_id: string
+          p_item_id: string
+          p_note?: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       cancel_sale: {
         Args: { p_cancelled_by: string; p_reason: string; p_sale_id: string }
         Returns: Json
@@ -6521,6 +6534,16 @@ export type Database = {
           p_sale_id: string
           p_server_id?: string
           p_total_amount?: number
+        }
+        Returns: Json
+      }
+      create_kitchen_order: {
+        Args: {
+          p_bar_id: string
+          p_items: Json
+          p_notes?: string
+          p_service_mode?: string
+          p_ticket_id: string
         }
         Returns: Json
       }
@@ -7233,6 +7256,10 @@ export type Database = {
         Args: { p_restocked_by: string; p_return_id: string }
         Returns: Json
       }
+      mark_kitchen_item_ready: {
+        Args: { p_bar_id: string; p_business_date?: string; p_item_id: string }
+        Returns: Json
+      }
       months_overdue: {
         Args: { p_due_date: string; p_now?: string }
         Returns: number
@@ -7444,6 +7471,16 @@ export type Database = {
           error_message: string
           success: boolean
         }[]
+      }
+      serve_kitchen_item: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_idempotency_key?: string
+          p_item_id: string
+          p_payment_method?: string
+        }
+        Returns: Json
       }
       set_bar_billing_exempt: {
         Args: { p_bar_id: string; p_exempt: boolean; p_reason?: string }
