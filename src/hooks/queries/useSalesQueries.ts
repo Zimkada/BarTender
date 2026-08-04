@@ -4,14 +4,39 @@ import { useCallback } from 'react';
 import { SalesService, type DBSale } from '../../services/supabase/sales.service';
 import type { Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
+import { captureError } from '../../lib/monitoring';
 import { useSmartSync } from '../useSmartSync';
 import type { RealtimeChangePayload } from '../useRealtimeSubscription';
 import { applySaleEventToList, coerceSaleRowNumerics, applyPendingSaleEvent, type PendingStockSale, type SalesListPatch } from '../../utils/realtimeCachePatch';
 import { z } from 'zod';
 
 // 🛡️ Fix V12: Runtime Validation
+/**
+ * ⛔⛔ DÉFAUT CRITIQUE CORRIGÉ LE 04/08/2026 — signalé en test terrain
+ * (« Bon vide » sur un bon contenant pourtant une vente de 2 500 F).
+ *
+ * `product_id` était OBLIGATOIRE. Or un PLAT n'en a pas : il porte
+ * `item_type: 'dish'` et `dish_id` (§4.2, décision du 04/08/2026 — champ
+ * séparé plutôt que renommage, pour ne pas reprendre 19 281 ventes).
+ *
+ * ⚠️ CONSÉQUENCE : `DBSaleItemsSchema.parse` levait, le `catch` retombait sur
+ * `items = []` avec un simple `console.warn`, et TOUTE vente contenant un plat
+ * perdait ses articles CÔTÉ CLIENT. Bon « vide », historique sans lignes,
+ * export sans détail — alors que la base était parfaitement correcte.
+ *
+ * ⭐ L'échec SILENCIEUX est ce qui rend ce défaut dangereux : aucune erreur
+ * visible, un total juste, et seule la liste d'articles manquante. Rien
+ * n'attire l'attention.
+ *
+ * ⚠️ `product_id` reste EXIGÉ pour un produit : le relâcher pour tout le
+ * monde masquerait une vraie corruption sur les boissons. La distinction se
+ * fait sur `item_type`, exactement comme `COALESCE(item->>'item_type',
+ * 'product')` côté SQL — l'absence vaut 'product'.
+ */
 const SaleItemSchema = z.object({
-    product_id: z.string(),
+    product_id: z.string().optional(),
+    dish_id: z.string().optional(),
+    item_type: z.enum(['product', 'dish']).optional(),
     product_name: z.string(),
     quantity: z.number(),
     unit_price: z.number(),
@@ -20,7 +45,14 @@ const SaleItemSchema = z.object({
     original_unit_price: z.number().optional(),
     discount_amount: z.number().optional(),
     promotion_id: z.string().optional(),
-}).passthrough(); // Allow extra fields without crashing
+}).passthrough() // Allow extra fields without crashing
+    .refine(
+        (item) => (item.item_type === 'dish' ? !!item.dish_id : !!item.product_id),
+        {
+            message:
+                'Un produit doit porter product_id, un plat doit porter dish_id',
+        }
+    );
 
 const DBSaleItemsSchema = z.array(SaleItemSchema);
 
@@ -258,7 +290,23 @@ export const mapSalesData = (dbSales: DBSale[]): Sale[] => {
                 items = DBSaleItemsSchema.parse(rawItems) as unknown as SaleItem[];
             }
         } catch (e) {
-            console.warn(`[mapSalesData] Invalid items for sale ${s.id}`, e);
+            /**
+             * ⚠️⚠️ ÉCHEC SILENCIEUX — c'est ce qui a rendu le défaut du
+             * 04/08/2026 si difficile à voir : une vente perdait TOUS ses
+             * articles côté client, avec un total resté juste. Aucune erreur
+             * à l'écran, rien qui attire l'attention.
+             *
+             * ⭐ Le repli `[]` est CONSERVÉ — planter l'écran de vente parce
+             * qu'une ligne est malformée serait pire. Mais l'anomalie est
+             * désormais REMONTÉE : une vente sans articles est toujours le
+             * signe d'un bug, jamais un état normal.
+             */
+            console.error(`[mapSalesData] Items invalides pour la vente ${s.id}`, e);
+            captureError(e, {
+                context: 'mapSalesData.items',
+                saleId: s.id,
+                itemCount: Array.isArray(rawItems) ? rawItems.length : 0,
+            });
             items = []; // Fallback safe
         }
 

@@ -5,8 +5,24 @@ import { z } from 'zod';
  * Garantit l'intégrité des données avant stockage dans IndexedDB
  */
 
+/**
+ * ⛔⛔ TROISIÈME occurrence du même défaut, corrigée le 04/08/2026.
+ *
+ * Ce schéma garde la FILE OFFLINE (`MutationSchemas.CREATE_SALE`). Avec
+ * `product_id` obligatoire, une vente contenant un PLAT (qui porte `dish_id`,
+ * §4.2) aurait été REJETÉE à la mise en file — donc perdue hors ligne, au
+ * moment précis où la file est censée protéger la vente.
+ *
+ * ⚠️ Les trois schémas d'article de vente du projet portaient la même
+ * exigence : celui-ci, `utils/revenueSchemas` (écriture) et
+ * `hooks/queries/useSalesQueries` (lecture). Un seul corrigé aurait laissé
+ * les deux autres casser ailleurs — d'où la recherche exhaustive plutôt
+ * qu'un correctif au point signalé.
+ */
 export const SaleItemSchema = z.object({
-    product_id: z.string().uuid(),
+    product_id: z.string().uuid().optional(),
+    dish_id: z.string().uuid().optional(),
+    item_type: z.enum(['product', 'dish']).optional(),
     product_name: z.string(),
     quantity: z.number().positive(),
     unit_price: z.number().nonnegative(),
@@ -14,7 +30,10 @@ export const SaleItemSchema = z.object({
     original_unit_price: z.number().optional(),
     discount_amount: z.number().optional(),
     promotion_id: z.string().uuid().optional(),
-});
+}).refine(
+    (item) => (item.item_type === 'dish' ? !!item.dish_id : !!item.product_id),
+    { message: 'Un produit doit porter product_id, un plat doit porter dish_id' }
+);
 
 export const CreateSaleSchema = z.object({
     bar_id: z.string().uuid(),
