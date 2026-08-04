@@ -56,6 +56,17 @@ interface SupplyFormProps {
   resetSignal?: number;
 }
 
+/**
+ * Unités qui désignent un OBJET COMPTABLE, où contenant et unité de suivi
+ * coïncident (on achète des morceaux, on compte des morceaux).
+ *
+ * ⚠️ Toute unité ABSENTE de cette liste — y compris une unité saisie
+ * librement — est traitée comme une MESURE, donc avec les deux niveaux
+ * visibles. C'est le défaut sûr : il ne perd aucune information, alors que
+ * masquer à tort le contenu forcerait un lot à 1 et fausserait le stock.
+ */
+const COUNTABLE_UNITS = ['morceau', 'pièce', 'piece', 'unité', 'unite'];
+
 export function SupplyForm({
   ingredients,
   onSubmit,
@@ -89,6 +100,61 @@ export function SupplyForm({
     () => ingredients.find((i) => i.id === ingredientId),
     [ingredients, ingredientId]
   );
+
+  /**
+   * ⭐ L'unité est-elle DÉNOMBRABLE (on compte des objets) plutôt qu'une
+   * MESURE (on pèse, on verse) ?
+   *
+   * Un morceau de viande s'achète au morceau : contenant et unité de suivi
+   * coïncident, et demander « chaque lot contient combien de morceaux ? »
+   * n'apprend rien. Du riz s'achète en sacs mais se compte en kg : les deux
+   * niveaux sont alors nécessaires.
+   *
+   * ⚠️ Règle fondée sur la NATURE de l'unité, pas sur une liste de mots
+   * arbitraire : la comparaison est insensible à la casse et au pluriel, et
+   * une unité inconnue (saisie libre) tombe par défaut du côté MESURE — le
+   * cas le plus complet, donc celui qui ne perd aucune information.
+   */
+  const isCountable = useMemo(() => {
+    const unit = selected?.unit?.trim().toLowerCase() ?? '';
+    return COUNTABLE_UNITS.some((u) => unit === u || unit === `${u}s`);
+  }, [selected?.unit]);
+
+  /**
+   * ⚠️ Le champ « contenu » étant MASQUÉ pour une unité dénombrable, il doit
+   * être forcé à 1 : la validation exige `packageSize > 0`, et un champ vide
+   * bloquerait l'envoi sans qu'aucun champ visible ne signale la cause.
+   */
+  useEffect(() => {
+    if (isCountable) setPackageSize('1');
+  }, [isCountable]);
+
+  /**
+   * Libellés en LANGAGE CLAIR (§16.8) — « conditionnement » est du vocabulaire
+   * de logistique, pas celui d'un promoteur de maquis.
+   *
+   * ⭐ Ils nomment l'unité RÉELLE quand elle est dénombrable (« Combien de
+   * morceaux ? ») et retombent sur « lot » sinon — un mot neutre qui vaut
+   * pour un sac de riz comme pour un bidon d'huile.
+   */
+  const unitPlural = useMemo(() => {
+    const unit = selected?.unit?.trim() ?? '';
+    if (!unit) return '';
+    // ⚠️ Déjà au pluriel : ne rien ajouter.
+    if (unit.endsWith('s') || unit.endsWith('x')) return unit;
+    // ⚠️ « morceau » → « morceaux », pas « morceaus » — défaut attrapé par le
+    // test le 04/08/2026. Les mots en -eau/-au prennent un x en français.
+    if (unit.endsWith('eau') || unit.endsWith('au')) return `${unit}x`;
+    return `${unit}s`;
+  }, [selected?.unit]);
+
+  const countLabel = isCountable && unitPlural
+    ? `Combien de ${unitPlural} ?`
+    : 'Combien de lots ?';
+
+  const priceLabel = isCountable && selected?.unit
+    ? `Prix d'un ${selected.unit}`
+    : "Prix d'un lot";
 
   /**
    * Pré-remplit la taille du conditionnement au changement d'ingrédient.
@@ -236,9 +302,9 @@ export function SupplyForm({
       </div>
 
       {/* Conditionnement */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className={cn('grid gap-3', isCountable ? 'grid-cols-1' : 'grid-cols-2')}>
         <div className="space-y-2">
-          <Label htmlFor="supply-count">Nombre de conditionnements</Label>
+          <Label htmlFor="supply-count">{countLabel}</Label>
           <Input
             id="supply-count"
             type="number"
@@ -253,26 +319,33 @@ export function SupplyForm({
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="supply-size">
-            Contenu {selected ? `(${selected.unit})` : ''}
-          </Label>
-          <Input
-            id="supply-size"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="any"
-            value={packageSize}
-            onChange={(e) => setPackageSize(e.target.value)}
-            placeholder="Ex : 25"
-          />
-        </div>
+        {/* ⭐ MASQUÉ quand l'unité est DÉNOMBRABLE : « Chaque lot contient
+            1 morceau » n'apprend rien et fait saisir un 1 inutile. Le champ
+            est alors forcé à 1 par l'effet ci-dessus — jamais laissé vide,
+            sinon la validation `packageSize > 0` bloquerait sans champ
+            visible à corriger. */}
+        {!isCountable && (
+          <div className="space-y-2">
+            <Label htmlFor="supply-size">
+              Chaque lot contient {selected ? `(${selected.unit})` : ''}
+            </Label>
+            <Input
+              id="supply-size"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="any"
+              value={packageSize}
+              onChange={(e) => setPackageSize(e.target.value)}
+              placeholder="Ex : 25"
+            />
+          </div>
+        )}
       </div>
 
       {/* Prix */}
       <div className="space-y-2">
-        <Label htmlFor="supply-price">Prix payé par conditionnement</Label>
+        <Label htmlFor="supply-price">{priceLabel}</Label>
         <Input
           id="supply-price"
           type="number"
