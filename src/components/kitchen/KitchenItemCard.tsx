@@ -26,6 +26,22 @@ interface Props {
   /** `serve` — serveur, gérant, promoteur. PAS le cuisinier (§6.1). */
   canServe: boolean;
   canCancel: boolean;
+  /**
+   * ⭐⭐ BORNE TEMPORELLE du §6.1 — distincte de `canCancel`.
+   *
+   * Après `ready` la matière est SORTIE : annuler devient une décision
+   * sanitaire ou commerciale (« ce plat part-il à la poubelle ? »), plus
+   * opérationnelle. Le RPC ne l'autorise donc qu'aux rôles de gestion.
+   *
+   * ⚠️ Le §6.1 le dit explicitement : la permission `canCancelKitchenOrderItem`
+   * « n'est que le PREMIER filtre ». Le cuisinier la possède — il peut annuler
+   * ce qui n'est pas encore prêt — mais pas franchir cette borne.
+   *
+   * ⛔ Sans cette distinction, le bouton s'affichait sur une ligne `ready` pour
+   * le cuisinier et échouait systématiquement côté serveur : l'interdit se
+   * découvrait par un message d'erreur, après le geste.
+   */
+  canCancelAfterReady: boolean;
   onAccept: (itemId: string) => void;
   onMarkReady: (itemId: string) => void;
   onServe: (itemId: string) => void;
@@ -56,6 +72,7 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
   canProduce,
   canServe,
   canCancel,
+  canCancelAfterReady,
   onAccept,
   onMarkReady,
   onServe,
@@ -139,7 +156,13 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
           </Button>
         )}
 
-        {canCancel && (
+        {/* ⭐⭐ MIROIR EXACT de la garde de `cancel_kitchen_item` (§6.1) :
+            après `ready`, seuls les rôles de gestion passent. Afficher un
+            bouton qui échouera à coup sûr fait découvrir l'interdit APRÈS le
+            geste, par un message d'erreur.
+            ⚠️ L'UI ne fait que MASQUER : le serveur retranche de toute façon.
+            C'est la base qui décide, pas cette condition. */}
+        {canCancel && (item.status !== 'ready' || canCancelAfterReady) && (
           <Button
             size="sm"
             variant="ghost"

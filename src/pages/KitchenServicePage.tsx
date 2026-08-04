@@ -89,7 +89,7 @@ function ServiceColumn({ title, count, groups, emptyLabel, accent, renderItem }:
 
 export default function KitchenServicePage() {
   const { currentBar } = useBarContext();
-  const { hasPermission } = useAuth();
+  const { hasPermission, currentSession } = useAuth();
   const { showNotification } = useNotifications();
   const { formatPrice } = useCurrencyFormatter();
 
@@ -101,6 +101,25 @@ export default function KitchenServicePage() {
   const canProduce = hasPermission('canUpdateKitchenOrderStatus');
   const canServe = hasPermission('canServeKitchenItem');
   const canCancel = hasPermission('canCancelKitchenOrderItem');
+
+  /**
+   * ⭐⭐ BORNE TEMPORELLE du §6.1 — signalée en test terrain le 04/08/2026.
+   *
+   * Après `ready` la matière est SORTIE et ne reviendra pas : annuler devient
+   * une décision sanitaire ou commerciale, pas opérationnelle. Le RPC
+   * `cancel_kitchen_item` ne l'autorise qu'aux rôles de gestion.
+   *
+   * ⚠️ Ce n'est PAS exprimable par une permission — le §6.1 le dit :
+   * `canCancelKitchenOrderItem` « n'est que le premier filtre ». Le cuisinier
+   * la possède et peut annuler ce qui n'est pas encore prêt.
+   *
+   * ⚠️ LISTE BLANCHE, en miroir exact du RPC : un rôle ajouté plus tard est
+   * refusé par défaut des deux côtés. Une liste noire ici et blanche là-bas
+   * finirait par diverger — le défaut corrigé trois fois sur ce chantier.
+   */
+  const role = currentSession?.role;
+  const canCancelAfterReady =
+    role === 'super_admin' || role === 'promoteur' || role === 'gerant';
 
   const isPending =
     acceptItem.isPending || markReady.isPending || serveItem.isPending || cancelItem.isPending;
@@ -196,6 +215,7 @@ export default function KitchenServicePage() {
         canProduce={canProduce}
         canServe={canServe}
         canCancel={canCancel}
+        canCancelAfterReady={canCancelAfterReady}
         onAccept={handleAccept}
         onMarkReady={handleMarkReady}
         onServe={handleServe}
@@ -207,6 +227,7 @@ export default function KitchenServicePage() {
       canProduce,
       canServe,
       canCancel,
+      canCancelAfterReady,
       handleAccept,
       handleMarkReady,
       handleServe,
