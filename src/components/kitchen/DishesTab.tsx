@@ -138,8 +138,14 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
       const ca = costsByDishId.get(a.id);
       const cb = costsByDishId.get(b.id);
 
-      const aUnknown = !ca || ca.line_count === 0 || ca.margin_rate == null;
-      const bUnknown = !cb || cb.line_count === 0 || cb.margin_rate == null;
+      // ⚠️ `total_cost === 0` AJOUTÉ le 04/08/2026 : sans lui, un plat dont
+      // les ingrédients ne sont pas encore approvisionnés affiche 100 % de
+      // marge et se classe PREMIER des plus rentables — l'inverse exact de
+      // la vérité, sur l'écran censé aider à décider quoi mettre en avant.
+      const aUnknown =
+        !ca || ca.line_count === 0 || ca.margin_rate == null || ca.total_cost === 0;
+      const bUnknown =
+        !cb || cb.line_count === 0 || cb.margin_rate == null || cb.total_cost === 0;
 
       if (aUnknown && bUnknown) return a.name.localeCompare(b.name);
       if (aUnknown) return 1;
@@ -246,8 +252,23 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
             // ⚠️ Une recette vide donne une marge de 100 % — artefact du coût
             // INCONNU, pas une performance. On n'affiche donc PAS de marge.
             const hasRecipe = !!dishCost && dishCost.line_count > 0;
+            /**
+             * ⭐⭐ Recette SAISIE mais aucun ingrédient valorisé (signalé en
+             * test terrain le 04/08/2026) : `line_count > 0` et pourtant
+             * `total_cost = 0`, donc marge 100 % affichée EN VERT.
+             *
+             * ⚠️ Le garde-fou ci-dessus ne couvrait que la recette VIDE. Le
+             * cas d'un plat dont les ingrédients existent mais n'ont jamais
+             * été approvisionnés passait au travers — c'est pourtant l'état
+             * NORMAL entre la saisie d'une recette et le premier appro.
+             *
+             * Un plat gratuit à produire n'existe pas : coût 0 signale
+             * toujours une donnée manquante, jamais une bonne nouvelle.
+             */
+            const costIsUnknown = hasRecipe && dishCost.total_cost === 0;
             const marginIsLow =
               hasRecipe &&
+              !costIsUnknown &&
               dishCost.margin_rate != null &&
               dishCost.margin_rate < LOW_MARGIN_THRESHOLD;
 
@@ -272,7 +293,14 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                   {/* ⭐ §9 — LA MARGE EST L'ÉLÉMENT CENTRAL DE LA CARTE.
                       C'est le livrable de la phase 2 : « le promoteur découvre
                       la marge réelle de ses plats ». */}
-                  {hasRecipe ? (
+                  {costIsUnknown ? (
+                    /* ⭐ Ni vert ni rouge : on ne sait pas. Le message dit
+                       AUSSI quoi faire — un constat sans action laisse le
+                       promoteur devant un écran qui l'accuse. */
+                    <p className="text-sm mt-0.5 text-muted-foreground italic">
+                      Coût inconnu — approvisionnez les ingrédients
+                    </p>
+                  ) : hasRecipe ? (
                     <p className="text-sm mt-0.5 flex flex-wrap items-center gap-x-2">
                       <span className="text-muted-foreground">
                         coût {formatPrice(dishCost.total_cost)}

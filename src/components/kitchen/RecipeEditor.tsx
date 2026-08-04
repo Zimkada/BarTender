@@ -233,6 +233,23 @@ export function RecipeEditor({
   const marginIsLow =
     cost?.margin_rate != null && cost.margin_rate < LOW_MARGIN_THRESHOLD;
 
+  /**
+   * ⭐⭐ COÛT NUL ≠ COÛT CONNU (signalé en test terrain le 04/08/2026).
+   *
+   * Un plat dont aucun ingrédient n'a de prix connu renvoie `total_cost = 0`,
+   * donc une marge de 100 %. Affiché en VERT, cela se lit « plat très
+   * rentable » — la lecture exactement inverse de la réalité, qui est
+   * « je ne sais pas encore ce que ce plat coûte ».
+   *
+   * ⚠️ Un plat réellement gratuit à produire n'existe pas : tout ce qui
+   * compose une assiette a été acheté. Un coût à 0 signale donc TOUJOURS une
+   * donnée manquante, jamais une bonne nouvelle.
+   *
+   * ⚠️ Distinct de `has_estimated_cost`, qui couvre les lacunes PARTIELLES
+   * (un ingrédient sur trois sans stock). Ici, il n'y a rien du tout.
+   */
+  const costIsUnknown = cost != null && cost.total_cost === 0;
+
   return (
     <div className="space-y-4">
       {/* ⭐ §13.12 — LA VALEUR D'ABORD. Coût et marge en tête, jamais en bas :
@@ -240,13 +257,32 @@ export function RecipeEditor({
       <div
         className={cn(
           'rounded-xl border p-4',
-          marginIsLow
-            ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30'
-            : 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30'
+          // ⚠️ NEUTRE quand le coût est inconnu : ni vert (« tout va bien »)
+          // ni rouge (« problème de marge »). On ne sait simplement pas.
+          costIsUnknown
+            ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40'
+            : marginIsLow
+              ? 'border-red-200 bg-red-50 dark:border-red-900 dark:bg-red-950/30'
+              : 'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30'
         )}
       >
         {isLoadingCost ? (
           <p className="text-sm text-muted-foreground">Calcul du coût…</p>
+        ) : costIsUnknown ? (
+          /* ⭐ Dire « je ne sais pas » plutôt qu'afficher une marge flatteuse
+             et fausse. Le message indique AUSSI quoi faire — un constat sans
+             action laisse le promoteur devant un écran qui l'accuse. */
+          <div className="flex items-start gap-2">
+            <Info size={16} className="mt-0.5 flex-shrink-0 text-muted-foreground" />
+            <div>
+              <p className="text-sm font-medium">Coût inconnu pour l'instant</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Prix de vente {formatPrice(cost.price)}. La marge s'affichera dès
+                qu'un approvisionnement aura donné un prix aux ingrédients de ce
+                plat.
+              </p>
+            </div>
+          </div>
         ) : cost ? (
           <>
             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
