@@ -3,6 +3,8 @@ import { ShoppingCart, X, ShoppingBag } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { CalculatedItem } from '../../hooks/useCartLogic';
 import { CartShared } from './CartShared';
+import { KitchenCartSection } from './KitchenCartSection';
+import type { KitchenCartItem } from '../../hooks/useKitchenCart';
 import { useViewport } from '../../hooks/useViewport';
 import { SelectOption } from '../ui/Select';
 import { PaymentMethod } from './PaymentMethodSelector';
@@ -32,6 +34,20 @@ interface CartDrawerProps {
     onCreateBon?: (serverId: string | null, tableNumber?: number, customerName?: string) => Promise<string | null>;
     isLoading?: boolean;
     maxStockLookup?: (productId: string) => number; // 🛡️ Fix Force Sale
+
+    /**
+     * ⭐ SECTION CUISINE — module restauration (§16.7).
+     *
+     * ⚠️ TOUTES OPTIONNELLES : sans elles, le composant se comporte
+     * EXACTEMENT comme avant. Les appelants qui ne les passent pas (bars purs,
+     * QuickSaleFlow) ne voient aucune différence — l'invariance du §3 est
+     * garantie par la signature, pas par une condition à l'exécution.
+     */
+    kitchenItems?: KitchenCartItem[];
+    onUpdateKitchenQuantity?: (dishId: string, quantity: number) => void;
+    onRemoveDish?: (dishId: string) => void;
+    /** ⚠️ INDICATIF : ces plats ne sont pas encore vendus (§6). */
+    kitchenTotal?: number;
 }
 
 export function CartDrawer({
@@ -50,7 +66,11 @@ export function CartDrawer({
     ticketsWithSummary = [],
     onCreateBon,
     isLoading = false,
-    maxStockLookup // 🛡️ Fix Force Sale
+    maxStockLookup, // 🛡️ Fix Force Sale
+    kitchenItems = [],
+    onUpdateKitchenQuantity,
+    onRemoveDish,
+    kitchenTotal = 0
 }: CartDrawerProps) {
     const { isMobile } = useViewport();
     const { formatPrice } = useCurrencyFormatter();
@@ -135,6 +155,20 @@ export function CartDrawer({
         }
     };
 
+    /**
+     * ⭐⭐ LE PANIER N'EST PLUS VIDE DÈS QU'UNE DES DEUX LISTES EST REMPLIE.
+     *
+     * ⚠️ Sans cette dérivation, une commande composée UNIQUEMENT de plats
+     * afficherait « Votre panier est vide » et masquerait le pied — donc
+     * aucun bouton pour valider. La commande serait impossible à envoyer.
+     *
+     * ⚠️ Sur un bar pur, `kitchenItems` est toujours vide (prop optionnelle
+     * non passée) : ces expressions valent exactement `items.length`, comme
+     * avant (§3).
+     */
+    const totalLineCount = items.length + kitchenItems.length;
+    const hasAnything = totalLineCount > 0;
+
     const drawerVariants = isMobile ? {
         closed: { y: "100%", opacity: 0.5 },
         open: { y: 0, opacity: 1 }
@@ -188,7 +222,7 @@ export function CartDrawer({
                                     <ShoppingBag className="text-brand-primary" size={20} strokeWidth={2.5} />
                                     Panier
                                     <span className="ml-2 bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide uppercase">
-                                        ({items.length} {items.length > 1 ? 'articles' : 'article'})
+                                        ({totalLineCount} {totalLineCount > 1 ? 'articles' : 'article'})
                                     </span>
                                 </h2>
                             </div>
@@ -210,7 +244,21 @@ export function CartDrawer({
                                 maxStockLookup={maxStockLookup} // 🛡️ Fix Force Sale
                             />
 
-                            {items.length === 0 && (
+                            {/* ⭐ Section CUISINE — sous les boissons, comme le
+                                veut la maquette validée le 04/08/2026 : les
+                                deux sous-totaux d'abord, les informations
+                                complémentaires ensuite, le total et le bouton
+                                unique en dernier.
+                                ⚠️ Ne rend RIEN si `kitchenItems` est vide —
+                                donc jamais sur un bar pur (§3). */}
+                            <KitchenCartSection
+                                items={kitchenItems}
+                                onUpdateQuantity={onUpdateKitchenQuantity ?? (() => {})}
+                                onRemove={onRemoveDish ?? (() => {})}
+                                subtotal={kitchenTotal}
+                            />
+
+                            {!hasAnything && (
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
@@ -234,10 +282,19 @@ export function CartDrawer({
                         </div>
 
                         {/* --- FOOTER STICKY GLASS --- */}
-                        {items.length > 0 && (
+                        {hasAnything && (
                             <div className="p-6 bg-card/80 backdrop-blur-xl border-t border-border rounded-t-[2.5rem] shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] safe-pb">
+                                {/* ⭐ TOTAL COMBINÉ — c'est ce que le client paiera,
+                                    boissons ET plats. Afficher le seul total
+                                    boissons sous une section cuisine chiffrée
+                                    ferait annoncer un montant faux au client.
+                                    ⚠️ `kitchenTotal` vaut 0 sur un bar pur :
+                                    l'expression est alors identique à `total` (§3).
+                                    ⚠️ Usage PUREMENT VISUEL — vérifié :
+                                    `CartFooter` n'utilise `total` que pour
+                                    l'affichage, aucun calcul n'en dépend. */}
                                 <CartFooter
-                                    total={total}
+                                    total={total + kitchenTotal}
                                     isSimplifiedMode={isSimplifiedMode}
                                     serverOptions={serverOptions}
                                     selectedServer={selectedServer}
@@ -251,7 +308,7 @@ export function CartDrawer({
                                     onCheckout={handleCheckout}
                                     onClear={onClear}
                                     isLoading={isLoading}
-                                    hasItems={items.length > 0}
+                                    hasItems={hasAnything}
                                     isMobile={isMobile}
                                 />
                             </div>

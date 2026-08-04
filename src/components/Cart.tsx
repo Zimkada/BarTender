@@ -40,7 +40,14 @@ export function Cart({
     updateCartQuantity,
     removeFromCart,
     addSale,
-    clearCart
+    clearCart,
+    // ⭐ Panier CUISINE — vide sur un bar pur, la section ne rend alors rien (§3).
+    kitchenItems,
+    updateKitchenQuantity,
+    removeDish,
+    clearKitchenCart,
+    kitchenTotal,
+    kitchenItemCount
   } = useAppContext();
 
   // --- USE CART LOGIC ---
@@ -184,9 +191,16 @@ export function Cart({
         >
           <div className="relative">
             <ShoppingCart size={isMobile ? 24 : 28} strokeWidth={2.5} />
-            {totalItems > 0 && (
+            {/* ⭐⭐ COMPTE LES DEUX PANIERS — defaut le plus grave de cette
+                etape s il n en comptait qu un : une commande de PLATS SEULS
+                n aurait affiche AUCUN badge, donc aucun signal qu il reste
+                quelque chose a valider. Le serveur aurait quitte l ecran en
+                croyant avoir termine.
+                ⚠️ `kitchenItemCount` vaut 0 sur un bar pur : l'expression est
+                alors identique à `totalItems`, comme avant (§3). */}
+            {totalItems + kitchenItemCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white shadow-sm">
-                {totalItems}
+                {totalItems + kitchenItemCount}
               </span>
             )}
           </div>
@@ -203,6 +217,9 @@ export function Cart({
         onRemoveItem={removeFromCart}
         onClear={() => {
           clearCart();
+          // ⚠️ Vider les DEUX : « Vider le panier » qui laisserait la commande
+          // cuisine ferait partir des plats que le serveur croit annules.
+          clearKitchenCart();
           cartCleared();
         }}
         onCheckout={handleCheckout}
@@ -213,6 +230,10 @@ export function Cart({
         ticketsWithSummary={ticketsWithSummary}
         onCreateBon={handleCreateBon}
         isLoading={isLoading('checkout')}
+        kitchenItems={kitchenItems}
+        onUpdateKitchenQuantity={updateKitchenQuantity}
+        onRemoveDish={removeDish}
+        kitchenTotal={kitchenTotal}
         maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity}
       />
     </>
