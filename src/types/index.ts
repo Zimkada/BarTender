@@ -372,7 +372,31 @@ export interface CartItem {
 }
 
 export interface SaleItem {
+  /**
+   * ⭐ Discriminant produit / plat — module restauration (§4.2).
+   *
+   * ⚠️ OPTIONNEL, et c'est VOULU : les 19 281+ ventes existantes ne le portent
+   * pas. Le rendre obligatoire imposerait de reprendre tout l'historique
+   * comptable. Partout, l'absence se lit comme `'product'` — exactement ce que
+   * fait `COALESCE(item->>'item_type', 'product')` côté SQL.
+   *
+   * ⭐ FORMAT RETENU (04/08/2026) — divergence assumée avec le §4.2, qui
+   * proposait de renommer product_id → item_id. Écarté : 62 points de
+   * modification et 19 281 ventes à reprendre.
+   *     boisson : { product_id, product_name, … }              INCHANGÉ
+   *     plat    : { item_type: 'dish', dish_id, product_name, … }
+   *
+   * ⚠️ Un plat n'a PAS de `product_id`. Deux gardes SQL lèvent une exception
+   * si le product_id est introuvable dans `bar_products` — y placer un
+   * dishes.id ferait ÉCHOUER la vente. Le champ séparé rend la confusion
+   * structurellement impossible.
+   */
+  item_type?: 'product' | 'dish';
+  /** ⚠️ ABSENT pour un plat. Voir `dish_id`. */
   product_id: string;
+  /** ⭐ Renseigné UNIQUEMENT si `item_type === 'dish'`. */
+  dish_id?: string;
+  /** Nom figé à la vente — vaut pour un produit comme pour un plat. */
   product_name: string;
   product_volume?: string;
   quantity: number;

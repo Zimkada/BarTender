@@ -1,5 +1,5 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useBarContext } from '../../../../context/BarContext';
 import { useUnifiedSales } from '../../../../hooks/pivots/useUnifiedSales';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
@@ -8,6 +8,11 @@ import { TopProductsChart } from '../../../../components/analytics/TopProductsCh
 import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
 import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
 import { ChartTooltip } from '../../../../components/charts/ChartTooltip';
+import { ScopeSwitcher } from '../../../../components/common/ScopeSwitcher';
+import {
+  itemMatchesScope,
+  type ActivityScope,
+} from '../../../../components/common/scopeHelpers';
 import {
   LineChart,
   CartesianGrid,
@@ -100,7 +105,22 @@ export function AnalyticsView({
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
-  const { currentBar } = useBarContext();
+  const { currentBar, hasRestaurant } = useBarContext();
+
+  /**
+   * ⭐ Portée des statistiques — Tout / Bar / Restau (§9).
+   *
+   * ⚠️ « Tout » par défaut : c'est la vue qui répond à « combien j'ai fait
+   * aujourd'hui ». Démarrer sur « Bar » masquerait le CA restaurant sans que
+   * l'utilisateur l'ait demandé.
+   *
+   * ⭐ VERROU §3 : sur un bar pur, la portée est TOUJOURS 'all'. Le sélecteur
+   * ne s'y rend pas, donc `setScope` n'est jamais appelé — mais rien ne
+   * l'empêcherait structurellement (URL, état persisté). Sans ce verrou, une
+   * portée 'kitchen' viderait tous les graphiques d'un bar sans cuisine.
+   */
+  const [rawScope, setScope] = useState<ActivityScope>('all');
+  const scope: ActivityScope = hasRestaurant ? rawScope : 'all';
   // ⚡ Egress: ne charger que la période analysée + la période précédente (pour les
   // comparaisons de tendance), au lieu des 6 mois du défaut dataTier. La fenêtre
   // = [startDate - durée ; endDate], soit 2× la durée de la période courante.
@@ -307,6 +327,36 @@ export function AnalyticsView({
       const ratio = sale.total > 0 ? saleNet / sale.total : 0;
 
       sale.items.forEach((item) => {
+        /**
+         * ⭐ PORTÉE — l'item entre-t-il dans ce que l'utilisateur regarde ?
+         * Règle partagée avec le Dashboard (`itemMatchesScope`) : les deux
+         * écrans doivent classer un item de la MÊME façon, sinon leurs
+         * chiffres divergeraient pour la même journée.
+         */
+        if (!itemMatchesScope(item, scope)) return;
+
+        /**
+         * ⭐ Un PLAT n'a pas de `product_id` : il porte `item_type: 'dish'` et
+         * `dish_id` (format retenu le 04/08/2026). `find` retournerait donc
+         * `undefined` et tout son CA tomberait dans « Autre ».
+         *
+         * ⚠️ On REGROUPE sous « Restau » plutôt qu'on n'EXCLUT : ce graphique
+         * est une RÉPARTITION du CA, il doit totaliser 100 %. En portée
+         * « Tout », exclure les plats produirait un camembert qui ne couvre pas
+         * tout le chiffre d'affaires — plus trompeur que le défaut corrigé.
+         *
+         * ⚠️ Un seul libellé pour tous les plats, sans détailler leurs
+         * catégories : mélanger « Grillades » et « Bière » dans le même
+         * camembert brouillerait la lecture. La répartition fine des plats
+         * relèvera des cartes de la portée « Restau ».
+         */
+        if ((item.item_type ?? 'product') === 'dish') {
+          const itemNet = (item.unit_price || 0) * item.quantity * ratio;
+          catRevenue['Restau'] = (catRevenue['Restau'] || 0) + itemNet;
+          totalNet += itemNet;
+          return;
+        }
+
         const productId = item.product_id;
         const product = (_products || []).find(p => p.id === productId);
         const categoryId = product?.categoryId;
@@ -377,6 +427,16 @@ export function AnalyticsView({
 
   return (
     <div className="space-y-4">
+      {/* ⭐ Portée — placée AVANT les chiffres : elle définit ce qu'ils
+          couvrent. La mettre après laisserait lire des montants sans savoir
+          de quoi ils parlent.
+          §3 — ne rend RIEN sur un bar pur : l'écran est alors identique. */}
+      <ScopeSwitcher
+        scope={scope}
+        onScopeChange={setScope}
+        hasRestaurant={hasRestaurant}
+      />
+
       {/* KPIs principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`} data-guide="analytics-kpis">
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
