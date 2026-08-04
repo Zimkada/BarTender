@@ -129,8 +129,21 @@ export default function HomePage() {
    */
   const effectiveScope: CatalogScope = hasRestaurant ? scope : 'all';
 
-  /** Ce que la portée courante donne à voir. */
-  const showProducts = effectiveScope === 'all' || effectiveScope === 'products';
+  /**
+   * Ce que la portée courante donne à voir.
+   *
+   * ⚠️ SYMÉTRIQUE de `showDishes` — signalé en test le 04/08/2026 : en portée
+   * « Tout », filtrer sur une catégorie de PLATS laissait la section boissons
+   * affichée avec son état vide (« Aucun produit dans cette catégorie »).
+   *
+   * ⛔ Le défaut PRÉEXISTAIT : le bloc testait `products.length === 0`, le
+   * catalogue COMPLET, au lieu du résultat FILTRÉ. Il ne se manifestait jamais
+   * tant que chaque catégorie contenait des produits — le module restauration
+   * l'a rendu atteignable en introduisant des catégories qui n'en ont aucun.
+   */
+  const showProducts =
+    (effectiveScope === 'products') ||
+    (effectiveScope === 'all' && (isLoading || filteredProducts.length > 0));
   /**
    * ⚠️ En portée « Tout », la grille plats est masquée quand elle est VIDE :
    * filtrer sur une catégorie de boissons afficherait sinon « Aucun plat au
@@ -255,17 +268,37 @@ export default function HomePage() {
 
       {/* Product Grid — plate, sans encadrement (aération) */}
       <div className="min-h-[600px] space-y-6">
-        {/* ⚠️ BLOC INCHANGÉ pour un bar pur : `showProducts` vaut toujours
-            `true` quand la portée est `all`, qui est le défaut et la seule
-            valeur atteignable sans sélecteur (§3). */}
+        {/* ⭐⭐ ÉTAT VIDE GLOBAL — indispensable depuis que les DEUX sections
+            peuvent se masquer indépendamment. Sans lui, une recherche sans
+            résultat en portée « Tout » laisserait un écran BLANC : le défaut
+            corrigé plus haut, réintroduit par sa propre correction.
+            ⚠️ `isLoading` exclu : pendant le chargement, les squelettes
+            s'affichent — annoncer « rien trouvé » serait faux. */}
+        {!showProducts && !showDishes && !isLoading && !isLoadingDishes && (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <p className="text-body">
+              {/* ⚠️ TROIS messages distincts : « rien trouvé » n'a pas le même
+                  sens selon qu'on a cherché, filtré, ou que le catalogue est
+                  vide. Un message unique enverrait le promoteur chercher un
+                  filtre qu'il n'a pas posé. */}
+              {searchQuery.trim()
+                ? `Aucun résultat pour « ${searchQuery.trim()} »`
+                : selectedCategory !== 'all'
+                  ? 'Aucun article dans cette catégorie'
+                  : 'Aucun produit trouvé'}
+            </p>
+          </div>
+        )}
+
         {showProducts && (
           isLoading ? (
             <ProductGridSkeleton count={12} />
-          ) : products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-              <p className="text-body">Aucun produit trouvé</p>
-            </div>
           ) : (
+            /* ⚠️ Le test `products.length === 0` a été RETIRÉ : il portait sur
+               le catalogue COMPLET et non sur le résultat filtré, ce qui
+               affichait « Aucun produit trouvé » là où l'état vide global dit
+               désormais la même chose, une seule fois et pour les deux
+               sections. */
             <ProductGrid
               products={filteredProducts}
               onAddToCart={handleAddToCart}

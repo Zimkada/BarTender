@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 
@@ -209,6 +209,63 @@ describe('HomePage — invariance des bars purs (§3)', () => {
       renderHome();
 
       expect(screen.getByText('Béninoise')).toBeTruthy();
+    });
+  });
+
+  describe('⭐⭐ Sections vides — aucune ne s\'affiche pour rien', () => {
+    beforeEach(() => {
+      mockHasRestaurant = true;
+    });
+
+    it('⛔ filtrer une catégorie de PLATS masque la section boissons', async () => {
+      /**
+       * Signalé en test terrain le 04/08/2026 : « pourquoi j'ai boisson quand
+       * je filtre sur plats ? »
+       *
+       * ⛔ Le défaut PRÉEXISTAIT — le bloc testait `products.length === 0`,
+       * le catalogue COMPLET, au lieu du résultat FILTRÉ. Il ne se manifestait
+       * jamais tant que chaque catégorie contenait des produits ; le module
+       * restauration l'a rendu atteignable.
+       */
+      renderHome();
+      await settle();
+
+      // Une recherche qui ne matche aucun produit ni aucun plat.
+      const search = screen.getByPlaceholderText(/rechercher/i);
+      fireEvent.change(search, { target: { value: 'zzzzz-introuvable' } });
+
+      /**
+       * ⚠️ On cible le MESSAGE SECONDAIRE de `EmptyProductsState`, seul
+       * élément qui distingue le bloc boissons de l'état vide global.
+       *
+       * ⛔ DEUX tentatives précédentes ne discriminaient RIEN, constaté par
+       * certification par injection :
+       *   · `queryByText('Béninoise')` — le produit disparaît de toute façon
+       *     quand la liste est filtrée à zéro.
+       *   · `queryByRole('button', ...)` — `HomePage` ne passe pas `onAction`,
+       *     ce bouton n'existe donc jamais.
+       * Le TITRE ne convient pas non plus : « Aucun produit trouvé » est
+       * identique dans les deux composants.
+       */
+      expect(
+        screen.queryByText(/cette liste est vide pour le moment/i),
+        'La grille boissons reste montée avec son état vide alors que le filtre porte sur les plats'
+      ).toBeNull();
+    });
+
+    it('⭐ un état vide GLOBAL prend le relais, jamais un écran blanc', async () => {
+      // ⚠️ Le correctif précédent pouvait réintroduire l'écran vide : masquer
+      // les deux sections sans rien mettre à la place.
+      renderHome();
+      await settle();
+
+      const search = screen.getByPlaceholderText(/rechercher/i);
+      fireEvent.change(search, { target: { value: 'zzzzz-introuvable' } });
+
+      expect(
+        screen.getByText(/aucun résultat pour/i),
+        'Écran blanc — les deux sections sont masquées sans message'
+      ).toBeTruthy();
     });
   });
 
