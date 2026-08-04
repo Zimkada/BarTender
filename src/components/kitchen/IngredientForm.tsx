@@ -75,8 +75,19 @@ const COST_MODES: ReadonlyArray<{
   },
 ];
 
-/** Unités courantes — la saisie libre reste possible. */
-const COMMON_UNITS = ['kg', 'g', 'L', 'cL', 'pièce', 'sac', 'bidon', 'bouteille'];
+/**
+ * Unités courantes — la saisie libre reste possible.
+ *
+ * ⭐ « morceau » est le mot réellement employé dans les maquis (« deux morceaux
+ * de poulet ») : il vient AVANT « pièce », plus neutre et réservé à ce qui se
+ * compte sans se découper (œuf, sachet).
+ *
+ * ⚠️ Les quatre dernières sont des CONTENANTS, pas des unités de mesure : un
+ * sac de riz peut peser 25 ou 50 kg. Les choisir rend le coût par plat
+ * approximatif — acceptable pour un consommable, trompeur pour un ingrédient
+ * de recette.
+ */
+const COMMON_UNITS = ['kg', 'g', 'L', 'cL', 'morceau', 'pièce', 'sac', 'bidon', 'bouteille'];
 
 export function IngredientForm({
   ingredient,
