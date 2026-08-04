@@ -79,7 +79,38 @@ export function Cart({
 
   // --- CHECKOUT WRAPPER ---
   const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string): Promise<boolean> => {
-    if (items.length === 0) return false;
+    /**
+     * ⚠️⚠️ ÉTAT TRANSITOIRE — la validation unifiée n'existe PAS ENCORE.
+     *
+     * `handleCheckout` ne vend que les BOISSONS. Les plats du panier cuisine
+     * ne partent nulle part : ils resteront sélectionnés après la vente.
+     *
+     * ⛔ Sans ce message, un panier de plats SEULS renvoyait `false` en
+     * silence : bouton actif, clic sans effet, aucune explication. Défaut
+     * trouvé à la code review du 04/08/2026.
+     *
+     * ⭐ À REMPLACER par l'enchaînement ticket → cuisine → boissons. Ce garde
+     * disparaîtra alors entièrement : c'est le point d'entrée de l'étape
+     * suivante.
+     */
+    if (items.length === 0) {
+      if (kitchenItems.length > 0) {
+        toast('L\'envoi en cuisine arrive bientôt. Ajoutez une boisson pour valider cette vente.', {
+          icon: 'ℹ️',
+          duration: 5000,
+        });
+      }
+      return false;
+    }
+
+    // ⚠️ Panier MIXTE : les boissons partent, les plats RESTENT dans le panier.
+    // Le serveur doit le savoir, sinon il croira la commande cuisine envoyée.
+    if (kitchenItems.length > 0) {
+      toast('Les boissons sont vendues. Les plats restent en attente — l\'envoi en cuisine arrive bientôt.', {
+        icon: 'ℹ️',
+        duration: 5000,
+      });
+    }
 
     // ⛔ Dernier rempart client : sans canSell, aucune vente n'est tentée.
     //    create_sale_idempotent la refuserait de toute façon (guard liste

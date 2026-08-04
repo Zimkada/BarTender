@@ -44,6 +44,16 @@ interface CartDrawerProps {
      * garantie par la signature, pas par une condition à l'exécution.
      */
     kitchenItems?: KitchenCartItem[];
+    /**
+     * ⚠️ OBLIGATOIRES DÈS QUE `kitchenItems` est fourni — la garde ci-dessous
+     * le vérifie à l'exécution.
+     *
+     * ⛔ Un repli `?? (() => {})` semblait plus souple : il produisait en
+     * réalité une section affichée avec des boutons MUETS. L'utilisateur
+     * clique, rien ne se passe, aucune erreur nulle part. Défaut trouvé à la
+     * code review du 04/08/2026 — le pire profil, celui qu'on ne diagnostique
+     * jamais.
+     */
     onUpdateKitchenQuantity?: (dishId: string, quantity: number) => void;
     onRemoveDish?: (dishId: string) => void;
     /** ⚠️ INDICATIF : ces plats ne sont pas encore vendus (§6). */
@@ -166,8 +176,19 @@ export function CartDrawer({
      * non passée) : ces expressions valent exactement `items.length`, comme
      * avant (§3).
      */
-    const totalLineCount = items.length + kitchenItems.length;
+    /**
+     * ⚠️ UNE SEULE condition d'activation de la cuisine, dont TOUT découle :
+     * la section, le compteur, le total et le pied. Sans elle, le correctif
+     * précédent (ne monter la section que si ses handlers existent) aurait
+     * laissé le pied compter des plats devenus INVISIBLES — un total incluant
+     * des lignes que l'utilisateur ne peut ni voir ni modifier.
+     */
+    const kitchenEnabled =
+        kitchenItems.length > 0 && !!onUpdateKitchenQuantity && !!onRemoveDish;
+
+    const totalLineCount = items.length + (kitchenEnabled ? kitchenItems.length : 0);
     const hasAnything = totalLineCount > 0;
+    const effectiveKitchenTotal = kitchenEnabled ? kitchenTotal : 0;
 
     const drawerVariants = isMobile ? {
         closed: { y: "100%", opacity: 0.5 },
@@ -251,12 +272,17 @@ export function CartDrawer({
                                 unique en dernier.
                                 ⚠️ Ne rend RIEN si `kitchenItems` est vide —
                                 donc jamais sur un bar pur (§3). */}
-                            <KitchenCartSection
-                                items={kitchenItems}
-                                onUpdateQuantity={onUpdateKitchenQuantity ?? (() => {})}
-                                onRemove={onRemoveDish ?? (() => {})}
-                                subtotal={kitchenTotal}
-                            />
+                            {/* ⭐ La section n'est montée QUE si ses handlers
+                                existent : mieux vaut une section absente que
+                                des boutons qui ne répondent pas. */}
+                            {kitchenEnabled && (
+                                <KitchenCartSection
+                                    items={kitchenItems}
+                                    onUpdateQuantity={onUpdateKitchenQuantity}
+                                    onRemove={onRemoveDish}
+                                    subtotal={kitchenTotal}
+                                />
+                            )}
 
                             {!hasAnything && (
                                 <motion.div
@@ -294,7 +320,7 @@ export function CartDrawer({
                                     `CartFooter` n'utilise `total` que pour
                                     l'affichage, aucun calcul n'en dépend. */}
                                 <CartFooter
-                                    total={total + kitchenTotal}
+                                    total={total + effectiveKitchenTotal}
                                     isSimplifiedMode={isSimplifiedMode}
                                     serverOptions={serverOptions}
                                     selectedServer={selectedServer}

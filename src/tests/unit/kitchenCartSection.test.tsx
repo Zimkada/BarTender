@@ -64,6 +64,39 @@ describe('KitchenCartSection', () => {
     });
   });
 
+  describe('⛔ Cohérence des handlers — jamais de bouton muet', () => {
+    it('chaque bouton rendu déclenche RÉELLEMENT son action', () => {
+      /**
+       * Défaut trouvé à la code review du 04/08/2026 : `CartDrawer` passait
+       * `onUpdateQuantity={onUpdateKitchenQuantity ?? (() => {})}`. Si un
+       * appelant fournissait `kitchenItems` sans les handlers, la section
+       * s'affichait avec des boutons MUETS — clic sans effet, aucune erreur
+       * nulle part. Le pire profil : celui qu'on ne diagnostique jamais.
+       *
+       * ⭐ Corrigé en amont (la section n'est plus montée sans ses handlers).
+       * Ce test verrouille le contrat côté composant : tout bouton visible
+       * doit appeler quelque chose.
+       */
+      const onUpdateQuantity = vi.fn();
+      const onRemove = vi.fn();
+      render(
+        <KitchenCartSection
+          items={[{ dish: makeDish(), quantity: 2 }]}
+          onUpdateQuantity={onUpdateQuantity}
+          onRemove={onRemove}
+          subtotal={5000}
+        />
+      );
+
+      screen.getByLabelText(/ajouter un poulet braisé/i).click();
+      screen.getByLabelText(/retirer un poulet braisé/i).click();
+      screen.getByLabelText(/supprimer poulet braisé/i).click();
+
+      expect(onUpdateQuantity).toHaveBeenCalledTimes(2);
+      expect(onRemove).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('⭐⭐ Le paiement différé est DIT', () => {
     it('annonce que les plats seront encaissés au service', () => {
       // ⚠️ LE test le plus important. Le moyen de paiement choisi plus bas ne
