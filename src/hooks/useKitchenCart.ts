@@ -36,9 +36,24 @@ export function useKitchenCart() {
   const [items, setItems] = useState<KitchenCartItem[]>([]);
 
   const addDish = useCallback((dish: DishRow) => {
-    // ⛔ Un plat « coupé » n'entre pas dans la commande. Le RPC le refuserait
-    // de toute façon — autant ne pas laisser le serveur l'annoncer au client.
-    if (!dish.is_available) return;
+    /**
+     * ⛔ MIROIR EXACT de la passe 1 de `create_kitchen_order`, qui exige
+     * `is_active` ET `is_available`.
+     *
+     * ⚠️ `is_active` AJOUTÉ à la code review du 04/08/2026 : la garde était
+     * asymétrique. Le filtrage `is_active` vivait dans `HomePage`, donc un
+     * plat retiré du menu n'apparaissait pas — mais toute autre source
+     * appelant `addDish` (QuickSaleFlow, un futur écran) l'aurait laissé
+     * entrer. L'erreur ne serait tombée qu'à la validation, APRÈS que le
+     * serveur l'ait annoncé au client.
+     *
+     * ⚠️ Les deux champs disent des choses DIFFÉRENTES :
+     *   is_active    → le plat existe-t-il au menu ? (suppression logique)
+     *   is_available → est-il servable ce soir ? (« coupé », §9)
+     * Un plat coupé reste VISIBLE dans la grille — le serveur doit pouvoir
+     * dire « c'est terminé ». Un plat inactif n'y est plus du tout.
+     */
+    if (!dish.is_active || !dish.is_available) return;
 
     setItems((current) => {
       const existing = current.find((i) => i.dish.id === dish.id);
@@ -84,9 +99,18 @@ export function useKitchenCart() {
   }, [items]);
 
   /**
-   * ⚠️ Sous-total INDICATIF. Ces plats ne sont PAS encore vendus : leur vente
-   * naît au `serve` (§6). Le montant dit ce que le client paiera, pas ce qui
-   * est encaissé — l'écran doit le formuler ainsi.
+   * ⚠️ Sous-total INDICATIF, à deux titres.
+   *
+   * 1. Ces plats ne sont PAS encore vendus : leur vente naît au `serve` (§6).
+   *    Le montant dit ce que le client paiera, pas ce qui est encaissé.
+   *
+   * 2. ⭐ Le prix FAISANT FOI est `dishes.price` LU PAR LE SERVEUR à la
+   *    commande — `create_kitchen_order` insère `d.price`, jamais la valeur
+   *    envoyée par le client. Si le promoteur re-tarife un plat entre la
+   *    sélection et la validation, ce total diverge de la commande réelle.
+   *    Écart marginal (quelques secondes, prix rarement changé en plein
+   *    service) et sans risque : le serveur est la seule autorité. Ajouter un
+   *    rafraîchissement à chaque frappe coûterait plus que le défaut évité.
    */
   const kitchenTotal = useMemo(
     () => items.reduce((sum, i) => sum + i.dish.price * i.quantity, 0),

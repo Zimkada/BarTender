@@ -393,6 +393,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // sans attendre la réponse serveur. Si la mutation échoue, la vente
         // est déjà dans la queue offline (visible via useUnifiedSales).
         clearCart();
+        /**
+         * ⚠️ LE PANIER CUISINE N'EST VOLONTAIREMENT PAS VIDÉ ICI.
+         *
+         * `addSale` ne vend QUE les boissons. Les plats partent par
+         * `create_kitchen_order` et leur vente naît au `serve` (§6) — les
+         * effacer ici les FERAIT PERDRE avant qu'ils n'atteignent la cuisine.
+         *
+         * ⭐ À REPRENDRE quand la validation unifiée existera : c'est ELLE qui
+         * enchaînera ticket → cuisine → boissons et videra les DEUX paniers,
+         * une fois les trois étapes confirmées. Vider ici serait vider trop
+         * tôt et sans savoir si la cuisine a accepté.
+         */
 
         const result = await salesMutations.createSale.mutateAsync(newSaleData);
 

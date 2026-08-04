@@ -114,8 +114,23 @@ export default function HomePage() {
     [dishCategories]
   );
 
+  /**
+   * ⭐ Portée EFFECTIVE — retombe sur « Tout » si la cuisine disparaît.
+   *
+   * ⚠️ Défaut trouvé à la code review du 04/08/2026 : avec `scope = 'dishes'`
+   * et `hasRestaurant` repassé à `false`, `showProducts` ET `showDishes`
+   * valaient `false` — ÉCRAN ENTIÈREMENT VIDE, sans explication.
+   * Le cas n'est pas théorique : changer de bar via le sélecteur d'en-tête, ou
+   * désactiver la cuisine depuis un autre onglet, suffit à le produire.
+   *
+   * ⚠️ Corrigé en DÉRIVANT plutôt qu'en synchronisant l'état dans un effet :
+   * un `useEffect` qui remet `scope` à `'all'` provoquerait un rendu
+   * intermédiaire vide avant de se corriger.
+   */
+  const effectiveScope: CatalogScope = hasRestaurant ? scope : 'all';
+
   /** Ce que la portée courante donne à voir. */
-  const showProducts = scope === 'all' || scope === 'products';
+  const showProducts = effectiveScope === 'all' || effectiveScope === 'products';
   /**
    * ⚠️ En portée « Tout », la grille plats est masquée quand elle est VIDE :
    * filtrer sur une catégorie de boissons afficherait sinon « Aucun plat au
@@ -126,8 +141,8 @@ export default function HomePage() {
    */
   const showDishes =
     hasRestaurant &&
-    (scope === 'dishes' ||
-      (scope === 'all' && (isLoadingDishes || filteredDishes.length > 0)));
+    (effectiveScope === 'dishes' ||
+      (effectiveScope === 'all' && (isLoadingDishes || filteredDishes.length > 0)));
 
   // 2. Le retour anticipé est placé après tous les hooks
   if (!currentBar) {
@@ -164,16 +179,16 @@ export default function HomePage() {
                 donc « produits », strictement comme aujourd'hui (§3). */}
             <span className="text-caption text-brand-text">
               <span className="font-semibold">
-                {scope === 'dishes'
+                {effectiveScope === 'dishes'
                   ? dishes.length
-                  : scope === 'products'
+                  : effectiveScope === 'products'
                     ? products.length
                     : products.length + dishes.length}
               </span>
               <span className="text-muted-foreground ml-1">
-                {scope === 'dishes'
+                {effectiveScope === 'dishes'
                   ? 'plats'
-                  : scope === 'products' || dishes.length === 0
+                  : effectiveScope === 'products' || dishes.length === 0
                     ? 'produits'
                     : 'articles'}
               </span>
@@ -187,9 +202,9 @@ export default function HomePage() {
           /* ⚠️ Suit la portée : sur un bar pur, `hasRestaurant` est false et le
              libellé reste identique a aujourd hui (§3). */
           placeholder={
-            !hasRestaurant || scope === 'products'
+            !hasRestaurant || effectiveScope === 'products'
               ? 'Rechercher un produit...'
-              : scope === 'dishes'
+              : effectiveScope === 'dishes'
                 ? 'Rechercher un plat...'
                 : 'Rechercher un produit ou un plat...'
           }
@@ -198,9 +213,12 @@ export default function HomePage() {
       </div>
 
       {/* ⭐ Sélecteur de portée — ne rend RIEN sans cuisine (§3). Placé entre
-          la recherche et les catégories : il filtre plus largement qu'elles. */}
+          la recherche et les catégories : il filtre plus largement qu'elles.
+          ⚠️ Reçoit `effectiveScope` et non `scope` : le bouton actif doit
+          refléter ce qui est RÉELLEMENT affiché, sinon « Restau » resterait
+          surligné après la disparition de la cuisine. */}
       <CatalogScopeSwitcher
-        scope={scope}
+        scope={effectiveScope}
         onScopeChange={(next) => {
           setScope(next);
           // ⚠️ Réinitialiser la CATÉGORIE au changement de portée : les
@@ -216,14 +234,14 @@ export default function HomePage() {
 
       {/* Category Filter */}
       <CategoryFilter
-        categories={scope === 'dishes' ? dishCategoriesUi : categories}
+        categories={effectiveScope === 'dishes' ? dishCategoriesUi : categories}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         onEditCategory={handleEditCategory}
         onDeleteCategory={handleDeleteCategory}
         onAddCategory={handleAddCategory}
         productCounts={
-          scope === 'dishes'
+          effectiveScope === 'dishes'
             ? dishes.reduce((acc: Record<string, number>, d) => {
                 if (d.category_id) acc[d.category_id] = (acc[d.category_id] || 0) + 1;
                 return acc;
@@ -268,7 +286,7 @@ export default function HomePage() {
             {/* ⚠️ Titre affiché UNIQUEMENT en portée « Tout » : c'est là que
                 les deux grilles se suivent et qu'il faut les distinguer. En
                 portée « Restau », le sélecteur dit déjà ce qu'on regarde. */}
-            {scope === 'all' && filteredDishes.length > 0 && (
+            {effectiveScope === 'all' && filteredDishes.length > 0 && (
               <h2 className="text-caption font-semibold uppercase tracking-wide text-muted-foreground">
                 Cuisine
               </h2>

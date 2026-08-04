@@ -211,4 +211,34 @@ describe('HomePage — invariance des bars purs (§3)', () => {
       expect(screen.getByText('Béninoise')).toBeTruthy();
     });
   });
+
+  describe('⭐⭐ La cuisine disparaît en cours de route', () => {
+    it('⛔ l\'écran ne devient JAMAIS vide', async () => {
+      /**
+       * Défaut trouvé à la code review du 04/08/2026 : avec la portée sur
+       * « Restau » et `hasRestaurant` repassé à `false`, `showProducts` ET
+       * `showDishes` valaient `false` — écran ENTIÈREMENT VIDE, sans
+       * explication.
+       *
+       * ⚠️ Le cas n'est pas théorique : changer de bar via le sélecteur
+       * d'en-tête suffit à le produire, et c'est un geste quotidien pour un
+       * promoteur multi-bars.
+       */
+      mockHasRestaurant = true;
+      const { rerender } = renderHome();
+
+      // Le promoteur bascule sur « Restau »…
+      const dishesTab = screen.getByText('Plats');
+      dishesTab.click();
+
+      // …puis change pour un bar SANS cuisine.
+      mockHasRestaurant = false;
+      rerender(<HomePage />);
+
+      expect(
+        screen.getByText('Béninoise'),
+        'Écran vide après disparition de la cuisine — la portée est restée bloquée sur Restau'
+      ).toBeTruthy();
+    });
+  });
 });
