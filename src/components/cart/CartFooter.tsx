@@ -25,6 +25,13 @@ interface CartFooterProps {
     showSuccess?: boolean;
     hasItems: boolean;
     isMobile?: boolean;
+    /**
+     * ⭐ Le panier contient-il des PLATS ? Change le discours du bloc « bon » :
+     * un bon devient alors NECESSAIRE (§16.7 — kitchen_orders.ticket_id est
+     * NOT NULL), et sans numero de table le cuisinier ne saura pas ou livrer.
+     * ⚠️ Faux/absent sur un bar pur : le bloc reste identique a avant (§3).
+     */
+    hasKitchenItems?: boolean;
 }
 
 export function CartFooter({
@@ -44,7 +51,8 @@ export function CartFooter({
     isLoading,
     showSuccess = false,
     hasItems,
-    isMobile = false
+    isMobile = false,
+    hasKitchenItems = false
 }: CartFooterProps) {
     const { formatPrice } = useCurrencyFormatter();
 
@@ -138,6 +146,23 @@ export function CartFooter({
                         </div>
                         <ChevronDown size={14} className={selectedServer ? 'text-muted-foreground' : 'text-brand-primary/50'} />
                     </button>
+                </div>
+            )}
+
+            {/* ⭐⭐ PLAT SANS BON — signalé en test terrain le 04/08/2026.
+                Un bon est créé AUTOMATIQUEMENT (§16.7), mais sans numéro de
+                table le cuisinier verra « SUR PLACE » et ne saura pas où
+                livrer l'assiette. Le §16.7 fait de `table_number` LE repère
+                du bon en service à table.
+                ⚠️ Une INVITATION, pas un blocage : une commande à emporter
+                n'a légitimement pas de table. Forcer la saisie empêcherait un
+                cas normal. */}
+            {hasKitchenItems && !selectedBon && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50 p-2.5 dark:border-amber-800 dark:bg-amber-950">
+                    <p className="text-[11px] leading-snug text-amber-900 dark:text-amber-200">
+                        <strong>Indiquez la table</strong> ci-dessous : sans elle,
+                        la cuisine ne saura pas où livrer les plats.
+                    </p>
                 </div>
             )}
 

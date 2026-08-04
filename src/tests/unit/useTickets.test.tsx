@@ -30,6 +30,18 @@ vi.mock('../../hooks/queries/useSalesQueries', () => ({
   mapSalesData: (dbSales: unknown[]) => dbSales as Sale[],
 }));
 
+/**
+ * ⚠️ `useTickets` consomme la file cuisine depuis le 04/08/2026 (les plats en
+ * cours comptent dans le bon). `useKitchenQueue` lit `useBarContext`, absent
+ * de ces tests — d ou ce mock, sur le modele des hooks voisins.
+ * ⭐ Retourne un tableau VIDE : le comportement d un bar PUR, qui doit rester
+ * strictement celui d avant (§3). Les cas avec plats sont couverts ailleurs.
+ */
+vi.mock('../../hooks/queries/useKitchenQueries', () => ({
+  useKitchenQueue: () => ({ data: [] }),
+  kitchenKeys: { all: ['kitchen'], queue: (b: string) => ['kitchen', 'queue', b] },
+}));
+
 vi.mock('../../hooks/useServerMappings', () => ({
   useServerMappings: vi.fn(() => ({ mappings: [] })),
 }));

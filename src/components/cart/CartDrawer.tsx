@@ -335,6 +335,7 @@ export function CartDrawer({
                                     onClear={onClear}
                                     isLoading={isLoading}
                                     hasItems={hasAnything}
+                                    hasKitchenItems={kitchenEnabled}
                                     isMobile={isMobile}
                                 />
                             </div>
