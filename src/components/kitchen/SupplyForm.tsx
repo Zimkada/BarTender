@@ -56,17 +56,6 @@ interface SupplyFormProps {
   resetSignal?: number;
 }
 
-/**
- * Unités qui désignent un OBJET COMPTABLE, où contenant et unité de suivi
- * coïncident (on achète des morceaux, on compte des morceaux).
- *
- * ⚠️ Toute unité ABSENTE de cette liste — y compris une unité saisie
- * librement — est traitée comme une MESURE, donc avec les deux niveaux
- * visibles. C'est le défaut sûr : il ne perd aucune information, alors que
- * masquer à tort le contenu forcerait un lot à 1 et fausserait le stock.
- */
-const COUNTABLE_UNITS = ['morceau', 'pièce', 'piece', 'unité', 'unite'];
-
 export function SupplyForm({
   ingredients,
   onSubmit,
@@ -102,32 +91,33 @@ export function SupplyForm({
   );
 
   /**
-   * ⭐ L'unité est-elle DÉNOMBRABLE (on compte des objets) plutôt qu'une
-   * MESURE (on pèse, on verse) ?
+   * ⭐⭐ ACHAT À L'UNITÉ — choix EXPLICITE de l'utilisateur (04/08/2026).
    *
-   * Un morceau de viande s'achète au morceau : contenant et unité de suivi
-   * coïncident, et demander « chaque lot contient combien de morceaux ? »
-   * n'apprend rien. Du riz s'achète en sacs mais se compte en kg : les deux
-   * niveaux sont alors nécessaires.
+   * ⛔ REMPLACE une détection automatique sur la nature de l'unité
+   * (« morceau ⟹ pas de contenant »), FAUSSE dès le premier contre-exemple
+   * signalé en test terrain : de la viande ACHETÉE AU KILO mais SERVIE AU
+   * MORCEAU. Le suivi est en morceaux, l'achat en kg — et c'est précisément
+   * le champ « contient » qui porte la conversion (5 kg ≈ 33 morceaux).
+   * Le masquer supprimait le seul endroit où cette conversion s'exprime.
    *
-   * ⚠️ Règle fondée sur la NATURE de l'unité, pas sur une liste de mots
-   * arbitraire : la comparaison est insensible à la casse et au pluriel, et
-   * une unité inconnue (saisie libre) tombe par défaut du côté MESURE — le
-   * cas le plus complet, donc celui qui ne perd aucune information.
+   * ⚠️ Le critère n'est PAS la nature de l'unité mais le MODE D'ACHAT, que
+   * seul l'utilisateur connaît :
+   *   viande au kilo servie au morceau → lot de 33 morceaux   (décoché)
+   *   œufs par plateau                 → lot de 30 pièces     (décoché)
+   *   poisson acheté à la pièce        → 4 × 1                (coché)
+   * Deux cas sur trois ont besoin du champ. Un défaut décoché est donc le
+   * bon : il ne perd aucune information.
    */
-  const isCountable = useMemo(() => {
-    const unit = selected?.unit?.trim().toLowerCase() ?? '';
-    return COUNTABLE_UNITS.some((u) => unit === u || unit === `${u}s`);
-  }, [selected?.unit]);
+  const [buyPerUnit, setBuyPerUnit] = useState(false);
 
   /**
-   * ⚠️ Le champ « contenu » étant MASQUÉ pour une unité dénombrable, il doit
+   * ⚠️ Le champ « contient » étant MASQUÉ quand l'achat est à l'unité, il doit
    * être forcé à 1 : la validation exige `packageSize > 0`, et un champ vide
    * bloquerait l'envoi sans qu'aucun champ visible ne signale la cause.
    */
   useEffect(() => {
-    if (isCountable) setPackageSize('1');
-  }, [isCountable]);
+    if (buyPerUnit) setPackageSize('1');
+  }, [buyPerUnit]);
 
   /**
    * Libellés en LANGAGE CLAIR (§16.8) — « conditionnement » est du vocabulaire
@@ -148,11 +138,11 @@ export function SupplyForm({
     return `${unit}s`;
   }, [selected?.unit]);
 
-  const countLabel = isCountable && unitPlural
+  const countLabel = buyPerUnit && unitPlural
     ? `Combien de ${unitPlural} ?`
     : 'Combien de lots ?';
 
-  const priceLabel = isCountable && selected?.unit
+  const priceLabel = buyPerUnit && selected?.unit
     ? `Prix d'un ${selected.unit}`
     : "Prix d'un lot";
 
@@ -301,8 +291,31 @@ export function SupplyForm({
         )}
       </div>
 
+      {/* ⭐ Mode d'achat — visible SEULEMENT une fois l'ingrédient choisi :
+          l'option n'a pas de sens tant qu'on ignore son unité. */}
+      {selected && (
+        <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+          <input
+            type="checkbox"
+            className="mt-0.5 accent-brand"
+            checked={buyPerUnit}
+            onChange={(e) => setBuyPerUnit(e.target.checked)}
+          />
+          <span className="text-body-sm">
+            J'achète au {selected.unit}
+            <span className="block text-caption text-gray-500">
+              {/* ⚠️ Formulé sur l'EXEMPLE et non sur la règle : « décochez si
+                  vous achetez en gros » se comprend sans expliquer ce qu'est
+                  un lot. */}
+              Décochez si vous achetez en gros (ex : un carton, un sac, plusieurs
+              kilos) et que vous comptez ensuite en {selected.unit}.
+            </span>
+          </span>
+        </label>
+      )}
+
       {/* Conditionnement */}
-      <div className={cn('grid gap-3', isCountable ? 'grid-cols-1' : 'grid-cols-2')}>
+      <div className={cn('grid gap-3', buyPerUnit ? 'grid-cols-1' : 'grid-cols-2')}>
         <div className="space-y-2">
           <Label htmlFor="supply-count">{countLabel}</Label>
           <Input
@@ -319,12 +332,14 @@ export function SupplyForm({
           />
         </div>
 
-        {/* ⭐ MASQUÉ quand l'unité est DÉNOMBRABLE : « Chaque lot contient
-            1 morceau » n'apprend rien et fait saisir un 1 inutile. Le champ
-            est alors forcé à 1 par l'effet ci-dessus — jamais laissé vide,
-            sinon la validation `packageSize > 0` bloquerait sans champ
-            visible à corriger. */}
-        {!isCountable && (
+        {/* ⭐⭐ LE CHAMP QUI PORTE LA CONVERSION ACHAT → SUIVI.
+            Viande achetée au kilo mais suivie au morceau : c'est ICI que
+            « 5 kg ≈ 33 morceaux » s'exprime. Ne le masquer QUE sur choix
+            explicite de l'utilisateur — une détection automatique sur l'unité
+            supprimait le seul endroit où cette conversion existe (04/08/2026).
+            ⚠️ Masqué ⟹ forcé à 1 par l'effet plus haut, jamais laissé vide :
+            la validation `packageSize > 0` bloquerait sans champ visible. */}
+        {!buyPerUnit && (
           <div className="space-y-2">
             <Label htmlFor="supply-size">
               Chaque lot contient {selected ? `(${selected.unit})` : ''}

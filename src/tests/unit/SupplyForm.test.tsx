@@ -232,38 +232,73 @@ describe('SupplyForm', () => {
   });
 
   /**
-   * ⭐⭐ UNITÉ DÉNOMBRABLE — décision du 04/08/2026, issue du test terrain.
+   * ⭐⭐ MODE D'ACHAT — décision du 04/08/2026, issue du test terrain.
    *
-   * Quand l'unité de suivi EST l'unité d'achat (viande au morceau), demander
-   * « chaque lot contient combien de morceaux ? » n'apprend rien et fait
-   * saisir un 1 inutile. Le champ est masqué ET forcé à 1.
+   * ⛔ REMPLACE une détection automatique sur la nature de l'unité
+   * (« morceau ⟹ pas de contenant »), FAUSSE au premier contre-exemple : de
+   * la viande ACHETÉE AU KILO mais SERVIE AU MORCEAU. Le suivi est en
+   * morceaux, l'achat en kg, et c'est le champ « contient » qui porte la
+   * conversion. Le masquer automatiquement supprimait le seul endroit où
+   * cette conversion s'exprime.
    *
-   * ⚠️ Le forçage est la partie CRITIQUE : la validation exige
-   * `packageSize > 0`. Sans lui, le formulaire serait bloqué par un champ
-   * INVISIBLE — l'utilisateur verrait « Enregistrer » sans effet, sans
-   * comprendre pourquoi.
+   * Le critère n'est pas l'unité mais le MODE D'ACHAT — que seul
+   * l'utilisateur connaît. D'où une case à cocher, DÉCOCHÉE par défaut.
    */
-  describe('⭐ Unité dénombrable — le contenu est masqué', () => {
+  describe('⭐⭐ Mode d\'achat — la case décide, jamais l\'unité', () => {
     const viande = () =>
       makeIngredient({ id: 'ing-viande', name: 'Viande de boeuf', unit: 'morceau' });
 
-    it('masque « chaque lot contient » et nomme l\'unité réelle', () => {
+    const selectViande = () => {
       renderForm([viande()]);
       fireEvent.change(screen.getByLabelText(/ingrédient/i), {
         target: { value: 'ing-viande' },
       });
+    };
+
+    it('⭐⭐ DÉCOCHÉ par défaut, même sur une unité dénombrable', () => {
+      // ⚠️ LE test qui protège le cas « acheté au kilo, servi au morceau ».
+      // Si le champ disparaissait automatiquement pour « morceau », il
+      // deviendrait impossible de saisir « ce lot fait 33 morceaux ».
+      selectViande();
+
+      expect(
+        screen.getByLabelText(/chaque lot contient/i),
+        'Le champ de conversion a disparu sur une unité dénombrable — impossible de saisir un achat en gros'
+      ).toBeTruthy();
+    });
+
+    it('⭐ acheté au kilo, suivi au morceau : 1 lot = 33 morceaux', () => {
+      selectViande();
+      fireEvent.change(screen.getByLabelText(/combien de lots/i), { target: { value: '1' } });
+      fireEvent.change(screen.getByLabelText(/chaque lot contient/i), {
+        target: { value: '33' },
+      });
+      fireEvent.change(screen.getByLabelText(/prix d'un lot/i), {
+        target: { value: '60000' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /enregistrer/i }));
+
+      const values = onSubmit.mock.calls[0][0];
+      expect(values.qty).toBe(33);
+      // 60 000 / 33 — non arrondi, le coût matière dériverait sinon.
+      expect(values.unitCost).toBeCloseTo(1818.18, 1);
+    });
+
+    it('coché : le champ disparaît et les libellés nomment l\'unité', () => {
+      selectViande();
+      fireEvent.click(screen.getByLabelText(/j'achète au morceau/i));
 
       expect(screen.queryByLabelText(/chaque lot contient/i)).toBeNull();
-      // ⭐ Le libellé nomme le MORCEAU, pas un « lot » abstrait.
       expect(screen.getByLabelText(/combien de morceaux/i)).toBeTruthy();
       expect(screen.getByLabelText(/prix d'un morceau/i)).toBeTruthy();
     });
 
-    it('⭐⭐ soumet malgré le champ masqué — contenu forcé à 1', () => {
-      renderForm([viande()]);
-      fireEvent.change(screen.getByLabelText(/ingrédient/i), {
-        target: { value: 'ing-viande' },
-      });
+    it('⭐⭐ coché : soumet malgré le champ masqué — contenu forcé à 1', () => {
+      // ⚠️ Le forçage est la partie CRITIQUE : la validation exige
+      // `packageSize > 0`. Sans lui, le formulaire serait bloqué par un champ
+      // INVISIBLE — « Enregistrer » sans effet, aucune cause visible.
+      selectViande();
+      fireEvent.click(screen.getByLabelText(/j'achète au morceau/i));
       fireEvent.change(screen.getByLabelText(/combien de morceaux/i), {
         target: { value: '3' },
       });
@@ -282,24 +317,12 @@ describe('SupplyForm', () => {
       expect(values.unitCost).toBe(12000);   // 12000 / 1
     });
 
-    it('une unité de MESURE garde les deux niveaux', () => {
-      // ⚠️ Volet indispensable : sans lui, masquer TOUJOURS le champ passerait
-      // les assertions précédentes — le test mesurerait du vide.
-      renderForm();
-      fireEvent.change(screen.getByLabelText(/ingrédient/i), { target: { value: 'ing-riz' } });
+    it('la case n\'apparaît PAS tant qu\'aucun ingrédient n\'est choisi', () => {
+      // Elle nomme l'unité (« J'achète au morceau ») — sans ingrédient, elle
+      // n'aurait rien à nommer.
+      renderForm([viande()]);
 
-      expect(screen.getByLabelText(/chaque lot contient/i)).toBeTruthy();
-      expect(screen.getByLabelText(/combien de lots/i)).toBeTruthy();
-    });
-
-    it('⚠️ une unité INCONNUE est traitée comme une mesure', () => {
-      // Le champ unité est en saisie libre : « botte », « calebasse »… Le
-      // défaut sûr est de garder les deux niveaux, qui ne perdent aucune
-      // information. Masquer à tort forcerait un lot à 1 et fausserait le stock.
-      renderForm([makeIngredient({ id: 'ing-x', name: 'Gombo', unit: 'botte' })]);
-      fireEvent.change(screen.getByLabelText(/ingrédient/i), { target: { value: 'ing-x' } });
-
-      expect(screen.getByLabelText(/chaque lot contient/i)).toBeTruthy();
+      expect(screen.queryByLabelText(/j'achète au/i)).toBeNull();
     });
   });
 });
