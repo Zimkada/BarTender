@@ -67,7 +67,15 @@ export function CatalogScopeSwitcher({
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <span className="text-micro text-muted-foreground uppercase">Afficher</span>
+      {/* ⚠️ Label MASQUÉ sur mobile — signalé en test le 04/08/2026 : sur un
+          téléphone, « AFFICHER » + trois pilules débordent et « Plats » est
+          coupé au bord de l'écran. Le geste devient impossible.
+          ⭐ Le label reste utile sur grand écran (Inventaire, desktop) où
+          l'espace ne manque pas et où la portée est moins évidente. Sur
+          mobile, les trois pilules se suffisent — l'icône dit déjà tout. */}
+      <span className="hidden sm:inline text-micro text-muted-foreground uppercase">
+        Afficher
+      </span>
       {/* ⚠️ Même motif visuel que le sélecteur de tri de cette page
           (radiogroup en pilule) : deux ergonomies pour un même geste sur un
           même écran seraient une incohérence gratuite. */}
@@ -88,7 +96,11 @@ export function CatalogScopeSwitcher({
               aria-checked={isActive}
               onClick={() => onScopeChange(id)}
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all',
+                // ⚠️ Padding resserré sur mobile : trois pilules à `px-3`
+                // débordaient sur un téléphone étroit, rendant « Plats »
+                // inatteignable. `whitespace-nowrap` empêche un libellé de se
+                // couper en deux lignes dans une pilule.
+                'flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-full text-caption whitespace-nowrap transition-all',
                 isActive
                   ? 'bg-card text-brand-primary shadow-sm font-semibold'
                   : 'text-muted-foreground hover:text-foreground font-medium'
