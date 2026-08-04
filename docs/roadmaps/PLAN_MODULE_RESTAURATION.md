@@ -2480,6 +2480,23 @@ plat → jamais pour un bar pur.
 Un bon implicite consomme donc un numéro visible dans le suivi. Acceptable, mais à ne pas découvrir
 en production — le promoteur verra plus de bons qu'il n'en a créés manuellement.
 
+**Décision du 04/08/2026 — `QuickSaleFlow` ne prend PAS de commande cuisine.**
+
+L'enchaînement ticket → cuisine → boissons vit dans `Cart.tsx` uniquement. La vente rapide reste
+un écran de comptoir : boissons seulement.
+
+| Raison | Détail |
+|---|---|
+| Métiers distincts | La vente rapide sert quelqu'un qui attend debout (raccourcis, validation en un geste). Une commande cuisine demande table, délai annoncé, modificateurs. |
+| Duplication = risque avéré | L'enchaînement a révélé 3 défauts à sa code review. Le même jour, 3 schémas Zod portaient le même défaut à 3 endroits. L'implanter deux fois avant de l'éprouver reproduirait ce motif. |
+| Contournement trivial | Commander un plat passe par l'Accueil, qui porte la grille avec sélecteur Tout/Bar/Restau. |
+
+**Invariance structurelle** : `QuickSaleFlow` monte `CartDrawer` sans lui passer les props cuisine,
+toutes optionnelles. La section ne *peut pas* s'afficher — aucune condition à maintenir.
+
+⚠ **Si le terrain le réclame** : extraire d'abord l'enchaînement de `Cart.tsx` dans une fonction
+partagée, **puis** l'appeler des deux côtés. Jamais deux implémentations de la même règle.
+
 ### 16.8 ⭐⭐ `production_mode` : quatre régimes de production
 
 Le plan supposait que **tout** plat passe par la cuisine à la commande. Faux, et de loin : c'est

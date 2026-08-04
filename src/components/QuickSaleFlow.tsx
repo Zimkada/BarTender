@@ -1,3 +1,37 @@
+/**
+ * QuickSaleFlow — vente rapide au comptoir.
+ *
+ * ⭐⭐ CET ÉCRAN NE PREND PAS DE COMMANDE CUISINE — décision du 04/08/2026.
+ *
+ * ⛔ Ce n'est PAS un oubli. Trois raisons, dans l'ordre de leur poids :
+ *
+ * 1. CE N'EST PAS LE MÊME MÉTIER. Cet écran sert quelqu'un qui attend
+ *    debout : raccourcis clavier, saisie au vol, validation en un geste. Une
+ *    commande de cuisine demande une table, un délai annoncé au client,
+ *    parfois un modificateur (« sans piment »). Greffer l'un sur l'autre
+ *    dégraderait les deux.
+ *
+ * 2. LA DUPLICATION EST LE RISQUE AVÉRÉ DE CE CHANTIER. L'enchaînement
+ *    ticket → cuisine → boissons vit dans `Cart.tsx` et a déjà révélé trois
+ *    défauts à sa code review (ticket orphelin hors ligne, cache tickets
+ *    périmé, bon fantôme). L'implanter ici avant de l'avoir éprouvé en
+ *    conditions réelles reproduirait ce qui s'est passé le même jour avec les
+ *    trois schémas Zod : le même défaut à trois endroits, découvert une fois.
+ *
+ * 3. LE CONTOURNEMENT EST TRIVIAL. Un serveur qui doit commander un plat
+ *    passe par l'Accueil, qui porte la grille avec sélecteur Tout/Bar/Restau.
+ *
+ * ⚠️ L'INVARIANCE EST STRUCTURELLE, pas conditionnelle : cet écran monte
+ * `CartDrawer` SANS lui passer les props cuisine, qui sont toutes
+ * optionnelles. La section ne peut donc pas s'afficher — il n'y a aucune
+ * condition à maintenir ni à tester.
+ *
+ * ⭐ SI LE TERRAIN LE RÉCLAME : extraire d'abord l'enchaînement de
+ * `Cart.tsx` dans une fonction partagée, PUIS l'appeler des deux côtés.
+ * Jamais deux implémentations de la même règle — c'est le principe qui a
+ * guidé tout le module.
+ */
+
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Search, Zap, X, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
