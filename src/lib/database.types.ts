@@ -6565,6 +6565,10 @@ export type Database = {
         }[]
       }
       get_current_business_date: { Args: { p_bar_id: string }; Returns: string }
+      get_daily_scope_totals: {
+        Args: { p_bar_id: string; p_business_date: string }
+        Returns: Json
+      }
       get_dashboard_stats: {
         Args: { p_bar_id?: string; p_end_date: string; p_start_date: string }
         Returns: {

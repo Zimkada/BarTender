@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ScopeSwitcher } from './common/ScopeSwitcher';
+import { useDailyScopeTotals } from '../hooks/queries/useDishesQueries';
+import type { ActivityScope } from './common/scopeHelpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -28,7 +32,7 @@ interface DailyDashboardProps {
  */
 export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) {
   const { users } = useAppContext();
-  const { currentBar } = useBarContext();
+  const { currentBar, hasRestaurant } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const { showSuccess, showError, setLoading } = useFeedback();
@@ -36,6 +40,54 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
 
   // Architecture: Data fetching & Business Logic centralized in Hook
   const analytics = useDashboardAnalytics(currentBar?.id);
+
+  /**
+   * ⭐ Portée des chiffres — Tout / Bar / Restau (§9).
+   *
+   * ⭐ VERROU §3 : sur un bar pur, TOUJOURS 'all'. Le sélecteur ne s'y rend
+   * pas, donc `setScope` n'est jamais appelé — mais rien ne l'empêcherait
+   * structurellement. Sans ce verrou, une portée 'kitchen' afficherait un CA
+   * à zéro sur un bar sans cuisine.
+   */
+  const [rawScope, setScope] = useState<ActivityScope>('all');
+  const scope: ActivityScope = hasRestaurant ? rawScope : 'all';
+
+  /**
+   * ⭐ Ventilation SERVEUR — la « query agrégée supplémentaire » du §9.
+   *
+   * ⚠️ Appelée UNE fois : changer de portée ne redemande rien. Le Dashboard
+   * charge les ventes avec `includeItems: false` (optimisation egress
+   * délibérée) — ventiler côté client annulerait ce gain.
+   */
+  const { data: scopeTotals } = useDailyScopeTotals(
+    currentBar?.id,
+    analytics.todayDateStr
+  );
+
+  /**
+   * Chiffres affichés selon la portée.
+   *
+   * ⚠️ En portée « Tout », on garde `analytics.todayTotal` plutôt que le total
+   * du RPC : c'est le chiffre HISTORIQUE du Dashboard, déjà net des retours.
+   * Le remplacer ferait bouger un montant que les promoteurs connaissent, sans
+   * qu'ils l'aient demandé.
+   *
+   * ⚠️ En portée Bar/Restau, les montants du RPC sont BRUTS — les retours ne
+   * sont pas ventilables (un remboursement porte sur une vente entière, pas
+   * sur un item). On les affiche donc tels quels : approximer une part de
+   * remboursement serait une fausse précision.
+   */
+  const scopedTotal = scope === 'all'
+    ? analytics.todayTotal
+    : scope === 'kitchen'
+      ? (scopeTotals?.revenue_kitchen ?? 0)
+      : (scopeTotals?.revenue_bar ?? 0);
+
+  const scopedItems = scope === 'all'
+    ? analytics.totalItems
+    : scope === 'kitchen'
+      ? (scopeTotals?.items_kitchen ?? 0)
+      : (scopeTotals?.items_bar ?? 0);
   const { validateSale: validateMutation, rejectSale: rejectMutation } = useSalesMutations(currentBar?.id || '');
 
   // Actions
@@ -100,7 +152,22 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
   if (!currentBar) return <div className="text-center py-20 text-gray-500">Sélectionnez un bar</div>;
 
   return (
-    <AnimatePresence mode="wait">
+    <>
+      {/* ⭐ Portée — AVANT les onglets : elle vaut pour toute la page, pas
+          pour un onglet. La placer dans « Synthèse » laisserait croire que
+          « Commandes » n'est pas concerné.
+          §3 — ne rend RIEN sur un bar pur. */}
+      {hasRestaurant && (
+        <div className="px-4 sm:px-6 pt-3">
+          <ScopeSwitcher
+            scope={scope}
+            onScopeChange={setScope}
+            hasRestaurant={hasRestaurant}
+          />
+        </div>
+      )}
+
+      <AnimatePresence mode="wait">
       {/* ONGLET SYNTHÈSE */}
       {activeView === 'summary' && (
         <motion.div
@@ -112,10 +179,10 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
         >
           <DashboardSummary
             currentBar={currentBar}
-            todayTotal={analytics.todayTotal}
+            todayTotal={scopedTotal}
             salesCount={analytics.sales.length}
             pendingSalesCount={analytics.pendingSales.length}
-            totalItems={analytics.totalItems}
+            totalItems={scopedItems}
             returnsCount={analytics.validatedReturnsCount}
             pendingReturnsCount={analytics.pendingReturnsCount}
             consignmentsCount={analytics.consignments.length}
@@ -170,5 +237,6 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 }

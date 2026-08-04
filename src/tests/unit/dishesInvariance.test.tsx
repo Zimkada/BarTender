@@ -32,6 +32,7 @@ const mockGetDishes = vi.fn(() => Promise.resolve([]));
 const mockGetDishRecipe = vi.fn(() => Promise.resolve([]));
 const mockGetDishCost = vi.fn(() => Promise.resolve({ success: true }));
 const mockGetAllDishCosts = vi.fn(() => Promise.resolve([]));
+const mockGetDailyScopeTotals = vi.fn(() => Promise.resolve({ success: true }));
 const mockGetDishCategories = vi.fn(() => Promise.resolve([]));
 
 vi.mock('../../services/supabase/dishes.service', () => ({
@@ -40,6 +41,7 @@ vi.mock('../../services/supabase/dishes.service', () => ({
     getDishRecipe: (...args: unknown[]) => mockGetDishRecipe(...(args as [])),
     getDishCost: (...args: unknown[]) => mockGetDishCost(...(args as [])),
     getAllDishCosts: (...args: unknown[]) => mockGetAllDishCosts(...(args as [])),
+    getDailyScopeTotals: (...args: unknown[]) => mockGetDailyScopeTotals(...(args as [])),
   },
 }));
 
@@ -64,6 +66,7 @@ import {
   useDishRecipe,
   useDishCost,
   useAllDishCosts,
+  useDailyScopeTotals,
   useDishCategories,
 } from '../../hooks/queries/useDishesQueries';
 
@@ -129,6 +132,19 @@ describe('Invariance des bars purs — aucune requête plats (§3)', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('⭐ useDailyScopeTotals n\'appelle PAS le service', async () => {
+      // ⚠️ C'est LA « query agrégée supplémentaire » que le §9 autorise
+      // UNIQUEMENT quand has_restaurant = true. Sur un bar pur elle n'a rien à
+      // ventiler — la laisser partir serait de l'egress sans contrepartie.
+      renderHook(() => useDailyScopeTotals(BAR_ID, '2026-08-04'), { wrapper: createWrapper() });
+      await letQueriesSettle();
+
+      expect(
+        mockGetDailyScopeTotals,
+        'La ventilation Bar/Restau est partie sur un bar PUR (§3)'
+      ).not.toHaveBeenCalled();
+    });
+
     it('⭐ useDishCategories n\'appelle PAS le service', async () => {
       // ⚠️ Cette query lit `bar_categories`, une table que les bars PURS
       // utilisent déjà pour leurs boissons. La garde §3 est donc encore plus
@@ -173,6 +189,21 @@ describe('Invariance des bars purs — aucune requête plats (§3)', () => {
       await letQueriesSettle();
 
       expect(mockGetAllDishCosts).toHaveBeenCalledWith(BAR_ID);
+    });
+
+    it('useDailyScopeTotals appelle bien le service', async () => {
+      renderHook(() => useDailyScopeTotals(BAR_ID, '2026-08-04'), { wrapper: createWrapper() });
+      await letQueriesSettle();
+
+      expect(mockGetDailyScopeTotals).toHaveBeenCalledWith(BAR_ID, '2026-08-04');
+    });
+
+    it('⭐ useDailyScopeTotals exige une businessDate', async () => {
+      // Le RPC refuse une date nulle : autant ne pas partir du tout.
+      renderHook(() => useDailyScopeTotals(BAR_ID, undefined), { wrapper: createWrapper() });
+      await letQueriesSettle();
+
+      expect(mockGetDailyScopeTotals).not.toHaveBeenCalled();
     });
 
     it('useDishRecipe et useDishCost exigent un dishId', async () => {

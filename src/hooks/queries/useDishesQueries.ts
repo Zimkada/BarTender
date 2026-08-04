@@ -25,6 +25,7 @@ import {
   type DishIngredientRow,
   type DishCostResult,
   type DishCostSummary,
+  type DailyScopeTotals,
 } from '../../services/supabase/dishes.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import type { Database } from '../../lib/database.types';
@@ -42,6 +43,13 @@ export const dishKeys = {
     [...dishKeys.all, 'cost', barId, dishId] as const,
   /** Coûts de TOUS les plats — clé distincte du coût unitaire. */
   allCosts: (barId: string) => [...dishKeys.all, 'all-costs', barId] as const,
+  /**
+   * Ventilation Bar / Restau d'une journée.
+   * ⚠️ La DATE fait partie de la clé : sans elle, changer de jour servirait
+   * le cache de la veille.
+   */
+  scopeTotals: (barId: string, businessDate: string) =>
+    [...dishKeys.all, 'scope-totals', barId, businessDate] as const,
   /**
    * ⚠️ Sous `dishes` et NON sous `stockKeys.categories` : les deux listes
    * doivent s'invalider INDÉPENDAMMENT. Créer une catégorie de plats ne doit
@@ -135,6 +143,37 @@ export function useAllDishCosts(barId: string | undefined) {
     queryFn: () => DishesService.getAllDishCosts(barId as string),
     // ⭐ §3 — aucune requête sur un bar pur.
     enabled: !!barId && hasRestaurant,
+    ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * ⭐ Ventilation Bar / Restau du CA et des articles du jour (§9).
+ *
+ * ⭐ C'est LA « query agrégée supplémentaire » que le §9 autorise quand
+ * `has_restaurant = true`. Elle remplace le chargement du détail de toutes les
+ * ventes du jour : 4 nombres au lieu de 200 tickets.
+ *
+ * ⚠️ Appelée UNE fois par journée. Changer de portée ne déclenche AUCUNE
+ * requête — les trois portées se servent du même résultat (§9).
+ *
+ * ⚠️ `salesAndStock` (5 min) : le CA du jour bouge à chaque vente. Un cache
+ * long afficherait un montant déjà dépassé sur le Dashboard, qui est l'écran
+ * consulté en continu pendant le service.
+ */
+export function useDailyScopeTotals(
+  barId: string | undefined,
+  businessDate: string | undefined
+) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<DailyScopeTotals>({
+    queryKey: dishKeys.scopeTotals(barId ?? '', businessDate ?? ''),
+    queryFn: () => DishesService.getDailyScopeTotals(barId as string, businessDate as string),
+    // ⭐ §3 — aucune requête sur un bar pur.
+    // ⚠️ Garde sur `businessDate` aussi : le RPC la refuse si elle est nulle,
+    // autant ne pas partir du tout.
+    enabled: !!barId && !!businessDate && hasRestaurant,
     ...CACHE_STRATEGY.salesAndStock,
   });
 }

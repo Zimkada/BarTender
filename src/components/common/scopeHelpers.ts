@@ -27,8 +27,26 @@ export function itemMatchesScope(
   scope: ActivityScope
 ): boolean {
   if (scope === 'all') return true;
-  const isDish = (item.item_type ?? 'product') === 'dish';
-  return scope === 'kitchen' ? isDish : !isDish;
+
+  /**
+   * ⚠️⚠️ LISTE BLANCHE des DEUX côtés — défaut trouvé à la code review.
+   *
+   * Une première version testait `!== 'dish'` pour la portée Bar (liste
+   * noire). Le RPC `get_daily_scope_totals`, lui, teste `= 'product'` (liste
+   * blanche). Les deux logiques ne coïncident QUE sur les valeurs connues :
+   *
+   *   item_type='DISH' →  SQL: exclu du Bar   |  TS: INCLUS dans le Bar
+   *   item_type=''     →  SQL: exclu du Bar   |  TS: INCLUS dans le Bar
+   *
+   * Le Dashboard (SQL) et l'Historique (TS) auraient alors affiché des CA
+   * DIFFÉRENTS pour la même journée — et personne n'aurait su lequel croire.
+   *
+   * ⭐ Même défaut que celui trouvé dans `create_sale_idempotent` le même
+   * jour : liste blanche d'un côté, liste noire de l'autre. On teste donc
+   * l'appartenance EXPLICITE, comme le SQL.
+   */
+  const effective = item.item_type ?? 'product';
+  return scope === 'kitchen' ? effective === 'dish' : effective === 'product';
 }
 
 /**

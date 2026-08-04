@@ -158,6 +158,25 @@ interface AllDishCostsResult extends RpcEnvelope {
   count: number;
 }
 
+/**
+ * Ventilation Bar / Restau d'une journée comptable (§9).
+ *
+ * ⚠️ Les montants sont BRUTS : `refunds_total` est retourné à part et n'est
+ * PAS ventilé. Un remboursement porte sur une vente entière, pas sur un item —
+ * le répartir serait une fausse précision. L'appelant le déduit du total.
+ */
+export interface DailyScopeTotals extends RpcEnvelope {
+  business_date: string;
+  revenue_bar: number;
+  revenue_kitchen: number;
+  revenue_total: number;
+  items_bar: number;
+  items_kitchen: number;
+  items_total: number;
+  /** ⚠️ GLOBAL, non ventilable. À déduire du total, jamais d'une portée. */
+  refunds_total: number;
+}
+
 export interface DishCostResult extends RpcEnvelope {
   dish_id: string;
   dish_name: string;
@@ -312,6 +331,37 @@ export class DishesService {
 
       if (error) throw error;
       return unwrapRpc<AllDishCostsResult>(data, 'Calcul des marges').costs ?? [];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * ⭐ Ventilation Bar / Restau du CA et des articles pour UNE journée (§9).
+   *
+   * ⚠️ Agrégation SERVEUR, et c'est le point : le Dashboard charge les ventes
+   * avec `includeItems: false` — une optimisation d'egress délibérée. Ventiler
+   * côté client exigerait de charger le détail de toutes les ventes du jour.
+   * Ce RPC retourne 4 nombres au lieu de 200 tickets.
+   *
+   * ⚠️ `businessDate` est OBLIGATOIRE et calculée par l'appelant : l'heure de
+   * clôture est propre à chaque bar. Le serveur la recalculerait avec un seuil
+   * codé en dur, produisant un CA faux pour tout bar ne fermant pas à 6 h.
+   *
+   * ⭐ Appelé UNE fois par journée : changer de portée ne redemande rien (§9).
+   */
+  static async getDailyScopeTotals(
+    barId: string,
+    businessDate: string
+  ): Promise<DailyScopeTotals> {
+    try {
+      const { data, error } = await supabase.rpc('get_daily_scope_totals', {
+        p_bar_id: barId,
+        p_business_date: businessDate,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<DailyScopeTotals>(data, 'Calcul de la ventilation du jour');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
