@@ -247,7 +247,9 @@ export function SupplyForm({
             step="any"
             value={packageCount}
             onChange={(e) => setPackageCount(e.target.value)}
-            placeholder="2"
+            /* ⚠️ « Ex : » — un nombre nu en placeholder est indiscernable
+               d'une saisie sur un champ numérique (cf. le prix, ligne ~289). */
+            placeholder="Ex : 2"
           />
         </div>
 
@@ -263,7 +265,7 @@ export function SupplyForm({
             step="any"
             value={packageSize}
             onChange={(e) => setPackageSize(e.target.value)}
-            placeholder="25"
+            placeholder="Ex : 25"
           />
         </div>
       </div>
@@ -279,7 +281,14 @@ export function SupplyForm({
           step="any"
           value={packagePrice}
           onChange={(e) => setPackagePrice(e.target.value)}
-          placeholder="12000"
+          /* ⚠️ « Ex : » OBLIGATOIRE — signalé en test le 04/08/2026.
+             Un placeholder « 12000 » est un montant PLAUSIBLE en FCFA : rien
+             ne le distingue d'une valeur saisie, et l'utilisateur lit un prix
+             renseigné face à un récapitulatif à 0 FCFA. Deux signaux
+             contradictoires sur le champ qui porte tout le coût matière.
+             Les autres placeholders du formulaire sont deja explicites
+             (« jj/mm/aaaa », « Fournisseur, n° de facture… »). */
+          placeholder="Ex : 12000"
         />
       </div>
 
