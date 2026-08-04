@@ -2755,6 +2755,276 @@ export type Database = {
           },
         ]
       }
+      kitchen_order_items: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          bar_id: string
+          cancel_note: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          computed_cost: number | null
+          consumed_at: string | null
+          created_at: string
+          dish_id: string
+          id: string
+          kitchen_order_id: string
+          last_reminder_at: string | null
+          modifiers: Json | null
+          quantity: number
+          ready_at: string | null
+          ready_by: string | null
+          reminder_count: number
+          sale_id: string | null
+          served_at: string | null
+          served_by: string | null
+          status: string
+          unit_price: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          bar_id: string
+          cancel_note?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          computed_cost?: number | null
+          consumed_at?: string | null
+          created_at?: string
+          dish_id: string
+          id?: string
+          kitchen_order_id: string
+          last_reminder_at?: string | null
+          modifiers?: Json | null
+          quantity: number
+          ready_at?: string | null
+          ready_by?: string | null
+          reminder_count?: number
+          sale_id?: string | null
+          served_at?: string | null
+          served_by?: string | null
+          status?: string
+          unit_price: number
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          bar_id?: string
+          cancel_note?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          computed_cost?: number | null
+          consumed_at?: string | null
+          created_at?: string
+          dish_id?: string
+          id?: string
+          kitchen_order_id?: string
+          last_reminder_at?: string | null
+          modifiers?: Json | null
+          quantity?: number
+          ready_at?: string | null
+          ready_by?: string | null
+          reminder_count?: number
+          sale_id?: string | null
+          served_at?: string | null
+          served_by?: string | null
+          status?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_order_items_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_kitchen_order_id_fkey"
+            columns: ["kitchen_order_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_order_status"
+            referencedColumns: ["kitchen_order_id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_kitchen_order_id_fkey"
+            columns: ["kitchen_order_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_ready_by_fkey"
+            columns: ["ready_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_served_by_fkey"
+            columns: ["served_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_orders: {
+        Row: {
+          bar_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          priority: number
+          service_mode: string
+          ticket_id: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number
+          service_mode?: string
+          ticket_id: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number
+          service_mode?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materialized_view_refresh_log: {
         Row: {
           created_at: string
@@ -4398,6 +4668,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_name: string | null
+          fulfillment_status: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
@@ -4414,6 +4685,7 @@ export type Database = {
           created_at?: string
           created_by: string
           customer_name?: string | null
+          fulfillment_status?: string | null
           id?: string
           idempotency_key?: string | null
           notes?: string | null
@@ -4430,6 +4702,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_name?: string | null
+          fulfillment_status?: string | null
           id?: string
           idempotency_key?: string | null
           notes?: string | null
@@ -5358,6 +5631,69 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_order_status: {
+        Row: {
+          bar_id: string | null
+          first_item_at: string | null
+          items_in_progress: number | null
+          items_ready: number | null
+          kitchen_order_id: string | null
+          status: string | null
+          ticket_id: string | null
+          total_items: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -6303,6 +6639,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_name: string | null
+          fulfillment_status: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
@@ -6911,6 +7248,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_name: string | null
+          fulfillment_status: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
