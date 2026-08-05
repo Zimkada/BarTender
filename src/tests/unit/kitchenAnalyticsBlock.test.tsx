@@ -131,6 +131,27 @@ describe('KitchenAnalyticsBlock', () => {
       ).toBeNull();
     });
 
+    it('⛔⛔ la REQUETE ne part meme pas sans la permission', async () => {
+      /**
+       * Defaut de SECURITE trouve a la code review du 05/08/2026 : masquer
+       * l affichage NE SUFFIT PAS. La RPC renvoie marges, couts et pertes
+       * chiffrees — elle verifie l appartenance au bar, pas la permission de
+       * voir les montants.
+       * ⚠️ Sans garde dans le hook, les montants arrivaient dans le cache
+       * reseau d un SERVEUR (qui accede au Dashboard et peut basculer en
+       * portee Restau). Le §8 etait contourne PAR LE RESEAU, invisible a
+       * l ecran.
+       */
+      mockCanViewCosts = false;
+      renderBlock();
+      await settle();
+
+      expect(
+        mockGetMetrics,
+        'La RPC de metriques est appelee sans canViewKitchenCosts — les montants transitent malgre le masquage'
+      ).not.toHaveBeenCalled();
+    });
+
     it('✅ le gérant voit le bloc', async () => {
       // Volet indispensable : sans lui, un composant qui ne rend JAMAIS rien
       // passerait l'assertion précédente.

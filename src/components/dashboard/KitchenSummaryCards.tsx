@@ -81,8 +81,21 @@ export function KitchenSummaryCards({ barId, businessDate }: Props) {
   const { formatPrice } = useCurrencyFormatter();
 
   const { counts } = useUnifiedKitchenQueue(barId);
+
+  /**
+   * ⛔ STOCK INGREDIENTS reserve a qui gere la cuisine — defaut trouve a la
+   * code review du 05/08/2026.
+   *
+   * Le SERVEUR accede au Dashboard et peut basculer en portee Restau, mais il
+   * n a PAS acces a l ecran Ingredients (menu reserve promoteur / gerant /
+   * cuisinier). Charger ces donnees pour lui ELARGIRAIT une exposition qui
+   * n existe pas ailleurs — les lots portent `unit_cost`, un montant.
+   * ⚠️ `canManageIngredientStock` est la permission de cet ecran : on
+   * s aligne dessus plutot que d inventer une regle.
+   */
+  const canSeeIngredients = hasPermission('canManageIngredientStock');
   const { lowStockIngredients, ingredientsInDebt, expiringLots } =
-    useUnifiedKitchen(barId);
+    useUnifiedKitchen(canSeeIngredients ? barId : undefined);
   const { data: metrics } = useKitchenMetrics(barId, businessDate, businessDate);
 
   /**
@@ -97,12 +110,22 @@ export function KitchenSummaryCards({ barId, businessDate }: Props) {
    * péremptions se traitent par le MÊME geste — aller voir l'écran
    * Ingrédients. Trois cartes distinctes fragmenteraient une action unique.
    * ⚠️ `ingredientsInDebt` compte double avec `lowStockIngredients` (un stock
-   * négatif est aussi bas) : on prend le MAX, pas la somme.
+   * négatif est aussi bas), mais rien ne garantit l'INCLUSION d'un ensemble
+   * dans l'autre.
+   *
+   * ⛔ `Math.max` ÉTAIT FAUX — défaut trouvé à la code review du 05/08/2026.
+   * 3 ingrédients bas + 2 en dette NON inclus dans les 3 = 5 alertes réelles,
+   * mais `max(3, 2)` en affichait 3. Et la LISTE, elle, dédoublonne par id :
+   * le compteur et la liste auraient montré des nombres DIFFÉRENTS sur le
+   * même écran.
+   *
+   * ⭐ Même règle des deux côtés : un Set d'identifiants. C'est la seule
+   * façon de garantir qu'ils ne divergent pas.
    */
-  const ingredientAlerts = Math.max(
-    lowStockIngredients.length,
-    ingredientsInDebt.length
-  );
+  const ingredientAlerts = new Set([
+    ...lowStockIngredients.map((i) => i.id),
+    ...ingredientsInDebt.map((i) => i.id),
+  ]).size;
   const totalAlerts = ingredientAlerts + expiringLots.length;
 
   return (
@@ -135,18 +158,26 @@ export function KitchenSummaryCards({ barId, businessDate }: Props) {
       />
 
       {/* ⭐ INGRÉDIENTS — remplace « Alertes stock », qui porte sur les
-          boissons (`bar_products`) et n'a rien à dire de la cuisine. */}
+          boissons (`bar_products`) et n'a rien à dire de la cuisine.
+          ⛔ Masquee au SERVEUR : il n a pas acces a l ecran Ingredients, une
+          carte l y renvoyant serait un cul-de-sac. */}
+      {canSeeIngredients && (
       <Card
         label="Ingrédients"
         value={totalAlerts}
+        /* ⚠️ `expiringLots` compte des LOTS, pas des ingrédients : deux lots
+           du même produit comptent deux fois. C'est VOULU — chacun demande
+           une décision (l'utiliser avant sa date), donc chacun est une unité
+           d'action. Le libellé dit « lots » pour lever l'ambiguïté. */
         hint={
           expiringLots.length > 0
-            ? `dont ${expiringLots.length} périment bientôt`
+            ? `dont ${expiringLots.length} lot${expiringLots.length > 1 ? 's' : ''} à écouler`
             : 'stock à surveiller'
         }
         icon={<Carrot size={18} />}
         tone={totalAlerts > 0 ? 'danger' : 'neutral'}
       />
+      )}
 
       {/* ⭐⭐ PERTES — la métrique qu'aucun tableur ne calcule : matière
           sortie, vente jamais née (§8). */}
@@ -186,8 +217,15 @@ export function KitchenSummaryCards({ barId, businessDate }: Props) {
  * Ingrédients. Les séparer fragmenterait une action unique.
  */
 export function KitchenVigilanceList({ barId }: { barId: string | undefined }) {
+  const { hasPermission } = useAuth();
+  /**
+   * ⛔ MEME GARDE que la carte Ingredients : le SERVEUR n a pas acces a
+   * l ecran Ingredients, lui charger ces donnees elargirait une exposition
+   * inexistante ailleurs (les lots portent un cout unitaire).
+   */
+  const canSeeIngredients = hasPermission('canManageIngredientStock');
   const { lowStockIngredients, ingredientsInDebt, expiringLots } =
-    useUnifiedKitchen(barId);
+    useUnifiedKitchen(canSeeIngredients ? barId : undefined);
 
   /**
    * ⚠️ DÉDOUBLONNAGE par id : un ingrédient en dette est AUSSI en stock bas
@@ -206,6 +244,17 @@ export function KitchenVigilanceList({ barId }: { barId: string | undefined }) {
     }
   }
   const list = Array.from(alerts.values());
+
+  // ⚠️ Sans la permission, le panneau ne dit RIEN plutot que « tout va bien » :
+  // affirmer que les stocks sont sains sur des donnees non chargees serait
+  // un mensonge.
+  if (!canSeeIngredients) {
+    return (
+      <p className="py-8 text-center text-caption text-muted-foreground">
+        Le suivi des ingrédients est réservé à la gestion.
+      </p>
+    );
+  }
 
   if (list.length === 0 && expiringLots.length === 0) {
     return (

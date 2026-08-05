@@ -11,6 +11,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useBarContext } from '../../context/BarContext';
+import { useAuth } from '../../context/AuthContext';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
 import {
@@ -107,6 +108,19 @@ export function useKitchenQueue(barId: string | undefined) {
  * (§3 — mesurer avant d'ajouter du trafic).
  *
  * ⭐ §3 — `enabled: hasRestaurant` : aucune requête sur un bar pur.
+ *
+ * ⛔⛔ ET `canViewKitchenCosts` — defaut de SECURITE trouve a la code review
+ * du 05/08/2026.
+ *
+ * Cette RPC renvoie des MARGES, des COUTS et des PERTES chiffrees. Elle
+ * verifie l appartenance au bar, PAS la permission de voir les montants —
+ * c est au client de ne pas la demander.
+ * ⚠️ Sans cette garde, la requete partait pour un SERVEUR (qui accede au
+ * Dashboard et peut basculer en portee Restau) : les montants arrivaient
+ * dans son cache reseau, meme si l ecran les masquait. Le §8 (« il voit les
+ * quantites, pas les montants ») etait contourne PAR LE RESEAU.
+ * ⭐ Corrige ICI et non dans chaque composant : la garde profite a tous les
+ * appelants, presents et futurs.
  */
 export function useKitchenMetrics(
   barId: string | undefined,
@@ -114,11 +128,12 @@ export function useKitchenMetrics(
   endDate?: string
 ) {
   const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
 
   return useQuery<KitchenMetrics>({
     queryKey: kitchenKeys.metrics(barId ?? '', startDate, endDate),
     queryFn: () => KitchenService.getMetrics(barId as string, startDate, endDate),
-    enabled: !!barId && hasRestaurant,
+    enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenCosts'),
     ...CACHE_STRATEGY.dailyStats,
   });
 }

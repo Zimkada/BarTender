@@ -1,5 +1,5 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useBarContext } from '../../../../context/BarContext';
 import { useUnifiedSales } from '../../../../hooks/pivots/useUnifiedSales';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
@@ -209,7 +209,7 @@ export function AnalyticsView({
    * inversement. Même simplification que la répartition par catégorie plus
    * bas — cohérente d'un bloc à l'autre du même écran.
    */
-  const getScopedNetRevenue = (sale: Sale): number => {
+  const getScopedNetRevenue = useCallback((sale: Sale): number => {
     const scopedGross = sale.items.reduce(
       (sum, item) => (itemMatchesScope(item, scope) ? sum + item.total_price : sum),
       0
@@ -225,18 +225,23 @@ export function AnalyticsView({
 
     const ratio = sale.total > 0 ? scopedGross / sale.total : 0;
     return scopedGross - refundAmount * ratio;
-  };
+  }, [scope, refundBySaleId]);
 
   /** Articles de la portée courante — même règle que le CA. */
-  const getScopedItemCount = (sale: Sale): number =>
-    sale.items.reduce(
-      (sum, item) => (itemMatchesScope(item, scope) ? sum + item.quantity : sum),
-      0
-    );
+  const getScopedItemCount = useCallback(
+    (sale: Sale): number =>
+      sale.items.reduce(
+        (sum, item) => (itemMatchesScope(item, scope) ? sum + item.quantity : sum),
+        0
+      ),
+    [scope]
+  );
 
   /** Une vente COMPTE dans la portée si elle y a au moins un article. */
-  const saleTouchesScope = (sale: Sale): boolean =>
-    sale.items.some((item) => itemMatchesScope(item, scope));
+  const saleTouchesScope = useCallback(
+    (sale: Sale): boolean => sale.items.some((item) => itemMatchesScope(item, scope)),
+    [scope]
+  );
 
 
   // Calculer période précédente pour comparaison
@@ -319,9 +324,16 @@ export function AnalyticsView({
       kpi: { value: currentKpiValue, label: stats.kpiLabel, change: 0 },
       items: { value: currentItems, change: itemsChange }
     };
-    // ⚠️ scope INDISPENSABLE dans les deps : sans lui, changer de portee ne
-    // recalculerait RIEN et les KPI resteraient figes sur la precedente.
-  }, [sales, stats.kpiLabel, previousPeriodSales, returns, startDate, endDate, timeRange, scope]);
+    // ⚠️ Les trois helpers sont des `useCallback` qui dependent de `scope` :
+    // les mettre en deps couvre `scope` TRANSITIVEMENT, et ESLint peut le
+    // verifier. Reciter `scope` a la main marchait aussi, mais laissait un
+    // avertissement permanent — or c est un avertissement de cette famille,
+    // ecarte comme « preexistant », qui avait masque le CA faux.
+    // ⚠️ `returns` RETIRE : ce bloc ne le lit plus directement, il passe par
+    // `refundBySaleId` — lui-meme capte par `getScopedNetRevenue`. Le garder
+    // etait inoffensif mais laissait un avertissement, donc du bruit.
+  }, [sales, stats.kpiLabel, previousPeriodSales, startDate, endDate, timeRange,
+      getScopedNetRevenue, getScopedItemCount, saleTouchesScope]);
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
@@ -385,9 +397,9 @@ export function AnalyticsView({
 
     return Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
 
-    // ⚠️ scope dans les deps : sans lui la courbe resterait figee sur la
-    // portee precedente.
-  }, [sales, startDate, endDate, closeHour, scope]);
+    // ⚠️ `getScopedNetRevenue` porte `scope` : la courbe se recalcule bien au
+    // changement de portee, et la dependance est verifiable par ESLint.
+  }, [sales, startDate, endDate, closeHour, getScopedNetRevenue]);
 
   // Répartition par catégorie (sur CA NET pour cohérence avec le reste du dashboard)
   const categoryData = useMemo(() => {
