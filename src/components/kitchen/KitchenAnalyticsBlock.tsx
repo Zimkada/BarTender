@@ -57,6 +57,20 @@ export function KitchenAnalyticsBlock({
    * attend `YYYY-MM-DD`.
    * ⭐ Ce sont les MÊMES dates que les KPI ventes — sans quoi les deux blocs
    * couvriraient des périodes différentes sur le même écran.
+   *
+   * ⚠️⚠️ DÉCALAGE CONNU, relevé à la code review du 05/08/2026 : les bornes
+   * sont identiques mais la COLONNE bornée diffère.
+   *   · ce bloc      → `kitchen_order_items.created_at` (heure de COMMANDE)
+   *   · les KPI/top  → `sales.business_date` (JOURNÉE COMPTABLE)
+   * Un plat commandé à 23h et servi à 1h du matin tombe donc dans la veille
+   * ici, et dans le jour même là-bas.
+   *
+   * ⛔ NON CORRIGÉ, et c'est délibéré : `kitchen_order_items` n'a PAS de
+   * `business_date` — l'ajouter serait une migration sur une table de
+   * production pour un écart qui ne dépasse jamais quelques heures, sur des
+   * fenêtres de 7 à 90 jours. Le signaler vaut mieux que le masquer.
+   * ⚠️ À reprendre SI un bar ferme régulièrement après minuit ET consulte
+   * ces chiffres au jour le jour — le décalage deviendrait alors visible.
    */
   const start = useMemo(() => dateToYYYYMMDD(startDate), [startDate]);
   const end = useMemo(() => dateToYYYYMMDD(endDate), [endDate]);

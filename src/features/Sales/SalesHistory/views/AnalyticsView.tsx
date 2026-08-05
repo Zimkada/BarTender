@@ -505,6 +505,17 @@ export function AnalyticsView({
    * Le nom est le seul lien disponible — et il est figé à la vente, donc
    * stable.
    *
+   * ⚠️ LIMITE CONNUE, relevée à la code review du 05/08/2026 : un PRODUIT et
+   * un PLAT homonymes seraient confondus. `dishes` garantit l'unicité du nom
+   * ENTRE PLATS (idx_dishes_unique_name_per_bar), mais rien n'empêche un
+   * `bar_products` de porter le même libellé — ce sont deux tables.
+   * ⭐ Le plat l'emporterait : `dishNames.has(name)` classerait les DEUX en
+   * Restau. Risque accepté — un bar nommant identiquement une boisson et un
+   * plat créerait de toute façon une confusion pour ses serveurs.
+   * ⛔ La correction propre serait d'exposer `dish_id` dans le RETURNS TABLE
+   * de la RPC : une migration de plus sur une fonction que TOUS les bars
+   * utilisent, pour un cas qui ne s'est jamais produit.
+   *
    * ⛔ LIMITE ASSUMÉE : la RPC plafonne à `p_limit` AVANT ce filtrage. Si les
    * 5 premiers articles sont des boissons, la portée Restau affichera une
    * liste courte, voire vide, alors que des plats se vendent. Corriger
@@ -731,6 +742,18 @@ export function AnalyticsView({
           onLimitChange={setTopProductsLimit}
           isLoading={isLoadingTopProducts}
           isMobile={isMobile}
+          /* ⚠️ En portee Restau sans plat vendu, le message par defaut
+             (« Aucune vente enregistree ») CONTREDIRAIT les KPI juste
+             au-dessus, qui affichent le CA des boissons. */
+          emptyLabel={
+            scope === 'kitchen'
+              ? { title: 'Aucun plat vendu',
+                  hint: 'Les ventes de cette periode ne comportent pas de plats.' }
+              : scope === 'bar'
+                ? { title: 'Aucune boisson vendue',
+                    hint: 'Les ventes de cette periode ne comportent pas de boissons.' }
+                : undefined
+          }
           formatPrice={formatPrice}
         />
       </div>
