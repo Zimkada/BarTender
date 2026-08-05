@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { DataFreshnessIndicatorCompact } from '../../DataFreshnessIndicator';
 import { AnimatedCounter } from '../../AnimatedCounter';
+import { KitchenSummaryCards, KitchenVigilanceList } from '../KitchenSummaryCards';
+import type { ActivityScope } from '../../common/scopeHelpers';
 import { EnhancedButton } from '../../EnhancedButton';
 import { Bar, Product, ProductStockInfo } from '../../../types';
 import { StaleSalesCleanupBanner } from '../StaleSalesCleanupBanner';
@@ -23,6 +25,15 @@ interface DashboardSummaryProps {
     topProductsList: { name: string; qty: number }[];
     allProductsStockInfo: Record<string, ProductStockInfo>;
     isServerRole: boolean;
+    /**
+     * ⭐ Portee active. En RESTAU, trois cartes (Alertes, Retours, Consign.)
+     * sont remplacees par les indicateurs cuisine : elles portent sur les
+     * BOISSONS et n ont rien a dire d un plat (§13.1).
+     * ⚠️ OPTIONNELLE : omise, l ecran est rigoureusement celui d avant (§3).
+     */
+    scope?: ActivityScope;
+    barId?: string;
+    businessDate?: string;
 
 
     // Helpers
@@ -46,6 +57,9 @@ export function DashboardSummary({
     topProductsList,
     allProductsStockInfo,
     isServerRole,
+    scope = 'all',
+    barId,
+    businessDate,
     formatPrice,
     onRefresh,
     onExportWhatsApp,
@@ -91,7 +105,15 @@ export function DashboardSummary({
                         <span className="text-micro text-muted-foreground">Ventes</span>
                     </div>
                     <AnimatedCounter value={salesCount} className="text-h2 font-semibold text-foreground tabular-nums" />
-                    <p className="text-caption text-muted-foreground mt-1 tabular-nums">{pendingSalesCount} en attente</p>
+                    {/* ⚠️ En RESTAU, le compteur porte les tickets CONTENANT un
+                        plat (derive dans DailyDashboard) — d ou un libelle qui
+                        le precise. « X en attente » n aurait aucun sens : les
+                        ventes en attente de validation ne se ventilent pas. */}
+                    <p className="text-caption text-muted-foreground mt-1 tabular-nums">
+                        {scope === 'kitchen'
+                            ? 'commandes avec plat'
+                            : `${pendingSalesCount} en attente`}
+                    </p>
                 </div>
 
                 <div className="bg-card rounded-2xl p-4 shadow-sm border border-border hover:shadow-md transition-shadow">
@@ -105,6 +127,16 @@ export function DashboardSummary({
                     <p className="text-caption text-muted-foreground mt-1">Total vendus</p>
                 </div>
 
+                {/* ⭐⭐ EN PORTEE RESTAU, ces trois cartes sont REMPLACEES.
+                    Alertes porte sur bar_products, Retours et Consignations
+                    n existent pas pour un plat (§13.1) — les afficher a zero
+                    suggererait qu un plat POURRAIT etre retourne.
+                    ⚠️ Sur un bar pur,  vaut toujours 'all' : le bloc
+                    ci-dessous est celui d avant, a l identique (§3). */}
+                {scope === 'kitchen' ? (
+                    <KitchenSummaryCards barId={barId} businessDate={businessDate ?? ''} />
+                ) : (
+                <>
                 {/* Alertes — sémantique rouge préservée (signal universel), avec variantes dark */}
                 <div className="bg-card rounded-2xl p-4 shadow-sm border border-red-200 dark:border-red-900/40 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-3">
@@ -138,6 +170,8 @@ export function DashboardSummary({
                     <div className="text-h2 font-semibold text-foreground tabular-nums">{consignmentsCount}</div>
                     <p className="text-caption text-muted-foreground mt-1">Fiches actives</p>
                 </div>
+                </>
+                )}
             </div>
 
             {/* Insights — 2 panneaux compagnons (top produits + stock à surveiller) */}
@@ -177,9 +211,15 @@ export function DashboardSummary({
                         <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center">
                             <AlertTriangle size={18} />
                         </div>
-                        <h3 className="text-h3 text-foreground">Points de vigilance stock</h3>
+                        <h3 className="text-h3 text-foreground">
+                            {scope === 'kitchen' ? 'Vigilance ingrédients' : 'Points de vigilance stock'}
+                        </h3>
                     </div>
-                    {lowStockProducts.length > 0 ? (
+                    {/* ⭐ En RESTAU, la liste porte sur les INGREDIENTS : les
+                        alertes de bar_products n ont rien a dire de la cuisine. */}
+                    {scope === 'kitchen' ? (
+                        <KitchenVigilanceList barId={barId} />
+                    ) : lowStockProducts.length > 0 ? (
                         <div className="space-y-2.5">
                             {lowStockProducts.slice(0, 5).map(p => (
                                 <div key={p.id} className="flex justify-between items-center py-1">

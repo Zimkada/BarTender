@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScopeSwitcher } from './common/ScopeSwitcher';
 import { useDailyScopeTotals, useDishes } from '../hooks/queries/useDishesQueries';
-import type { ActivityScope } from './common/scopeHelpers';
+import { itemMatchesScope, type ActivityScope } from './common/scopeHelpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -104,6 +104,32 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
       return scope === 'kitchen' ? isDish : !isDish;
     });
   }, [analytics.topProductsList, scope, dishNameSet]);
+
+  /**
+   * ⚠️ NOMBRE DE VENTES par portee — defaut signale le 05/08/2026 : la carte
+   * affichait « 2 ventes » en RESTAU alors qu une seule contenait un plat.
+   *
+   * ⛔ La RPC `get_daily_scope_totals` ne ventile PAS ce compteur (seulement
+   * CA et articles). On le derive donc des ventes chargees, en comptant
+   * celles qui portent AU MOINS un article de la portee.
+   *
+   * ⚠️ On ne reutilise PAS `scopedItems` ici : la carte « Articles » l affiche
+   * deja, et deux cartes montrant le meme nombre sous deux libelles
+   * differents feraient douter des deux.
+   *
+   * ⚠️ Le Dashboard charge les ventes avec `includeItems: false` (§3) —
+   * `items` peut donc etre VIDE. On retombe alors sur le compte global
+   * plutot que d afficher zero : un chiffre approximatif vaut mieux qu un
+   * chiffre faux.
+   */
+  const scopedSalesCount = useMemo(() => {
+    if (scope === 'all') return analytics.sales.length;
+    const withItems = analytics.sales.filter((s) => (s.items?.length ?? 0) > 0);
+    if (withItems.length === 0) return analytics.sales.length;
+    return withItems.filter((s) =>
+      s.items.some((i) => itemMatchesScope(i, scope))
+    ).length;
+  }, [analytics.sales, scope]);
 
   /**
    * Chiffres affichés selon la portée.
@@ -221,7 +247,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
           <DashboardSummary
             currentBar={currentBar}
             todayTotal={scopedTotal}
-            salesCount={analytics.sales.length}
+            salesCount={scopedSalesCount}
             pendingSalesCount={analytics.pendingSales.length}
             totalItems={scopedItems}
             returnsCount={analytics.validatedReturnsCount}
@@ -229,6 +255,9 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
             consignmentsCount={analytics.consignments.length}
             lowStockProducts={analytics.lowStockProducts}
             topProductsList={scopedTopProducts}
+            scope={scope}
+            barId={currentBar?.id}
+            businessDate={analytics.todayDateStr}
             allProductsStockInfo={analytics.allProductsStockInfo}
             isServerRole={analytics.isServerRole}
             formatPrice={formatPrice}
