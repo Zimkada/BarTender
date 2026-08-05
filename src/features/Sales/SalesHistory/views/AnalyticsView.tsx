@@ -166,6 +166,30 @@ export function AnalyticsView({
   }, [themeConfig]);
 
   /**
+   * ⭐⭐ INDEX DES REMBOURSEMENTS PAR VENTE — défaut de performance trouvé le
+   * 05/08/2026 (« la répartition met un petit temps à s'actualiser »).
+   *
+   * ⛔ AVANT : `returns.filter(r => r.saleId === sale.id)` était appelé DANS
+   * la boucle sur les ventes — un parcours complet des retours POUR CHAQUE
+   * vente. Sur 200 ventes et 50 retours : 10 000 comparaisons.
+   * ⚠️ Et ce coût était payé QUATRE FOIS : `getScopedNetRevenue` est appelée
+   * par les KPI, la période précédente, la courbe d'évolution et la
+   * répartition — chacune reparcourant tout.
+   *
+   * ⭐ Une Map construite UNE fois : la recherche passe de O(n) à O(1), donc
+   * le total de O(n×m) à O(n+m). C'est le changement de portée qui en
+   * bénéficie le plus — il invalide tous les useMemo d'un coup.
+   */
+  const refundBySaleId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of returns) {
+      if (!isConfirmedReturn(r)) continue;
+      map.set(r.saleId, (map.get(r.saleId) ?? 0) + r.refundAmount);
+    }
+    return map;
+  }, [returns]);
+
+  /**
    * ⭐⭐ CA NET **DE LA PORTÉE COURANTE** — défaut signalé en test terrain le
    * 05/08/2026, relevé SQL à l'appui.
    *
@@ -195,8 +219,8 @@ export function AnalyticsView({
     // pur ou une portée non filtrée (§3).
     if (scopedGross === 0) return 0;
 
-    const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
-    const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+    // ⭐ O(1) via l index, au lieu d un parcours complet des retours.
+    const refundAmount = refundBySaleId.get(sale.id) ?? 0;
     if (refundAmount === 0) return scopedGross;
 
     const ratio = sale.total > 0 ? scopedGross / sale.total : 0;
@@ -374,8 +398,8 @@ export function AnalyticsView({
       if (sale.status !== 'validated') return;
 
       // Calcul du net pour cette vente (total - retours associés)
-      const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
-      const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+      // ⭐ O(1) via l index (cf. refundBySaleId plus haut).
+      const refundAmount = refundBySaleId.get(sale.id) ?? 0;
       const saleNet = sale.total - refundAmount;
 
       // Pro-rata du net sur les items (simplification: on applique le ratio net/brut à chaque item)
@@ -450,7 +474,23 @@ export function AnalyticsView({
         percentage: totalNet > 0 ? (othersValue / totalNet) * 100 : 0
       }
     ];
-  }, [sales, categories, _products, returns]);
+    /**
+     * ⛔⛔ `scope` MANQUAIT — c'est LA cause du délai signalé le 05/08/2026
+     * (« la répartition met un petit temps avant de s'actualiser lors du
+     * switch bar ↔ restau »).
+     *
+     * Le graphique lit `itemMatchesScope(item, scope)` mais ne se recalculait
+     * PAS au changement de portée : il restait figé sur la précédente jusqu'à
+     * ce qu'une AUTRE dépendance bouge (un refetch des ventes, par exemple).
+     * D'où l'impression de latence — ce n'était pas un calcul lent, c'était
+     * un calcul qui n'avait pas lieu.
+     *
+     * ⚠️ Ce n'était donc pas un défaut d'animation Recharts, comme je l'avais
+     * d'abord supposé. Vérifier avant de conclure.
+     *
+     * ⭐ `refundBySaleId` ajouté aussi : la Map remplace le filtre imbriqué.
+     */
+  }, [sales, categories, _products, refundBySaleId, scope]);
 
   // Performance par utilisateur
   const userPerformance = useTeamPerformance({
