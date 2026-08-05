@@ -4,6 +4,7 @@ import { AnalyticsService } from '../../services/supabase/analytics.service';
 import { salesKeys, patchSalesListVariants } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
+import { dishKeys } from '../queries/useDishesQueries';
 import { analyticsKeys } from '../queries/useAnalyticsQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
@@ -368,6 +369,28 @@ export const useSalesMutations = (barId: string, options?: {
             }
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            /**
+             * ⛔⛔ VENTILATION Bar/Restau — defaut signale en test terrain le
+             * 05/08/2026 : le Dashboard affichait « Bar : 0 FCFA » alors que
+             * le releve SQL donnait 1 000 F pour la meme journee.
+             *
+             * `get_daily_scope_totals` alimente les KPI par portee. Sa query
+             * a un staleTime de 5 min et AUCUNE invalidation apres vente :
+             * chargee avant la premiere vente du jour, elle restait a ZERO.
+             * ⚠️ Cote CUISINE ca marchait — useKitchenMutations invalide deja
+             * `dishKeys.all`. Seul le chemin des BOISSONS etait oublie, ce qui
+             * rendait le defaut asymetrique et donc difficile a voir.
+             *
+             * ⚠️ Cle CIBLEE (prefixe `scope-totals`) et non `dishKeys.all` :
+             * invalider large ferait refetcher plats, recettes et couts a
+             * chaque vente de boisson — l inverse des trois vagues
+             * d optimisation d egress (§3).
+             */
+            if (barId) {
+                queryClient.invalidateQueries({
+                    queryKey: [...dishKeys.all, 'scope-totals', barId],
+                });
+            }
             if (sale.status === 'validated' && !isOptimistic) {
                 await refreshDailySalesSummary();
             } else if (barId) {

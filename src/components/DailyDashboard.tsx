@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScopeSwitcher } from './common/ScopeSwitcher';
-import { useDailyScopeTotals } from '../hooks/queries/useDishesQueries';
+import { useDailyScopeTotals, useDishes } from '../hooks/queries/useDishesQueries';
 import type { ActivityScope } from './common/scopeHelpers';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
@@ -63,6 +63,47 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
     currentBar?.id,
     analytics.todayDateStr
   );
+
+  /**
+   * ⛔⛔ TOP PRODUITS FILTRE PAR PORTEE — defaut signale en test terrain le
+   * 05/08/2026, captures a l appui.
+   *
+   * Le classement affichait « Poulet braise, Racines, Whisky Cola » dans LES
+   * TROIS portees, sans jamais changer. Il vient de
+   * `get_top_products_aggregated`, une RPC qui n a AUCUNE notion de portee —
+   * alors que les KPI juste au-dessus, eux, reagissaient correctement.
+   * ⚠️ Un selecteur qui ne filtre QU UNE PARTIE de l ecran est pire qu absent :
+   * l utilisateur croit lire des chiffres coherents entre eux.
+   *
+   * ⭐ Meme approche que l onglet Analytique : on filtre sur les NOMS de
+   * plats, `useDishes` etant deja en cache (aucune requete supplementaire, et
+   * `enabled: hasRestaurant` la desactive sur un bar pur — §3).
+   *
+   * ⚠️ Filtrage par NOM et non par id : la RPC laisse `product_id` a NULL
+   * pour un plat et n expose pas `dish_id`. Le nom est le seul lien — il est
+   * fige a la vente, donc stable. Limite connue : un produit et un plat
+   * homonymes seraient confondus (le plat l emporterait).
+   */
+  const { data: dishes = [] } = useDishes(currentBar?.id);
+
+  const dishNameSet = useMemo(
+    () => new Set(dishes.map((d) => d.name)),
+    [dishes]
+  );
+
+  const scopedTopProducts = useMemo(() => {
+    if (scope === 'all') return analytics.topProductsList;
+    return analytics.topProductsList.filter((p) => {
+      /**
+       * ⚠️ Le libelle porte le VOLUME entre parentheses (« Racines (33) »),
+       * ajoute par le hook. On compare donc sur la partie AVANT la
+       * parenthese — sinon aucun nom ne correspondrait jamais.
+       */
+      const bareName = p.name.replace(/\s*\([^)]*\)\s*$/, '');
+      const isDish = dishNameSet.has(bareName);
+      return scope === 'kitchen' ? isDish : !isDish;
+    });
+  }, [analytics.topProductsList, scope, dishNameSet]);
 
   /**
    * Chiffres affichés selon la portée.
@@ -187,7 +228,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
             pendingReturnsCount={analytics.pendingReturnsCount}
             consignmentsCount={analytics.consignments.length}
             lowStockProducts={analytics.lowStockProducts}
-            topProductsList={analytics.topProductsList}
+            topProductsList={scopedTopProducts}
             allProductsStockInfo={analytics.allProductsStockInfo}
             isServerRole={analytics.isServerRole}
             formatPrice={formatPrice}
