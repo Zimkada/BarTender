@@ -6944,6 +6944,10 @@ export type Database = {
         Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
         Returns: Json
       }
+      get_kitchen_production: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: Json
+      }
       get_my_bars: {
         Args: never
         Returns: {

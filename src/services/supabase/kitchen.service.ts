@@ -191,6 +191,52 @@ export interface KitchenMetrics extends RpcEnvelope {
   dishes: DishMetrics[];
 }
 
+/**
+ * Un plat dans l'activité du cuisinier — QUANTITÉS SEULES.
+ *
+ * ⚠️ Volontairement PLUS PAUVRE que `DishMetrics` : ni `revenue`, ni `cost`,
+ * ni `margin`, ni `loss_cost`. Ce n'est pas un oubli — c'est la raison d'être
+ * du type. Y ajouter un montant rouvrirait la fuite que ce type existe pour
+ * fermer (§8 : « il voit les quantités, pas les montants »).
+ */
+export interface DishProduction {
+  dish_id: string;
+  dish_name: string;
+  served_count: number;
+  /** ⭐ Perte DÉFINITIVE : matière sortie, plat annulé après `ready`. */
+  loss_count: number;
+  /** ⚠️ `null` si aucun plat n'a atteint `ready` — l'UI affiche « — ». */
+  avg_prep_min: number | null;
+}
+
+/**
+ * L'activité de production sur une période — le pendant SANS MONTANTS de
+ * `KitchenMetrics`.
+ *
+ * ⭐ Répond aux trois questions du cuisinier : ce qui l'attend (`todo_count`,
+ * `pending_count`), ce qu'il a fait (`served_count`, `avg_prep_min`), ce qui
+ * est perdu (`loss_count`).
+ *
+ * ⚠️ NE JAMAIS ADDITIONNER `pending_count` À `loss_count`. Un plat prêt non
+ * servi a coûté sa matière mais reste SERVABLE : c'est un signal d'action,
+ * pas un constat. Les confondre ferait passer un service en cours pour une
+ * catastrophe.
+ */
+export interface KitchenProduction extends RpcEnvelope {
+  start_date: string;
+  end_date: string;
+  served_count: number;
+  loss_count: number;
+  /** ⭐ Plats prêts en attente de service — distinct de la perte. */
+  pending_count: number;
+  /** ⚠️ Ce qui reste À PRÉPARER : pending + accepted + preparing. */
+  todo_count: number;
+  /** ⚠️ `null` si aucun plat n'a atteint `ready`. */
+  avg_prep_min: number | null;
+  /** Trié : plats les plus PERDUS d'abord — c'est l'information actionnable. */
+  dishes: DishProduction[];
+}
+
 /** Une ligne à commander. `modifiers` porte « sans piment », « bien cuit ». */
 export interface KitchenOrderLineInput {
   dish_id: string;
@@ -326,6 +372,40 @@ export const KitchenService = {
 
       if (error) throw error;
       return unwrapRpc<KitchenMetrics>(data, 'Lecture des métriques cuisine');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Activité de production sur une fenêtre bornée — SANS AUCUN MONTANT.
+   *
+   * ⭐⭐ Le pendant de `getMetrics` pour le rôle CUISINIER. La distinction
+   * n'est pas cosmétique : `get_kitchen_metrics` calcule revenue / cost /
+   * margin, que le cuisinier n'a pas le droit de voir (§8, `canViewKitchenCosts:
+   * false`). Ici la protection tient à ce que la RPC NE CALCULE PAS ces
+   * colonnes — ce qui n'est pas sélectionné ne peut pas fuir.
+   *
+   * ⛔ NE JAMAIS « factoriser » les deux appels vers `get_kitchen_metrics` en
+   * filtrant les montants côté client : ils transiteraient quand même sur le
+   * réseau et seraient lisibles dans l'onglet Réseau du navigateur.
+   */
+  async getProduction(
+    barId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<KitchenProduction> {
+    try {
+      const { data, error } = await supabase.rpc('get_kitchen_production', {
+        p_bar_id: barId,
+        // ⚠️ `undefined` et non `null` : le RPC applique son propre défaut
+        // (30 jours) quand le paramètre est absent.
+        p_start_date: startDate ?? undefined,
+        p_end_date: endDate ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<KitchenProduction>(data, 'Lecture de l’activité cuisine');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

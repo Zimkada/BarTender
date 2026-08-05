@@ -18,6 +18,7 @@ import {
   KitchenService,
   type KitchenQueueItem,
   type KitchenMetrics,
+  type KitchenProduction,
 } from '../../services/supabase/kitchen.service';
 
 // ===== Query Keys =====
@@ -30,6 +31,15 @@ export const kitchenKeys = {
    */
   metrics: (barId: string, start?: string, end?: string) =>
     [...kitchenKeys.all, 'metrics', barId, start ?? '', end ?? ''] as const,
+  /**
+   * ⛔ CLÉ DISTINCTE de `metrics`, et ce n'est PAS un détail.
+   * Les deux RPC couvrent la même période mais renvoient des objets
+   * différents (l'un avec montants, l'autre sans). Une clé partagée ferait
+   * servir la réponse AVEC MONTANTS depuis le cache à un cuisinier dès qu'un
+   * gérant aurait consulté le même bar sur le même appareil.
+   */
+  production: (barId: string, start?: string, end?: string) =>
+    [...kitchenKeys.all, 'production', barId, start ?? '', end ?? ''] as const,
 };
 
 /**
@@ -134,6 +144,42 @@ export function useKitchenMetrics(
     queryKey: kitchenKeys.metrics(barId ?? '', startDate, endDate),
     queryFn: () => KitchenService.getMetrics(barId as string, startDate, endDate),
     enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenCosts'),
+    ...CACHE_STRATEGY.dailyStats,
+  });
+}
+
+/**
+ * ⭐⭐ L'ACTIVITÉ DU CUISINIER — le pendant SANS MONTANTS de `useKitchenMetrics`.
+ *
+ * Répond aux trois questions posées : ce qui l'attend, ce qu'il a fait, ce
+ * qui est perdu. `getQueue` n'expose que le PRÉSENT (elle filtre sur
+ * pending/accepted/preparing/ready) : dès qu'un plat est servi ou annulé, il
+ * disparaît. En fin de service, l'écran du cuisinier est vide.
+ *
+ * ⛔⛔ LA GARDE EST `canViewKitchenOrders`, PAS `canViewKitchenCosts` — et
+ * c'est TOUT L'INTÉRÊT de ce hook. Le cuisinier a `canViewKitchenCosts:
+ * false` : le brancher sur `useKitchenMetrics` lui aurait tout fermé.
+ *
+ * ⚠️ Ce relâchement n'est SÛR que parce que la RPC `get_kitchen_production`
+ * NE CALCULE AUCUN MONTANT. La protection est dans le SQL, pas ici — une
+ * garde applicative se contourne en lisant la réponse réseau, une colonne
+ * absente non. Si un montant réapparaissait dans la RPC, cette garde
+ * deviendrait une faille (cf. post-vol n°3 de la migration).
+ *
+ * ⭐ §3 — `enabled: hasRestaurant` : aucune requête sur un bar pur.
+ */
+export function useKitchenProduction(
+  barId: string | undefined,
+  startDate?: string,
+  endDate?: string
+) {
+  const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
+
+  return useQuery<KitchenProduction>({
+    queryKey: kitchenKeys.production(barId ?? '', startDate, endDate),
+    queryFn: () => KitchenService.getProduction(barId as string, startDate, endDate),
+    enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenOrders'),
     ...CACHE_STRATEGY.dailyStats,
   });
 }

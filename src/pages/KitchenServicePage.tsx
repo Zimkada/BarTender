@@ -21,6 +21,7 @@ import { EmptyState } from '../components/common/EmptyState';
 import { Button } from '../components/ui/Button';
 import { KitchenItemCard } from '../components/kitchen/KitchenItemCard';
 import { CancelItemModal } from '../components/kitchen/CancelItemModal';
+import { KitchenProductionPanel } from '../components/kitchen/KitchenProductionPanel';
 import { useUnifiedKitchenQueue, type KitchenGroup } from '../hooks/pivots/useUnifiedKitchenQueue';
 import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
 import { useBarContext } from '../context/BarContext';
@@ -293,6 +294,12 @@ export default function KitchenServicePage() {
           />
         </div>
       )}
+
+      {/* ⭐⭐ HORS du bloc conditionnel ci-dessus, VOLONTAIREMENT.
+          Placé dans la branche « file non vide », ce panneau disparaîtrait
+          exactement quand la file se vide — c'est-à-dire EN FIN DE SERVICE,
+          le moment précis où le cuisinier veut son bilan. */}
+      <KitchenProductionPanel barId={currentBar?.id} />
 
       <CancelItemModal
         item={itemToCancel}
