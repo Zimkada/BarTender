@@ -13,12 +13,22 @@ import { useQuery } from '@tanstack/react-query';
 import { useBarContext } from '../../context/BarContext';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
-import { KitchenService, type KitchenQueueItem } from '../../services/supabase/kitchen.service';
+import {
+  KitchenService,
+  type KitchenQueueItem,
+  type KitchenMetrics,
+} from '../../services/supabase/kitchen.service';
 
 // ===== Query Keys =====
 export const kitchenKeys = {
   all: ['kitchen'] as const,
   queue: (barId: string) => [...kitchenKeys.all, 'queue', barId] as const,
+  /**
+   * ⚠️ Les DATES font partie de la clé : sans elles, changer de période
+   * servirait le cache de la précédente.
+   */
+  metrics: (barId: string, start?: string, end?: string) =>
+    [...kitchenKeys.all, 'metrics', barId, start ?? '', end ?? ''] as const,
 };
 
 /**
@@ -80,5 +90,35 @@ export function useKitchenQueue(barId: string | undefined) {
     // ⭐ §3 — aucune requête sur un bar pur.
     enabled: isEnabled,
     ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * ⭐⭐ Les 4 métriques du §8 — l'écran de rentabilité cuisine.
+ *
+ * ⚠️ `dailyStats` (2 min) et NON `salesAndStock` : ces chiffres se lisent en
+ * CONSULTATION, pas en réaction. Le gérant ouvre l'écran, regarde, décide —
+ * il n'a pas besoin d'un rafraîchissement à la seconde comme la file de
+ * production.
+ *
+ * ⚠️ AUCUN `useSmartSync` ici, contrairement à la file : ces agrégats n'ont
+ * pas besoin d'être poussés. Ajouter un abonnement Realtime sur un écran
+ * consulté quelques minutes par jour coûterait de l'egress pour un gain nul
+ * (§3 — mesurer avant d'ajouter du trafic).
+ *
+ * ⭐ §3 — `enabled: hasRestaurant` : aucune requête sur un bar pur.
+ */
+export function useKitchenMetrics(
+  barId: string | undefined,
+  startDate?: string,
+  endDate?: string
+) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<KitchenMetrics>({
+    queryKey: kitchenKeys.metrics(barId ?? '', startDate, endDate),
+    queryFn: () => KitchenService.getMetrics(barId as string, startDate, endDate),
+    enabled: !!barId && hasRestaurant,
+    ...CACHE_STRATEGY.dailyStats,
   });
 }

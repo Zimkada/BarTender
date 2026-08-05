@@ -137,6 +137,60 @@ interface CancelResult extends TransitionResult {
   lost_cost: number | null;
 }
 
+/**
+ * Rentabilité d'un plat sur la période — §8.
+ *
+ * ⚠️ Tous les compteurs sont en ASSIETTES (`SUM(quantity)`), jamais en lignes
+ * de commande : « 3 × Poulet braisé » vaut 3.
+ */
+export interface DishMetrics {
+  dish_id: string;
+  dish_name: string;
+  sold_count: number;
+  revenue: number;
+  cost: number;
+  margin: number;
+  /** ⚠️ `null` si aucun CA — l'UI affiche « — », JAMAIS 0 %. */
+  margin_rate: number | null;
+  /** ⭐ Perte DÉFINITIVE : matière sortie, plat annulé après `ready`. */
+  loss_count: number;
+  loss_cost: number;
+  /** ⚠️ `null` si aucun plat n'a atteint `ready` sur la période. */
+  avg_prep_min: number | null;
+}
+
+/**
+ * Les 4 métriques du §8 sur une période bornée (30 jours par défaut).
+ *
+ * ⭐⭐ `loss_*` est la métrique qu'aucun tableur ne calcule : matière sortie,
+ * vente jamais née. Elle n'existe que parce que la machine d'état du §6
+ * dissocie `ready` (consommation) de `served` (CA).
+ *
+ * ⚠️ NE JAMAIS ADDITIONNER `pending_*` À `loss_*`. Un plat en attente a déjà
+ * coûté sa matière mais reste SERVABLE — c'est un signal d'action (« sortez
+ * ces assiettes »), pas un constat comptable. Les confondre transformerait un
+ * service en cours en catastrophe apparente.
+ */
+export interface KitchenMetrics extends RpcEnvelope {
+  start_date: string;
+  end_date: string;
+  served_count: number;
+  revenue: number;
+  cost: number;
+  margin: number;
+  /** ⚠️ `null` si aucun CA sur la période. */
+  margin_rate: number | null;
+  loss_count: number;
+  loss_cost: number;
+  /** ⭐ Plats prêts NON encore servis — distinct de la perte. */
+  pending_count: number;
+  pending_cost: number;
+  /** ⚠️ `null` si aucun plat n'a atteint `ready`. */
+  avg_prep_min: number | null;
+  /** Trié : plats avec ventes d'abord, puis par marge décroissante. */
+  dishes: DishMetrics[];
+}
+
 /** Une ligne à commander. `modifiers` porte « sans piment », « bien cuit ». */
 export interface KitchenOrderLineInput {
   dish_id: string;
@@ -241,6 +295,37 @@ export const KitchenService = {
           order_created_at: kitchen_orders?.created_at ?? item.created_at,
         };
       });
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * ⭐ Les 4 métriques du §8 — LECTURE, pas de garde réseau.
+   *
+   * ⚠️ Pas d'`assertNetworkAvailable` : consulter des métriques hors ligne
+   * n'a aucune conséquence sur les données. Le cache React Query sert alors
+   * le dernier état connu, ce qui vaut mieux qu'un écran d'erreur.
+   *
+   * ⚠️ Dates au format `YYYY-MM-DD`. Omises = 30 derniers jours, borne
+   * appliquée CÔTÉ SERVEUR — un agrégat non borné grossirait indéfiniment.
+   */
+  async getMetrics(
+    barId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<KitchenMetrics> {
+    try {
+      const { data, error } = await supabase.rpc('get_kitchen_metrics', {
+        p_bar_id: barId,
+        // ⚠️ `undefined` et non `null` : le RPC applique son propre défaut
+        // quand le paramètre est absent.
+        p_start_date: startDate ?? undefined,
+        p_end_date: endDate ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<KitchenMetrics>(data, 'Lecture des métriques cuisine');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

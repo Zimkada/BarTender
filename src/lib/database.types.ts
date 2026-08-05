@@ -6940,6 +6940,10 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      get_kitchen_metrics: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: Json
+      }
       get_my_bars: {
         Args: never
         Returns: {
