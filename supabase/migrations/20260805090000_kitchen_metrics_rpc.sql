@@ -409,7 +409,7 @@ NOTIFY pgrst, 'reload schema';
 --    garde, sur les memes bornes :
 --        served_count = 2 · revenue = 5 000 · cost = 4 000
 --        loss_count   = 1 · pending_count = 1
---    ⭐  et NON 2 prouve la correction des pertes fantomes :
---       l assiette  en attente n est pas comptee comme perdue.
---    ⭐  (et non 8 000) confirme que computed_cost couvre deja
+--    ⭐ loss_count = 1 et NON 2 prouve la correction des pertes fantomes :
+--       l assiette `ready` en attente n est pas comptee comme perdue.
+--    ⭐ cost = 4 000 (et non 8 000) confirme que computed_cost couvre deja
 --       la ligne entiere — le multiplier aurait affiche une marge NEGATIVE.
