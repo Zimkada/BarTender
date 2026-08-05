@@ -75,7 +75,7 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 import {
-  KitchenSummaryCards,
+  MixedScopeKitchenCards,
   KitchenVigilanceList,
 } from '../../components/dashboard/KitchenSummaryCards';
 
@@ -95,14 +95,46 @@ describe('Stock ingrédients — exposition réseau selon le rôle', () => {
     mockRole = 'serveur';
   });
 
-  it('ne déclenche AUCUNE requête ingrédients pour un serveur (cartes)', async () => {
-    render(<KitchenSummaryCards barId="bar-123" businessDate="2026-08-05" />, {
-      wrapper,
-    });
+  /**
+   * ⚠️ CE TEST VISE `MixedScopeKitchenCards`, PAS `KitchenSummaryCards`.
+   * Depuis le passage à 6 cartes, la portée Restau ne charge plus du tout les
+   * ingrédients — l'y tester serait tautologique. Le seul endroit du Dashboard
+   * qui monte encore ce hook depuis une CARTE, c'est le mode « Tout ».
+   */
+  it('ne déclenche AUCUNE requête ingrédients pour un serveur (cartes mode Tout)', async () => {
+    render(
+      <MixedScopeKitchenCards
+        barId="bar-123"
+        returnsCount={1}
+        pendingReturnsCount={0}
+      />,
+      { wrapper }
+    );
     await settle();
 
     expect(mockGetIngredients).not.toHaveBeenCalled();
     expect(mockGetExpiringLots).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ⭐ Le serveur voit « Retours » À LA PLACE d'« Ingrédients » : sans ce
+   * remplacement il tomberait à 5 cartes, et la grille se casserait sur
+   * mobile (cf. dashboardCardParity.test.tsx).
+   */
+  it('remplace Ingrédients par Retours pour un serveur, sans réduire le nombre de cartes', async () => {
+    render(
+      <MixedScopeKitchenCards
+        barId="bar-123"
+        returnsCount={4}
+        pendingReturnsCount={1}
+      />,
+      { wrapper }
+    );
+    await settle();
+
+    expect(screen.queryByText('Ingrédients')).toBeNull();
+    expect(screen.getByText('Retours')).toBeTruthy();
+    expect(screen.getByText('Prêt')).toBeTruthy();
   });
 
   it('ne déclenche AUCUNE requête ingrédients pour un serveur (liste de vigilance)', async () => {

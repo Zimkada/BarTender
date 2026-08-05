@@ -256,6 +256,10 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
             lowStockProducts={analytics.lowStockProducts}
             topProductsList={scopedTopProducts}
             scope={scope}
+            /* ⛔ §3 — sans ce booleen, `scope === 'all'` ne distingue pas un
+               bar PUR d un bar mixte en portee « Tout » : un bar pur
+               afficherait les cartes cuisine. */
+            hasRestaurant={hasRestaurant}
             barId={currentBar?.id}
             businessDate={analytics.todayDateStr}
             allProductsStockInfo={analytics.allProductsStockInfo}
