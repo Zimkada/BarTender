@@ -165,7 +165,14 @@ export function KitchenAnalyticsBlock({
       )}
 
       {/* ⭐ Classement — c'est ce qui rend la marge ACTIONNABLE : « 20 % » ne
-          dit pas quel plat corriger. */}
+          dit pas quel plat corriger.
+          ⚠️ CE N'EST PAS UN DOUBLON du « Top produits » plus bas, qui liste
+          aussi les plats depuis le 05/08/2026. Les deux répondent à des
+          questions différentes :
+            · ici        → « quel plat me fait PERDRE de la matière ? »
+            · top produits → « lequel se vend le plus / rapporte le plus ? »
+          Seule cette liste porte `loss_count` — le top produits n'a aucune
+          notion de perte, un plat annulé n'ayant jamais été vendu. */}
       {soldDishes.length > 0 && (
         <ul className="space-y-1.5">
           {soldDishes.map((dish) => (

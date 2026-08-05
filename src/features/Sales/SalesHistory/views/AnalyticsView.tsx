@@ -492,6 +492,52 @@ export function AnalyticsView({
      */
   }, [sales, categories, _products, refundBySaleId, scope]);
 
+  /**
+   * ⭐⭐ TOP PRODUITS FILTRÉ PAR PORTÉE — 05/08/2026.
+   *
+   * ⚠️ La RPC `get_top_products_aggregated` ne connaît pas la portée : elle
+   * renvoie boissons ET plats mélangés. On filtre donc ICI, sur les NOMS de
+   * plats relevés dans les ventes de la période.
+   *
+   * ⚠️ FILTRAGE PAR NOM et non par id : la RPC laisse `product_id` à NULL
+   * pour un plat (elle groupe sur `dish_id` depuis la migration
+   * 20260805100000, mais n'expose pas cette clé dans son RETURNS TABLE).
+   * Le nom est le seul lien disponible — et il est figé à la vente, donc
+   * stable.
+   *
+   * ⛔ LIMITE ASSUMÉE : la RPC plafonne à `p_limit` AVANT ce filtrage. Si les
+   * 5 premiers articles sont des boissons, la portée Restau affichera une
+   * liste courte, voire vide, alors que des plats se vendent. Corriger
+   * exigerait un paramètre de portée dans la RPC — une seconde migration sur
+   * une fonction que TOUS les bars utilisent. Le gain ne le justifie pas
+   * tant qu'aucun bar n'a assez de plats pour que le cas se produise.
+   *
+   * ⭐ En portée « Tout », la liste est retournée TELLE QUELLE : aucun coût,
+   * aucun changement pour un bar pur (§3).
+   */
+  const dishNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const sale of sales) {
+      for (const item of sale.items) {
+        if ((item.item_type ?? 'product') === 'dish') names.add(item.product_name);
+      }
+    }
+    return names;
+  }, [sales]);
+
+  const scopedTopProducts = useMemo(() => {
+    if (scope === 'all') return stats.topProducts;
+
+    const keep = (row: { name: string }) =>
+      scope === 'kitchen' ? dishNames.has(row.name) : !dishNames.has(row.name);
+
+    return {
+      byUnits: stats.topProducts.byUnits.filter(keep),
+      byRevenue: stats.topProducts.byRevenue.filter(keep),
+      byProfit: stats.topProducts.byProfit.filter(keep),
+    };
+  }, [stats.topProducts, scope, dishNames]);
+
   // Performance par utilisateur
   const userPerformance = useTeamPerformance({
     sales,
@@ -667,19 +713,18 @@ export function AnalyticsView({
         />
       </div>
 
-      {/* ⭐⭐ TOP PRODUITS — MASQUÉ en portée Restau.
-          ⛔ Signalé en test terrain le 05/08/2026 : ce classement affichait
-          « Whisky Cola, Racines, Beaufort » alors que la portée était Restau.
-          Sa source est une RPC SQL (`sqlTopProducts` dans useSalesStats) qui
-          n'a AUCUNE notion de portée — elle n'est donc pas filtrable ici.
-          ⭐ Le masquer plutôt que de le filtrer à vide est la bonne réponse :
-          en portée Restau, le classement des PLATS existe déjà, dans le bloc
-          Rentabilité cuisine juste au-dessus. Un second classement, vide ou
-          redondant, n'apprendrait rien. */}
-      {scope !== 'kitchen' && (
+      {/* ⭐⭐ TOP PRODUITS — FILTRÉ par portée depuis le 05/08/2026.
+          ⛔ Il affichait « Whisky Cola, Racines, Beaufort » en portée Restau.
+          ⚠️ Je l'avais d'abord MASQUÉ, en concluant trop vite que sa source
+          SQL n'était pas filtrable. L'utilisateur a demandé ce qu'on perdait
+          à le garder : la réponse était les TROIS AXES (unités, revenu,
+          marge) que le classement des plats du bloc cuisine n'a pas.
+          ⭐ La migration 20260805100000 a rendu ce classement JUSTE pour les
+          plats (clé COALESCE(product_id, dish_id) + marge FEFO). Le filtrer
+          est donc devenu la bonne réponse — et il redonne les trois axes. */}
       <div data-guide="analytics-top-products">
         <TopProductsChart
-          data={stats.topProducts}
+          data={scopedTopProducts}
           metric={topProductMetric}
           onMetricChange={setTopProductMetric}
           limit={topProductsLimit}
@@ -689,7 +734,6 @@ export function AnalyticsView({
           formatPrice={formatPrice}
         />
       </div>
-      )}
     </div>
   );
 }
