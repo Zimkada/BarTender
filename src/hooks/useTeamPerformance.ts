@@ -3,6 +3,7 @@ import { UnifiedReturn } from './pivots/useUnifiedReturns';
 import { Sale, Return, User, BarMember } from '../types';
 import { dateToYYYYMMDD, getBusinessDate } from '../utils/businessDateHelpers';
 import { isConfirmedReturn } from '../utils/saleHelpers';
+import { itemMatchesScope, type ActivityScope } from '../components/common/scopeHelpers';
 
 export type UserPerformanceStat = {
     userId: string;
@@ -21,6 +22,13 @@ interface UseTeamPerformanceProps {
     startDate?: Date;
     endDate?: Date;
     closeHour?: number;
+    /**
+     * ⭐ Portee active — Tout / Bar / Restau (§9). OPTIONNELLE : omise, le
+     * hook se comporte EXACTEMENT comme avant (§3).
+     * ⚠️ Ajoutee le 05/08/2026 apres test terrain : en portee Restau, le
+     * graphique affichait le CA TOTAL de chaque membre, boissons comprises.
+     */
+    scope?: ActivityScope;
 }
 
 export function useTeamPerformance({
@@ -30,7 +38,8 @@ export function useTeamPerformance({
     barMembers,
     startDate,
     endDate,
-    closeHour = 4 // Default close hour if not provided
+    closeHour = 4, // Default close hour if not provided
+    scope = 'all'
 }: UseTeamPerformanceProps) {
 
     const safeUsers = users || [];
@@ -72,11 +81,25 @@ export function useTeamPerformance({
                 };
             }
 
-            userStats[userId].revenue += (sale.total || 0);
+            // ⭐ CA DE LA PORTEE, pas de la vente entiere. En portee « Tout »,
+            // `itemMatchesScope` accepte tout : on retombe sur sale.total.
+            userStats[userId].revenue += scope === 'all'
+                ? (sale.total || 0)
+                : (sale.items || []).reduce(
+                    (sum, it) => itemMatchesScope(it, scope) ? sum + (it.total_price || 0) : sum,
+                    0
+                  );
             userStats[userId].sales += 1;
 
             // 🛡️ Blindage Défensif: items_count (colonne générée DB) prioritaire, fallback sur items[]
-            if (typeof sale.items_count === 'number') {
+            // ⚠️ items_count est GLOBAL a la vente : inutilisable des qu une
+            // portee filtre, sinon les boissons seraient comptees en Restau.
+            if (scope !== 'all' && Array.isArray(sale.items)) {
+                userStats[userId].items += sale.items.reduce(
+                    (sum, it) => itemMatchesScope(it, scope) ? sum + (it.quantity || 0) : sum,
+                    0
+                );
+            } else if (typeof sale.items_count === 'number') {
                 userStats[userId].items += sale.items_count;
             } else if (sale.items && Array.isArray(sale.items)) {
                 userStats[userId].items += sale.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
@@ -155,5 +178,5 @@ export function useTeamPerformance({
 
         return Object.values(userStats).sort((a, b) => b.revenue - a.revenue);
 
-    }, [sales, returns, safeUsers, safeBarMembers, startDate, endDate, closeHour]);
+    }, [sales, returns, safeUsers, safeBarMembers, startDate, endDate, closeHour, scope]);
 }

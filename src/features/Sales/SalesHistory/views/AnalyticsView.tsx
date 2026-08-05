@@ -165,11 +165,54 @@ export function AnalyticsView({
     ];
   }, [themeConfig]);
 
-  const getSaleNetRevenue = (sale: Sale): number => {
+  /**
+   * ⭐⭐ CA NET **DE LA PORTÉE COURANTE** — défaut signalé en test terrain le
+   * 05/08/2026, relevé SQL à l'appui.
+   *
+   * ⛔ Les KPI sommaient `getSaleNetRevenue(s)` — le total de la vente
+   * ENTIÈRE — sans jamais regarder les items. Une vente mixte (boisson +
+   * plat) comptait donc INTÉGRALEMENT en portée Restau.
+   * Mesuré sur le bar de test : l'écran affichait 11 400 F alors que le CA
+   * plats réel valait 5 000 F. Un promoteur aurait cru sa cuisine DEUX FOIS
+   * plus rentable qu'elle ne l'est — et aurait décidé sur ce chiffre.
+   *
+   * ⚠️ C'est ce que signalait l'avertissement ESLint « missing dependency:
+   * scope » sur le useMemo des KPI, que j'avais écarté comme préexistant. Il
+   * ne l'était pas : il désignait ce défaut.
+   *
+   * ⭐ Le remboursement est réparti AU PRORATA de la part de la portée dans
+   * la vente : rembourser un plat ne doit pas amputer le CA des boissons, et
+   * inversement. Même simplification que la répartition par catégorie plus
+   * bas — cohérente d'un bloc à l'autre du même écran.
+   */
+  const getScopedNetRevenue = (sale: Sale): number => {
+    const scopedGross = sale.items.reduce(
+      (sum, item) => (itemMatchesScope(item, scope) ? sum + item.total_price : sum),
+      0
+    );
+    // ⚠️ En portée « Tout », `scopedGross` vaut le brut : on retombe
+    // exactement sur `getSaleNetRevenue`, donc AUCUN changement pour un bar
+    // pur ou une portée non filtrée (§3).
+    if (scopedGross === 0) return 0;
+
     const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
     const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
-    return sale.total - refundAmount;
+    if (refundAmount === 0) return scopedGross;
+
+    const ratio = sale.total > 0 ? scopedGross / sale.total : 0;
+    return scopedGross - refundAmount * ratio;
   };
+
+  /** Articles de la portée courante — même règle que le CA. */
+  const getScopedItemCount = (sale: Sale): number =>
+    sale.items.reduce(
+      (sum, item) => (itemMatchesScope(item, scope) ? sum + item.quantity : sum),
+      0
+    );
+
+  /** Une vente COMPTE dans la portée si elle y a au moins un article. */
+  const saleTouchesScope = (sale: Sale): boolean =>
+    sale.items.some((item) => itemMatchesScope(item, scope));
 
 
   // Calculer période précédente pour comparaison
@@ -199,30 +242,35 @@ export function AnalyticsView({
     const currentRevenue = sales.reduce((sum, s) => {
       // Pour les stats, on ne compte que les ventes validées (ou optimistes qui le seront)
       if (s.status !== 'validated' && !s.isOptimistic) return sum;
-      return sum + getSaleNetRevenue(s);
+      return sum + getScopedNetRevenue(s);
     }, 0);
 
+    // ⚠️ items_count VOLONTAIREMENT IGNORE : ce compteur denormalise porte
+    // TOUS les articles de la vente, sans distinction de portee. L utiliser
+    // ferait compter les boissons en portee Restau — le defaut meme qu on
+    // corrige ici.
     const currentItems = sales.reduce((sum, s) => {
       if (s.status !== 'validated' && !s.isOptimistic) return sum;
-      if (typeof s.items_count === 'number') return sum + s.items_count;
-      return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
+      return sum + getScopedItemCount(s);
     }, 0);
 
-    const currentCount = sales.filter(s => s.status === 'validated' || s.isOptimistic).length;
+    // ⚠️ Une vente ne compte QUE si elle contient un article de la portee :
+    // sinon une soiree 100 % boissons afficherait « 11 ventes » en Restau.
+    const currentCount = sales.filter(
+      s => (s.status === 'validated' || s.isOptimistic) && saleTouchesScope(s)
+    ).length;
 
     // 2. Calculer CA NET de la période précédente (pour la tendance)
-    const prevGrossRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
-    const prevSaleIds = new Set(previousPeriodSales.map(s => s.id));
-    const prevRefunds = returns
-      .filter(r => prevSaleIds.has(r.saleId) && isConfirmedReturn(r))
-      .reduce((sum, r) => sum + r.refundAmount, 0);
-    const prevRevenue = prevGrossRevenue - prevRefunds;
-
-    const prevCount = previousPeriodSales.length;
-    const prevItems = previousPeriodSales.reduce((sum, s) => {
-      if (typeof s.items_count === 'number') return sum + s.items_count;
-      return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
-    }, 0);
+    // ⚠️ MEME portee sur la periode precedente : comparer un CA Restau a un
+    // CA global produirait des tendances absurdes (« -60 % » alors que la
+    // cuisine progresse).
+    const prevRevenue = previousPeriodSales.reduce(
+      (sum, s) => sum + getScopedNetRevenue(s), 0
+    );
+    const prevCount = previousPeriodSales.filter(saleTouchesScope).length;
+    const prevItems = previousPeriodSales.reduce(
+      (sum, s) => sum + getScopedItemCount(s), 0
+    );
 
     // 3. Calculer les variations
     const revenueChange = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : (currentRevenue > 0 ? 100 : 0);
@@ -247,7 +295,9 @@ export function AnalyticsView({
       kpi: { value: currentKpiValue, label: stats.kpiLabel, change: 0 },
       items: { value: currentItems, change: itemsChange }
     };
-  }, [sales, stats.kpiLabel, previousPeriodSales, returns, startDate, endDate, timeRange]);
+    // ⚠️ scope INDISPENSABLE dans les deps : sans lui, changer de portee ne
+    // recalculerait RIEN et les KPI resteraient figes sur la precedente.
+  }, [sales, stats.kpiLabel, previousPeriodSales, returns, startDate, endDate, timeRange, scope]);
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
@@ -274,7 +324,9 @@ export function AnalyticsView({
 
         if (grouped.has(hour)) {
           const existing = grouped.get(hour)!;
-          existing.revenue += getSaleNetRevenue(sale);
+          // ⭐ CA de la PORTEE — sinon la courbe montrait des pics superieurs
+          // au CA plats reel (test terrain : 3 200 F pour des plats a 2 500).
+          existing.revenue += getScopedNetRevenue(sale);
           existing.sales += 1;
         }
       });
@@ -301,7 +353,7 @@ export function AnalyticsView({
       if (!grouped[label]) {
         grouped[label] = { label, revenue: 0, sales: 0, timestamp };
       }
-      grouped[label].revenue += getSaleNetRevenue(sale);
+      grouped[label].revenue += getScopedNetRevenue(sale);
       grouped[label].sales += 1;
       // Le timestamp est utilisé pour le tri chronologique des jours
       grouped[label].timestamp = Math.min(grouped[label].timestamp, timestamp);
@@ -309,7 +361,9 @@ export function AnalyticsView({
 
     return Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
 
-  }, [sales, startDate, endDate, closeHour]);
+    // ⚠️ scope dans les deps : sans lui la courbe resterait figee sur la
+    // portee precedente.
+  }, [sales, startDate, endDate, closeHour, scope]);
 
   // Répartition par catégorie (sur CA NET pour cohérence avec le reste du dashboard)
   const categoryData = useMemo(() => {
@@ -406,7 +460,10 @@ export function AnalyticsView({
     barMembers: safeBarMembers,
     startDate,
     endDate,
-    closeHour
+    closeHour,
+    // ⭐ Sans cette portee, le graphique affichait le CA TOTAL de chaque
+    // membre en Restau — boissons comprises (test terrain 05/08/2026).
+    scope
   });
 
   const TrendIcon = ({ change }: { change: number }) => {
@@ -570,7 +627,16 @@ export function AnalyticsView({
         />
       </div>
 
-      {/* Top produits - Composant dédié */}
+      {/* ⭐⭐ TOP PRODUITS — MASQUÉ en portée Restau.
+          ⛔ Signalé en test terrain le 05/08/2026 : ce classement affichait
+          « Whisky Cola, Racines, Beaufort » alors que la portée était Restau.
+          Sa source est une RPC SQL (`sqlTopProducts` dans useSalesStats) qui
+          n'a AUCUNE notion de portée — elle n'est donc pas filtrable ici.
+          ⭐ Le masquer plutôt que de le filtrer à vide est la bonne réponse :
+          en portée Restau, le classement des PLATS existe déjà, dans le bloc
+          Rentabilité cuisine juste au-dessus. Un second classement, vide ou
+          redondant, n'apprendrait rien. */}
+      {scope !== 'kitchen' && (
       <div data-guide="analytics-top-products">
         <TopProductsChart
           data={stats.topProducts}
@@ -583,6 +649,7 @@ export function AnalyticsView({
           formatPrice={formatPrice}
         />
       </div>
+      )}
     </div>
   );
 }
