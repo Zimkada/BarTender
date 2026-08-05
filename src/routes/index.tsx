@@ -37,7 +37,6 @@ const IngredientsPage = lazyWithRetry(() => import('../pages/IngredientsPage'));
 // `requiresRestaurant` ci-dessous est donc obligatoire sur CHACUNE.
 const DishesPage = lazyWithRetry(() => import('../pages/DishesPage'));
 const KitchenServicePage = lazyWithRetry(() => import('../pages/KitchenServicePage'));
-const KitchenMetricsPage = lazyWithRetry(() => import('../pages/KitchenMetricsPage'));
 // SettingsPage is lazy loaded above
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
@@ -157,20 +156,6 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <KitchenServicePage /> },
-        ],
-      },
-      {
-        // ⭐⭐ Rentabilite cuisine (§8) — PAGE DEDIEE et non onglet de Plats.
-        //   Le CUISINIER a canManageRecipes (donc acces a Plats) mais PAS
-        //   canViewKitchenCosts : « il voit les QUANTITES, pas les MONTANTS »
-        //   (§8). Un onglet aurait expose marges et pertes a qui ne doit pas
-        //   les voir — ici la garde est portee par la ROUTE.
-        path: 'kitchen/metrics',
-        element: (
-          <ProtectedRoute permission="canViewKitchenCosts" requiresRestaurant />
-        ),
-        children: [
-          { index: true, element: <KitchenMetricsPage /> },
         ],
       },
       { path: 'analytics', element: <AnalyticsPage /> },

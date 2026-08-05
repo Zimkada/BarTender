@@ -29,7 +29,6 @@ import {
   ChefHat,
   UtensilsCrossed,
   Carrot,
-  TrendingUp,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -191,8 +190,6 @@ export function MobileSidebar({
     //    retire les plats prêts, et le `serve` crée la vente. L'en exclure le
     //    priverait de l'écran où il fait l'essentiel de son travail en salle.
     { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true },
-    // ⚠️ Le CUISINIER est ABSENT : il voit les quantites, pas les montants (§8).
-    { id: 'kitchenMetrics', label: 'Rentabilite', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/kitchen/metrics', requiresRestaurant: true },
     { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
     { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
@@ -259,7 +256,7 @@ export function MobileSidebar({
         //    accueillera Service et Appro en phase 3 sans redevenir illisible.
         // ⭐ « Service » EN TÊTE : c'est l'écran ouvert pendant tout le service,
         // alors que Plats et Ingrédients relèvent de la préparation en amont.
-        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenDishes', 'kitchenIngredients', 'kitchenMetrics']),
+        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenDishes', 'kitchenIngredients']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),

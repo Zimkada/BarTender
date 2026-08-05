@@ -8,6 +8,7 @@ import { TopProductsChart } from '../../../../components/analytics/TopProductsCh
 import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
 import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
 import { ChartTooltip } from '../../../../components/charts/ChartTooltip';
+import { KitchenAnalyticsBlock } from '../../../../components/kitchen/KitchenAnalyticsBlock';
 import { ScopeSwitcher } from '../../../../components/common/ScopeSwitcher';
 import {
   itemMatchesScope,
@@ -481,6 +482,25 @@ export function AnalyticsView({
           </div>
         </div>
       </div>
+
+      {/* ⭐⭐ MÉTRIQUES CUISINE — portée Restau UNIQUEMENT.
+          Placées APRÈS les KPI ventes : elles les COMPLÈTENT, elles ne les
+          remplacent pas. Le CA et les ventes restent calculés depuis `sales`,
+          comme en portée Bar — une seule source par chiffre.
+          ⚠️ En portée « Tout », ce bloc est MASQUÉ : mélanger une marge
+          matière (cuisine seule) à un CA global laisserait croire que le
+          taux couvre aussi les boissons.
+          ⚠️ Le composant se masque LUI-MÊME sans `canViewKitchenCosts` et
+          sans données — la condition ici ne porte que sur la portée. */}
+      {scope === 'kitchen' && (
+        <KitchenAnalyticsBlock
+          barId={currentBar?.id}
+          startDate={startDate}
+          endDate={endDate}
+          formatPrice={formatPrice}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Graphiques principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`} data-guide="analytics-charts">
