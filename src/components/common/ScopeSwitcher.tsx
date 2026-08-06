@@ -59,61 +59,83 @@ export function ScopeSwitcher({ scope, onScopeChange, hasRestaurant, className }
   if (!hasRestaurant) return null;
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Portée des statistiques"
-      /**
-       * ⭐ PLEINE LARGEUR SUR MOBILE, largeur du contenu en desktop — aligné
-       * sur `PeriodFilter`, le sélecteur avec lequel il cohabite (défaut
-       * relevé en test terrain le 08/08/2026).
-       *
-       * ⚠️ `inline-flex` ne s'étire JAMAIS : le sélecteur restait court et
-       * flottait à gauche pendant que le bandeau de période occupait toute la
-       * ligne. Deux contrôles du même écran, deux largeurs — l'œil y lit une
-       * hiérarchie qui n'existe pas.
-       *
-       * ⭐ `flex w-full` puis `sm:inline-flex sm:w-auto` : les trois positions
-       * se partagent la ligne sur téléphone (cibles tactiles plus larges), et
-       * le composant reprend sa taille naturelle dès qu'il y a de la place.
-       */
-      className={cn(
-        'flex w-full items-center p-0.5 bg-muted rounded-full border border-border',
-        'sm:inline-flex sm:w-auto',
-        className
-      )}
-    >
-      {SCOPES.map(({ id, label, Icon }) => {
-        const isActive = scope === id;
+    /**
+     * ⭐ « Afficher » PRÉCÈDE le sélecteur en desktop (demande du 08/08/2026).
+     * Sans lui, trois pastilles flottent sans dire de quoi elles parlent : sur
+     * un écran qui porte déjà un filtre de période, rien ne distingue « ce que
+     * je regarde » de « quand je le regarde ».
+     *
+     * ⛔ MASQUÉ SOUS `sm` : sur téléphone la place va aux cibles tactiles, et
+     * le mot volerait la largeur des trois positions.
+     * ⚠️ `aria-hidden` : le groupe porte déjà `aria-label="Portée des
+     * statistiques"`. Sans cela un lecteur d'écran annoncerait deux intitulés
+     * concurrents pour un seul contrôle.
+     */
+    <div className={cn('flex items-center gap-2', className)}>
+      <span
+        aria-hidden="true"
+        className="hidden shrink-0 text-caption font-medium text-muted-foreground sm:inline"
+      >
+        Afficher
+      </span>
 
-        return (
-          <button
-            key={id}
-            type="button"
-            role="radio"
-            aria-checked={isActive}
-            onClick={() => onScopeChange(id)}
-            /**
-             * ⚠️ `flex-1` sur mobile : les trois positions se partagent la
-             * largeur à parts égales, ce qui agrandit les cibles tactiles sur
-             * un écran utilisé debout. `sm:flex-none` les rend à leur taille
-             * naturelle dès qu'il y a de la place — même règle que
-             * `PeriodFilter`.
-             * ⚠️ `justify-center` : sans lui, les libellés se colleraient à
-             * gauche de leur zone une fois celle-ci élargie.
-             */
-            className={cn(
-              'flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5',
-              'rounded-full text-caption transition-all sm:flex-none',
-              isActive
-                ? 'bg-card text-brand-primary shadow-sm font-semibold'
-                : 'text-muted-foreground hover:text-foreground font-medium'
-            )}
-          >
-            <Icon size={14} />
-            <span>{label}</span>
-          </button>
-        );
-      })}
+      <div
+        role="radiogroup"
+        aria-label="Portée des statistiques"
+        /**
+         * ⭐ PLEINE LARGEUR SUR MOBILE, largeur alignée sur `PeriodFilter` en
+         * desktop - les deux cohabitent sur le Dashboard et l'Historique.
+         *
+         * ⚠️ `inline-flex` ne s'étire JAMAIS : le sélecteur restait court et
+         * flottait à gauche pendant que le bandeau de période occupait toute la
+         * ligne. Deux contrôles du même écran, deux largeurs - l'œil y lit une
+         * hiérarchie qui n'existe pas.
+         *
+         * ⚠️ La largeur desktop se joue sur `sm:min-w-[90px]` des BOUTONS, pas
+         * ici : étirer le conteneur seul aurait espacé les positions sans les
+         * agrandir.
+         */
+        className="flex w-full items-center p-0.5 bg-muted rounded-full border border-border sm:w-auto"
+      >
+        {SCOPES.map(({ id, label, Icon }) => {
+          const isActive = scope === id;
+
+          return (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => onScopeChange(id)}
+              /**
+               * ⚠️ `flex-1` sur mobile : les trois positions se partagent la
+               * largeur à parts égales, ce qui agrandit les cibles tactiles sur
+               * un écran utilisé debout.
+               *
+               * ⭐ `sm:min-w-[90px]` reprend EXACTEMENT la valeur de
+               * `PeriodFilter`. C'est ce qui manquait : le sélecteur revenait à
+               * sa largeur naturelle en desktop et paraissait rabougri à côté
+               * du filtre de période, sur les mêmes écrans (défaut relevé le
+               * 08/08/2026).
+               *
+               * ⚠️ `justify-center` : sans lui, les libellés se colleraient à
+               * gauche de leur zone une fois celle-ci élargie.
+               */
+              className={cn(
+                'flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5',
+                'rounded-full text-caption transition-all',
+                'sm:flex-none sm:min-w-[90px]',
+                isActive
+                  ? 'bg-card text-brand-primary shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:text-foreground font-medium'
+              )}
+            >
+              <Icon size={14} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
