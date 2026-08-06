@@ -22,6 +22,7 @@ import { Button } from '../components/ui/Button';
 import { KitchenItemCard } from '../components/kitchen/KitchenItemCard';
 import { CancelItemModal } from '../components/kitchen/CancelItemModal';
 import { KitchenProductionPanel } from '../components/kitchen/KitchenProductionPanel';
+import { BatchAlertBanner } from '../components/kitchen/BatchAlertBanner';
 import { useUnifiedKitchenQueue, type KitchenGroup } from '../hooks/pivots/useUnifiedKitchenQueue';
 import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
 import { useBarContext } from '../context/BarContext';
@@ -256,6 +257,12 @@ export default function KitchenServicePage() {
           </Button>
         }
       />
+
+      {/* ⭐⭐ EN TÊTE, AVANT LA FILE — et HORS du bloc conditionnel ci-dessous.
+          Une rupture de lot doit se voir même quand la file est vide : c'est
+          justement le moment où le cuisinier a le temps de produire.
+          ⚠️ Le composant se masque lui-même s'il n'y a rien à signaler. */}
+      <BatchAlertBanner barId={currentBar?.id} />
 
       {!isLoading && totalItems === 0 ? (
         <EmptyState

@@ -47,6 +47,9 @@ export const dishKeys = {
    */
   components: (barId: string, dishId: string) =>
     [...dishKeys.all, 'components', barId, dishId] as const,
+  /** TOUTES les compositions du bar — un seul appel, pour l'alerte de lot. */
+  allComponents: (barId: string) =>
+    [...dishKeys.all, 'all-components', barId] as const,
   cost: (barId: string, dishId: string) =>
     [...dishKeys.all, 'cost', barId, dishId] as const,
   /** Coûts de TOUS les plats — clé distincte du coût unitaire. */
@@ -118,6 +121,29 @@ export function useDishComponents(barId: string | undefined, dishId: string | un
     queryFn: () => DishesService.getComponents(barId as string, dishId as string),
     // ⭐ §3 + garde sur dishId : pas de requête sans cible.
     enabled: !!barId && !!dishId && hasRestaurant,
+    ...CACHE_STRATEGY.products,
+  });
+}
+
+/**
+ * TOUTES les compositions du bar — UN appel pour l'ensemble.
+ *
+ * ⛔ Indispensable à l'alerte de lot vide : elle doit savoir, pour chaque plat
+ * de la file, quels lots il prélève. Un appel par plat serait un N+1 sur
+ * l'écran le plus rafraîchi du module.
+ *
+ * ⚠️ `products` (30 min) et non `salesAndStock` : une composition change quand
+ * on modifie une recette, pas pendant le service. Ce sont les LOTS qui
+ * bougent, et ils ont leur propre cache court.
+ */
+export function useAllDishComponents(barId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<DishComponentRow[]>({
+    queryKey: dishKeys.allComponents(barId ?? ''),
+    queryFn: () => DishesService.getAllComponents(barId as string),
+    // ⭐ §3 — aucune requête sur un bar pur.
+    enabled: !!barId && hasRestaurant,
     ...CACHE_STRATEGY.products,
   });
 }

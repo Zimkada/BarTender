@@ -499,6 +499,30 @@ export class DishesService {
   }
 
   /**
+   * TOUTES les compositions du bar — UN appel, pas un par plat.
+   *
+   * ⛔ Indispensable pour l'alerte de lot vide : elle doit savoir, pour chaque
+   * plat en attente, quels lots il prélève. Appeler `getComponents` par plat
+   * serait un N+1 sur l'écran le plus rafraîchi du module.
+   *
+   * ⚠️ Volume négligeable : quelques dizaines de lignes par bar au maximum,
+   * un plat composé ayant rarement plus d'une ou deux bases.
+   */
+  static async getAllComponents(barId: string): Promise<DishComponentRow[]> {
+    try {
+      const { data, error } = await supabase
+        .from('dish_recipe_components')
+        .select('id, bar_id, dish_id, base_dish_id, quantity')
+        .eq('bar_id', barId);
+
+      if (error) throw error;
+      return (data ?? []) as DishComponentRow[];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
    * Composition d'un plat — lecture directe, la RLS filtre par bar.
    *
    * ⚠️ `bar_id` filtré explicitement EN PLUS de la RLS : convention du projet
