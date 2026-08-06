@@ -508,7 +508,11 @@ NOTIFY pgrst, 'reload schema';
 --
 -- 3) ⛔⛔⛔ BLOQUANT — TOUJOURS AUCUN MONTANT dans la RPC du cuisinier :
 --
---    SELECT pg_get_functiondef(p.oid) ~* '(unit_price|computed_cost|revenue|margin|loss_cost)'
+--    ⚠️ Les COMMENTAIRES sont retires avant le test : pg_get_functiondef les
+--    conserve, et un commentaire qui explique « batch_loss_cost est absent »
+--    ferait matcher le motif. Defaut trouve a l application du 07/08/2026.
+--    SELECT regexp_replace(pg_get_functiondef(p.oid), '--[^' || chr(10) || ']*', '', 'g')
+--             ~* '(unit_price|computed_cost|revenue|margin|loss_cost)'
 --             AS contient_des_montants
 --    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
 --    WHERE n.nspname='public' AND p.proname='get_kitchen_production';
