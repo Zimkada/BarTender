@@ -125,6 +125,18 @@ interface MarkReadyResult extends TransitionResult {
   computed_cost: number;
   /** `true` si la ligne était déjà prête — le double-clic est le cas NOMINAL. */
   already_ready?: boolean;
+  /**
+   * ⭐ Portions de lot manquantes au prélèvement (§4.4, régime `batch_finish`).
+   *
+   * ⚠️ `> 0` signifie « servi QUAND MÊME, mais le lot était vide ». On ne
+   * refuse pas : le plat est déjà cuisiné quand cette RPC s'exécute, il est
+   * trop tard pour dire non. Le coût de ces portions est ESTIMÉ au dernier
+   * lot connu — approximatif et assumé, mieux qu'un coût nul qui afficherait
+   * une marge de 100 %.
+   * ⚠️ Absent des réponses `on_order` : ce n'est pas un oubli, ces plats ne
+   * prélèvent aucun lot.
+   */
+  batch_debt_qty?: number;
 }
 
 interface ServeResult extends TransitionResult {

@@ -3201,6 +3201,42 @@ export type Database = {
           },
         ]
       }
+      kitchen_item_batch_consumptions: {
+        Row: {
+          bar_id: string
+          consumed_at: string
+          created_at: string
+          id: string
+          kitchen_order_item_id: string
+          production_batch_id: string
+          quantity: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          kitchen_order_item_id: string
+          production_batch_id: string
+          quantity: number
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          kitchen_order_item_id?: string
+          production_batch_id?: string
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       production_batches: {
         Row: {
           bar_id: string

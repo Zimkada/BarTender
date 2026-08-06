@@ -128,6 +128,26 @@ export function useKitchenMutations() {
       return KitchenService.markReady(barId, input.itemId, input.businessDate);
     },
     onSettled: invalidateStockDependent,
+    /**
+     * ⭐ SERVI SANS LOT — le cuisinier doit le savoir (§4.4, `batch_finish`).
+     *
+     * ⚠️ On ne refuse jamais : le plat est déjà cuisiné quand la RPC
+     * s'exécute. Mais laisser passer en silence cacherait deux choses — une
+     * production oubliée, et un coût matière ESTIMÉ plutôt que réel.
+     * ⚠️ Aucun message dans le cas nominal : un toast à chaque plat prêt
+     * rendrait l'écran de service inutilisable.
+     */
+    onSuccess: (result) => {
+      const debt = result.batch_debt_qty ?? 0;
+      if (debt <= 0) return;
+
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast(
+          `Servi, mais le lot était vide (${debt} portion${debt > 1 ? 's' : ''} manquante${debt > 1 ? 's' : ''}). Pensez à produire un lot.`,
+          { icon: '⚠️', duration: 6000 }
+        );
+      });
+    },
     onError: (error) => {
       console.error('Passage en prêt échoué:', getErrorMessage(error));
     },

@@ -347,6 +347,78 @@ describe('produce_batch — la matière sortie doit toujours produire un lot', (
   });
 });
 
+describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais cesser de bouger', () => {
+  const sql = codeOnly(lastDefinitionOf('mark_kitchen_item_ready'));
+
+  /**
+   * ⛔⛔⛔ LE PIÈGE LE PLUS DANGEREUX DE TOUT LE MODULE.
+   *
+   * `consumed_at_stage` a pour DÉFAUT `'batch'` (migration 20260803100000) :
+   * TOUS les plats existants ont leurs ingrédients à cette valeur.
+   *
+   * Un filtre `WHERE consumed_at_stage = 'finish'` appliqué SANS CONDITION
+   * ferait donc cesser la consommation de stock sur TOUS les plats en
+   * production. Sans erreur SQL. Sans test rouge. Invisible jusqu'à
+   * l'inventaire physique, des semaines plus tard.
+   *
+   * ⭐ La règle DOIT être conditionnée au régime : `on_order` et `batch`
+   * prennent tout, seul `batch_finish` filtre.
+   */
+  it('conditionne le filtre de stage au régime du plat', () => {
+    expect(sql).toMatch(/v_mode\s*<>\s*'batch_finish'\s*OR/);
+  });
+
+  /** ⚠️ Un filtre nu, sans la condition de régime, serait la régression. */
+  it('ne filtre JAMAIS sur `finish` sans condition de régime', () => {
+    // Toute occurrence de `consumed_at_stage = 'finish'` doit être précédée
+    // de la garde de régime dans la même expression.
+    const occurrences = sql.match(/consumed_at_stage\s*=\s*'finish'/g) ?? [];
+    for (const _ of occurrences) {
+      expect(sql).toMatch(
+        /v_mode\s*<>\s*'batch_finish'\s*OR\s*di\.consumed_at_stage\s*=\s*'finish'/
+      );
+    }
+  });
+
+  /**
+   * ⭐ Le prélèvement de lot est lui aussi réservé à `batch_finish` : un plat
+   * `on_order` ne doit toucher à aucun lot.
+   */
+  it('ne prélève dans les lots qu’en régime batch_finish', () => {
+    expect(sql).toMatch(/IF v_mode = 'batch_finish' THEN/);
+  });
+
+  /**
+   * ⛔ `FOR UPDATE` sur les lots : deux commandes simultanées du même plat
+   * prélèveraient sinon les mêmes portions, et `remaining_qty` deviendrait
+   * faux sans qu'aucune erreur ne soit levée.
+   */
+  it('verrouille les lots pendant le prélèvement', () => {
+    expect(sql).toMatch(/ORDER BY produced_at ASC\s*\n?\s*FOR UPDATE/);
+  });
+
+  /** ⭐ Idempotence historique — un double-clic ne consomme pas deux fois. */
+  it('reste idempotente via consumed_at', () => {
+    expect(sql).toMatch(/v_item\.consumed_at IS NOT NULL/);
+    expect(sql).toMatch(/idempotent_replay/);
+  });
+
+  /**
+   * ⛔ Même correction que `produce_batch` : `consume_ingredients_fefo`
+   * retourne `success: false` sans lever. Un RETURN validerait ce qui
+   * précède — or à partir de 3B.2, des prélèvements de lot peuvent avoir eu
+   * lieu dans la même transaction.
+   */
+  it('LÈVE une exception si le FEFO échoue', () => {
+    expect(sql).toMatch(/RAISE EXCEPTION 'FEFO_FAILED/);
+  });
+
+  /** ⚠️ Lot insuffisant ⟹ dette, jamais refus (§4.4). */
+  it('sert malgré un lot vide et expose la dette', () => {
+    expect(sql).toMatch(/batch_debt_qty/);
+  });
+});
+
 /**
  * ⛔⛔ L'IDEMPOTENCE DOIT ÊTRE PORTÉE PAR LA BASE, PAS SEULEMENT PAR LE RPC.
  * Deux requêtes concurrentes passent toutes deux le `SELECT` de contrôle
