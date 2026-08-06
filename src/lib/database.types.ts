@@ -2855,6 +2855,7 @@ export type Database = {
           consumed_at: string | null
           created_at: string
           dish_id: string
+          forced_on_order: boolean
           id: string
           kitchen_order_id: string
           last_reminder_at: string | null
@@ -2881,6 +2882,7 @@ export type Database = {
           consumed_at?: string | null
           created_at?: string
           dish_id: string
+          forced_on_order?: boolean
           id?: string
           kitchen_order_id: string
           last_reminder_at?: string | null
@@ -2907,6 +2909,7 @@ export type Database = {
           consumed_at?: string | null
           created_at?: string
           dish_id?: string
+          forced_on_order?: boolean
           id?: string
           kitchen_order_id?: string
           last_reminder_at?: string | null
@@ -7129,6 +7132,10 @@ export type Database = {
           sales_count: number
           total_revenue: number
         }[]
+      }
+      force_item_on_order: {
+        Args: { p_bar_id: string; p_item_id: string }
+        Returns: Json
       }
       get_kitchen_metrics: {
         Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }

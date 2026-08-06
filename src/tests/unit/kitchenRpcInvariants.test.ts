@@ -385,7 +385,27 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
    * `on_order` ne doit toucher à aucun lot.
    */
   it('ne prélève dans les lots qu’en régime batch_finish', () => {
-    expect(sql).toMatch(/IF v_mode = 'batch_finish' THEN/);
+    // ⚠️ La condition porte AUSSI `forced_on_order` depuis 3C.1 : une ligne
+    // basculée a déjà consommé sa recette entière, y prélever un lot
+    // double-compterait la matière.
+    expect(sql).toMatch(/v_mode = 'batch_finish' THEN/);
+  });
+
+  /**
+   * ⛔⛔ PAS DE DOUBLE COMPTAGE — 3C.1.
+   * Une ligne `forced_on_order` consomme sa recette ENTIÈRE (branche
+   * ingrédients). Y prélever un lot EN PLUS ferait coûter le plat deux fois.
+   */
+  it('ne prélève AUCUN lot sur une ligne basculée à la commande', () => {
+    expect(sql).toMatch(/NOT v_item\.forced_on_order AND v_mode = 'batch_finish'/);
+  });
+
+  /**
+   * ⭐ Et sa recette entière est bien consommée : le filtre de stage laisse
+   * tout passer quand `forced_on_order` est vrai.
+   */
+  it('consomme la recette entière sur une ligne basculée', () => {
+    expect(sql).toMatch(/v_item\.forced_on_order[\s\S]{0,40}OR v_mode <> 'batch_finish'/);
   });
 
   /**
@@ -472,8 +492,21 @@ describe('accept_kitchen_item — la décision se prend AVANT de cuisiner', () =
    * dure des minutes.
    */
   it('ne verrouille pas les lots pendant la préparation', () => {
-    const bloc = sql.slice(sql.indexOf("'batch_finish'"));
-    expect(bloc).not.toMatch(/production_batches[\s\S]{0,300}?FOR UPDATE/);
+    // ⚠️ On isole le bloc de vérification : `accept_kitchen_item` ne contient
+    // qu'une lecture de `production_batches`, jamais un FOR UPDATE dessus.
+    const i = sql.indexOf('SELECT COALESCE(SUM(remaining_qty)');
+    expect(i).toBeGreaterThan(-1);
+    const bloc = sql.slice(i, i + 400);
+    expect(bloc).not.toMatch(/FOR UPDATE/);
+  });
+
+  /**
+   * ⭐ 3C.1 — une ligne basculée ne prélève aucun lot : vérifier leur
+   * disponibilité la bloquerait pour une raison qui ne la concerne plus.
+   * C'est précisément la sortie que la bascule doit offrir.
+   */
+  it('laisse passer une ligne basculée à la commande', () => {
+    expect(sql).toMatch(/NOT v_item\.forced_on_order/);
   });
 });
 

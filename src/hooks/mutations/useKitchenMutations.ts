@@ -136,6 +136,45 @@ export function useKitchenMutations() {
   });
 
   /**
+   * ⭐ Bascule une ligne en préparation à la commande — §16.9.
+   *
+   * C'est la SORTIE qu'annonce le refus de lot : « produisez un lot, ou
+   * préparez ce plat à la commande ». Sans cette mutation, la seconde option
+   * n'était qu'une phrase dans un message d'erreur.
+   *
+   * ⚠️ Le plat n'est PAS modifié : seule CETTE assiette change de mode. Le
+   * coût reste exact — la recette entière est consommée, aucune estimation.
+   */
+  const forceOnOrder = useMutation({
+    mutationFn: async (itemId: string) => {
+      if (!barId) throw new Error('Aucun bar sélectionné');
+      return KitchenService.forceOnOrder(barId, itemId);
+    },
+    onSettled: invalidateQueue,
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        // ⚠️ Un rejeu n'est pas une nouvelle bascule : le dire évite que le
+        // cuisinier croie avoir agi deux fois.
+        if (result.already_forced) {
+          toast('Ce plat est déjà préparé à la commande', { icon: 'ℹ️' });
+          return;
+        }
+        toast.success(
+          `${result.dish_name ?? 'Ce plat'} sera préparé à la commande — délai plus long`,
+          { duration: 5000 }
+        );
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      console.error('Bascule à la commande échouée:', msg);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg, { duration: 6000 });
+      });
+    },
+  });
+
+  /**
    * ⭐⭐ → `ready` : consomme la MATIÈRE (§6). Invalidation élargie obligatoire.
    */
   const markReady = useMutation({
@@ -235,5 +274,5 @@ export function useKitchenMutations() {
     },
   });
 
-  return { createOrder, acceptItem, markReady, serveItem, cancelItem };
+  return { createOrder, acceptItem, forceOnOrder, markReady, serveItem, cancelItem };
 }

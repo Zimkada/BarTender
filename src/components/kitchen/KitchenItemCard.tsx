@@ -14,7 +14,7 @@
  */
 
 import { memo } from 'react';
-import { Check, ChefHat, HandPlatter, X, Clock } from 'lucide-react';
+import { Check, ChefHat, HandPlatter, X, Clock, Flame } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import type { KitchenQueueItem } from '../../services/supabase/kitchen.service';
@@ -43,6 +43,19 @@ interface Props {
    */
   canCancelAfterReady: boolean;
   onAccept: (itemId: string) => void;
+  /**
+   * ⭐ §16.9 — bascule CETTE ligne en préparation à la commande.
+   * Appelée quand un lot manque : le plat garde son régime, seule cette
+   * assiette est cuisinée entièrement.
+   */
+  onForceOnOrder: (itemId: string) => void;
+  /**
+   * ⚠️ Le RÉGIME vient du PLAT, pas de la ligne : `KitchenQueueItem` ne le
+   * porte pas, et l'ajouter à la vue SQL demanderait une migration pour un
+   * seul booléen d'affichage. Le parent le résout depuis `useDishes`, déjà
+   * en cache sur cet écran.
+   */
+  isBatchFinish: boolean;
   onMarkReady: (itemId: string) => void;
   onServe: (itemId: string) => void;
   onCancel: (item: KitchenQueueItem) => void;
@@ -74,6 +87,8 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
   canCancel,
   canCancelAfterReady,
   onAccept,
+  onForceOnOrder,
+  isBatchFinish,
   onMarkReady,
   onServe,
   onCancel,
@@ -131,6 +146,19 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
         </span>
       </div>
 
+      {/* ⭐ LA BASCULE EST VISIBLE — défaut trouvé à la code review du
+          08/08/2026. Sans ce badge, le cuisinier voyait un plat prendre plus
+          de temps sans savoir pourquoi, et le serveur ne pouvait pas expliquer
+          le délai au client.
+          ⚠️ Affiché tant que la ligne vit, y compris après `ready` : c'est une
+          information de traçabilité, pas un état transitoire. */}
+      {item.forced_on_order && (
+        <p className="mt-2 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
+          <Flame className="h-3 w-3 flex-shrink-0" />
+          Préparé à la commande — lot indisponible
+        </p>
+      )}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {/* ⭐ « À faire » → le cuisinier prend la ligne en charge. */}
         {canProduce && (item.status === 'pending' || item.status === 'accepted') && (
@@ -139,6 +167,29 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
             Commencer
           </Button>
         )}
+
+        {/* ⭐ PRÉPARER À LA COMMANDE — la sortie quand un lot manque (§16.9).
+            ⛔ N'apparaît QUE sur un plat `batch_finish` non encore basculé et
+            pas encore démarré : partout ailleurs il serait sans effet, et le
+            serveur le refuserait. Un bouton qui échoue toujours est pire
+            qu'un bouton absent.
+            ⚠️ `ghost` et non `default` : c'est un recours, pas le geste
+            nominal. Le mettre en avant inviterait à contourner les lots. */}
+        {canProduce &&
+          isBatchFinish &&
+          !item.forced_on_order &&
+          (item.status === 'pending' || item.status === 'accepted') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onForceOnOrder(item.id)}
+              disabled={isPending}
+              title="Cuisiner entièrement cette assiette, sans prélever de lot"
+            >
+              <Flame className="mr-1 h-4 w-4" />
+              À la commande
+            </Button>
+          )}
 
         {/* ⭐⭐ C'est ICI que la MATIÈRE sort du stock (§6), pas au service. */}
         {canProduce && item.status === 'preparing' && (

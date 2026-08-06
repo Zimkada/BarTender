@@ -14,7 +14,7 @@
  * Les permissions étant disjointes, chacun ne voit que ses boutons.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ChefHat, RefreshCw, UtensilsCrossed } from 'lucide-react';
 import { SimplePageHeader } from '../components/common/PageHeader';
 import { EmptyState } from '../components/common/EmptyState';
@@ -24,6 +24,7 @@ import { CancelItemModal } from '../components/kitchen/CancelItemModal';
 import { KitchenProductionPanel } from '../components/kitchen/KitchenProductionPanel';
 import { BatchAlertBanner } from '../components/kitchen/BatchAlertBanner';
 import { useUnifiedKitchenQueue, type KitchenGroup } from '../hooks/pivots/useUnifiedKitchenQueue';
+import { useDishes } from '../hooks/queries/useDishesQueries';
 import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -96,7 +97,20 @@ export default function KitchenServicePage() {
   const { formatPrice } = useCurrencyFormatter();
 
   const { columns, counts, isLoading, refetch } = useUnifiedKitchenQueue(currentBar?.id);
-  const { acceptItem, markReady, serveItem, cancelItem } = useKitchenMutations();
+  const { acceptItem, forceOnOrder, markReady, serveItem, cancelItem } =
+    useKitchenMutations();
+
+  /**
+   * ⭐ Index des plats à LOT — sert au seul bouton « À la commande ».
+   * ⚠️ `KitchenQueueItem` ne porte pas `production_mode` : l'ajouter à la vue
+   * SQL demanderait une migration pour un booléen d'affichage. `useDishes`
+   * est déjà en cache sur cet écran (catalogue, 30 min).
+   */
+  const { data: dishes = [] } = useDishes(currentBar?.id);
+  const batchFinishDishIds = useMemo(
+    () => new Set(dishes.filter((d) => d.production_mode === 'batch_finish').map((d) => d.id)),
+    [dishes]
+  );
 
   const [itemToCancel, setItemToCancel] = useState<KitchenQueueItem | null>(null);
 
@@ -154,6 +168,17 @@ export default function KitchenServicePage() {
    * clairement : le cuisinier doit savoir qu'il manque un ingrédient, pas
    * qu'« une erreur est survenue ».
    */
+  /**
+   * ⭐ La SORTIE quand un lot manque (§16.9). Le message d'erreur du refus
+   * l'annonce — ce handler la rend exécutable.
+   */
+  const handleForceOnOrder = useCallback(
+    (itemId: string) => {
+      forceOnOrder.mutate(itemId);
+    },
+    [forceOnOrder]
+  );
+
   const handleMarkReady = useCallback(
     (itemId: string) => {
       markReady.mutate(
@@ -219,6 +244,8 @@ export default function KitchenServicePage() {
         canCancel={canCancel}
         canCancelAfterReady={canCancelAfterReady}
         onAccept={handleAccept}
+        onForceOnOrder={handleForceOnOrder}
+        isBatchFinish={batchFinishDishIds.has(item.dish_id)}
         onMarkReady={handleMarkReady}
         onServe={handleServe}
         onCancel={setItemToCancel}
@@ -230,6 +257,8 @@ export default function KitchenServicePage() {
       canServe,
       canCancel,
       canCancelAfterReady,
+      batchFinishDishIds,
+      handleForceOnOrder,
       handleAccept,
       handleMarkReady,
       handleServe,

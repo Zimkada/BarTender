@@ -83,6 +83,15 @@ export interface KitchenOrderItemRow {
   consumed_at: string | null;
   /** ⭐ NULL alors que `consumed_at` est renseigné ⟹ PERTE (§8). */
   sale_id: string | null;
+  /**
+   * ⭐ §16.9 — cette assiette est cuisinée ENTIÈREMENT à la commande, quel
+   * que soit le régime du plat. Posé quand un lot manque.
+   *
+   * ⚠️ Porté par la LIGNE, jamais par le plat : une bascule sur
+   * `dishes.production_mode` serait annulée par `derive_dish_production_mode`
+   * à la première modification de recette.
+   */
+  forced_on_order: boolean;
   created_at: string;
 }
 
@@ -138,6 +147,20 @@ interface MarkReadyResult extends TransitionResult {
 
 interface ServeResult extends TransitionResult {
   sale_id: string;
+}
+
+/**
+ * ⭐ Bascule d'une LIGNE en préparation à la commande (§16.9).
+ *
+ * ⚠️ Pas de `status` : la ligne ne change pas d'état, seul son mode de
+ * production change. D'où un type propre plutôt que `TransitionResult`.
+ */
+export interface ForceOnOrderResult extends RpcEnvelope {
+  item_id: string;
+  dish_name?: string;
+  forced_on_order: boolean;
+  /** `true` si la ligne était DÉJÀ basculée — un double-clic n'est pas une erreur. */
+  already_forced: boolean;
 }
 
 interface CancelResult extends TransitionResult {
@@ -483,6 +506,34 @@ export const KitchenService = {
 
       if (error) throw error;
       return unwrapRpc<TransitionResult>(data, 'Acceptation du plat');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Bascule CETTE ligne en préparation à la commande — §16.9.
+   *
+   * ⭐ La sortie qu'offre le refus de lot : « produisez un lot, OU préparez ce
+   * plat à la commande ». Sans cette méthode, la seconde option n'était qu'une
+   * phrase.
+   *
+   * ⚠️ Le plat n'est PAS modifié. Une bascule sur `production_mode` serait
+   * annulée par `derive_dish_production_mode` à la première modification de
+   * recette — un état qui se défait sans qu'on le voie.
+   * ⚠️ Refusée après `preparing` : la matière est sortie, le coût est figé.
+   */
+  async forceOnOrder(barId: string, itemId: string): Promise<ForceOnOrderResult> {
+    assertNetworkAvailable('changer le mode de préparation');
+
+    try {
+      const { data, error } = await supabase.rpc('force_item_on_order', {
+        p_bar_id: barId,
+        p_item_id: itemId,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<ForceOnOrderResult>(data, 'Passage en préparation à la commande');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
