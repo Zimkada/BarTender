@@ -419,6 +419,51 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
   });
 });
 
+describe('close_batch — une clôture ne ment pas sur la cause', () => {
+  const sql = codeOnly(lastDefinitionOf('close_batch'));
+
+  /**
+   * ⛔⛔ LISTE BLANCHE des statuts, jamais une liste noire — motif récurrent
+   * du projet.
+   *
+   * `depleted` doit être REFUSÉ : il se pose automatiquement au prélèvement
+   * quand `remaining_qty` atteint 0. L'accepter ici permettrait de déclarer
+   * « épuisé par les ventes » un lot dont il reste 15 portions — un mensonge
+   * comptable, et les trois statuts de perte (§13.3) existent précisément
+   * pour distinguer ces situations.
+   */
+  it('n’accepte que closed, discarded et expired', () => {
+    expect(sql).toMatch(/IN \('closed', 'discarded', 'expired'\)/);
+    // `depleted` ne doit apparaître nulle part comme valeur acceptée.
+    expect(sql).not.toMatch(/p_status[\s\S]{0,80}'depleted'/);
+  });
+
+  /**
+   * ⭐ `remaining_qty` À ZÉRO dans TOUS les cas : un lot clos ne peut plus
+   * rien servir. Le laisser à sa valeur permettrait d'y prélever encore.
+   */
+  it('vide le reliquat à la clôture', () => {
+    expect(sql).toMatch(/remaining_qty\s*=\s*0/);
+  });
+
+  /**
+   * ⚠️ Idempotence — un double-clic sur « Jeter » ne doit pas compter la
+   * perte deux fois. Le même garde interdit de rouvrir un lot clos.
+   */
+  it('est idempotente et ne rouvre jamais un lot clos', () => {
+    expect(sql).toMatch(/v_batch\.status <> 'active'/);
+    expect(sql).toMatch(/already_closed/);
+  });
+
+  it('filtre explicitement l’appartenance au bar', () => {
+    expect(sql).toMatch(/is_bar_member\s*\(/);
+  });
+
+  it('fige le search_path', () => {
+    expect(sql).toMatch(/SET search_path\s*=\s*public/i);
+  });
+});
+
 /**
  * ⛔⛔ L'IDEMPOTENCE DOIT ÊTRE PORTÉE PAR LA BASE, PAS SEULEMENT PAR LE RPC.
  * Deux requêtes concurrentes passent toutes deux le `SELECT` de contrôle

@@ -7462,6 +7462,15 @@ export type Database = {
         Args: { p_due_date: string; p_now?: string }
         Returns: number
       }
+      close_batch: {
+        Args: {
+          p_bar_id: string
+          p_batch_id: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: Json
+      }
       produce_batch: {
         Args: {
           p_bar_id: string

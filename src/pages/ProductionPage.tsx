@@ -17,11 +17,12 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Boxes, Plus, Clock, AlertTriangle } from 'lucide-react';
+import { Boxes, Plus, Clock, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { SimplePageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import {
   ProduceBatchForm,
   type ProduceBatchValues,
@@ -46,10 +47,17 @@ export default function ProductionPage() {
   const barId = currentBar?.id;
 
   const [showForm, setShowForm] = useState(false);
+  /**
+   * ⚠️ Le rejet demande CONFIRMATION, pas la cloture simple.
+   * Jeter un reste est une PERTE comptable irreversible ; declarer un lot
+   * termine ne coute rien. Confirmer les deux banaliserait le geste qui
+   * compte.
+   */
+  const [batchToDiscard, setBatchToDiscard] = useState<string | null>(null);
 
   const { data: batches = [], isLoading } = useActiveBatches(barId);
   const { data: dishes = [] } = useDishes(barId);
-  const { produceBatch } = useBatchMutations();
+  const { produceBatch, closeBatch } = useBatchMutations();
 
   /**
    * ⚠️ Seuls les plats-BASES peuvent produire un lot. Le spaghetti-poulet
@@ -187,11 +195,65 @@ export default function ProductionPage() {
                 {batch.notes && (
                   <p className="mt-2 text-caption text-muted-foreground">{batch.notes}</p>
                 )}
+
+                {/* Actions de cloture — le lot ne se ferme JAMAIS tout seul. */}
+                <div className="mt-3 flex gap-2 border-t border-border pt-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      closeBatch.mutate({ batchId: batch.id, status: 'closed' })
+                    }
+                    disabled={closeBatch.isPending}
+                    className="flex-1"
+                  >
+                    <Check size={14} className="mr-1.5" />
+                    Terminer
+                  </Button>
+                  {/* ⚠️ Jeter passe par une CONFIRMATION : c'est une perte
+                      comptable irreversible, contrairement a « Terminer ». */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBatchToDiscard(batch.id)}
+                    disabled={closeBatch.isPending}
+                    className="flex-1 text-red-600 hover:text-red-700 dark:text-red-400"
+                  >
+                    <Trash2 size={14} className="mr-1.5" />
+                    Jeter le reste
+                  </Button>
+                </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {/* ⚠️ Le message annonce CE QUI SERA PERDU, en portions et — pour qui a
+          le droit de le voir — en montant. Une confirmation qui ne dit pas ce
+          qu on perd ne sert a rien. */}
+      <ConfirmationModal
+        isOpen={batchToDiscard !== null}
+        onClose={() => setBatchToDiscard(null)}
+        onConfirm={() => {
+          if (batchToDiscard) {
+            closeBatch.mutate({ batchId: batchToDiscard, status: 'discarded' });
+          }
+          setBatchToDiscard(null);
+        }}
+        title="Jeter le reste du lot ?"
+        message={(() => {
+          const b = batches.find((x) => x.id === batchToDiscard);
+          if (!b) return 'Le reste sera compté en perte.';
+          const base = `${b.remaining_qty} portion${b.remaining_qty > 1 ? 's' : ''} de ${b.dish_name} seront comptées en perte.`;
+          return canViewCosts
+            ? `${base} Soit ${formatPrice(b.remaining_qty * b.unit_cost)} de matière.`
+            : base;
+        })()}
+        confirmLabel="Jeter"
+        isDestructive
+        isLoading={closeBatch.isPending}
+      />
 
       <Modal
         open={showForm}

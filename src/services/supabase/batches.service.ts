@@ -66,6 +66,24 @@ export interface ProduceBatchResult extends RpcEnvelope {
 }
 
 /**
+ * ⚠️ Les trois sorties d'une clôture manuelle. `depleted` en est ABSENT : il
+ * se pose automatiquement au prélèvement, l'accepter ici permettrait de
+ * déclarer « épuisé par les ventes » un lot dont il reste 15 portions.
+ */
+export type BatchCloseStatus = Exclude<BatchStatus, 'active' | 'depleted'>;
+
+export interface CloseBatchResult extends RpcEnvelope {
+  batch_id: string;
+  status: BatchStatus;
+  /** Portions réellement jetées — 0 pour une clôture « terminé ». */
+  discarded_qty?: number;
+  /** ⚠️ MONTANT : à n'afficher qu'avec `canViewKitchenCosts` (§8). */
+  loss_amount?: number;
+  /** ⭐ `true` si le lot était déjà clos — aucun second comptage de perte. */
+  already_closed: boolean;
+}
+
+/**
  * ⚠️ Reprise du contrat des RPC du module : `{success, error?}` en JSONB
  * plutôt qu'une exception SQL, pour pouvoir refuser avec un message métier.
  * Le service traduit ce contrat en exception applicative.
@@ -132,6 +150,42 @@ export const BatchesService = {
 
       if (error) throw error;
       return unwrapRpc<ProduceBatchResult>(data as Json, 'Production du lot');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Clôture MANUELLE d'un lot — §13.3.
+   *
+   * ⭐ Aucune fermeture automatique dans le module : une sauce se conserve
+   * trois jours, clôturer à la journée compterait en perte ce qui est encore
+   * en cuisine.
+   *
+   * ⚠️ Jette CE QUI RESTE, jamais un nombre saisi : le RPC prend
+   * `remaining_qty` et le met à zéro. Laisser saisir une quantité permettrait
+   * de jeter plus qu'il ne reste, ou moins sans dire où passe le solde.
+   * ⚠️ Un lot clos ne se rouvre pas — en cas d'erreur, on produit un nouveau
+   * lot. C'est plus honnête et ça laisse une trace.
+   */
+  async close(params: {
+    barId: string;
+    batchId: string;
+    status: Exclude<BatchStatus, 'active' | 'depleted'>;
+    reason?: string | null;
+  }): Promise<CloseBatchResult> {
+    assertNetworkAvailable('clôturer un lot');
+
+    try {
+      const { data, error } = await supabase.rpc('close_batch', {
+        p_bar_id: params.barId,
+        p_batch_id: params.batchId,
+        p_status: params.status,
+        p_reason: params.reason ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<CloseBatchResult>(data as Json, 'Clôture du lot');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
