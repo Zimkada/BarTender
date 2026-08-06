@@ -74,6 +74,27 @@ export interface RecipeLineInput {
   consumed_at_stage?: ConsumedAtStage;
 }
 
+/**
+ * Un composant de recette — le lien plat composé → plat-base (§12.4.d).
+ *
+ * ⭐ « Spaghetti-poulet contient 1 portion de spaghetti cuits ».
+ * ⚠️ AUCUN coût ici : c'est le MODÈLE. Le coût vit sur l'INSTANCE
+ * (`kitchen_item_batch_consumptions`), car il change à chaque lot produit.
+ */
+export interface DishComponentRow {
+  id: string;
+  bar_id: string;
+  dish_id: string;
+  base_dish_id: string;
+  quantity: number;
+}
+
+/** Ligne de composition telle que saisie dans le formulaire. */
+export interface ComponentLineInput {
+  base_dish_id: string;
+  quantity: number;
+}
+
 /** Champs modifiables d'un plat. `id` absent = création. */
 export interface DishInput {
   id?: string;
@@ -111,6 +132,21 @@ interface ReplaceRecipeResult extends RpcEnvelope {
   duplicate_ingredients?: string[];
   /** Présent uniquement en cas d'échec sur isolation. */
   invalid_ingredient_ids?: string[];
+}
+
+interface ReplaceComponentsResult extends RpcEnvelope {
+  dish_id: string;
+  component_count: number;
+  /** ⭐ Mode DÉRIVÉ par le serveur — l'UI l'affiche, ne le décide pas. */
+  production_mode: DishProductionMode;
+  /** Présent uniquement en cas d'échec sur doublon. */
+  duplicate_base_dishes?: string[];
+  /** Présent en cas d'échec : plat d'un autre bar, inactif, ou non plat-base. */
+  invalid_base_dishes?: string[];
+  /** ⭐ Présent si un plat-base est LUI-MÊME composé — niveau unique (§13.8). */
+  nested_base_dishes?: string[];
+  /** ⭐ Présent si CE plat sert déjà de base — garde symétrique du niveau unique. */
+  used_as_base_by?: string[];
 }
 
 /** Une ligne du détail de coût, telle que retournée par `calculate_dish_cost`. */
@@ -425,6 +461,63 @@ export class DishesService {
 
       if (error) throw error;
       return unwrapRpc<ReplaceRecipeResult>(data, 'Enregistrement de la recette');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Remplace la COMPOSITION d'un plat — quels plats-bases il prélève (§13.8).
+   *
+   * ⭐ Distinct de `replaceRecipe` : la recette dit quels INGRÉDIENTS le plat
+   * consomme, la composition quels LOTS il prélève. Un spaghetti-poulet a les
+   * deux — une portion du lot de spaghetti cuits, plus son huile et sa sauce.
+   *
+   * ⚠️ Le serveur RE-DÉRIVE le `production_mode` : composer un plat le fait
+   * passer en `batch_finish`, retirer tous ses composants le fait retomber.
+   * L'UI affiche ce mode, elle ne le décide jamais.
+   */
+  static async replaceComponents(
+    barId: string,
+    dishId: string,
+    lines: ComponentLineInput[]
+  ): Promise<ReplaceComponentsResult> {
+    assertNetworkAvailable('enregistrer une composition');
+
+    try {
+      const { data, error } = await supabase.rpc('replace_dish_components', {
+        p_bar_id: barId,
+        p_dish_id: dishId,
+        p_lines: lines as unknown as Json,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<ReplaceComponentsResult>(data, 'Enregistrement de la composition');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Composition d'un plat — lecture directe, la RLS filtre par bar.
+   *
+   * ⚠️ `bar_id` filtré explicitement EN PLUS de la RLS : convention du projet
+   * (défense en profondeur), et cela permet à la requête d'utiliser
+   * `idx_drc_bar` plutôt que de s'en remettre au seul prédicat de policy.
+   */
+  static async getComponents(
+    barId: string,
+    dishId: string
+  ): Promise<DishComponentRow[]> {
+    try {
+      const { data, error } = await supabase
+        .from('dish_recipe_components')
+        .select('id, bar_id, dish_id, base_dish_id, quantity')
+        .eq('bar_id', barId)
+        .eq('dish_id', dishId);
+
+      if (error) throw error;
+      return (data ?? []) as DishComponentRow[];
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

@@ -1605,6 +1605,36 @@ export type Database = {
           },
         ]
       }
+      dish_recipe_components: {
+        Row: {
+          bar_id: string
+          base_dish_id: string
+          created_at: string
+          dish_id: string
+          id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          base_dish_id: string
+          created_at?: string
+          dish_id: string
+          id?: string
+          quantity: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          base_dish_id?: string
+          created_at?: string
+          dish_id?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       dish_ingredients: {
         Row: {
           bar_id: string
@@ -7461,6 +7491,10 @@ export type Database = {
           p_removed_by_id: string
           p_user_id_to_remove: string
         }
+        Returns: Json
+      }
+      replace_dish_components: {
+        Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
         Returns: Json
       }
       replace_dish_recipe: {

@@ -21,6 +21,7 @@ import {
   type DishRow,
   type DishInput,
   type RecipeLineInput,
+  type ComponentLineInput,
   type DishProductionMode,
 } from '../../services/supabase/dishes.service';
 
@@ -35,6 +36,18 @@ interface ReplaceRecipeOutcome {
   line_count: number;
   production_mode: DishProductionMode;
   has_finish_stage: boolean;
+}
+
+interface ReplaceComponentsInput {
+  dishId: string;
+  /** Composition COMPLÈTE. Un tableau vide efface la composition. */
+  lines: ComponentLineInput[];
+}
+
+interface ReplaceComponentsOutcome {
+  dish_id: string;
+  component_count: number;
+  production_mode: DishProductionMode;
 }
 
 /**
@@ -148,6 +161,59 @@ export function useDishMutations() {
   });
 
   /**
+   * Remplace ATOMIQUEMENT la COMPOSITION d'un plat — quels lots il prélève.
+   *
+   * ⭐ Distinct de `replaceRecipe` : la recette dit quels INGRÉDIENTS le plat
+   * consomme, la composition quels LOTS il prélève dans d'autres plats. Un
+   * spaghetti-poulet a les deux.
+   *
+   * ⚠️ Le serveur RE-DÉRIVE `production_mode` et on l'annonce, comme pour la
+   * recette : composer un plat le fait basculer en « précuit puis fini », et
+   * l'utilisateur doit comprendre pourquoi son plat a changé de régime.
+   */
+  const replaceComponents = useMutation<
+    ReplaceComponentsOutcome,
+    Error,
+    ReplaceComponentsInput
+  >({
+    meta: { suppressGlobalError: true },
+    mutationFn: async ({ dishId, lines }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      const result = await DishesService.replaceComponents(barId, dishId, lines);
+      return {
+        dish_id: result.dish_id,
+        component_count: result.component_count,
+        production_mode: result.production_mode,
+      };
+    },
+    onSettled: invalidateDishes,
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        // Vider une composition est délibéré, pas un succès à fêter — même
+        // règle que pour la recette.
+        if (result.component_count === 0) {
+          toast('Composition effacée', { icon: '🗑️' });
+          return;
+        }
+
+        toast.success(
+          `Composition enregistrée (${result.component_count} base${result.component_count > 1 ? 's' : ''}) — ` +
+          `plat ${PRODUCTION_MODE_LABELS[result.production_mode]}`,
+          { duration: 5000 }
+        );
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg);
+      });
+    },
+  });
+
+  /**
    * Crée une catégorie de PLATS (`type = 'dish'`).
    *
    * ⚠️ Écriture DIRECTE en table, sans RPC — contrairement aux plats et aux
@@ -192,6 +258,7 @@ export function useDishMutations() {
   return {
     upsertDish,
     replaceRecipe,
+    replaceComponents,
     createDishCategory,
     /** Exposé pour l'UI : traduire un mode dérivé en langage clair. */
     getProductionModeLabel: (mode: DishProductionMode) => PRODUCTION_MODE_LABELS[mode],
