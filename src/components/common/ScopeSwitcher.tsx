@@ -62,8 +62,23 @@ export function ScopeSwitcher({ scope, onScopeChange, hasRestaurant, className }
     <div
       role="radiogroup"
       aria-label="Portée des statistiques"
+      /**
+       * ⭐ PLEINE LARGEUR SUR MOBILE, largeur du contenu en desktop — aligné
+       * sur `PeriodFilter`, le sélecteur avec lequel il cohabite (défaut
+       * relevé en test terrain le 08/08/2026).
+       *
+       * ⚠️ `inline-flex` ne s'étire JAMAIS : le sélecteur restait court et
+       * flottait à gauche pendant que le bandeau de période occupait toute la
+       * ligne. Deux contrôles du même écran, deux largeurs — l'œil y lit une
+       * hiérarchie qui n'existe pas.
+       *
+       * ⭐ `flex w-full` puis `sm:inline-flex sm:w-auto` : les trois positions
+       * se partagent la ligne sur téléphone (cibles tactiles plus larges), et
+       * le composant reprend sa taille naturelle dès qu'il y a de la place.
+       */
       className={cn(
-        'inline-flex items-center p-0.5 bg-muted rounded-full border border-border',
+        'flex w-full items-center p-0.5 bg-muted rounded-full border border-border',
+        'sm:inline-flex sm:w-auto',
         className
       )}
     >
@@ -77,8 +92,18 @@ export function ScopeSwitcher({ scope, onScopeChange, hasRestaurant, className }
             role="radio"
             aria-checked={isActive}
             onClick={() => onScopeChange(id)}
+            /**
+             * ⚠️ `flex-1` sur mobile : les trois positions se partagent la
+             * largeur à parts égales, ce qui agrandit les cibles tactiles sur
+             * un écran utilisé debout. `sm:flex-none` les rend à leur taille
+             * naturelle dès qu'il y a de la place — même règle que
+             * `PeriodFilter`.
+             * ⚠️ `justify-center` : sans lui, les libellés se colleraient à
+             * gauche de leur zone une fois celle-ci élargie.
+             */
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all',
+              'flex flex-1 items-center justify-center gap-1.5 px-3 py-1.5',
+              'rounded-full text-caption transition-all sm:flex-none',
               isActive
                 ? 'bg-card text-brand-primary shadow-sm font-semibold'
                 : 'text-muted-foreground hover:text-foreground font-medium'
