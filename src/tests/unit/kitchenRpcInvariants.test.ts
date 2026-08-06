@@ -562,6 +562,45 @@ describe('Pertes de lot — écrites ET visibles', () => {
   });
 });
 
+describe('produce_batch — un lot acheté ne consomme rien', () => {
+  const sql = codeOnly(lastDefinitionOf('produce_batch'));
+
+  /**
+   * ⭐⭐ §19.3 — DÉCOUVERTE TERRAIN DU 08/08/2026.
+   * Un maquis produit son akassa certains jours et l'achète d'autres jours.
+   * Un lot acheté n'a pas de recette à consommer : il a un PRIX PAYÉ.
+   */
+  it('distingue un lot acheté d’un lot produit', () => {
+    expect(sql).toMatch(/'purchased'/);
+    expect(sql).toMatch(/p_source/);
+  });
+
+  /**
+   * ⛔ Un lot ACHETÉ exige son prix. Sans lui, `unit_cost` vaudrait 0 et
+   * chaque portion afficherait 100 % de marge — un chiffre faux qui ne se
+   * voit pas, et qui fausserait toute la rentabilité du plat.
+   */
+  it('refuse un lot acheté sans prix', () => {
+    expect(sql).toMatch(/p_total_cost IS NULL/);
+  });
+
+  /**
+   * ⛔⛔ LISTE BLANCHE des origines, jamais une liste noire — motif récurrent
+   * du projet. Une valeur ajoutée plus tard est refusée par défaut.
+   */
+  it('n’accepte que produced et purchased', () => {
+    expect(sql).toMatch(/NOT IN \('produced', 'purchased'\)/);
+  });
+
+  /**
+   * ⭐ Le coût unitaire suit la MÊME règle pour les deux origines : total
+   * divisé par les portions RÉELLEMENT produites, jamais par la fiche.
+   */
+  it('divise par les portions produites, quelle que soit l’origine', () => {
+    expect(sql).toMatch(/v_total_cost \/ p_produced_qty/);
+  });
+});
+
 describe('close_batch — une clôture ne ment pas sur la cause', () => {
   const sql = codeOnly(lastDefinitionOf('close_batch'));
 

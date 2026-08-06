@@ -3314,6 +3314,7 @@ export type Database = {
           produced_by: string | null
           produced_qty: number
           remaining_qty: number
+          source: string
           status: string
           unit_cost: number
           updated_at: string
@@ -3334,6 +3335,7 @@ export type Database = {
           produced_by?: string | null
           produced_qty: number
           remaining_qty: number
+          source?: string
           status?: string
           unit_cost: number
           updated_at?: string
@@ -3354,6 +3356,7 @@ export type Database = {
           produced_by?: string | null
           produced_qty?: number
           remaining_qty?: number
+          source?: string
           status?: string
           unit_cost?: number
           updated_at?: string
@@ -7651,6 +7654,8 @@ export type Database = {
           p_idempotency_key: string
           p_notes?: string
           p_produced_qty: number
+          p_source?: string
+          p_total_cost?: number
         }
         Returns: Json
       }

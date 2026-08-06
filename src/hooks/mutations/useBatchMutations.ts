@@ -14,6 +14,7 @@ import { ingredientKeys } from '../queries/useIngredientsQueries';
 import {
   BatchesService,
   type ProduceBatchResult,
+  type BatchSource,
   type CloseBatchResult,
   type BatchCloseStatus,
 } from '../../services/supabase/batches.service';
@@ -23,6 +24,10 @@ interface ProduceBatchInput {
   producedQty: number;
   expiresAt?: string | null;
   notes?: string | null;
+  /** ⭐ §19.3 — `purchased` pour un lot acheté prêt. Défaut : `produced`. */
+  source?: BatchSource;
+  /** ⚠️ Prix TOTAL payé — requis pour un lot acheté. */
+  totalCost?: number;
 }
 
 export function useBatchMutations() {
@@ -45,7 +50,7 @@ export function useBatchMutations() {
    */
   const produceBatch = useMutation<ProduceBatchResult, Error, ProduceBatchInput>({
     meta: { suppressGlobalError: true },
-    mutationFn: async ({ dishId, producedQty, expiresAt, notes }) => {
+    mutationFn: async ({ dishId, producedQty, expiresAt, notes, source, totalCost }) => {
       const barId = currentBar?.id;
       if (!barId) throw new Error('Aucun bar sélectionné');
 
@@ -56,22 +61,30 @@ export function useBatchMutations() {
         idempotencyKey: generateUUID(),
         expiresAt,
         notes,
+        source,
+        totalCost,
       });
     },
     /**
-     * ⚠️ TROIS caches à invalider — produire un lot touche trois univers :
-     *   · les lots eux-mêmes (un nouveau vient d'apparaître) ;
-     *   · les INGRÉDIENTS (leur stock vient de baisser en FEFO) ;
-     *   · la cuisine (un plat jusque-là sans lot redevient servable).
-     * ⛔ Oublier les ingrédients afficherait un stock périmé sur l'écran
-     * Ingrédients — celui-là même où le cuisinier va vérifier ce qu'il lui
-     * reste après sa production.
+     * ⚠️ Créer un lot touche DEUX univers dans tous les cas — les lots
+     * eux-mêmes, et la cuisine (un plat jusque-là sans lot redevient
+     * servable). Le TROISIÈME dépend de l'origine, voir plus bas.
      */
-    onSettled: () => {
+    onSettled: (result) => {
       const barId = currentBar?.id ?? '';
       queryClient.invalidateQueries({ queryKey: batchKeys.active(barId) });
-      queryClient.invalidateQueries({ queryKey: ingredientKeys.list(barId) });
       queryClient.invalidateQueries({ queryKey: kitchenKeys.all });
+      /**
+       * ⚠️ Les INGRÉDIENTS ne sont invalidés que pour un lot PRODUIT (§19.3).
+       * Un lot acheté n'en consomme AUCUN : refetcher le stock serait une
+       * requête pour rien, sur un écran déjà bavard (§3).
+       * ⭐ `!== 'purchased'` et non `=== 'produced'` : si le champ manque
+       * (ancienne réponse), on invalide — se tromper par excès est sans
+       * conséquence, l'inverse afficherait un stock périmé.
+       */
+      if (result?.source !== 'purchased') {
+        queryClient.invalidateQueries({ queryKey: ingredientKeys.list(barId) });
+      }
     },
     onSuccess: (result) => {
       import('react-hot-toast').then(({ default: toast }) => {
@@ -86,11 +99,18 @@ export function useBatchMutations() {
         // (§8) — le compteur de portions, lui, est une information de
         // production que tout le monde peut lire.
         const canViewCosts = hasPermission('canViewKitchenCosts');
-        const base = `Lot produit : ${result.produced_qty} portion${result.produced_qty > 1 ? 's' : ''}`;
+        // ⚠️ Le VERBE suit l'origine : « produit » sur un lot acheté serait
+        // faux, et le cuisinier douterait d'avoir saisi la bonne chose.
+        const verbe = result.source === 'purchased' ? 'Lot enregistré' : 'Lot produit';
+        const base = `${verbe} : ${result.produced_qty} portion${result.produced_qty > 1 ? 's' : ''}`;
+
+        // ⚠️ « de matière » sur un lot acheté serait trompeur : c'est un prix
+        // payé, pas une matière sortie du stock.
+        const suffixe = result.source === 'purchased' ? 'payés' : 'de matière';
 
         toast.success(
           canViewCosts && result.total_cost != null
-            ? `${base} — ${Math.round(result.total_cost)} F de matière`
+            ? `${base} — ${Math.round(result.total_cost)} F ${suffixe}`
             : base,
           { duration: 5000 }
         );

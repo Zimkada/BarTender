@@ -19,6 +19,20 @@ import type { Json } from '../../lib/database.types';
 /** États d'un lot — §13.3. Le chiffre dit combien, le statut dit pourquoi. */
 export type BatchStatus = 'active' | 'depleted' | 'expired' | 'discarded' | 'closed';
 
+/**
+ * ⭐ Origine d'un lot — §19.3, découverte terrain du 08/08/2026.
+ *
+ * Un maquis PRODUIT son akassa certains jours et l'ACHÈTE d'autres jours.
+ * Même article vendu, deux économies :
+ *   · `produced`  — ingrédients consommés en FEFO, coût calculé
+ *   · `purchased` — AUCUN ingrédient consommé, coût = prix payé
+ *
+ * ⚠️ Le PRÉLÈVEMENT ne distingue pas l'origine : les deux lots sont dans le
+ * même bac, on sert le plus ancien (FIFO). Chaque assiette prend le coût de
+ * SON lot, donc le coût reste exact des deux côtés.
+ */
+export type BatchSource = 'produced' | 'purchased';
+
 export interface ProductionBatchRow {
   id: string;
   bar_id: string;
@@ -29,6 +43,8 @@ export interface ProductionBatchRow {
   /** ⭐ Coût matière réel / portions produites, FIGÉ à la production. */
   unit_cost: number;
   status: BatchStatus;
+  /** ⭐ `purchased` = lot acheté prêt, aucun ingrédient consommé (§19.3). */
+  source: BatchSource;
   produced_at: string;
   produced_by: string | null;
   business_date: string;
@@ -59,6 +75,7 @@ export interface ProduceBatchResult extends RpcEnvelope {
   unit_cost: number;
   business_date?: string;
   status: BatchStatus;
+  source?: BatchSource;
   /** ⭐ `true` si la clé d'idempotence avait déjà servi — aucun second lot. */
   idempotent_replay: boolean;
   /** Signale une contrainte cassée plutôt qu'un refus métier. */
@@ -96,10 +113,12 @@ function unwrapRpc<T extends RpcEnvelope>(data: unknown, context: string): T {
 }
 
 /**
- * ⛔ PRODUIRE UN LOT NE PEUT PAS SE FAIRE HORS LIGNE (§13.5, comme les
- * ingrédients). La production consomme du stock en FEFO et fige un coût : la
- * rejouer depuis une file offline donnerait un coût calculé sur un état de
- * stock périmé, et la marge de tout ce que le lot sert en dépendrait.
+ * ⛔ CRÉER UN LOT NE PEUT PAS SE FAIRE HORS LIGNE (§13.5, comme les
+ * ingrédients). Un lot PRODUIT consomme du stock en FEFO : le rejouer depuis
+ * une file offline donnerait un coût calculé sur un état de stock périmé.
+ * ⚠️ Un lot ACHETÉ ne consomme rien, mais reste bloqué hors ligne : deux
+ * appareils déconnectés créeraient deux lots pour un seul achat, et
+ * l'idempotence ne les départagerait pas (clés différentes).
  *
  * ⚠️ `shouldBlockNetworkOps()` et NON `isOnline()` : ce dernier renvoie
  * `false` dès l'état `unstable`, c'est-à-dire sur une connexion DÉGRADÉE MAIS
@@ -132,6 +151,15 @@ export const BatchesService = {
     expiresAt?: string | null;
     notes?: string | null;
     businessDate?: string;
+    /** ⭐ §19.3 — `purchased` pour un lot acheté prêt. Défaut : `produced`. */
+    source?: BatchSource;
+    /**
+     * ⚠️ Prix TOTAL payé, jamais unitaire — c'est ce qui figure sur le reçu
+     * du fournisseur. Le serveur divise par les portions.
+     * ⛔ OBLIGATOIRE si `source = 'purchased'` : sans lui, `unit_cost`
+     * vaudrait 0 et chaque portion afficherait 100 % de marge.
+     */
+    totalCost?: number;
   }): Promise<ProduceBatchResult> {
     assertNetworkAvailable('produire un lot');
 
@@ -146,6 +174,8 @@ export const BatchesService = {
         p_expires_at: params.expiresAt ?? undefined,
         p_notes: params.notes ?? undefined,
         p_business_date: params.businessDate ?? undefined,
+        p_source: params.source ?? undefined,
+        p_total_cost: params.totalCost ?? undefined,
       });
 
       if (error) throw error;

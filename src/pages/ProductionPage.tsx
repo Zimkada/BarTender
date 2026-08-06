@@ -81,6 +81,8 @@ export default function ProductionPage() {
         producedQty: values.producedQty,
         expiresAt: values.expiresAt,
         notes: values.notes,
+        source: values.source,
+        totalCost: values.totalCost,
       },
       { onSuccess: () => setShowForm(false) }
     );
@@ -154,6 +156,11 @@ export default function ProductionPage() {
                         ? 'il y a moins d’une heure'
                         : `il y a ${Math.floor(age)} h`}
                       {consumed > 0 && ` · ${consumed} servie${consumed > 1 ? 's' : ''}`}
+                      {/* ⭐ §19.3 — l'origine est VISIBLE : deux lots du même
+                          plat peuvent avoir des coûts très différents selon
+                          qu'ils ont été cuisinés ou achetés. Sans cette
+                          mention, un écart de prix serait inexplicable. */}
+                      {batch.source === 'purchased' && ' · acheté'}
                     </p>
                   </div>
 

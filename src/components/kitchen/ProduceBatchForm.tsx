@@ -16,12 +16,17 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../../lib/utils';
 import type { DishRow } from '../../services/supabase/dishes.service';
+import type { BatchSource } from '../../services/supabase/batches.service';
 
 export interface ProduceBatchValues {
   dishId: string;
   producedQty: number;
   expiresAt: string | null;
   notes: string | null;
+  /** ⭐ §19.3 — `purchased` pour un lot acheté prêt. */
+  source: BatchSource;
+  /** ⚠️ Prix TOTAL payé — renseigné uniquement pour un lot acheté. */
+  totalCost?: number;
 }
 
 interface Props {
@@ -42,6 +47,12 @@ export function ProduceBatchForm({
   const [qty, setQty] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [notes, setNotes] = useState('');
+  /**
+   * ⭐ §19.3 — un même plat-base peut être PRODUIT certains jours et ACHETÉ
+   * d'autres. Le défaut reste `produced` : c'est le cas nominal du module.
+   */
+  const [source, setSource] = useState<BatchSource>('produced');
+  const [totalCost, setTotalCost] = useState('');
 
   const selectedDish = useMemo(
     () => baseDishes.find((d) => d.id === dishId),
@@ -60,7 +71,19 @@ export function ProduceBatchForm({
   };
 
   const qtyNum = Number(qty);
-  const isValid = dishId !== '' && qtyNum > 0;
+  const costNum = Number(totalCost);
+  const isPurchased = source === 'purchased';
+  /**
+   * ⛔ Un lot ACHETÉ exige son prix. Sans lui, `unit_cost` vaudrait 0 et
+   * chaque portion afficherait 100 % de marge — un chiffre faux qui ne se
+   * voit pas.
+   * ⚠️ `>= 0` et non `> 0` : un lot offert par un fournisseur est un cas
+   * réel, et son coût est bien zéro.
+   */
+  const isValid =
+    dishId !== '' &&
+    qtyNum > 0 &&
+    (!isPurchased || (totalCost !== '' && costNum >= 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +93,8 @@ export function ProduceBatchForm({
       producedQty: qtyNum,
       expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
       notes: notes.trim() || null,
+      source,
+      totalCost: isPurchased ? costNum : undefined,
     });
   };
 
@@ -98,9 +123,41 @@ export function ProduceBatchForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* ⭐⭐ L'ORIGINE EN PREMIER — §19.3. Elle conditionne le reste du
+          formulaire : un lot acheté demande un prix et ne consomme rien.
+          La poser après serait demander de revenir en arrière. */}
+      <div>
+        <span className="mb-1.5 block text-body-sm font-medium">Origine du lot</span>
+        <div className="flex gap-2" role="group" aria-label="Origine du lot">
+          {(['produced', 'purchased'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSource(s)}
+              aria-pressed={source === s}
+              className={cn(
+                'flex-1 rounded-lg border px-3 py-2 text-body-sm font-medium transition-colors',
+                source === s
+                  ? 'border-brand-primary bg-brand-subtle text-brand-primary'
+                  : 'border-border bg-card text-muted-foreground hover:bg-muted'
+              )}
+            >
+              {s === 'produced' ? 'Cuisiné ici' : 'Acheté prêt'}
+            </button>
+          ))}
+        </div>
+        {/* ⚠️ On dit ce que chaque choix IMPLIQUE, pas seulement son nom : le
+            cuisinier doit comprendre que l'un sort du stock et l'autre non. */}
+        <p className="mt-1 text-caption text-muted-foreground">
+          {isPurchased
+            ? 'Aucun ingrédient ne sera sorti du stock — le coût vient du prix payé.'
+            : 'Les ingrédients de la recette seront sortis du stock.'}
+        </p>
+      </div>
+
       <div>
         <label htmlFor="batch-dish" className="mb-1.5 block text-body-sm font-medium">
-          Plat produit
+          Plat
         </label>
         <select
           id="batch-dish"
@@ -120,7 +177,7 @@ export function ProduceBatchForm({
 
       <div>
         <label htmlFor="batch-qty" className="mb-1.5 block text-body-sm font-medium">
-          Portions produites
+          {isPurchased ? 'Portions achetées' : 'Portions produites'}
         </label>
         <Input
           id="batch-qty"
@@ -143,6 +200,36 @@ export function ProduceBatchForm({
           </p>
         )}
       </div>
+
+      {/* ⭐ LE PRIX TOTAL PAYÉ — c'est ce qui figure sur le reçu du
+          fournisseur (arbitrage 08/08/2026). Le serveur divise par les
+          portions, comme il le fait déjà pour un lot produit.
+          ⚠️ N'apparaît QUE pour un lot acheté : sur un lot produit, le coût
+          est CALCULÉ depuis la recette, jamais saisi. */}
+      {isPurchased && (
+        <div>
+          <label htmlFor="batch-cost" className="mb-1.5 block text-body-sm font-medium">
+            Prix payé (total)
+          </label>
+          <Input
+            id="batch-cost"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="any"
+            value={totalCost}
+            onChange={(e) => setTotalCost(e.target.value)}
+            placeholder="4000"
+            required
+          />
+          <p className="mt-1 text-caption text-muted-foreground">
+            Le montant total du reçu, pas le prix à l’unité.
+            {qtyNum > 0 && costNum > 0 && (
+              <> Soit {Math.round(costNum / qtyNum)} F la portion.</>
+            )}
+          </p>
+        </div>
+      )}
 
       <div>
         <label htmlFor="batch-expires" className="mb-1.5 block text-body-sm font-medium">
@@ -175,7 +262,11 @@ export function ProduceBatchForm({
         />
       </div>
 
-      {/* ⭐⭐ AVERTISSEMENT AVANT VALIDATION — ce bouton sort de la matière. */}
+      {/* ⭐⭐ AVERTISSEMENT AVANT VALIDATION.
+          ⚠️ Le TEXTE suit l'origine : annoncer une sortie de stock sur un lot
+          acheté serait FAUX, et le cuisinier finirait par ne plus le lire.
+          ⭐ Le lot acheté garde un avertissement — il crée un mouvement
+          comptable irréversible, même sans toucher au stock. */}
       {isValid && (
         <div
           className={cn(
@@ -188,9 +279,20 @@ export function ProduceBatchForm({
             className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400"
           />
           <p className="text-caption text-amber-900 dark:text-amber-200">
-            Les ingrédients de {selectedDish?.name} seront sortis du stock pour{' '}
-            {qtyNum} portion{qtyNum > 1 ? 's' : ''}. Cette opération ne
-            s’annule pas.
+            {isPurchased ? (
+              <>
+                {qtyNum} portion{qtyNum > 1 ? 's' : ''} de {selectedDish?.name}{' '}
+                seront enregistrées à {Math.round(costNum / (qtyNum || 1))} F
+                l’unité. Aucun ingrédient ne sera sorti du stock. Cette
+                opération ne s’annule pas.
+              </>
+            ) : (
+              <>
+                Les ingrédients de {selectedDish?.name} seront sortis du stock
+                pour {qtyNum} portion{qtyNum > 1 ? 's' : ''}. Cette opération
+                ne s’annule pas.
+              </>
+            )}
           </p>
         </div>
       )}
@@ -200,7 +302,11 @@ export function ProduceBatchForm({
           Annuler
         </Button>
         <Button type="submit" disabled={!isValid || isSubmitting} className="flex-1">
-          {isSubmitting ? 'Production…' : 'Produire le lot'}
+          {isSubmitting
+            ? 'Enregistrement…'
+            : isPurchased
+              ? 'Enregistrer le lot'
+              : 'Produire le lot'}
         </Button>
       </div>
     </form>
