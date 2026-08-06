@@ -21,13 +21,19 @@
  */
 
 import { useState, useMemo } from 'react';
-import { ChefHat, Plus, Pencil, UtensilsCrossed, TrendingDown, AlertTriangle } from 'lucide-react';
+import { ChefHat, Plus, Pencil, UtensilsCrossed, TrendingDown, AlertTriangle, Layers } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../common/EmptyState';
 import { DishForm } from './DishForm';
 import { RecipeEditor, LOW_MARGIN_THRESHOLD } from './RecipeEditor';
-import { useDishRecipe, useDishCost, useAllDishCosts } from '../../hooks/queries/useDishesQueries';
+import { ComponentsEditor } from './ComponentsEditor';
+import {
+  useDishRecipe,
+  useDishComponents,
+  useDishCost,
+  useAllDishCosts,
+} from '../../hooks/queries/useDishesQueries';
 import { useDishMutations } from '../../hooks/mutations/useDishMutations';
 import { useIngredientMutations } from '../../hooks/mutations/useIngredientMutations';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
@@ -36,6 +42,7 @@ import type {
   DishRow,
   DishInput,
   RecipeLineInput,
+  ComponentLineInput,
   DishCostSummary,
 } from '../../services/supabase/dishes.service';
 import type { IngredientWithAlerts } from '../../hooks/pivots/useUnifiedKitchen';
@@ -54,11 +61,15 @@ interface Props {
   isLoading: boolean;
 }
 
-type ModalMode = { kind: 'none' } | { kind: 'dish'; dish?: DishRow } | { kind: 'recipe'; dish: DishRow };
+type ModalMode =
+  | { kind: 'none' }
+  | { kind: 'dish'; dish?: DishRow }
+  | { kind: 'recipe'; dish: DishRow }
+  | { kind: 'components'; dish: DishRow };
 
 export function DishesTab({ barId, dishes, ingredients, categories, isLoading }: Props) {
   const { formatPrice } = useCurrencyFormatter();
-  const { upsertDish, replaceRecipe, createDishCategory, getProductionModeLabel } =
+  const { upsertDish, replaceRecipe, replaceComponents, createDishCategory, getProductionModeLabel } =
     useDishMutations();
   const { upsertIngredient } = useIngredientMutations();
 
@@ -105,6 +116,14 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
 
   const { data: recipe = [], isLoading: isLoadingRecipe } = useDishRecipe(barId, openRecipeDishId);
   const { data: cost, isLoading: isLoadingCost } = useDishCost(barId, openRecipeDishId);
+
+  /**
+   * Composition du plat ouvert — query SEPAREE de la recette.
+   * ⚠️ `undefined` tant qu'aucune composition n'est ouverte : la garde
+   * `!!dishId` du hook empeche toute requete.
+   */
+  const openComponentsDishId = modal.kind === 'components' ? modal.dish.id : undefined;
+  const { data: components = [] } = useDishComponents(barId, openComponentsDishId);
 
   /**
    * ⭐ Coûts de TOUS les plats — UN appel, pas un par ligne.
@@ -191,6 +210,14 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
   const handleSaveRecipe = (lines: RecipeLineInput[]) => {
     if (modal.kind !== 'recipe') return;
     replaceRecipe.mutate(
+      { dishId: modal.dish.id, lines },
+      { onSuccess: () => setModal({ kind: 'none' }) }
+    );
+  };
+
+  const handleSaveComponents = (lines: ComponentLineInput[]) => {
+    if (modal.kind !== 'components') return;
+    replaceComponents.mutate(
       { dishId: modal.dish.id, lines },
       { onSuccess: () => setModal({ kind: 'none' }) }
     );
@@ -380,6 +407,23 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                   Recette
                 </Button>
               </div>
+
+              {/* ⭐ COMPOSITION — sur sa propre ligne : trois boutons cote a
+                  cote deviennent illisibles sur telephone.
+                  ⛔ MASQUEE sur les plats-BASES : un plat-base ne peut pas
+                  etre lui-meme compose (§13.8, un seul niveau). Le RPC le
+                  refuserait — autant ne pas proposer le geste. */}
+              {!dish.is_batch_base && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setModal({ kind: 'components', dish })}
+                  className="mt-2 w-full"
+                >
+                  <Layers size={14} className="mr-1.5" />
+                  Composition
+                </Button>
+              )}
             </div>
             );
           })}
@@ -401,6 +445,24 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
             onCancel={() => setModal({ kind: 'none' })}
             onCreateCategory={handleCreateCategory}
             isCreatingCategory={createDishCategory.isPending}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        open={modal.kind === 'components'}
+        onClose={() => setModal({ kind: 'none' })}
+        title={modal.kind === 'components' ? `Composition - ${modal.dish.name}` : 'Composition'}
+        size="lg"
+      >
+        {modal.kind === 'components' && (
+          <ComponentsEditor
+            dish={modal.dish}
+            components={components}
+            dishes={dishes}
+            isSaving={replaceComponents.isPending}
+            onSave={handleSaveComponents}
+            onCancel={() => setModal({ kind: 'none' })}
           />
         )}
       </Modal>

@@ -37,6 +37,7 @@ const IngredientsPage = lazyWithRetry(() => import('../pages/IngredientsPage'));
 // `requiresRestaurant` ci-dessous est donc obligatoire sur CHACUNE.
 const DishesPage = lazyWithRetry(() => import('../pages/DishesPage'));
 const KitchenServicePage = lazyWithRetry(() => import('../pages/KitchenServicePage'));
+const ProductionPage = lazyWithRetry(() => import('../pages/ProductionPage'));
 // SettingsPage is lazy loaded above
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
@@ -156,6 +157,21 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <KitchenServicePage /> },
+        ],
+      },
+      {
+        // ⭐ Production — les lots préparés d'avance (§16.8, phase 3B).
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL
+        //   canManageIngredientStock : produire un lot CONSOMME du stock —
+        //     même permission que l'écran Ingrédients, dont c'est la matière.
+        //     ⛔ Le SERVEUR en est exclu : il vend des plats, il n'en produit
+        //     pas, et un lot porte un coût unitaire.
+        path: 'kitchen/production',
+        element: (
+          <ProtectedRoute permission="canManageIngredientStock" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <ProductionPage /> },
         ],
       },
       { path: 'analytics', element: <AnalyticsPage /> },

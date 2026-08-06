@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ShoppingCart,
   Boxes,
+  CookingPot,
   Wallet,
   ChefHat,
   UtensilsCrossed,
@@ -190,6 +191,16 @@ export function MobileSidebar({
     //    retire les plats prêts, et le `serve` crée la vente. L'en exclure le
     //    priverait de l'écran où il fait l'essentiel de son travail en salle.
     { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true },
+    // ⭐ PRODUCTION — placée APRÈS Service et AVANT Plats, dans l'ordre du flux
+    //    réel : on produit un lot le matin, on sert toute la journée. « Plats »
+    //    et « Ingrédients » relèvent du paramétrage, consulté plus rarement.
+    // ⛔ Le SERVEUR en est absent, comme de Plats et Ingrédients : produire un
+    //    lot CONSOMME du stock et fige un coût — ce n'est pas son métier.
+    // ⚠️ `CookingPot` et NON `Boxes` : cette dernière identifie déjà le groupe
+    //    « Produits et stock ». Deux entrées à la même icône dans un menu
+    //    latéral se confondent au coup d'œil, et le code le signale déjà pour
+    //    Inventaire/Comptabilité.
+    { id: 'kitchenProduction', label: 'Production', icon: <CookingPot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/production', requiresRestaurant: true },
     { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
     { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
@@ -256,7 +267,7 @@ export function MobileSidebar({
         //    accueillera Service et Appro en phase 3 sans redevenir illisible.
         // ⭐ « Service » EN TÊTE : c'est l'écran ouvert pendant tout le service,
         // alors que Plats et Ingrédients relèvent de la préparation en amont.
-        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenDishes', 'kitchenIngredients']),
+        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenProduction', 'kitchenDishes', 'kitchenIngredients']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),

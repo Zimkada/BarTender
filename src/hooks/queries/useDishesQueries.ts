@@ -23,6 +23,7 @@ import {
   DishesService,
   type DishRow,
   type DishIngredientRow,
+  type DishComponentRow,
   type DishCostResult,
   type DishCostSummary,
   type DailyScopeTotals,
@@ -39,6 +40,13 @@ export const dishKeys = {
   list: (barId: string) => [...dishKeys.all, 'list', barId] as const,
   recipe: (barId: string, dishId: string) =>
     [...dishKeys.all, 'recipe', barId, dishId] as const,
+  /**
+   * ⭐ Distincte de `recipe` : ce sont DEUX objets différents (ingrédients vs
+   * lots prélevés). Une clé partagée les ferait s'invalider ensemble et
+   * refetcherait la recette à chaque changement de composition.
+   */
+  components: (barId: string, dishId: string) =>
+    [...dishKeys.all, 'components', barId, dishId] as const,
   cost: (barId: string, dishId: string) =>
     [...dishKeys.all, 'cost', barId, dishId] as const,
   /** Coûts de TOUS les plats — clé distincte du coût unitaire. */
@@ -90,6 +98,24 @@ export function useDishRecipe(barId: string | undefined, dishId: string | undefi
   return useQuery<DishIngredientRow[]>({
     queryKey: dishKeys.recipe(barId ?? '', dishId ?? ''),
     queryFn: () => DishesService.getDishRecipe(barId as string, dishId as string),
+    // ⭐ §3 + garde sur dishId : pas de requête sans cible.
+    enabled: !!barId && !!dishId && hasRestaurant,
+    ...CACHE_STRATEGY.products,
+  });
+}
+
+/**
+ * Composition d'un plat — quels lots il prélève (§13.8).
+ *
+ * ⭐ Chargée À LA DEMANDE, comme la recette : la liste des plats n'en a pas
+ * besoin, et la charger pour tous multiplierait les requêtes sans usage.
+ */
+export function useDishComponents(barId: string | undefined, dishId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<DishComponentRow[]>({
+    queryKey: dishKeys.components(barId ?? '', dishId ?? ''),
+    queryFn: () => DishesService.getComponents(barId as string, dishId as string),
     // ⭐ §3 + garde sur dishId : pas de requête sans cible.
     enabled: !!barId && !!dishId && hasRestaurant,
     ...CACHE_STRATEGY.products,
