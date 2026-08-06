@@ -1379,7 +1379,12 @@ l'auteur, motif, et visibilité dans le Z de caisse. Ne pas la traiter comme un 
 
 Le serveur propose, le client choisit, le système enregistre les deux cas sans en privilégier un.
 
-#### 12.4.c ✅ `precooked` → reporté Post-V1 (erreur de catégorisation)
+#### 12.4.c ⚠️ `precooked` → reporté Post-V1 — **CORRIGÉ le 08/08/2026, cf. §19.2**
+
+> ⛔ **La conclusion ci-dessous est FAUSSE pour un article SERVI EN SALLE.** Le critère n'est pas
+> « acheté ou produit » mais « servi en salle ou vendu au comptoir » : un `bar_product` compte en
+> portée **Bar**, donc un akassa acheté et servi à table sous-évaluerait le CA restauration.
+> La bonne réponse est un **plat dont la recette compte une seule ligne** (§19.2).
 
 §16.8 disait qu'un plat `precooked` « se vend comme une boisson, retour possible ». Mais `dishes`
 **n'a pas de stock** (§4.1) et `returns.product_id` pointe **obligatoirement** vers `bar_products`
@@ -3295,7 +3300,114 @@ pouvait contredire une autre section sans que rien ne le signale — ce qui s'es
 
 ---
 
-## 19. Sources externes consultées
+## 19. ⭐ Découvertes terrain — 08/08/2026
+
+Trois manques relevés par l'exploitant **après la livraison de la phase 3**, en confrontant le
+module à des cas réels de maquis béninois. Aucun n'est un défaut d'implémentation : ce sont des
+**angles morts du plan lui-même**.
+
+⚠️ Aucun n'est bloquant. Le module fonctionne, avec des contournements dont le coût est mesurable.
+Ils sont notés ici pour être tranchés **après le test terrain complet**, ensemble plutôt qu'un à un.
+
+### 19.1 ⛔ Suppléments — l'accompagnement se recommande
+
+> « Pour un plat comme frites au poulet à 2500, le client demande une portion de frites
+> complémentaire sans le poulet. » Puis : « ça peut se constater pour presque tous les plats :
+> akassa poisson, akassa poulet, où le client demande une ou plusieurs boules complémentaires. »
+
+**Le plan suppose partout qu'un plat se vend entier.** Le §16 couvre les régimes, les lots, les
+pertes — jamais la composition d'une commande. Or au Bénin l'accompagnement se recommande : c'est le
+geste normal, pas l'exception.
+
+`kitchen_order_items.modifiers` existe et s'affiche en cuisine, mais **aucun écran ne le saisit**, et
+surtout il **ne touche pas au prix** : c'est un texte (« sans piment »), pas un article facturable.
+
+| Contournement | Ce qu'il donne | Ce qu'il coûte |
+|---|---|---|
+| ⭐ Créer « Boule d'akassa » comme plat à part | coût, marge et statistiques EXACTS · zéro code | deux lignes au ticket · la cuisine ne voit pas le lien avec le plat |
+| Le vendre en `bar_product` | — | ⛔ FAUX : compte en portée Bar (cf. §19.2) |
+
+**Recommandation V1 : le plat séparé.** Ce n'est pas un pis-aller — une portion vendue seule EST un
+article distinct. Ce qui manque est du confort de saisie et du groupement en cuisine, pas de
+l'exactitude.
+
+**Ce qu'il faudrait vraiment** : un article rattaché à une ligne de plat, avec son prix et sa
+recette, qui part en cuisine AVEC le plat. Chantier comparable à 3B.1 — table, RPC, saisie au panier,
+affichage groupé.
+
+### 19.2 ⛔ Le §12.4.c est FAUX pour un article servi en salle
+
+> « L'akassa n'est pas servi au bar, c'est au restau. Ou bien on le fait passer par la cuisine avec
+> comme seul ingrédient lui-même ? »
+
+Le §12.4.c pose qu'un article acheté prêt et revendu en l'état « est un `bar_product`, pas un plat ».
+**C'est vrai pour des beignets vendus au comptoir. C'est faux dès que l'article est servi en salle** :
+la ventilation Bar/Restau (§9) repose sur `item_type`, qui vaut `'dish'` uniquement si l'article vit
+dans `dishes`. Un akassa acheté compterait donc en **Bar** — et le CA restauration serait sous-évalué
+d'autant.
+
+⭐ **La solution de l'exploitant est meilleure que celle du plan** : un plat dont la recette compte
+**une seule ligne**.
+
+```
+ingredient  « Akassa prêt »       unité = boule, acheté 100 F
+dish        « Boule d'akassa »    prix 150 F, régime on_order
+recette     1 boule, yield_factor 1
+```
+
+À `ready`, le FEFO décrémente une boule et fige `computed_cost` à 100 F — marge exacte de 50 F.
+L'article compte en **portée Restau**, l'approvisionnement passe par l'écran Ingrédients au prix
+réellement payé, et le stock hérite de la **péremption** des lots d'ingrédients.
+
+⚠️ `preparation_time_min` reste NULL : il ne calibre que les alertes de retard, un article sans délai
+n'en déclenche aucune.
+
+⚠️ **Coût assumé** : l'article passe quand même par la file de production (« Commencer » puis
+« Prêt ») alors qu'on le pose simplement dans l'assiette. C'est ce passage qui décrémente le stock et
+fige le coût — deux clics pour la traçabilité.
+
+**→ Le §12.4.c doit être corrigé** : le critère n'est pas « acheté ou produit », c'est **« servi en
+salle ou vendu au comptoir »**.
+
+### 19.3 ⚠️ Lot APPROVISIONNÉ — un plat-base parfois acheté, parfois produit
+
+> « Si dans ce même restau par moment on produit de l'akassa, ça fera deux recettes pour un même plat
+> ou bien on crée deux plats ? »
+
+Le cas : un maquis **produit** son akassa certains jours (maïs, eau, travail) et **l'achète** d'autres
+jours. Même article vendu, deux économies.
+
+`produce_batch` consomme TOUJOURS la recette du plat-base. Un lot acheté n'a pas de recette à
+consommer — il a un **prix payé**.
+
+| Contournement | Verdict |
+|---|---|
+| Deux plats (« maison » / « acheté ») | ✅ coûts exacts, mais statistiques scindées et deux lignes au menu |
+| Un plat, recette réécrite selon le jour | ⛔ **DANGEREUX** — un oubli un jour d'achat donne un coût faux, sans aucun signal |
+
+**Recommandation V1 : deux plats.** L'inconvénient est mesurable et même informatif — le promoteur
+verra ce que chaque mode lui coûte.
+
+⭐ **Ce qu'il faudrait** : un paramètre optionnel sur `produce_batch` pour déclarer un lot à coût
+DIRECT, court-circuitant le FEFO. « J'ai acheté 40 boules à 100 F. » Une migration, un champ dans le
+formulaire de production. C'est le plus petit des trois chantiers et le plus rentable.
+
+#### ✅ Le FIFO n'a PAS besoin de distinguer l'origine
+
+> « Doit-on faire du FIFO, chacun décrémentant en fonction de sa nature ? »
+
+**Non — une seule file, et c'est déjà ce que fait le code** (`ORDER BY produced_at ASC`).
+
+La raison est physique : l'akassa acheté à 8h et celui produit à 14h sont dans le **même bac**. Le
+cuisinier sert le plus ancien. Chaque assiette prend le coût de SON lot — 100 F ou 60 F — donc le
+coût reste exact des deux côtés.
+
+⚠️ Séparer les files supposerait un critère de choix (servir le produit d'abord ? l'acheté ?). Aucun
+n'a de sens métier. **Le trou est en amont, à la création du lot acheté — jamais au prélèvement.**
+
+---
+
+## 20. Sources externes consultées
 
 - [Slant POS — ingredient usage tracking](https://blog.slantco.com/how-pos-systems-help-track-ingredient-usage-and-profitability/)
 - [Restaurant365 — food inventory management](https://www.restaurant365.com/blog/food-inventory-management/)
