@@ -1605,36 +1605,6 @@ export type Database = {
           },
         ]
       }
-      dish_recipe_components: {
-        Row: {
-          bar_id: string
-          base_dish_id: string
-          created_at: string
-          dish_id: string
-          id: string
-          quantity: number
-          updated_at: string
-        }
-        Insert: {
-          bar_id: string
-          base_dish_id: string
-          created_at?: string
-          dish_id: string
-          id?: string
-          quantity: number
-          updated_at?: string
-        }
-        Update: {
-          bar_id?: string
-          base_dish_id?: string
-          created_at?: string
-          dish_id?: string
-          id?: string
-          quantity?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       dish_ingredients: {
         Row: {
           bar_id: string
@@ -1734,6 +1704,93 @@ export type Database = {
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dish_recipe_components: {
+        Row: {
+          bar_id: string
+          base_dish_id: string
+          created_at: string
+          dish_id: string
+          id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          base_dish_id: string
+          created_at?: string
+          dish_id: string
+          id?: string
+          quantity: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          base_dish_id?: string
+          created_at?: string
+          dish_id?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_base_dish_id_fkey"
+            columns: ["base_dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
             referencedColumns: ["id"]
           },
         ]
@@ -6745,6 +6802,10 @@ export type Database = {
       decrement_stock: {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
+      }
+      derive_dish_production_mode: {
+        Args: { p_bar_id: string; p_dish_id: string }
+        Returns: string
       }
       detect_consecutive_refresh_failures: {
         Args: never
