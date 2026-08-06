@@ -106,10 +106,28 @@ export default function KitchenServicePage() {
    * SQL demanderait une migration pour un booléen d'affichage. `useDishes`
    * est déjà en cache sur cet écran (catalogue, 30 min).
    */
-  const { data: dishes = [] } = useDishes(currentBar?.id);
+  const { data: dishes = [], isLoading: isLoadingDishes } = useDishes(currentBar?.id);
   const batchFinishDishIds = useMemo(
     () => new Set(dishes.filter((d) => d.production_mode === 'batch_finish').map((d) => d.id)),
     [dishes]
+  );
+
+  /**
+   * ⭐ TANT QUE LES PLATS NE SONT PAS CHARGÉS, on AFFICHE le bouton plutôt que
+   * de le masquer — défaut trouvé à la code review du 08/08/2026.
+   *
+   * ⚠️ Avec un Set vide, `isBatchFinish` valait `false` partout : le cuisinier
+   * lisait « préparez ce plat à la commande » dans le refus de lot, cherchait
+   * le bouton… et ne le trouvait pas. Court (cache 30 min, donc au premier
+   * affichage), mais c'est EXACTEMENT le moment où il en a besoin.
+   *
+   * ⭐ Le risque inverse est nul : `force_item_on_order` refuse proprement un
+   * plat qui ne prélève aucun lot, avec un message clair. Un bouton qui
+   * explique pourquoi il ne s'applique pas vaut mieux qu'un bouton absent.
+   */
+  const isBatchFinishItem = useCallback(
+    (dishId: string) => isLoadingDishes || batchFinishDishIds.has(dishId),
+    [isLoadingDishes, batchFinishDishIds]
   );
 
   const [itemToCancel, setItemToCancel] = useState<KitchenQueueItem | null>(null);
@@ -245,7 +263,7 @@ export default function KitchenServicePage() {
         canCancelAfterReady={canCancelAfterReady}
         onAccept={handleAccept}
         onForceOnOrder={handleForceOnOrder}
-        isBatchFinish={batchFinishDishIds.has(item.dish_id)}
+        isBatchFinish={isBatchFinishItem(item.dish_id)}
         onMarkReady={handleMarkReady}
         onServe={handleServe}
         onCancel={setItemToCancel}
@@ -257,7 +275,7 @@ export default function KitchenServicePage() {
       canServe,
       canCancel,
       canCancelAfterReady,
-      batchFinishDishIds,
+      isBatchFinishItem,
       handleForceOnOrder,
       handleAccept,
       handleMarkReady,
