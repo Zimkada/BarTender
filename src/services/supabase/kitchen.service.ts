@@ -194,6 +194,15 @@ export interface KitchenMetrics extends RpcEnvelope {
   margin_rate: number | null;
   loss_count: number;
   loss_cost: number;
+  /**
+   * ⭐ PERTES DE LOT — distinctes des pertes de PLAT, et volontairement.
+   *
+   * Les deux n'appellent pas le même geste correctif : un plat cuisiné puis
+   * annulé signale une erreur de commande ; un lot jeté signale qu'on a
+   * produit trop, ou trop tôt. Les additionner masquerait lequel corriger.
+   */
+  batch_loss_count: number;
+  batch_loss_cost: number;
   /** ⭐ Plats prêts NON encore servis — distinct de la perte. */
   pending_count: number;
   pending_cost: number;
@@ -239,6 +248,16 @@ export interface KitchenProduction extends RpcEnvelope {
   end_date: string;
   served_count: number;
   loss_count: number;
+  /**
+   * ⭐ Portions de LOT jetées ou périmées sur la période.
+   *
+   * ⛔ QUANTITÉ SEULE — pas de `batch_loss_cost` ici, contrairement à
+   * `KitchenMetrics`. C'est la propriété qui justifie l'existence de cette
+   * RPC : le cuisinier voit les quantités, jamais les montants (§8).
+   * ⭐ Distincte de `loss_count` : celle-ci compte des PLATS annulés, celle-là
+   * des portions produites d'avance et non écoulées. Deux causes, deux gestes.
+   */
+  batch_loss_count: number;
   /** ⭐ Plats prêts en attente de service — distinct de la perte. */
   pending_count: number;
   /** ⚠️ Ce qui reste À PRÉPARER : pending + accepted + preparing. */

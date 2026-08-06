@@ -177,13 +177,26 @@ export function KitchenProductionPanel({ barId }: Props) {
                   icon={<CheckCircle2 size={12} />}
                   tone={data.served_count > 0 ? 'good' : 'neutral'}
                 />
-                {/* ⭐⭐ LA CARTE QUI JUSTIFIE L'ÉCRAN. */}
+                {/* ⭐⭐ LA CARTE QUI JUSTIFIE L'ÉCRAN.
+                    ⭐ Le total ADDITIONNE plats et portions de lot — c'est la
+                    matière perdue, toutes causes confondues. Mais le détail
+                    reste lisible en dessous : les deux n'appellent pas le même
+                    geste (revoir la commande vs produire moins).
+                    ⚠️ AUCUN MONTANT : le cuisinier voit les quantités (§8). */}
                 <Stat
                   label="Perdus"
-                  value={data.loss_count}
-                  hint="jetés après cuisson"
+                  value={data.loss_count + (data.batch_loss_count ?? 0)}
+                  hint={
+                    (data.batch_loss_count ?? 0) > 0
+                      ? `dont ${data.batch_loss_count} de lot`
+                      : 'jetés après cuisson'
+                  }
                   icon={<AlertTriangle size={12} />}
-                  tone={data.loss_count > 0 ? 'warn' : 'neutral'}
+                  tone={
+                    data.loss_count + (data.batch_loss_count ?? 0) > 0
+                      ? 'warn'
+                      : 'neutral'
+                  }
                 />
                 <Stat
                   label="À préparer"

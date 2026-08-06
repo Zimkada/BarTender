@@ -419,6 +419,58 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
   });
 });
 
+describe('Pertes de lot — écrites ET visibles', () => {
+  /**
+   * ⛔⛔ LE DÉFAUT DE LA CODE REVIEW DE 3B (07/08/2026).
+   *
+   * `close_batch` écrivait `discarded_qty` et `discarded_at` — donnée stockée,
+   * datée, valorisable. Mais NI `get_kitchen_metrics` NI
+   * `get_kitchen_production` ne la lisaient : jeter 15 portions n'apparaissait
+   * NULLE PART.
+   *
+   * ⚠️ Grave parce que le régime à lot est celui où la perte est LA PLUS
+   * probable — on produit d'avance, on ne vend pas tout. Et la métrique du §8,
+   * « matière sortie, vente jamais née », c'est exactement cela. Le module
+   * écrivait la donnée et ne la montrait pas.
+   */
+  it('get_kitchen_metrics expose les pertes de lot', () => {
+    const sql = codeOnly(lastDefinitionOf('get_kitchen_metrics'));
+    expect(sql).toMatch(/batch_loss_count/);
+    expect(sql).toMatch(/batch_loss_cost/);
+  });
+
+  /**
+   * ⛔⛔ CÔTÉ CUISINIER : la QUANTITÉ oui, le MONTANT jamais (§8).
+   * C'est la propriété qui justifie l'existence de `get_kitchen_production` —
+   * y réintroduire `batch_loss_cost` rouvrirait la fuite.
+   */
+  it('get_kitchen_production expose la quantité, JAMAIS le coût', () => {
+    const sql = codeOnly(lastDefinitionOf('get_kitchen_production'));
+    expect(sql).toMatch(/batch_loss_count/);
+    expect(sql).not.toMatch(/batch_loss_cost/);
+  });
+
+  /**
+   * ⭐ SOURCE UNIQUE — les deux RPC délèguent au même helper. Dupliquer le
+   * calcul le ferait diverger, et le gérant verrait un chiffre différent du
+   * cuisinier sur la même journée.
+   */
+  it('les deux RPC délèguent au même helper', () => {
+    expect(codeOnly(lastDefinitionOf('get_kitchen_metrics'))).toMatch(/get_batch_losses/);
+    expect(codeOnly(lastDefinitionOf('get_kitchen_production'))).toMatch(/get_batch_losses/);
+  });
+
+  /**
+   * ⚠️ Borne sur `discarded_at` : un lot produit lundi et jeté mercredi est
+   * une perte de MERCREDI. Même règle que partout depuis le 06/08.
+   */
+  it('borne les pertes de lot sur discarded_at, en journée commerciale', () => {
+    const sql = codeOnly(lastDefinitionOf('get_batch_losses'));
+    expect(sql).toMatch(/discarded_at/);
+    expect(sql).toMatch(/closing_hour/);
+  });
+});
+
 describe('close_batch — une clôture ne ment pas sur la cause', () => {
   const sql = codeOnly(lastDefinitionOf('close_batch'));
 
@@ -531,7 +583,7 @@ describe('Toute migration qui remplace une RPC cuisine re-pose ses GRANTS', () =
  * fonctions SECURITY DEFINER ne demande aucun grant.
  */
 describe('Les helpers SQL internes ne sont pas exposés au client', () => {
-  const HELPERS_INTERNES = ['derive_dish_production_mode'];
+  const HELPERS_INTERNES = ['derive_dish_production_mode', 'get_batch_losses'];
 
   it.each(HELPERS_INTERNES)('%s n’est pas accordé à authenticated', (nom) => {
     const files = readdirSync(MIGRATIONS_DIR)

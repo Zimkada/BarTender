@@ -92,9 +92,15 @@ export function KitchenAnalyticsBlock({
 
   // ⚠️ Aucun plat servi ET aucune perte : rien à dire. Un bloc vide sous les
   // KPI ventes laisserait croire à un défaut de chargement.
+  // ⚠️ `batch_loss_count` FAIT PARTIE de la condition — sans lui, une journée
+  // où l'on n'aurait fait que jeter un lot laisserait ce bloc entièrement
+  // masqué : la perte serait écrite en base, calculée par la RPC, et
+  // invisible. C'est exactement le défaut corrigé le 07/08/2026, reproduit
+  // un étage plus haut.
   const hasAnything =
     (data?.served_count ?? 0) > 0 ||
     (data?.loss_count ?? 0) > 0 ||
+    (data?.batch_loss_count ?? 0) > 0 ||
     (data?.pending_count ?? 0) > 0;
   if (!data || !hasAnything) return null;
 
@@ -150,6 +156,21 @@ export function KitchenAnalyticsBlock({
           <p className="mt-1 text-caption text-muted-foreground tabular-nums">
             {formatPrice(data.loss_cost)} de matière perdue
           </p>
+          {/* ⭐ PERTES DE LOT — dans la MÊME carte, sur une seconde ligne.
+              ⚠️ Une 4e carte casserait la grille (grid-cols-3 en desktop) et
+              séparerait deux chiffres qui se lisent ensemble : ce sont les
+              deux causes d'une même matière perdue.
+              ⛔ Mais elles restent DISTINCTES, jamais additionnées : un plat
+              annulé signale une erreur de commande, un lot jeté une
+              sur-production. Le geste correctif n'est pas le même. */}
+          {(data.batch_loss_count ?? 0) > 0 && (
+            <p className="mt-1.5 border-t border-amber-200/60 pt-1.5 text-caption tabular-nums text-amber-800 dark:border-amber-800/60 dark:text-amber-300">
+              + {data.batch_loss_count} portion
+              {data.batch_loss_count > 1 ? 's' : ''} de lot jetée
+              {data.batch_loss_count > 1 ? 's' : ''} ·{' '}
+              {formatPrice(data.batch_loss_cost ?? 0)}
+            </p>
+          )}
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4">
