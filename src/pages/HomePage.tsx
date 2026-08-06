@@ -130,6 +130,46 @@ export default function HomePage() {
   const effectiveScope: CatalogScope = hasRestaurant ? scope : 'all';
 
   /**
+   * ⭐ Catégories PROPOSÉES au filtre — elles doivent couvrir exactement ce
+   * que la grille affiche (défaut du 08/08/2026).
+   *   · `products` → boissons seules
+   *   · `dishes`   → plats seuls
+   *   · `all`      → LES DEUX, dans cet ordre : les boissons dominent le
+   *                  catalogue d'un bar, même avec restauration.
+   * ⚠️ Aucun risque de doublon : `bar_categories.type` rend les deux listes
+   * disjointes par construction.
+   */
+  const visibleCategories = useMemo(() => {
+    if (effectiveScope === 'dishes') return dishCategoriesUi;
+    if (effectiveScope === 'products') return categories;
+    return [...categories, ...dishCategoriesUi];
+  }, [effectiveScope, categories, dishCategoriesUi]);
+
+  /**
+   * Compteurs par catégorie — même règle que la liste.
+   * ⚠️ En portée « Tout », les deux sources sont fusionnées dans UN seul
+   * index : une catégorie de plats y garde son propre compte, puisque les
+   * identifiants ne se chevauchent pas.
+   */
+  const visibleCategoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+
+    if (effectiveScope !== 'dishes') {
+      for (const p of products) {
+        counts[p.categoryId] = (counts[p.categoryId] || 0) + 1;
+      }
+    }
+    if (effectiveScope !== 'products') {
+      for (const d of dishes) {
+        // ⚠️ Un plat sans catégorie n'entre dans aucun compteur — il reste
+        // visible dans la grille, mais aucun filtre ne le revendique.
+        if (d.category_id) counts[d.category_id] = (counts[d.category_id] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [effectiveScope, products, dishes]);
+
+  /**
    * Ce que la portée courante donne à voir.
    *
    * ⚠️ SYMÉTRIQUE de `showDishes` — signalé en test le 04/08/2026 : en portée
@@ -245,25 +285,24 @@ export default function HomePage() {
         dishCount={dishes.length}
       />
 
-      {/* Category Filter */}
+      {/* Category Filter
+          ⭐ EN PORTÉE « TOUT », LES DEUX FAMILLES — défaut relevé en test
+          terrain le 08/08/2026.
+          ⛔ Seules les catégories de BOISSONS étaient proposées, alors que la
+          grille affiche aussi les plats : « Grillades » était inatteignable
+          sans basculer en Restau. Un filtre qui ne propose qu'une partie de ce
+          qu'il filtre est un filtre menteur.
+          ⚠️ Les deux listes sont DISJOINTES (`bar_categories.type`), donc les
+          concaténer ne crée aucun doublon — et `selectedCategory` reste un
+          identifiant unique. */}
       <CategoryFilter
-        categories={effectiveScope === 'dishes' ? dishCategoriesUi : categories}
+        categories={visibleCategories}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         onEditCategory={handleEditCategory}
         onDeleteCategory={handleDeleteCategory}
         onAddCategory={handleAddCategory}
-        productCounts={
-          effectiveScope === 'dishes'
-            ? dishes.reduce((acc: Record<string, number>, d) => {
-                if (d.category_id) acc[d.category_id] = (acc[d.category_id] || 0) + 1;
-                return acc;
-              }, {})
-            : products.reduce((acc: Record<string, number>, p) => {
-                acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
-                return acc;
-              }, {})
-        }
+        productCounts={visibleCategoryCounts}
       />
 
       {/* Product Grid — plate, sans encadrement (aération) */}

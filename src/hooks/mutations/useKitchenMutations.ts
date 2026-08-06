@@ -160,7 +160,7 @@ export function useKitchenMutations() {
           return;
         }
         toast.success(
-          `${result.dish_name ?? 'Ce plat'} sera préparé à la commande — délai plus long`,
+          `${result.dish_name ?? 'Ce plat'} sera préparé à la commande - délai plus long`,
           { duration: 5000 }
         );
       });

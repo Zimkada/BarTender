@@ -211,7 +211,7 @@ export function DishForm({
             ))}
           </select>
 
-          {/* ⚠️ Zone de tap ≥ 44px — cohérent avec le reste du module. */}
+          {/* ⚠️ Zone de tap ≥ 44px - cohérent avec le reste du module. */}
           {!showNewCategory && (
             <button
               type="button"
@@ -280,7 +280,7 @@ export function DishForm({
 
         {categories.length === 0 && !showNewCategory && (
           <p className="mt-1 text-xs text-muted-foreground">
-            Aucune catégorie de plats — utilisez le bouton + pour en créer une.
+            Aucune catégorie de plats - utilisez le bouton + pour en créer une.
           </p>
         )}
       </div>

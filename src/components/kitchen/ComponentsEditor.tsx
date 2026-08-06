@@ -106,7 +106,7 @@ export function ComponentsEditor({
           <p className="text-body-sm text-foreground/80">Aucun plat préparé d’avance</p>
           <p className="mt-1 text-caption text-muted-foreground">
             Pour composer un plat, il faut d’abord un plat marqué « préparé
-            d’avance » avec un nombre de portions — par exemple « spaghetti
+            d’avance » avec un nombre de portions - par exemple « spaghetti
             cuits » ou « poulet bouilli ».
           </p>
         </div>

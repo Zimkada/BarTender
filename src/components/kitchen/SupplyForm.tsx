@@ -268,11 +268,11 @@ export function SupplyForm({
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           )}
         >
-          <option value="">— Choisir —</option>
+          <option value="">- Choisir -</option>
           {ingredients.map((ingredient) => (
             <option key={ingredient.id} value={ingredient.id}>
               {ingredient.name} ({ingredient.unit})
-              {ingredient.hasDebt ? ' — dette à régulariser' : ''}
+              {ingredient.hasDebt ? ' - dette à régulariser' : ''}
             </option>
           ))}
         </select>

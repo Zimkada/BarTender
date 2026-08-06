@@ -150,7 +150,7 @@ export function ProduceBatchForm({
             cuisinier doit comprendre que l'un sort du stock et l'autre non. */}
         <p className="mt-1 text-caption text-muted-foreground">
           {isPurchased
-            ? 'Aucun ingrédient ne sera sorti du stock — le coût vient du prix payé.'
+            ? 'Aucun ingrédient ne sera sorti du stock - le coût vient du prix payé.'
             : 'Les ingrédients de la recette seront sortis du stock.'}
         </p>
       </div>
@@ -195,7 +195,7 @@ export function ProduceBatchForm({
         {selectedDish?.portions_per_batch != null && (
           <p className="mt-1 text-caption text-muted-foreground">
             Fiche technique : {selectedDish.portions_per_batch} portions.
-            Corrigez si vous en avez fait plus ou moins — le coût sera divisé
+            Corrigez si vous en avez fait plus ou moins - le coût sera divisé
             par ce que vous saisissez ici.
           </p>
         )}
@@ -245,7 +245,7 @@ export function ProduceBatchForm({
             cuisinier croirait que le lot se clôture tout seul et laisserait
             traîner des restes. */}
         <p className="mt-1 text-caption text-muted-foreground">
-          Sert d’alerte. Le lot ne se ferme jamais tout seul — c’est vous qui
+          Sert d’alerte. Le lot ne se ferme jamais tout seul - c’est vous qui
           décidez quand il est terminé.
         </p>
       </div>

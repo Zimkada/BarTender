@@ -155,7 +155,7 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
       {item.forced_on_order && (
         <p className="mt-2 flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
           <Flame className="h-3 w-3 flex-shrink-0" />
-          Préparé à la commande — lot indisponible
+          Préparé à la commande - lot indisponible
         </p>
       )}
 

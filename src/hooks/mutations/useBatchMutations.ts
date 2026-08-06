@@ -110,7 +110,7 @@ export function useBatchMutations() {
 
         toast.success(
           canViewCosts && result.total_cost != null
-            ? `${base} — ${Math.round(result.total_cost)} F ${suffixe}`
+            ? `${base} - ${Math.round(result.total_cost)} F ${suffixe}`
             : base,
           { duration: 5000 }
         );
@@ -175,7 +175,7 @@ export function useBatchMutations() {
 
         toast(
           canViewCosts && result.loss_amount
-            ? `${base} — ${Math.round(result.loss_amount)} F de perte`
+            ? `${base} - ${Math.round(result.loss_amount)} F de perte`
             : base,
           { icon: '🗑️', duration: 5000 }
         );

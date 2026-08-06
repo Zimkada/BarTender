@@ -212,7 +212,7 @@ export function RecipeEditor({
       const key = `${line.ingredient_id}|${line.consumed_at_stage ?? 'batch'}`;
       if (seen.has(key)) {
         const name = ingredientsById.get(line.ingredient_id)?.name ?? 'Un ingrédient';
-        return `${name} apparaît deux fois au même stade — regroupez les quantités`;
+        return `${name} apparaît deux fois au même stade - regroupez les quantités`;
       }
       seen.add(key);
     }

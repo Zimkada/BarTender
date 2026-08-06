@@ -221,11 +221,11 @@ export function KitchenProductionPanel({ barId }: Props) {
               {data.pending_count > 0 && (
                 <p className="rounded-lg border border-amber-300 bg-amber-50 p-2.5 text-caption text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
                   <strong>{data.pending_count} plat(s)</strong> prêt(s) attendent
-                  d’être servis — ils refroidissent.
+                  d’être servis - ils refroidissent.
                 </p>
               )}
 
-              {/* Détail par plat — trié pertes d'abord (côté RPC). */}
+              {/* Détail par plat - trié pertes d'abord (côté RPC). */}
               {data.dishes.length > 0 ? (
                 <div className="rounded-xl border border-border bg-card p-3">
                   <h5 className="mb-2 text-micro uppercase tracking-wide text-muted-foreground">

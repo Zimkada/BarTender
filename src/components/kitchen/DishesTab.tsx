@@ -325,7 +325,7 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                        AUSSI quoi faire — un constat sans action laisse le
                        promoteur devant un écran qui l'accuse. */
                     <p className="text-sm mt-0.5 text-muted-foreground italic">
-                      Coût inconnu — approvisionnez les ingrédients
+                      Coût inconnu - approvisionnez les ingrédients
                     </p>
                   ) : hasRecipe ? (
                     <p className="text-sm mt-0.5 flex flex-wrap items-center gap-x-2">
@@ -361,7 +361,7 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                     // ⭐ §13.12 — ce qui reste à faire doit être VISIBLE : c'est
                     // le prochain geste utile, pas un manque à cacher.
                     <p className="text-sm mt-0.5 text-muted-foreground italic">
-                      Recette non saisie — marge inconnue
+                      Recette non saisie - marge inconnue
                     </p>
                   )}
                 </div>
@@ -470,7 +470,7 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
       <Modal
         open={modal.kind === 'recipe'}
         onClose={() => setModal({ kind: 'none' })}
-        title={modal.kind === 'recipe' ? `Recette — ${modal.dish.name}` : 'Recette'}
+        title={modal.kind === 'recipe' ? `Recette - ${modal.dish.name}` : 'Recette'}
         size="lg"
       >
         {modal.kind === 'recipe' && (

@@ -234,7 +234,7 @@ export default function KitchenServicePage() {
           if (result.was_loss) {
             showNotification(
               'info',
-              `Plat annulé — perte de ${formatPrice(result.lost_cost ?? 0)} (ingrédients déjà utilisés)`
+              `Plat annulé - perte de ${formatPrice(result.lost_cost ?? 0)} (ingrédients déjà utilisés)`
             );
           } else {
             showNotification('success', 'Plat annulé');

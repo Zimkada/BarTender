@@ -146,7 +146,7 @@ export function useDishMutations() {
         }
 
         toast.success(
-          `Recette enregistrée (${result.line_count} ingrédient${result.line_count > 1 ? 's' : ''}) — ` +
+          `Recette enregistrée (${result.line_count} ingrédient${result.line_count > 1 ? 's' : ''}) - ` +
           `plat ${PRODUCTION_MODE_LABELS[result.production_mode]}`,
           { duration: 5000 }
         );
@@ -199,7 +199,7 @@ export function useDishMutations() {
         }
 
         toast.success(
-          `Composition enregistrée (${result.component_count} base${result.component_count > 1 ? 's' : ''}) — ` +
+          `Composition enregistrée (${result.component_count} base${result.component_count > 1 ? 's' : ''}) - ` +
           `plat ${PRODUCTION_MODE_LABELS[result.production_mode]}`,
           { duration: 5000 }
         );
