@@ -2842,6 +2842,99 @@ export type Database = {
           },
         ]
       }
+      kitchen_item_batch_consumptions: {
+        Row: {
+          bar_id: string
+          consumed_at: string
+          created_at: string
+          id: string
+          kitchen_order_item_id: string
+          production_batch_id: string
+          quantity: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          kitchen_order_item_id: string
+          production_batch_id: string
+          quantity: number
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          kitchen_order_item_id?: string
+          production_batch_id?: string
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_kitchen_order_item_id_fkey"
+            columns: ["kitchen_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_production_batch_id_fkey"
+            columns: ["production_batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kitchen_order_items: {
         Row: {
           accepted_at: string | null
@@ -3204,42 +3297,6 @@ export type Database = {
           },
         ]
       }
-      kitchen_item_batch_consumptions: {
-        Row: {
-          bar_id: string
-          consumed_at: string
-          created_at: string
-          id: string
-          kitchen_order_item_id: string
-          production_batch_id: string
-          quantity: number
-          unit_cost: number
-          updated_at: string
-        }
-        Insert: {
-          bar_id: string
-          consumed_at?: string
-          created_at?: string
-          id?: string
-          kitchen_order_item_id: string
-          production_batch_id: string
-          quantity: number
-          unit_cost: number
-          updated_at?: string
-        }
-        Update: {
-          bar_id?: string
-          consumed_at?: string
-          created_at?: string
-          id?: string
-          kitchen_order_item_id?: string
-          production_batch_id?: string
-          quantity?: number
-          unit_cost?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
       production_batches: {
         Row: {
           bar_id: string
@@ -3301,7 +3358,64 @@ export type Database = {
           unit_cost?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_produced_by_fkey"
+            columns: ["produced_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promotion_applications: {
         Row: {
@@ -6670,6 +6784,15 @@ export type Database = {
       cleanup_old_refresh_alerts: { Args: never; Returns: number }
       cleanup_old_refresh_logs: { Args: never; Returns: number }
       cleanup_old_rls_violations: { Args: never; Returns: number }
+      close_batch: {
+        Args: {
+          p_bar_id: string
+          p_batch_id: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: Json
+      }
       close_partial_purchase_order: {
         Args: { p_order_id: string; p_reason?: string }
         Returns: Json
@@ -6930,6 +7053,10 @@ export type Database = {
         Returns: Json
       }
       extract_server_name_safe: { Args: { p_notes: string }; Returns: string }
+      force_item_on_order: {
+        Args: { p_bar_id: string; p_item_id: string }
+        Returns: Json
+      }
       force_refresh_view: { Args: { p_view_name: string }; Returns: string }
       forfeit_consignment: { Args: { p_consignment_id: string }; Returns: Json }
       get_active_devices_count: { Args: { p_bar_id?: string }; Returns: number }
@@ -7103,6 +7230,13 @@ export type Database = {
           validator_name: string
         }[]
       }
+      get_batch_losses: {
+        Args: { p_bar_id: string; p_end: string; p_start: string }
+        Returns: {
+          loss_cost: number
+          loss_qty: number
+        }[]
+      }
       get_consignments_paginated: {
         Args: { p_bar_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -7132,10 +7266,6 @@ export type Database = {
           sales_count: number
           total_revenue: number
         }[]
-      }
-      force_item_on_order: {
-        Args: { p_bar_id: string; p_item_id: string }
-        Returns: Json
       }
       get_kitchen_metrics: {
         Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
@@ -7469,27 +7599,6 @@ export type Database = {
         Args: { p_due_date: string; p_now?: string }
         Returns: number
       }
-      close_batch: {
-        Args: {
-          p_bar_id: string
-          p_batch_id: string
-          p_reason?: string
-          p_status: string
-        }
-        Returns: Json
-      }
-      produce_batch: {
-        Args: {
-          p_bar_id: string
-          p_business_date?: string
-          p_dish_id: string
-          p_expires_at?: string
-          p_idempotency_key: string
-          p_notes?: string
-          p_produced_qty: number
-        }
-        Returns: Json
-      }
       pay_ticket: {
         Args: {
           p_paid_by: string
@@ -7532,6 +7641,18 @@ export type Database = {
           months_overdue: number
           plan: string
         }[]
+      }
+      produce_batch: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_dish_id: string
+          p_expires_at?: string
+          p_idempotency_key: string
+          p_notes?: string
+          p_produced_qty: number
+        }
+        Returns: Json
       }
       receive_ingredient_supply: {
         Args: {
