@@ -268,6 +268,106 @@ describe('derive_dish_production_mode — la règle de régime, en un seul endro
   });
 });
 
+describe('produce_batch — la matière sortie doit toujours produire un lot', () => {
+  const sql = codeOnly(lastDefinitionOf('produce_batch'));
+
+  /**
+   * ⛔⛔ LE DÉFAUT DE LA CODE REVIEW DU 07/08/2026.
+   *
+   * `consume_ingredients_fefo` attrape ses propres erreurs et retourne
+   * `success: false` SANS LEVER. Un simple `RETURN` en réponse sortirait donc
+   * NORMALEMENT de la fonction — et validerait tout ce qui a précédé.
+   *
+   * ⚠️ Il n'y a pas de ROLLBACK dans une fonction PL/pgSQL : `RAISE` +
+   * `EXCEPTION` est le SEUL moyen d'annuler réellement. Sans lui, rien ne
+   * garantit que l'appelant annule sa propre transaction en voyant l'échec.
+   */
+  it('LÈVE une exception si le FEFO échoue, au lieu de retourner', () => {
+    expect(sql).toMatch(/RAISE EXCEPTION 'FEFO_FAILED/);
+  });
+
+  /** ⭐ Et la rattrape pour restituer le message métier, pas le marqueur. */
+  it('rattrape FEFO_FAILED et n’expose pas le marqueur technique', () => {
+    expect(sql).toMatch(/WHEN raise_exception THEN/);
+    expect(sql).toMatch(/SQLERRM LIKE 'FEFO_FAILED:%'/);
+  });
+
+  /**
+   * ⛔⛔ SEULS LES INGRÉDIENTS 'batch'. C'est LA distinction du régime : le
+   * poulet bouilli du matin ne consomme pas l'huile de friture, qui part à la
+   * finition. Consommer tout ici sortirait de l'huile pour des portions
+   * peut-être jamais servies.
+   */
+  it('ne consomme que les ingrédients de production', () => {
+    expect(sql).toMatch(/consumed_at_stage\s*=\s*'batch'/);
+  });
+
+  /**
+   * ⛔ Le coût divise par les portions RÉELLEMENT produites, jamais par
+   * `portions_per_batch`. Un lot de 12 quand la fiche en prévoit 20 doit
+   * coûter le douzième du réel — sinon chaque portion est sous-évaluée
+   * de 40 %.
+   */
+  it('divise le coût par les portions produites, pas par la fiche', () => {
+    expect(sql).toMatch(/v_total_cost\s*\/\s*p_produced_qty/);
+    expect(sql).not.toMatch(/v_total_cost\s*\/\s*.*portions_per_batch/);
+  });
+
+  /**
+   * ⭐ La course d'idempotence est un cas NOMINAL, pas une incohérence.
+   * Sans branche dédiée, un double-clic afficherait « Incohérence de données
+   * détectée » — un message alarmant pour un comportement normal.
+   */
+  it('traite la course d’idempotence comme un rejeu, pas comme une erreur', () => {
+    const posUnique = sql.search(/WHEN unique_violation THEN/);
+    const posCheck = sql.search(/WHEN check_violation/);
+    expect(posUnique).toBeGreaterThan(-1);
+    // ⚠️ L'ORDRE compte : `unique_violation` doit être traité AVANT le
+    // handler générique qui la qualifierait d'invariant cassé.
+    if (posCheck > -1) expect(posUnique).toBeLessThan(posCheck);
+    expect(sql).toMatch(/idempotent_replay/);
+  });
+
+  /** ⚠️ Seul un plat-base produit un lot. */
+  it('exige un plat-base', () => {
+    expect(sql).toMatch(/is_batch_base\s*=\s*TRUE/i);
+  });
+
+  /** ⭐ Journée commerciale du BAR, pas 6 en dur comme la machine d'état. */
+  it('utilise le closing_hour du bar', () => {
+    expect(sql).toMatch(/closing_hour/);
+  });
+
+  it('filtre explicitement l’appartenance au bar', () => {
+    expect(sql).toMatch(/is_bar_member\s*\(/);
+  });
+
+  it('fige le search_path', () => {
+    expect(sql).toMatch(/SET search_path\s*=\s*public/i);
+  });
+});
+
+/**
+ * ⛔⛔ L'IDEMPOTENCE DOIT ÊTRE PORTÉE PAR LA BASE, PAS SEULEMENT PAR LE RPC.
+ * Deux requêtes concurrentes passent toutes deux le `SELECT` de contrôle
+ * applicatif avant qu'aucune n'ait inséré : seule une contrainte d'unicité
+ * les départage. Sans elle, un double-clic créerait un lot FANTÔME dont la
+ * matière aurait déjà été consommée par le premier.
+ */
+describe('production_batches — unicité de la clé d’idempotence', () => {
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql'));
+
+  it('un index UNIQUE couvre (bar_id, idempotency_key)', () => {
+    const trouve = files.some((f) => {
+      const code = codeOnly(readFileSync(join(MIGRATIONS_DIR, f), 'utf-8'));
+      return /CREATE\s+UNIQUE\s+INDEX[\s\S]{0,120}?production_batches[\s\S]{0,120}?idempotency_key/i.test(
+        code
+      );
+    });
+    expect(trouve).toBe(true);
+  });
+});
+
 /**
  * ⚠️ `CREATE OR REPLACE` PERD LES GRANTS sur ce projet — leçon acquise au
  * durcissement des RPC. Les oublier ne casse rien au déploiement : l'écran

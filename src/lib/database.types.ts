@@ -3201,6 +3201,69 @@ export type Database = {
           },
         ]
       }
+      production_batches: {
+        Row: {
+          bar_id: string
+          business_date: string
+          created_at: string
+          discard_reason: string | null
+          discarded_at: string | null
+          discarded_qty: number | null
+          dish_id: string
+          expires_at: string | null
+          id: string
+          idempotency_key: string
+          notes: string | null
+          produced_at: string
+          produced_by: string | null
+          produced_qty: number
+          remaining_qty: number
+          status: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          business_date: string
+          created_at?: string
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_qty?: number | null
+          dish_id: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key: string
+          notes?: string | null
+          produced_at?: string
+          produced_by?: string | null
+          produced_qty: number
+          remaining_qty: number
+          status?: string
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          business_date?: string
+          created_at?: string
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_qty?: number | null
+          dish_id?: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string
+          notes?: string | null
+          produced_at?: string
+          produced_by?: string | null
+          produced_qty?: number
+          remaining_qty?: number
+          status?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       promotion_applications: {
         Row: {
           applied_at: string | null
@@ -7362,6 +7425,18 @@ export type Database = {
       months_overdue: {
         Args: { p_due_date: string; p_now?: string }
         Returns: number
+      }
+      produce_batch: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_dish_id: string
+          p_expires_at?: string
+          p_idempotency_key: string
+          p_notes?: string
+          p_produced_qty: number
+        }
+        Returns: Json
       }
       pay_ticket: {
         Args: {
