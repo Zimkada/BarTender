@@ -413,9 +413,67 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
     expect(sql).toMatch(/RAISE EXCEPTION 'FEFO_FAILED/);
   });
 
-  /** ⚠️ Lot insuffisant ⟹ dette, jamais refus (§4.4). */
-  it('sert malgré un lot vide et expose la dette', () => {
-    expect(sql).toMatch(/batch_debt_qty/);
+  /**
+   * ⛔⛔ LOT INSUFFISANT ⟹ REFUS, PAS de dette — correction du 07/08/2026.
+   *
+   * Une première version créait une dette « comme les ingrédients (§4.4) ».
+   * L'analogie était FAUSSE : un ingrédient manquant n'a AUCUNE alternative
+   * (la matière est déjà dans l'assiette), un lot manquant en a une RÉELLE
+   * (cuisiner à la commande). Une dette n'a de sens que sans alternative.
+   *
+   * ⚠️ Et cette dette donnait un coût ESTIMÉ sans trace dans
+   * `kitchen_item_batch_consumptions` : la somme des prélèvements ne
+   * réconciliait pas avec `computed_cost`.
+   */
+  it('REFUSE un lot insuffisant au lieu de créer une dette', () => {
+    expect(sql).toMatch(/RAISE EXCEPTION 'BATCH_EMPTY/);
+    expect(sql).not.toMatch(/batch_debt_qty/);
+  });
+
+  /** ⭐ Le refus NOMME l'alternative — sinon c'est un cul-de-sac. */
+  it('rattrape BATCH_EMPTY et propose une issue', () => {
+    expect(sql).toMatch(/SQLERRM LIKE 'BATCH_EMPTY:%'/);
+    expect(sql).toMatch(/préparation à la commande/);
+  });
+});
+
+describe('accept_kitchen_item — la décision se prend AVANT de cuisiner', () => {
+  const sql = codeOnly(lastDefinitionOf('accept_kitchen_item'));
+
+  /**
+   * ⭐⭐ LE BON MOMENT, arbitrage de l'exploitant du 07/08/2026 :
+   *   · à `preparing` → RIEN n'est engagé, le cuisinier peut choisir ;
+   *   · à `ready`     → la matière est DÉJÀ sortie, il est trop tard.
+   * Le contrôle dans `mark_kitchen_item_ready` reste, mais comme dernier
+   * filet — il n'attrape que le lot vidé entre-temps.
+   */
+  it('vérifie la disponibilité des lots au démarrage', () => {
+    expect(sql).toMatch(/production_batches/);
+    expect(sql).toMatch(/batch_unavailable/);
+  });
+
+  /**
+   * ⛔⛔ CONDITIONNÉ AU RÉGIME. Appliqué à tous, ce contrôle bloquerait les
+   * plats `on_order`, qui n'ont aucun lot par définition — AUCUNE préparation
+   * ne pourrait plus démarrer.
+   */
+  it('ne contrôle QUE les plats batch_finish', () => {
+    expect(sql).toMatch(/=\s*'batch_finish'/);
+  });
+
+  /** ⭐ Le message nomme l'alternative, il ne dit pas seulement « non ». */
+  it('propose une issue dans le message de refus', () => {
+    expect(sql).toMatch(/préparez ce plat à la commande/);
+  });
+
+  /**
+   * ⚠️ PAS de `FOR UPDATE` sur les lots : ce n'est qu'une lecture. Verrouiller
+   * ici bloquerait les prélèvements réels pendant toute la préparation, qui
+   * dure des minutes.
+   */
+  it('ne verrouille pas les lots pendant la préparation', () => {
+    const bloc = sql.slice(sql.indexOf("'batch_finish'"));
+    expect(bloc).not.toMatch(/production_batches[\s\S]{0,300}?FOR UPDATE/);
   });
 });
 

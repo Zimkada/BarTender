@@ -114,8 +114,24 @@ export function useKitchenMutations() {
       return KitchenService.acceptItem(barId, itemId);
     },
     onSettled: invalidateQueue,
+    /**
+     * ⭐⭐ C'EST ICI QUE LE CUISINIER DOIT VOIR L'ALTERNATIVE.
+     *
+     * `accept_kitchen_item` refuse un plat `batch_finish` dont le lot est
+     * épuisé, AU DÉMARRAGE de la préparation — le moment où rien n'est encore
+     * engagé et où le choix reste possible (produire un lot, préparer à la
+     * commande, déclarer indisponible).
+     *
+     * ⚠️ Le message du serveur NOMME déjà l'alternative : on l'affiche tel
+     * quel plutôt que de le reformuler. Un `console.error` seul laisserait le
+     * cuisinier devant un bouton qui ne fait rien.
+     */
     onError: (error) => {
-      console.error('Acceptation échouée:', getErrorMessage(error));
+      const msg = getErrorMessage(error);
+      console.error('Acceptation échouée:', msg);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg, { duration: 6000 });
+      });
     },
   });
 
@@ -129,27 +145,20 @@ export function useKitchenMutations() {
     },
     onSettled: invalidateStockDependent,
     /**
-     * ⭐ SERVI SANS LOT — le cuisinier doit le savoir (§4.4, `batch_finish`).
-     *
-     * ⚠️ On ne refuse jamais : le plat est déjà cuisiné quand la RPC
-     * s'exécute. Mais laisser passer en silence cacherait deux choses — une
-     * production oubliée, et un coût matière ESTIMÉ plutôt que réel.
-     * ⚠️ Aucun message dans le cas nominal : un toast à chaque plat prêt
+     * ⚠️ AUCUN message dans le cas nominal : un toast à chaque plat prêt
      * rendrait l'écran de service inutilisable.
+     *
+     * ⛔ Le refus « lot épuisé » remonte par `onError` avec son message
+     * métier — la ligne n'est PAS passée à `ready`, contrairement à la
+     * première version qui servait avec une dette (corrigée le 07/08/2026 :
+     * un lot manquant a une ALTERNATIVE, contrairement à un ingrédient).
      */
-    onSuccess: (result) => {
-      const debt = result.batch_debt_qty ?? 0;
-      if (debt <= 0) return;
-
-      import('react-hot-toast').then(({ default: toast }) => {
-        toast(
-          `Servi, mais le lot était vide (${debt} portion${debt > 1 ? 's' : ''} manquante${debt > 1 ? 's' : ''}). Pensez à produire un lot.`,
-          { icon: '⚠️', duration: 6000 }
-        );
-      });
-    },
     onError: (error) => {
-      console.error('Passage en prêt échoué:', getErrorMessage(error));
+      const msg = getErrorMessage(error);
+      console.error('Passage en prêt échoué:', msg);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg, { duration: 6000 });
+      });
     },
   });
 

@@ -122,8 +122,6 @@ DECLARE
   v_lot         RECORD;
   v_needed      NUMERIC(10,3);
   v_take        NUMERIC(10,3);
-  v_last_cost   NUMERIC(12,4);
-  v_debt_qty    NUMERIC(10,3);
 BEGIN
   IF NOT (is_bar_member(p_bar_id) OR is_super_admin()) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Accès refusé à ce bar');
@@ -294,25 +292,37 @@ BEGIN
       END LOOP;
 
       /**
-       * ⭐ LOT INSUFFISANT ⟹ DETTE, jamais refus (§4.4).
-       * Refuser ici bloquerait le service pour une production oubliée — et
-       * le plat est DÉJÀ cuisiné, il est trop tard pour dire non.
+       * ⛔⛔ LOT INSUFFISANT ⟹ REFUS, PAS de dette.
        *
-       * ⚠️ Coût ESTIMÉ au dernier `unit_cost` connu de ce plat-base, tous
-       * lots confondus. Approximatif et assumé : mieux vaut un coût proche
-       * qu'un coût NUL, qui afficherait une marge de 100 %.
-       * ⚠️ Si AUCUN lot n'a jamais existé, l'estimation vaut 0 — on ne peut
-       * rien inventer. Le compteur de dette, lui, reste juste.
+       * ⚠️ Une première version créait ici une dette « comme les ingrédients
+       * (§4.4) ». L'analogie était FAUSSE, et l'exploitant l'a relevée :
+       *   · un INGRÉDIENT manquant n'a AUCUNE alternative — la matière est
+       *     déjà dans l'assiette, refuser bloquerait un plat cuisiné ;
+       *   · un LOT manquant en a une, RÉELLE — cuisiner le plat à la commande
+       *     (`on_order`). Les ingrédients bruts sont là, le plat n'est pas
+       *     perdu, il prend juste plus de temps.
+       * Une dette n'a de sens que sans alternative. Ici il y en a une.
+       *
+       * ⭐ Et la dette donnait un coût ESTIMÉ (dernier lot connu) sans aucune
+       * trace dans `kitchen_item_batch_consumptions` : la somme des
+       * prélèvements ne réconciliait pas avec `computed_cost`. Un audit
+       * trouvait un écart inexplicable.
+       *
+       * ⚠️ CE REFUS EST LE DERNIER FILET, pas la protection principale.
+       * `accept_kitchen_item` vérifie la disponibilité AU DÉMARRAGE de la
+       * préparation — le moment où rien n'est encore engagé et où le
+       * cuisinier peut choisir. Arriver ici signifie que ce contrôle a été
+       * contourné (lot vidé entre-temps par une commande concurrente).
+       *
+       * ⭐ Le message NOMME l'alternative : sans elle, un refus est un
+       * cul-de-sac.
        */
       IF v_needed > 0 THEN
-        SELECT unit_cost INTO v_last_cost
-        FROM public.production_batches
-        WHERE bar_id = p_bar_id AND dish_id = v_component.base_dish_id
-        ORDER BY produced_at DESC
-        LIMIT 1;
-
-        v_debt_qty := COALESCE(v_debt_qty, 0) + v_needed;
-        v_batch_cost := v_batch_cost + (v_needed * COALESCE(v_last_cost, 0));
+        RAISE EXCEPTION 'BATCH_EMPTY:%:%',
+          v_needed,
+          COALESCE((SELECT name FROM public.dishes WHERE id = v_component.base_dish_id),
+                   'plat de base')
+          USING ERRCODE = 'raise_exception';
       END IF;
     END LOOP;
 
@@ -336,9 +346,6 @@ BEGIN
     'item_id', p_item_id,
     'status', 'ready',
     'computed_cost', v_cost,
-    -- ⭐ Exposé pour que l'UI puisse prévenir : « servi, mais le lot était
-    -- vide » est une information que le cuisinier doit voir.
-    'batch_debt_qty', COALESCE(v_debt_qty, 0),
     'idempotent_replay', false
   );
 
@@ -348,6 +355,24 @@ EXCEPTION
    * Format : FEFO_FAILED:<true|false>:<message, qui peut contenir des « : »>
    */
   WHEN raise_exception THEN
+    /**
+     * ⭐ LOT ÉPUISÉ — message métier qui NOMME l'alternative.
+     * Format : BATCH_EMPTY:<portions manquantes>:<nom du plat-base>
+     * ⚠️ Un refus sans issue est un cul-de-sac : le cuisinier doit savoir
+     * qu'il peut produire un lot OU préparer le plat à la commande.
+     */
+    IF SQLERRM LIKE 'BATCH_EMPTY:%' THEN
+      RETURN jsonb_build_object(
+        'success', false,
+        'error', format(
+          'Lot de %s épuisé (%s portion(s) manquante(s)). Produisez un lot, ou passez ce plat en préparation à la commande.',
+          substring(SQLERRM FROM position(':' IN substring(SQLERRM FROM 13)) + 13),
+          split_part(SQLERRM, ':', 2)
+        ),
+        'batch_empty', true
+      );
+    END IF;
+
     IF SQLERRM LIKE 'FEFO_FAILED:%' THEN
       RETURN jsonb_build_object(
         'success', false,
