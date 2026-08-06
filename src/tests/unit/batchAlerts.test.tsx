@@ -54,6 +54,15 @@ vi.mock('../../hooks/pivots/useUnifiedKitchenQueue', () => ({
   useUnifiedKitchenQueue: () => ({ columns: mockColumns }),
 }));
 
+/** Rôle simulé — le serveur n'a PAS `canManageIngredientStock`. */
+let mockRole = 'cuisinier';
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    hasPermission: (p: string) =>
+      p === 'canManageIngredientStock' ? mockRole !== 'serveur' : true,
+  }),
+}));
+
 import { useBatchAlerts } from '../../hooks/pivots/useBatchAlerts';
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -81,6 +90,7 @@ describe('useBatchAlerts — alerter juste, ni trop ni trop peu', () => {
     mockBatches = [];
     mockComponents = [];
     mockColumns = { todo: [], doing: [], done: [] };
+    mockRole = 'cuisinier';
   });
 
   it('alerte quand le lot est vide et qu’un plat l’attend', () => {
@@ -195,6 +205,38 @@ describe('useBatchAlerts — alerter juste, ni trop ni trop peu', () => {
     expect(result.current.alerts).toHaveLength(2);
     expect(result.current.alerts[0].isEmpty).toBe(true);
     expect(result.current.alerts[0].baseDishName).toBe('Poulet bouilli');
+  });
+
+  /**
+   * ⛔⛔ LE DÉFAUT DE LA CODE REVIEW DU 07/08/2026.
+   *
+   * `useActiveBatches` est gardée par `canManageIngredientStock` : pour un
+   * SERVEUR, elle ne charge RIEN. Et un tableau vide se lit comme « zéro
+   * portion disponible » — le serveur aurait vu « Plus de Spaghetti cuits »
+   * en PERMANENCE, même devant un lot plein.
+   *
+   * ⚠️ Une fausse alerte constante est PIRE que pas d'alerte : elle
+   * discrédite les vraies.
+   */
+  it('n’alerte JAMAIS un serveur, faute d’accès aux lots', () => {
+    mockRole = 'serveur';
+    mockComponents = composition;
+    mockBatches = []; // non chargés pour lui, comme en réalité
+    mockColumns.todo = enAttente(3);
+
+    const { result } = renderHook(() => useBatchAlerts('bar-1'), { wrapper });
+    expect(result.current.hasAlerts).toBe(false);
+  });
+
+  /** ⭐ Contre-épreuve : le cuisinier, lui, voit bien l'alerte. */
+  it('alerte bien un cuisinier dans la même situation', () => {
+    mockRole = 'cuisinier';
+    mockComponents = composition;
+    mockBatches = [];
+    mockColumns.todo = enAttente(3);
+
+    const { result } = renderHook(() => useBatchAlerts('bar-1'), { wrapper });
+    expect(result.current.hasAlerts).toBe(true);
   });
 
   /** ⚠️ Un bar sans composition n'a rien à signaler — sortie immédiate. */

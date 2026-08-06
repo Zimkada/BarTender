@@ -10,8 +10,9 @@
  * ⚠️ EN TÊTE DE L'ÉCRAN SERVICE, pas dans une page à part. Le cuisinier ne va
  * pas chercher une alerte : elle doit être là où il regarde déjà.
  *
- * ⛔ AUCUNE REQUÊTE PROPRE — `useBatchAlerts` croise des données déjà en
- * cache pour cet écran (§3).
+ * ⚠️ `useBatchAlerts` ajoute DEUX queries sur cet écran (lots, compositions),
+ * toutes deux à cache long et sans temps réel — le détail du coût réseau est
+ * documenté dans le hook (§3).
  */
 
 import { AlertTriangle, ChefHat } from 'lucide-react';
@@ -31,10 +32,12 @@ export function BatchAlertBanner({ barId }: Props) {
   const { alerts, hasAlerts } = useBatchAlerts(barId);
 
   /**
-   * ⚠️ Le SERVEUR voit l'alerte mais pas le bouton : produire un lot consomme
-   * du stock, ce n'est pas son métier (même règle que la page Production).
-   * ⭐ Il la voit quand même — c'est lui qui prévient le client que le plat
-   * prendra plus de temps.
+   * ⚠️ Le SERVEUR ne voit PAS ce bandeau du tout — `useBatchAlerts` renvoie
+   * une liste vide pour lui, faute d'accès aux lots (ils portent un coût
+   * unitaire). Ce booléen ne pilote donc que le bouton, pour les rôles qui
+   * arrivent jusqu'ici.
+   * ⭐ Il reste utile : un rôle futur pourrait voir les lots sans pouvoir en
+   * produire.
    */
   const canProduce = hasPermission('canManageIngredientStock');
 

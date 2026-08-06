@@ -14,17 +14,28 @@
  * l'arbitrage du 06/08/2026 : « dès que le lot est fini, avant même la
  * commande ».
  *
- * ⚠️ AUCUNE REQUÊTE SUPPLÉMENTAIRE. Les trois sources sont déjà en cache pour
- * l'écran Service : la file, les lots actifs, les compositions. Ce hook ne
- * fait que les croiser — sur l'écran le plus rafraîchi du module, ajouter du
- * trafic serait le contraire de ce que trois vagues d'optimisation ont obtenu
- * (§3).
+ * ⚠️ COÛT RÉSEAU — mesuré, pas supposé (correction d'un commentaire faux
+ * relevé à la code review du 07/08/2026, qui affirmait « aucune requête
+ * supplémentaire »).
+ *
+ * Sur l'écran Service, ce hook ajoute DEUX queries :
+ *   · `useActiveBatches`     — `salesAndStock`, 5 min
+ *   · `useAllDishComponents` — `products`, 30 min
+ * `useDishes` et la file y étaient déjà.
+ *
+ * ⭐ Le coût reste faible et BORNÉ : aucun `useSmartSync`, aucun
+ * `refetchInterval`. Ces données ne sont pas poussées — un lot change quand
+ * on en produit un, une composition quand on modifie une recette. Ajouter du
+ * temps réel ici coûterait de l'egress pour un gain nul (§3).
+ * ⭐ §3 — les deux portent `enabled: hasRestaurant` : sur un bar pur, zéro
+ * requête.
  */
 
 import { useMemo } from 'react';
 import { useActiveBatches } from '../queries/useBatchQueries';
 import { useAllDishComponents, useDishes } from '../queries/useDishesQueries';
 import { useUnifiedKitchenQueue } from './useUnifiedKitchenQueue';
+import { useAuth } from '../../context/AuthContext';
 
 export interface BatchAlert {
   /** Le plat-BASE en rupture — celui dont il faut produire un lot. */
@@ -57,12 +68,33 @@ export interface BatchAlert {
  * ignorer — et il ignorerait aussi les vraies alertes.
  */
 export function useBatchAlerts(barId: string | undefined) {
+  const { hasPermission } = useAuth();
   const { data: batches = [] } = useActiveBatches(barId);
   const { data: components = [] } = useAllDishComponents(barId);
   const { data: dishes = [] } = useDishes(barId);
   const { columns } = useUnifiedKitchenQueue(barId);
 
+  /**
+   * ⛔⛔ SANS LES LOTS, PAS D'ALERTE — défaut trouvé à la code review du
+   * 07/08/2026.
+   *
+   * `useActiveBatches` est gardée par `canManageIngredientStock` (les lots
+   * portent `unit_cost`, un montant). Pour un SERVEUR, elle ne charge donc
+   * RIEN — et un tableau vide se lit ici comme « zéro portion disponible ».
+   * ⚠️ Résultat : le serveur aurait vu « Plus de Spaghetti cuits » en
+   * PERMANENCE, même devant un lot plein de 20 portions. Une fausse alerte
+   * constante est pire que pas d'alerte : elle discrédite les vraies.
+   *
+   * ⭐ On MASQUE plutôt que d'ouvrir la donnée. Charger les lots pour le
+   * serveur exposerait un coût unitaire qu'il n'a pas le droit de voir — la
+   * garde posée le 05/08 existe pour cette raison.
+   * ⚠️ Conséquence assumée : le serveur ne voit pas l'alerte. Il l'apprendra
+   * du cuisinier, ou par le refus au démarrage de la préparation.
+   */
+  const canSeeBatches = hasPermission('canManageIngredientStock');
+
   const alerts = useMemo<BatchAlert[]>(() => {
+    if (!canSeeBatches) return [];
     if (components.length === 0) return [];
 
     /** Portions disponibles par plat-base, tous lots actifs confondus. */
@@ -133,7 +165,7 @@ export function useBatchAlerts(barId: string | undefined) {
 
     // ⭐ Les ruptures TOTALES d'abord : plus rien ne peut être servi.
     return result.sort((a, b) => Number(b.isEmpty) - Number(a.isEmpty));
-  }, [batches, components, dishes, columns]);
+  }, [canSeeBatches, batches, components, dishes, columns]);
 
   return { alerts, hasAlerts: alerts.length > 0 };
 }
