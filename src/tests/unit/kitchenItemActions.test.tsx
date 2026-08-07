@@ -79,6 +79,11 @@ const renderCard = (status: KitchenItemStatus, caps: Caps = {}) =>
       canCancel={caps.canCancel ?? true}
       canCancelAfterReady={caps.canCancelAfterReady ?? true}
       onAccept={vi.fn()}
+      // ⚠️ Props ajoutées par 3C.1 (bascule à la commande, §16.9). Ce fichier
+      // teste les PERMISSIONS, pas le régime : `isBatchFinish={false}` garde le
+      // bouton « À la commande » hors des cas testés ici.
+      onForceOnOrder={vi.fn()}
+      isBatchFinish={false}
       onMarkReady={vi.fn()}
       onServe={vi.fn()}
       onCancel={vi.fn()}

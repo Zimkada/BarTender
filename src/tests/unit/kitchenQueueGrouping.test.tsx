@@ -62,6 +62,9 @@ function makeItem(overrides: {
     dish_id: 'dish-1',
     quantity: overrides.quantity ?? 1,
     status: overrides.status,
+    // ⚠️ Champ ajouté par 3C.1 (§16.9). `false` = régime nominal du plat : ce
+    // fichier teste le REGROUPEMENT par ticket, pas la bascule à la commande.
+    forced_on_order: false,
     accepted_by: null,
     accepted_at: null,
     ready_by: null,
