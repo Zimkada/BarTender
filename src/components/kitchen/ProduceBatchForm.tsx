@@ -15,6 +15,9 @@ import { ChefHat, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../../lib/utils';
+import { useBarContext } from '../../context/BarContext';
+import { useRecipeShortfall } from '../../hooks/useRecipeShortfall';
+import { ShortfallWarning } from './ShortfallWarning';
 import type { DishRow } from '../../services/supabase/dishes.service';
 import type { BatchSource } from '../../services/supabase/batches.service';
 
@@ -43,6 +46,7 @@ export function ProduceBatchForm({
   onCancel,
   isSubmitting = false,
 }: Props) {
+  const { currentBar } = useBarContext();
   const [dishId, setDishId] = useState('');
   const [qty, setQty] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
@@ -73,6 +77,23 @@ export function ProduceBatchForm({
   const qtyNum = Number(qty);
   const costNum = Number(totalCost);
   const isPurchased = source === 'purchased';
+
+  /**
+   * ⭐ CE QUI MANQUERA, dit AVANT de produire (§4.4).
+   *
+   * ⛔ DÉSACTIVÉ POUR UN LOT ACHETÉ : `produce_batch` ne consomme AUCUN
+   * ingrédient dans ce cas (§19.3, migration 20260808140000). Avertir sur une
+   * matière que le serveur ne prélèvera pas serait une fausse alerte — et la
+   * plus coûteuse, celle qui apprend à ignorer les alertes.
+   *
+   * ⚠️ Stade `batch` : produire un lot ne consomme que les lignes de ce stade.
+   * Les lignes `finish` sont prélevées à l'assiette, pas ici (§16.8).
+   */
+  const { shortfalls, isLoading: isCheckingStock } = useRecipeShortfall(
+    currentBar?.id,
+    dishId || undefined,
+    { stage: 'batch', quantity: qtyNum, enabled: !isPurchased }
+  );
   /**
    * ⛔ Un lot ACHETÉ exige son prix. Sans lui, `unit_cost` vaudrait 0 et
    * chaque portion afficherait 100 % de marge — un chiffre faux qui ne se
@@ -297,16 +318,26 @@ export function ProduceBatchForm({
         </div>
       )}
 
+      {/* ⭐ Placé JUSTE AVANT les boutons : c'est la dernière chose lue avant
+          le geste. Plus haut dans un formulaire long, il serait hors écran au
+          moment du clic. */}
+      <ShortfallWarning shortfalls={shortfalls} isLoading={isCheckingStock} />
+
       <div className="flex gap-2 pt-1">
         <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
           Annuler
         </Button>
         <Button type="submit" disabled={!isValid || isSubmitting} className="flex-1">
+          {/* ⭐ Le libellé NOMME la conséquence quand du stock manque : « Produire
+              le lot » laisserait croire que tout est couvert. Le geste reste
+              possible (§4.4) — c'est le mot qui change, pas le droit. */}
           {isSubmitting
             ? 'Enregistrement…'
             : isPurchased
               ? 'Enregistrer le lot'
-              : 'Produire le lot'}
+              : shortfalls.length > 0
+                ? 'Produire malgré le manque'
+                : 'Produire le lot'}
         </Button>
       </div>
     </form>

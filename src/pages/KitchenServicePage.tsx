@@ -23,6 +23,7 @@ import { KitchenItemCard } from '../components/kitchen/KitchenItemCard';
 import { CancelItemModal } from '../components/kitchen/CancelItemModal';
 import { KitchenProductionPanel } from '../components/kitchen/KitchenProductionPanel';
 import { BatchAlertBanner } from '../components/kitchen/BatchAlertBanner';
+import { StockShortfallBanner } from '../components/kitchen/StockShortfallBanner';
 import { useUnifiedKitchenQueue, type KitchenGroup } from '../hooks/pivots/useUnifiedKitchenQueue';
 import { useDishes } from '../hooks/queries/useDishesQueries';
 import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
@@ -182,9 +183,13 @@ export default function KitchenServicePage() {
 
   /**
    * ⭐⭐ C'est ICI que la matière sort du stock (§6).
-   * ⚠️ Si le stock est insuffisant, le RPC REFUSE — et le message doit le dire
-   * clairement : le cuisinier doit savoir qu'il manque un ingrédient, pas
-   * qu'« une erreur est survenue ».
+   *
+   * ⛔ CORRECTION du 08/08/2026 : ce commentaire affirmait que « le RPC REFUSE
+   * si le stock est insuffisant ». C'est FAUX et l'inverse du §4.4 —
+   * `consume_ingredients_fefo` crée une DETTE et retourne `success: true`. Le
+   * RPC ne lève que si le FEFO échoue TECHNIQUEMENT.
+   * ⭐ C'est pourquoi `StockShortfallBanner` existe : puisque rien ne bloque,
+   * il faut prévenir AVANT.
    */
   /**
    * ⭐ La SORTIE quand un lot manque (§16.9). Le message d'erreur du refus
@@ -310,6 +315,12 @@ export default function KitchenServicePage() {
           justement le moment où le cuisinier a le temps de produire.
           ⚠️ Le composant se masque lui-même s'il n'y a rien à signaler. */}
       <BatchAlertBanner barId={currentBar?.id} />
+
+      {/* ⭐ Le manque de MATIÈRE, à côté du manque de LOTS (§4.4).
+          ⚠️ Deux bandeaux distincts et non fusionnés : un lot épuisé se règle
+          en produisant, un ingrédient manquant en approvisionnant. Mêler les
+          deux donnerait une alerte sans geste clair. */}
+      <StockShortfallBanner barId={currentBar?.id} />
 
       {!isLoading && totalItems === 0 ? (
         <EmptyState

@@ -19,6 +19,7 @@ import {
   type KitchenQueueItem,
   type KitchenMetrics,
   type KitchenProduction,
+  type QueueShortfalls,
 } from '../../services/supabase/kitchen.service';
 
 // ===== Query Keys =====
@@ -40,6 +41,13 @@ export const kitchenKeys = {
    */
   production: (barId: string, start?: string, end?: string) =>
     [...kitchenKeys.all, 'production', barId, start ?? '', end ?? ''] as const,
+  /**
+   * ⭐ Manques de stock pour la file en cours (§4.4).
+   * ⚠️ Sous `kitchenKeys.all` : les mutations de la file invalident déjà cette
+   * racine, donc l'alerte se rafraîchit quand la file change - sans qu'aucune
+   * mutation ait à connaître cette clé.
+   */
+  shortfalls: (barId: string) => [...kitchenKeys.all, 'shortfalls', barId] as const,
 };
 
 /**
@@ -181,5 +189,39 @@ export function useKitchenProduction(
     queryFn: () => KitchenService.getProduction(barId as string, startDate, endDate),
     enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenOrders'),
     ...CACHE_STRATEGY.dailyStats,
+  });
+}
+
+/**
+ * ⭐ Ce qui MANQUERA pour la file en cours (§4.4).
+ *
+ * ⛔ AVERTISSEMENT, JAMAIS UN BLOCAGE. Le serveur ne refuse pas sur un stock à
+ * 0 : il crée une DETTE. Sans cette query, la préparation réussit et l'anomalie
+ * n'apparaît que dans un écran que le cuisinier n'ouvre pas.
+ *
+ * ⭐ UN SEUL APPEL pour toute la file - c'est la raison d'être de la RPC.
+ * `useDishRecipe` charge une recette par requête : 20 plats en file auraient
+ * fait 20 requêtes sur l'écran le plus sollicité (§3, egress).
+ *
+ * ⚠️ Garde `canViewKitchenOrders` et NON `canViewKitchenCosts` : le cuisinier
+ * est le premier destinataire de cette alerte. Ce relâchement n'est SÛR que
+ * parce que la RPC ne renvoie AUCUN montant - la protection est dans le SQL
+ * (post-vol n°3), pas ici.
+ *
+ * ⚠️ `salesAndStock` (5 min) et non `dailyStats` : le stock bouge à chaque
+ * plat terminé. Un cache long annoncerait un manque déjà comblé, ou tairait
+ * celui qui vient d'apparaître.
+ *
+ * ⭐ §3 — `enabled: hasRestaurant` : aucune requête sur un bar pur.
+ */
+export function useQueueShortfalls(barId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
+
+  return useQuery<QueueShortfalls>({
+    queryKey: kitchenKeys.shortfalls(barId ?? ''),
+    queryFn: () => KitchenService.getQueueShortfalls(barId as string),
+    enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenOrders'),
+    ...CACHE_STRATEGY.salesAndStock,
   });
 }

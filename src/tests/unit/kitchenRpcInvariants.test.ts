@@ -734,3 +734,72 @@ describe('Les helpers SQL internes ne sont pas exposés au client', () => {
     expect(grants).toEqual([]);
   });
 });
+
+/**
+ * ⭐⭐ `get_kitchen_queue_shortfalls` — l'alerte doit dire VRAI.
+ *
+ * Une alerte fausse est pire que pas d'alerte : elle apprend à ignorer les
+ * vraies. Ces invariants verrouillent les 5 règles qui la rendent exacte, et
+ * chacune correspond à un piège rencontré pendant l'écriture.
+ */
+describe('get_kitchen_queue_shortfalls — une alerte qui ne ment pas', () => {
+  const sql = codeOnly(lastDefinitionOf('get_kitchen_queue_shortfalls'));
+
+  it('ne consomme rien : aucune écriture en base', () => {
+    // ⛔ C'est une SIMULATION. Un INSERT ici créerait de vraies dettes à
+    // chaque affichage de l'écran Service.
+    expect(sql).not.toMatch(/\b(INSERT|UPDATE|DELETE)\s/i);
+  });
+
+  it('est STABLE — sans quoi PostgreSQL la rappellerait par ligne', () => {
+    expect(lastDefinitionOf('get_kitchen_queue_shortfalls')).toMatch(/\bSTABLE\b/);
+  });
+
+  it('garde l’isolation multi-tenant', () => {
+    // ⛔ SECURITY DEFINER contourne la RLS : sans cette garde, le stock d'un
+    // autre bar serait lisible en passant son UUID.
+    expect(sql).toMatch(/is_bar_member/);
+  });
+
+  it('n’expose AUCUN montant (§8)', () => {
+    // ⚠️ Destinée au cuisinier. La garde du hook client s'appuie sur le fait
+    // que le SQL ne calcule aucun coût — si un montant réapparaissait ici, la
+    // permission `canViewKitchenOrders` deviendrait une faille.
+    expect(sql).not.toMatch(/unit_cost|total_cost|last_unit_cost|\bcost\b/i);
+  });
+
+  it('ne compte que la file NON ENCORE PRÉPARÉE', () => {
+    // ⛔ `ready` a DÉJÀ consommé sa matière : l'inclure ferait compter deux
+    // fois un stock déjà sorti et afficherait un manque imaginaire.
+    expect(sql).toMatch(/'pending'\s*,\s*'accepted'/);
+    expect(sql).not.toMatch(/'preparing'/);
+  });
+
+  it('lit le stock des LOTS, jamais le cache current_stock', () => {
+    // ⛔ `ingredients.current_stock` est un CACHE — son propre commentaire le
+    // dit. Un cache désynchronisé ferait dire l'inverse de la réalité.
+    expect(sql).toMatch(/ingredient_lots/);
+    expect(sql).toMatch(/remaining_qty/);
+    expect(sql).not.toMatch(/current_stock/);
+  });
+
+  it('n’alerte que sur les ingrédients qui décrémentent vraiment', () => {
+    // ⛔ Seul `direct` sort du stock. Alerter sur l'huile (`per_dish_flat`)
+    // serait une fausse alerte : personne ne la pèse.
+    expect(sql).toMatch(/cost_mode\s*=\s*'direct'/);
+  });
+
+  it('applique le yield_factor en DIVISION, avec garde sur zéro', () => {
+    // ⚠️ 0.8 = 20 % de perte : il faut SORTIR 125 g pour en utiliser 100.
+    // Multiplier sous-estimerait le manque et raterait les cas limites.
+    expect(sql).toMatch(/quantity\s*\/\s*COALESCE\(NULLIF\(\s*di\.yield_factor/);
+  });
+
+  it('garde le filtre de stade CONDITIONNÉ, jamais global', () => {
+    // ⛔⛔ Le piège le plus coûteux du module : `consumed_at_stage` a pour
+    // défaut 'batch'. Un `WHERE consumed_at_stage = 'finish'` inconditionnel
+    // écarterait les ingrédients de TOUS les plats et annoncerait « rien ne
+    // manque » en permanence — sans erreur, sans test rouge.
+    expect(sql).toMatch(/forced_on_order[\s\S]{0,120}batch_finish[\s\S]{0,120}consumed_at_stage\s*=\s*'finish'/);
+  });
+});

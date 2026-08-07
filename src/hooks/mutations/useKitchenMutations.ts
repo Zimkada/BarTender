@@ -16,6 +16,7 @@ import { useBarContext } from '../../context/BarContext';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { kitchenKeys } from '../queries/useKitchenQueries';
 import { dishKeys } from '../queries/useDishesQueries';
+import { ingredientKeys } from '../queries/useIngredientsQueries';
 // ⚠️ Clés IMPORTÉES et non écrites en dur : un littéral `['sales']` ne suivrait
 // pas un renommage et invaliderait silencieusement dans le vide — la pire
 // classe de bug de cache, car rien ne casse, l'écran affiche juste du périmé.
@@ -69,6 +70,23 @@ export function useKitchenMutations() {
   const invalidateStockDependent = () => {
     invalidateQueue();
     queryClient.invalidateQueries({ queryKey: dishKeys.all });
+
+    /**
+     * ⛔ OUBLI CORRIGÉ le 08/08/2026 : cette fonction invalidait les COÛTS
+     * dérivés (`dishKeys`) mais pas le STOCK qui vient d'être consommé.
+     *
+     * `useIngredients` porte `CACHE_STRATEGY.products` (30 min) parce que le
+     * RÉFÉRENTIEL bouge peu — mais `current_stock` y vit et bouge à chaque
+     * `ready`. L'écran Ingrédients affichait donc un stock périmé pendant tout
+     * un service, et l'avertissement de rupture aurait rassuré à tort.
+     *
+     * ⚠️ `ingredientKeys.list` et non `.all` : les LOTS ont leur propre clé et
+     * ne sont pas affichés pendant le service. Élargir ferait refetcher des
+     * données que personne ne regarde, contre les 3 vagues d'egress (§3).
+     */
+    if (barId) {
+      queryClient.invalidateQueries({ queryKey: ingredientKeys.list(barId) });
+    }
   };
 
   /** Envoie les plats d'un ticket en cuisine. */

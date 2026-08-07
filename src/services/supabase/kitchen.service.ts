@@ -120,6 +120,27 @@ interface RpcEnvelope {
   invariant_violation?: boolean;
 }
 
+/**
+ * Un ingrédient qui manquera pour la file en cours (§4.4).
+ *
+ * ⚠️ AUCUN MONTANT (§8) : le cuisinier voit des quantités, pas des coûts.
+ * ⚠️ `missing` est une ESTIMATION — le serveur compare des totaux, pas un FEFO
+ * lot par lot. C'est délibéré : répliquer le FEFO créerait une seconde
+ * implémentation de la même règle.
+ */
+export interface IngredientShortfallRow {
+  ingredient_id: string;
+  name: string;
+  unit: string;
+  required: number;
+  available: number;
+  missing: number;
+}
+
+export interface QueueShortfalls extends RpcEnvelope {
+  shortfalls: IngredientShortfallRow[];
+}
+
 interface CreateOrderResult extends RpcEnvelope {
   kitchen_order_id: string;
   items_created: number;
@@ -457,6 +478,31 @@ export const KitchenService = {
 
       if (error) throw error;
       return unwrapRpc<KitchenProduction>(data, 'Lecture de l’activité cuisine');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Ce qui MANQUERA pour la file en cours (§4.4).
+   *
+   * ⭐ UN SEUL APPEL pour toute la file. `useDishRecipe` charge une recette par
+   * requête : 20 plats en file auraient fait 20 requêtes (N+1) sur l'écran le
+   * plus sollicité, contre les 3 vagues d'optimisation d'egress.
+   *
+   * ⛔ AVERTISSEMENT, PAS UN BLOCAGE. Le serveur ne refuse jamais sur un stock
+   * à 0 : il crée une dette (§4.4). Ce résultat sert à PRÉVENIR avant le geste.
+   *
+   * ⚠️ Aucun montant dans la réponse (§8) : elle s'affiche pour le cuisinier.
+   */
+  async getQueueShortfalls(barId: string): Promise<QueueShortfalls> {
+    try {
+      const { data, error } = await supabase.rpc('get_kitchen_queue_shortfalls', {
+        p_bar_id: barId,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<QueueShortfalls>(data, 'Vérification du stock cuisine');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
