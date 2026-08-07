@@ -222,6 +222,27 @@ export function useQueueShortfalls(barId: string | undefined) {
     queryKey: kitchenKeys.shortfalls(barId ?? ''),
     queryFn: () => KitchenService.getQueueShortfalls(barId as string),
     enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenOrders'),
+    /**
+     * ⛔ AUCUN RETRY SI LA RPC N'EXISTE PAS ENCORE (PGRST202).
+     *
+     * Les migrations s'appliquent À LA MAIN : entre le déploiement du code et
+     * l'exécution du SQL, cette query échoue à CHAQUE montage de l'écran
+     * Service — le plus ouvert du module. Le retry par défaut en ferait 3
+     * tentatives à chaque fois, pour une erreur qu'aucune reprise ne résout.
+     *
+     * ⚠️ Le reste du retry est CONSERVÉ : une coupure réseau doit toujours
+     * être retentée. Seule l'absence de fonction est traitée comme définitive.
+     *
+     * ⭐ C'est un AVERTISSEMENT, pas une donnée vitale : son absence dégrade
+     * l'écran sans le casser (le bandeau ne s'affiche simplement pas).
+     */
+    retry: (failureCount, error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('PGRST202') || message.includes('Could not find the function')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
     ...CACHE_STRATEGY.salesAndStock,
   });
 }

@@ -185,7 +185,31 @@ BEGIN
            i.name,
            i.unit,
            i.cost_mode,
-           COALESCE(SUM(l.remaining_qty), 0) AS in_stock
+           /**
+            * ⭐⭐ FORMULE EXACTE de la source de vérité :
+            *     Σ lots actifs − Σ dettes OUVERTES
+            * (`consume_ingredients_fefo`, 20260802160000, lignes 431-441).
+            *
+            * ⛔ DÉFAUT CORRIGÉ à la code review du 08/08/2026 : la première
+            *    version s'arrêtait à Σ lots. Un bar portant déjà une dette de
+            *    5 kg de riz l'aurait ignorée, et l'alerte aurait SOUS-ESTIMÉ
+            *    le manque d'autant — l'erreur la plus grave possible ici,
+            *    puisqu'elle rassure à tort.
+            *
+            * ⚠️ Sous-requête et non un second LEFT JOIN : joindre deux tables
+            *    à cardinalités différentes sur le même GROUP BY multiplierait
+            *    les lignes (3 lots × 2 dettes = 6), gonflant les deux sommes.
+            *
+            * ⚠️ `qty_owed - settled_qty` : une dette partiellement régularisée
+            *    ne pèse que pour son RESTE.
+            */
+           COALESCE(SUM(l.remaining_qty), 0) - COALESCE((
+             SELECT SUM(d.qty_owed - d.settled_qty)
+             FROM public.ingredient_stock_debts d
+             WHERE d.ingredient_id = i.id
+               AND d.bar_id = p_bar_id
+               AND d.status = 'open'
+           ), 0) AS in_stock
     FROM public.ingredients i
     LEFT JOIN public.ingredient_lots l
       ON l.ingredient_id = i.id

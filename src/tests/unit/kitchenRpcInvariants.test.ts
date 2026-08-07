@@ -783,6 +783,18 @@ describe('get_kitchen_queue_shortfalls — une alerte qui ne ment pas', () => {
     expect(sql).not.toMatch(/current_stock/);
   });
 
+  it('soustrait les DETTES OUVERTES du disponible', () => {
+    // ⛔⛔ DÉFAUT TROUVÉ EN CODE REVIEW le 08/08/2026. La première version
+    // s'arrêtait à Σ lots actifs. La source de vérité est
+    // Σ lots − Σ dettes ouvertes (`consume_ingredients_fefo`, l. 431-441) :
+    // un bar portant déjà une dette de 5 kg l'aurait ignorée et l'alerte aurait
+    // SOUS-ESTIMÉ le manque — l'erreur la plus grave ici, celle qui rassure à
+    // tort.
+    expect(sql).toMatch(/ingredient_stock_debts/);
+    expect(sql).toMatch(/qty_owed\s*-\s*d?\.?settled_qty/);
+    expect(sql).toMatch(/status\s*=\s*'open'/);
+  });
+
   it('n’alerte que sur les ingrédients qui décrémentent vraiment', () => {
     // ⛔ Seul `direct` sort du stock. Alerter sur l'huile (`per_dish_flat`)
     // serait une fausse alerte : personne ne la pèse.

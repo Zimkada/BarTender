@@ -21,8 +21,26 @@
  * est la métrique du module.
  *
  * ⚠️ AUCUNE REQUÊTE SUPPLÉMENTAIRE : `useIngredients` et `useDishRecipe` sont
- * déjà en cache sur les deux écrans appelants (l'egress a fait l'objet de
- * 3 vagues d'optimisation).
+ * déjà en cache sur l'écran appelant (l'egress a fait l'objet de 3 vagues
+ * d'optimisation).
+ *
+ * ⛔⛔ DEUX IMPLÉMENTATIONS COEXISTENT — DETTE ASSUMÉE, À CONNAÎTRE.
+ * `get_kitchen_queue_shortfalls` (SQL) répond à la même question pour l'écran
+ * Service. Elles ne sont PAS interchangeables :
+ *   · la RPC part de la FILE (plats déjà commandés, `pending`/`accepted`) ;
+ *   · ce hook part d'un plat HYPOTHÉTIQUE, pas encore commandé — c'est
+ *     précisément ce qu'est une production à venir.
+ * Étendre la RPC à un plat hypothétique lui ferait porter deux questions
+ * distinctes, et la Production ferait un aller-retour réseau par frappe.
+ *
+ * ⚠️ LE POINT DE DIVERGENCE À SURVEILLER est la source du DISPONIBLE :
+ *   · la RPC calcule Σ lots actifs − Σ dettes ouvertes ;
+ *   · ce hook lit `current_stock`, un CACHE que `consume_ingredients_fefo`
+ *     recalcule avec CETTE MÊME formule (20260802160000, l. 431-441).
+ * Les deux convergent donc — tant que le cache est frais, ce qu'assure
+ * l'invalidation de `ingredientKeys` sur toute mutation consommatrice.
+ * ⛔ Si la formule de `current_stock` changeait côté serveur, CE HOOK
+ * DEVIENDRAIT FAUX EN SILENCE : aucun test client ne le verrait.
  */
 
 import { useMemo } from 'react';
