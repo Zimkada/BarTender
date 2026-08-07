@@ -417,9 +417,15 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
    * tout passer quand `forced_on_order` est vrai.
    */
   it('consomme la recette entière sur une ligne basculée', () => {
-    // ⚠️ La branche `forced_on_order` reste EN PREMIER dans le OR : une
-    // ligne basculée consomme sa recette entière avant tout test de régime.
-    expect(sql).toMatch(/v_item\.forced_on_order[\s\S]{0,60}v_mode <> 'batch_finish'/);
+    // ⚠️ La branche `forced_on_order` reste EN PREMIER, et le `OR` est
+    // VERIFIE : les deux branches doivent rester ALTERNATIVES. Un `AND` a cet
+    // endroit inverserait la logique - une ligne basculée ne consommerait plus
+    // sa recette entière - sans qu'aucun autre test ne le voie.
+    // ⛔ Defaut trouve a la code review du 08/08/2026 : la premiere adaptation
+    // du motif avait RETIRE le `OR`, affaiblissant la garantie en silence.
+    expect(sql).toMatch(
+      /v_item\.forced_on_order\s+OR \(v_mode <> 'batch_finish' AND v_mode <> 'batch'\)/
+    );
   });
 
   /**
