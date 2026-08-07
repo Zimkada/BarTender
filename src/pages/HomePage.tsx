@@ -93,7 +93,12 @@ export default function HomePage() {
       // plats (« Poisson braisé »). Le bar le décide sur la fiche.
       // ⛔ DISTINCT de `is_available` juste au-dessus : « coupé ce soir » se
       // dit au client, « ne figure pas à la carte » ne se dit pas.
-      if (!dish.is_sellable) return false;
+      //
+      // ⚠️ `=== false` et NON `!dish.is_sellable` : seul un refus EXPLICITE
+      // masque le plat. Un champ absent — fixture de test, ligne mise en cache
+      // avant la migration — vaut `undefined`, et `!undefined` aurait fait
+      // disparaître le plat de la carte sans que rien ne le signale.
+      if (dish.is_sellable === false) return false;
       if (selectedCategory !== 'all' && dish.category_id !== selectedCategory) return false;
       if (query && !dish.name.toLowerCase().includes(query)) return false;
       return true;
@@ -166,10 +171,11 @@ export default function HomePage() {
     }
     if (effectiveScope !== 'products') {
       for (const d of dishes) {
-        // ⛔ MÊME FILTRE que la grille (§19.1) : sans lui, une catégorie
-        // annoncerait « 3 » pour une grille qui n'en montre qu'un. Un compteur
-        // qui ne compte pas ce qu'il affiche est pire que pas de compteur.
-        if (!d.is_sellable) continue;
+        // ⛔ MÊME FILTRE que la grille (§19.1), à l'identique — `=== false`
+        // compris : sans lui, une catégorie annoncerait « 3 » pour une grille
+        // qui n'en montre qu'un. Un compteur qui ne compte pas ce qu'il
+        // affiche est pire que pas de compteur.
+        if (d.is_sellable === false) continue;
         // ⚠️ Un plat sans catégorie n'entre dans aucun compteur — il reste
         // visible dans la grille, mais aucun filtre ne le revendique.
         if (d.category_id) counts[d.category_id] = (counts[d.category_id] || 0) + 1;

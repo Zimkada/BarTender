@@ -329,7 +329,10 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                       sur cet écran tout en étant introuvable à la vente : on
                       chercherait un bug là où il y a un réglage.
                       ⚠️ Ton NEUTRE, pas une alerte : c'est un choix du bar. */}
-                  {!dish.is_sellable && (
+                  {/* ⚠️ `=== false` comme le filtre de la grille : un champ
+                      absent ne doit pas afficher un badge qui contredirait ce
+                      que la vente montre réellement. */}
+                  {dish.is_sellable === false && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       Sert uniquement à composer d’autres plats
                     </p>
