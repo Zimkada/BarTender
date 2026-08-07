@@ -2514,7 +2514,7 @@ la complétude du modèle (pas de cinquième cas caché) :
 | `production_mode` | Lot | Finition à la commande | Délai | Bon | Retour | Exemple |
 |---|---|---|---|---|---|---|
 | `on_order` | non | totale | 20-40 min | oui | non | poulet braisé, poisson grillé |
-| **`batch`** | oui | **aucune** | nul | non | non | **riz gras + sauce légume** |
+| **`batch`** | oui | **aucune** | nul | **oui** ⚠ | non | **riz gras + sauce légume**, akassa |
 | **`batch_finish`** | oui | **partielle** | 5-10 min | oui | non | **spaghetti-poulet, alloco-poisson** |
 | ~~`precooked`~~ | — | aucune | nul | non | ✅ oui | ⏸ **Post-V1** (§12.4.c) — pâtisserie, beignet |
 
@@ -2542,13 +2542,51 @@ service.**
 Matin       : 5 kg riz + sauce cuisinés     → ingrédients décrémentés ICI (une seule fois)
               → production_batches : 20 portions, unit_cost = coût lot / 20
 Service     : commande « riz + légumes »    → prélève 1 portion de chaque lot
-              → vente immédiate (comme une boisson), AUCUN passage cuisine
+              → PASSAGE CUISINE COMME LES AUTRES RÉGIMES (corrigé 08/08/2026)
               → remaining_qty décrémenté, PAS les ingrédients
 Fin de jour : reste conservable → report ; sinon discarded_qty = perte valorisée
 ```
 
 ⚠ **Piège à éviter** : décrémenter les ingrédients à chaque portion servie **double-compterait** la
 matière déjà consommée le matin. Le service ne touche **que** `remaining_qty`.
+
+> ### ⛔ CORRECTION DU 08/08/2026 — `batch` PASSE PAR LA CUISINE
+>
+> La première rédaction écrivait « vente immédiate (comme une boisson), AUCUN passage cuisine », et
+> le tableau des régimes porte encore `Bon : non`. **C'est faux**, démenti par le terrain :
+>
+> > « Dans un bar restau, même pour le riz gras, c'est le cuisinier qui sert du bac vers l'assiette,
+> > puis le serveur vient récupérer et servir le client. Pour l'akassa c'est pareil. »
+>
+> L'erreur venait d'un raisonnement sur le **modèle de stock** (une portion décomptée, comme un
+> casier) qui a oublié la **géographie** : où la portion se trouve, et qui a le droit d'y toucher.
+> Une bouteille est dans le frigo du bar — le serveur se sert. Une portion de riz gras est dans le
+> bac **en cuisine** : le serveur ne peut pas se servir, et si la commande n'apparaît pas sur
+> l'écran Service, **personne ne dit au cuisinier de dresser l'assiette**. Il n'a aucune autre
+> interface.
+>
+> **Ce qui distingue `batch` de `on_order` n'est donc PAS le circuit, mais ce qui est DÉCOMPTÉ** :
+> `remaining_qty` au lieu des ingrédients. Le reste (bon, statuts, chrono) est identique.
+>
+> ⚠️ Conséquence sur le tableau du §16.8 : la colonne `Bon` de la ligne `batch` doit se lire **oui**.
+>
+> #### Lot vide → REFUS avec alternative
+>
+> Arbitrage du 08/08/2026, **aligné sur `batch_finish`** (§16.9, arbitrage du 07/08) : quand le bac
+> est vide, `accept_kitchen_item` REFUSE et propose de préparer à la commande.
+>
+> Le repli sur les ingrédients bruts a été **écarté** : il supposerait de recuisiner un bac entier
+> pour une assiette, ce qui n'arrive pas en cuisine réelle. Un riz gras épuisé est épuisé — le
+> serveur doit pouvoir dire « c'est terminé » plutôt que de laisser le client attendre.
+>
+> ⭐ C'est le même raisonnement que le 07/08 : on refuse **parce qu'une alternative existe**. Un
+> ingrédient manquant, lui, n'en a aucune — d'où la dette (§4.4). L'asymétrie est conservée.
+>
+> #### ⚠️ Ce que le code fait aujourd'hui (à corriger)
+>
+> `mark_ready_kitchen_item` ne prélève dans un lot que pour `batch_finish`. Un plat `batch` décompte
+> donc ses **ingrédients** — exactement le double-comptage interdit ci-dessus. Pour un lot
+> `purchased` (§19.3) c'est pire : on décompterait du maïs jamais utilisé.
 
 Le coût de la portion est un **coût moyen de lot** : `coût du lot / portions_per_batch`, figé à la
 production.
@@ -3358,6 +3396,21 @@ recette     1 boule, yield_factor 1
 À `ready`, le FEFO décrémente une boule et fige `computed_cost` à 100 F — marge exacte de 50 F.
 L'article compte en **portée Restau**, l'approvisionnement passe par l'écran Ingrédients au prix
 réellement payé, et le stock hérite de la **péremption** des lots d'ingrédients.
+
+> ### ⚠️ PORTÉE DE CE MONTAGE — précisée le 08/08/2026
+>
+> Ce `on_order` à ligne unique vaut pour un accompagnement **TOUJOURS acheté prêt**, jamais produit.
+>
+> ⛔ **Dès que le bar le PRODUIT, même occasionnellement, ce montage devient faux** : le plat doit
+> être un **plat-base `batch`** (coché « préparé d'avance »), et l'origine se déclare sur le LOT via
+> `source = 'produced' | 'purchased'` (§19.3, migration 20260808140000). Les deux origines
+> coexistent dans une seule file FIFO — c'est l'arbitrage du §19.3.
+>
+> Garder le montage `on_order` dans ce cas décompterait les ingrédients à chaque portion servie,
+> alors que le lot a déjà consommé la matière : **double-comptage**.
+>
+> ⭐ Distinction pratique : « est-ce que je le fabrique parfois ? » Non → `on_order` à ligne unique.
+> Oui → plat-base `batch`, quelle que soit la fréquence.
 
 ⚠️ `preparation_time_min` reste NULL : il ne calibre que les alertes de retard, un article sans délai
 n'en déclenche aucune.
