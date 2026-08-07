@@ -3362,7 +3362,7 @@ surtout il **ne touche pas au prix** : c'est un texte (« sans piment »), pas u
 
 | Contournement | Ce qu'il donne | Ce qu'il coûte |
 |---|---|---|
-| ⭐ Créer « Boule d'akassa » comme plat à part | coût, marge et statistiques EXACTS · zéro code | deux lignes au ticket · la cuisine ne voit pas le lien avec le plat |
+| ⭐ Créer « Boule d'akassa » comme plat à part | coût, marge et statistiques EXACTS · zéro code · **prélève le même lot que les assiettes** (depuis `is_sellable`, cf. note ci-dessous) | deux lignes au ticket · la cuisine ne voit pas le lien avec le plat |
 | Le vendre en `bar_product` | — | ⛔ FAUX : compte en portée Bar (cf. §19.2) |
 
 **Recommandation V1 : le plat séparé.** Ce n'est pas un pis-aller — une portion vendue seule EST un
@@ -3372,6 +3372,41 @@ l'exactitude.
 **Ce qu'il faudrait vraiment** : un article rattaché à une ligne de plat, avec son prix et sa
 recette, qui part en cuisine AVEC le plat. Chantier comparable à 3B.1 — table, RPC, saisie au panier,
 affichage groupé.
+
+> ### ⭐ LE CONTOURNEMENT S'EST RENFORCÉ — mise à jour du 08/08/2026
+>
+> `is_sellable` (migration 20260808220000, certifiée) lève la limite qui rendait le plat séparé
+> bancal. Avant elle, « Boule d'akassa » devait être **soit** un plat-base produisant un lot,
+> **soit** un article de vente — les deux rôles ne cohabitaient pas proprement.
+>
+> Un seul plat porte désormais les trois rôles :
+>
+> | Réglage | Ce qu'il apporte |
+> |---|---|
+> | coché « préparé d'avance » | produit son lot (§16.8) |
+> | composant d'« Akassa Poisson » | prélève dans ce lot |
+> | `is_sellable = true` | vendable seul, en supplément |
+>
+> ⭐ **Conséquence** : une boule commandée en supplément prélève dans **le même bac** que celles
+> servies dans les assiettes. C'est physiquement juste — le cuisinier puise au même endroit — et le
+> coût suit sans double-comptage (cf. correction `batch`, 20260808200000).
+>
+> ⚠️ Ce qui reste imparfait, et c'est du **confort**, jamais de l'exactitude :
+>   · deux lignes au ticket (« Akassa Poisson 1500 » + « Boule d'akassa 200 ») ;
+>   · la cuisine ne voit pas le lien entre les deux entrées de la file.
+>
+> ### ⏸ POURQUOI LE CHANTIER COMPLET N'EST PAS LANCÉ
+>
+> Il achète du confort de saisie, pas de la justesse. Le lancer avant d'avoir mesuré la gêne réelle
+> serait optimiser à l'aveugle — le §16.8 a déjà coûté une correction pour avoir modélisé sans
+> terrain (« vente immédiate, aucun passage cuisine »).
+>
+> **Deux questions à trancher AU SERVICE, pas ici** :
+>   1. les serveurs trouvent-ils la seconde ligne pénible, ou naturelle ?
+>   2. le cuisinier confond-il les deux entrées, ou fait-il le lien seul ?
+>
+> Selon les réponses, la correction peut se réduire à un **groupement visuel en cuisine** — sans
+> table ni RPC, à une fraction du coût annoncé.
 
 ### 19.2 ⛔ Le §12.4.c est FAUX pour un article servi en salle
 
