@@ -365,17 +365,25 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
    * prennent tout, seul `batch_finish` filtre.
    */
   it('conditionne le filtre de stage au régime du plat', () => {
-    expect(sql).toMatch(/v_mode\s*<>\s*'batch_finish'\s*OR/);
+    // ⚠️ Motif ÉLARGI le 08/08/2026 : la condition teste désormais aussi
+    // `batch` (correction du double-comptage). L'invariant est INCHANGÉ —
+    // le filtre de stade reste conditionné au régime, jamais global.
+    expect(sql).toMatch(/v_mode <> 'batch_finish' AND v_mode <> 'batch'/);
   });
 
   /** ⚠️ Un filtre nu, sans la condition de régime, serait la régression. */
   it('ne filtre JAMAIS sur `finish` sans condition de régime', () => {
     // Toute occurrence de `consumed_at_stage = 'finish'` doit être précédée
     // de la garde de régime dans la même expression.
+    // ⚠️ Motif ELARGI le 08/08/2026 : la garde teste maintenant `batch_finish`
+    // ET `batch`. L'invariant lui-meme est INTACT - c'est le piege le plus
+    // couteux du module : un `WHERE consumed_at_stage = 'finish'` inconditionnel
+    // ferait cesser la consommation de stock sur TOUS les plats, sans erreur,
+    // sans test rouge, invisible jusqu'a l'inventaire.
     const occurrences = sql.match(/consumed_at_stage\s*=\s*'finish'/g) ?? [];
     for (const _ of occurrences) {
       expect(sql).toMatch(
-        /v_mode\s*<>\s*'batch_finish'\s*OR\s*di\.consumed_at_stage\s*=\s*'finish'/
+        /\(v_mode <> 'batch_finish' AND v_mode <> 'batch'\)\s*OR\s*di\.consumed_at_stage\s*=\s*'finish'/
       );
     }
   });
@@ -388,7 +396,9 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
     // ⚠️ La condition porte AUSSI `forced_on_order` depuis 3C.1 : une ligne
     // basculée a déjà consommé sa recette entière, y prélever un lot
     // double-compterait la matière.
-    expect(sql).toMatch(/v_mode = 'batch_finish' THEN/);
+    // ⚠️ Élargi à `batch` : lui aussi prélève un lot depuis le 08/08/2026.
+    // Ce qui reste verrouillé : un `on_order` ne prélève JAMAIS de lot.
+    expect(sql).toMatch(/v_mode IN \('batch_finish', 'batch'\) THEN/);
   });
 
   /**
@@ -397,7 +407,9 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
    * ingrédients). Y prélever un lot EN PLUS ferait coûter le plat deux fois.
    */
   it('ne prélève AUCUN lot sur une ligne basculée à la commande', () => {
-    expect(sql).toMatch(/NOT v_item\.forced_on_order AND v_mode = 'batch_finish'/);
+    // ⚠️ Motif élargi ; l'invariant tient : une ligne basculée ne prélève
+    // aucun lot, quel que soit le régime du plat.
+    expect(sql).toMatch(/NOT v_item\.forced_on_order AND v_mode IN \('batch_finish', 'batch'\)/);
   });
 
   /**
@@ -405,7 +417,9 @@ describe('mark_kitchen_item_ready — le stock des plats on_order ne doit jamais
    * tout passer quand `forced_on_order` est vrai.
    */
   it('consomme la recette entière sur une ligne basculée', () => {
-    expect(sql).toMatch(/v_item\.forced_on_order[\s\S]{0,40}OR v_mode <> 'batch_finish'/);
+    // ⚠️ La branche `forced_on_order` reste EN PREMIER dans le OR : une
+    // ligne basculée consomme sa recette entière avant tout test de régime.
+    expect(sql).toMatch(/v_item\.forced_on_order[\s\S]{0,60}v_mode <> 'batch_finish'/);
   });
 
   /**
@@ -850,5 +864,56 @@ describe('get_kitchen_queue_shortfalls — les manques de LOTS', () => {
   it('lit la composition, pas la recette, pour les lots', () => {
     expect(sql).toMatch(/dish_recipe_components/);
     expect(sql).toMatch(/base_dish_id/);
+  });
+});
+
+/**
+ * ⭐⭐ `batch` PRÉLÈVE DANS SON LOT — correction du double-comptage (08/08/2026).
+ *
+ * Le §16.8 interdit de décrémenter les ingrédients à chaque portion servie :
+ * la matière est déjà sortie à la production. Ces invariants verrouillent les
+ * trois faces de la règle, chacune correspondant à un piège réel.
+ */
+describe('regime batch — prélèvement du lot, jamais des ingrédients', () => {
+  const accept = codeOnly(lastDefinitionOf('accept_kitchen_item'));
+  const ready = codeOnly(lastDefinitionOf('mark_kitchen_item_ready'));
+  const force = codeOnly(lastDefinitionOf('force_item_on_order'));
+
+  it('accept CONTRÔLE le lot pour batch comme pour batch_finish', () => {
+    // ⛔ Le contrôle est au DÉMARRAGE, pas à `ready` : le choix humain se prend
+    // avant de cuisiner, jamais quand l'assiette est déjà prête (§16.9).
+    expect(accept).toMatch(/IN \('batch_finish', 'batch'\)/);
+  });
+
+  it('ready PRÉLÈVE le lot pour batch', () => {
+    expect(ready).toMatch(/v_mode IN \('batch_finish', 'batch'\)/);
+  });
+
+  it('⛔ ready N’ENTAME PAS les ingrédients d’un plat batch', () => {
+    // ⛔⛔ LE CŒUR DE LA CORRECTION. Sans cette exclusion, le plat prélèverait
+    // le lot ET ses ingrédients : la matière serait comptée deux fois, et pour
+    // un lot `purchased` on décompterait du maïs jamais utilisé (§19.3).
+    expect(ready).toMatch(/v_mode <> 'batch_finish' AND v_mode <> 'batch'/);
+  });
+
+  it('un plat batch est SA PROPRE base — pas de composant à chercher', () => {
+    // ⭐ `batch_finish` prélève dans les lots d'AUTRES plats ; `batch` dans le
+    // sien. D'où l'UNION : une boucle, deux origines.
+    expect(accept).toMatch(/UNION ALL[\s\S]{0,400}v_mode = 'batch'/);
+    expect(ready).toMatch(/UNION ALL[\s\S]{0,300}v_mode = 'batch'/);
+  });
+
+  it('la bascule à la commande accepte un plat batch', () => {
+    // ⛔ Sinon le refus d'`accept` proposerait « préparez à la commande » et
+    // cette action ÉCHOUERAIT — une alternative annoncée puis refusée est pire
+    // que pas d'alternative.
+    expect(force).toMatch(/NOT IN \('batch_finish', 'batch'\)/);
+  });
+
+  it('forced_on_order reste la SORTIE : aucun lot prélevé', () => {
+    // ⚠️ Vrai pour `batch` comme pour `batch_finish` : une ligne basculée
+    // cuisine sa recette entière.
+    expect(accept).toMatch(/NOT v_item\.forced_on_order/);
+    expect(ready).toMatch(/NOT v_item\.forced_on_order/);
   });
 });
