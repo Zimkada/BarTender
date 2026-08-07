@@ -1805,6 +1805,7 @@ export type Database = {
           is_active: boolean
           is_available: boolean
           is_batch_base: boolean
+          is_sellable: boolean
           name: string
           photo_url: string | null
           portions_per_batch: number | null
@@ -1822,6 +1823,7 @@ export type Database = {
           is_active?: boolean
           is_available?: boolean
           is_batch_base?: boolean
+          is_sellable?: boolean
           name: string
           photo_url?: string | null
           portions_per_batch?: number | null
@@ -1839,6 +1841,7 @@ export type Database = {
           is_active?: boolean
           is_available?: boolean
           is_batch_base?: boolean
+          is_sellable?: boolean
           name?: string
           photo_url?: string | null
           portions_per_batch?: number | null

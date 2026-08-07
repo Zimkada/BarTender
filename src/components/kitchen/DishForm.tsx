@@ -95,6 +95,15 @@ export function DishForm({
    * est dérivé par le serveur.
    */
   const [preparedInAdvance, setPreparedInAdvance] = useState(dish?.is_batch_base ?? false);
+  /**
+   * ⭐ §19.1 - « Le client peut demander à compléter une boule d'akassa ou une
+   * portion de frite ». Un plat-base sert surtout à composer, mais certains se
+   * vendent AUSSI seuls : c'est le bar qui tranche, pas le modèle.
+   *
+   * ⚠️ Défaut `true` : à la création d'un plat-base, il reste visible tant que
+   * l'utilisateur n'a rien décidé. Le défaut sûr est celui qui ne cache rien.
+   */
+  const [sellable, setSellable] = useState(dish?.is_sellable ?? true);
   const [portions, setPortions] = useState<string>(
     dish?.portions_per_batch ? String(dish.portions_per_batch) : ''
   );
@@ -132,6 +141,12 @@ export function DishForm({
       // ⚠️ `null` obligatoire quand le plat n'est pas préparé d'avance : la
       // contrainte SQL refuse un rendement sur un plat qui n'en produit pas.
       portions_per_batch: preparedInAdvance ? portionsValue : null,
+      /**
+       * ⭐ §19.1 - la case n'existe QUE pour un plat-base. Un plat normal est
+       * vendable par nature : envoyer `true` en dur pour lui évite qu'un état
+       * résiduel du formulaire le fasse disparaître de la carte.
+       */
+      is_sellable: preparedInAdvance ? sellable : true,
       is_available: dish?.is_available ?? true,
     });
   };
@@ -370,6 +385,30 @@ export function DishForm({
             Combien d'assiettes donne une préparation ? Sert à calculer le coût d'une portion.
           </p>
         </div>
+      )}
+
+      {/* ⭐ §19.1 — VENDABLE SEUL, uniquement pour un plat préparé d'avance.
+          Un plat normal est vendable par nature : lui poser la question
+          ajouterait un choix sans objet.
+          ⚠️ Le libellé parle de ce que l'utilisateur VOIT (« proposé à la
+          vente »), pas du modèle (« is_sellable »). */}
+      {preparedInAdvance && (
+        <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer transition-colors hover:bg-accent">
+          <input
+            type="checkbox"
+            checked={sellable}
+            onChange={(e) => setSellable(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-brand"
+          />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-medium">Proposer à la vente</span>
+            <span className="block text-xs text-muted-foreground">
+              Décochez si ce plat sert uniquement à en composer d'autres. Il
+              restera produit et prélevé, mais n'apparaîtra pas sur l'écran de
+              vente.
+            </span>
+          </span>
+        </label>
       )}
 
       {validationError && (

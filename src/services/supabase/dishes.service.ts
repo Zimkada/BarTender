@@ -45,6 +45,17 @@ export interface DishRow {
   /** `true` = ce plat PRODUIT un lot (riz cuit, poulet bouilli). */
   is_batch_base: boolean;
   portions_per_batch: number | null;
+  /**
+   * ⭐ Le plat apparaît-il dans les grilles de VENTE ? (§19.1)
+   *
+   * Sert aux plats-BASES : « Poisson braisé » compose d'autres plats et peut
+   * AUSSI se vendre seul en supplément - c'est le bar qui tranche.
+   *
+   * ⛔ DISTINCT de `is_available` : celui-ci dit « coupé aujourd'hui »
+   * (rupture ponctuelle), `is_sellable` dit « ne figure pas à la carte ».
+   * ⛔ N'est PAS une protection : masque une carte, ne bloque aucune commande.
+   */
+  is_sellable: boolean;
   /** Le cuisinier coupe un plat en rupture, sans le supprimer. */
   is_available: boolean;
   photo_url: string | null;
@@ -104,6 +115,12 @@ export interface DishInput {
   preparation_time_min?: number | null;
   is_batch_base?: boolean;
   portions_per_batch?: number | null;
+  /**
+   * ⚠️ OPTIONNEL, et le RPC ne l'écrit QUE s'il est envoyé : un appelant qui
+   * l'omet (le toggle Dispo/Coupé) ne doit pas remettre en vente un plat-base
+   * délibérément masqué.
+   */
+  is_sellable?: boolean;
   is_available?: boolean;
   photo_url?: string | null;
 }

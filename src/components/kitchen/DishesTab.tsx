@@ -197,6 +197,13 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
       preparation_time_min: dish.preparation_time_min,
       is_batch_base: dish.is_batch_base,
       portions_per_batch: dish.portions_per_batch,
+      /**
+       * ⚠️ RENVOYÉ EXPLICITEMENT bien que le RPC le protège (§19.1). Ce
+       * `upsert` écrase les champs qu'il reçoit : compter sur la garde SQL
+       * seule rendrait ce toggle silencieusement destructeur le jour où
+       * quelqu'un simplifierait le `CASE` côté serveur.
+       */
+      is_sellable: dish.is_sellable,
       is_available: !dish.is_available,
     });
   };
@@ -316,6 +323,17 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                     {getProductionModeLabel(dish.production_mode)}
                     {dish.preparation_time_min ? ` • ${dish.preparation_time_min} min` : ''}
                   </p>
+
+                  {/* ⭐ §19.1 — un plat masqué de la vente doit rester
+                      IDENTIFIABLE ici. Sans ce badge, il aurait l'air normal
+                      sur cet écran tout en étant introuvable à la vente : on
+                      chercherait un bug là où il y a un réglage.
+                      ⚠️ Ton NEUTRE, pas une alerte : c'est un choix du bar. */}
+                  {!dish.is_sellable && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Sert uniquement à composer d’autres plats
+                    </p>
+                  )}
 
                   {/* ⭐ §9 — LA MARGE EST L'ÉLÉMENT CENTRAL DE LA CARTE.
                       C'est le livrable de la phase 2 : « le promoteur découvre

@@ -923,3 +923,32 @@ describe('regime batch — prélèvement du lot, jamais des ingrédients', () =>
     expect(ready).toMatch(/NOT v_item\.forced_on_order/);
   });
 });
+
+/**
+ * ⭐ `is_sellable` — un plat-base peut se vendre seul, ou non (§19.1).
+ *
+ * > « Le client peut demander à compléter une boule d'akassa ou une portion de
+ * >   frite [...] c'est le choix du bar. »
+ */
+describe('upsert_dish — la vendabilité d’un plat-base', () => {
+  const sql = codeOnly(lastDefinitionOf('upsert_dish'));
+
+  it('écrit la colonne', () => {
+    // ⛔ Sans cela, la case du formulaire serait sans effet : le RPC ignorerait
+    // le champ en silence.
+    expect(sql).toMatch(/is_sellable/);
+  });
+
+  it('⛔ ne remet PAS en vente un plat quand le champ est omis', () => {
+    // Le toggle Dispo/Coupé n'envoie pas `is_sellable`. Sans ce CASE, le
+    // COALESCE à TRUE ré-afficherait un plat-base délibérément masqué —
+    // à l'insu du bar, et sans aucun message.
+    expect(sql).toMatch(/p_dish \? 'is_sellable'/);
+  });
+
+  it('⚠️ n’a pas perdu le correctif photo_url en le remplaçant', () => {
+    // ⛔ Cette fonction avait DÉJÀ été remplacée (20260803130000). Repartir de
+    // la définition d'origine aurait fait disparaître ce correctif sans bruit.
+    expect(sql).toMatch(/p_dish \? 'photo_url'/);
+  });
+});
