@@ -294,12 +294,12 @@ export function DishForm({
           {
             value: false,
             label: 'Préparé à la commande',
-            hint: 'Le plat est cuisiné quand le client le commande.',
+            hint: 'Cuisiné quand le client le commande. Peut prélever dans d’autres plats préparés d’avance.',
           },
           {
             value: true,
             label: 'Préparé d\'avance',
-            hint: 'Cuisiné en quantité, puis servi à la portion.',
+            hint: 'Cuisiné en quantité, puis servi à la portion. Ne peut pas prélever dans un autre plat.',
           },
         ].map((option) => (
           <label
@@ -325,6 +325,31 @@ export function DishForm({
           </label>
         ))}
       </fieldset>
+
+      {/* ⛔⛔ AVERTISSEMENT AVANT LA PERTE — défaut trouvé au test terrain du
+          08/08/2026. Un plat composé qu'on bascule en « préparé d'avance »
+          perd sa composition : le §13.8 n'autorise QU'UN SEUL NIVEAU, donc le
+          bouton Composition disparaît et le plat repart des ingrédients bruts.
+          ⚠️ L'utilisateur découvrait cela par l'ABSENCE d'un bouton, sans
+          jamais faire le lien avec la case qu'il venait de cocher — et son
+          lot produit n'était plus consommé par personne.
+          ⭐ `production_mode === 'batch_finish'` SUFFIT à détecter le cas : ce
+          régime est DÉRIVÉ de l'existence de composants (§16.8). Inutile de
+          charger la composition pour le savoir. */}
+      {preparedInAdvance && dish?.production_mode === 'batch_finish' && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+          <AlertTriangle
+            size={16}
+            className="mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400"
+          />
+          <p className="text-xs text-amber-900 dark:text-amber-200">
+            Ce plat prélève actuellement dans d’autres plats préparés d’avance.
+            En l’enregistrant ainsi, il perdra sa composition et repartira de
+            ses ingrédients bruts - un plat préparé d’avance ne peut pas
+            prélever dans un autre.
+          </p>
+        </div>
+      )}
 
       {preparedInAdvance && (
         <div>

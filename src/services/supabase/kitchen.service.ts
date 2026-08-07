@@ -137,8 +137,31 @@ export interface IngredientShortfallRow {
   missing: number;
 }
 
+/**
+ * Un LOT insuffisant pour la file (§16.9).
+ *
+ * ⭐⭐ RISQUE DIFFÉRENT d'un ingrédient manquant, et geste différent :
+ *   · ingrédient → approvisionner, et le service crée une DETTE (§4.4) ;
+ *   · lot        → PRODUIRE, et `accept_kitchen_item` REFUSE (§16.9).
+ * L'avertissement est donc plus fort ici : il annonce un blocage à venir, pas
+ * seulement un écart comptable.
+ */
+export interface BatchShortfallRow {
+  base_dish_id: string;
+  name: string;
+  /** En PORTIONS — un lot ne se mesure pas en kg. */
+  required: number;
+  available: number;
+  missing: number;
+}
+
 export interface QueueShortfalls extends RpcEnvelope {
   shortfalls: IngredientShortfallRow[];
+  /**
+   * ⚠️ Peut être `undefined` : la clé n'existe que depuis la migration
+   * 20260808180000. Un client déployé avant elle ne doit pas planter.
+   */
+  batch_shortfalls?: BatchShortfallRow[];
 }
 
 interface CreateOrderResult extends RpcEnvelope {

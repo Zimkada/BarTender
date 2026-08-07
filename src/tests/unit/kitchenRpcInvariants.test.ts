@@ -815,3 +815,40 @@ describe('get_kitchen_queue_shortfalls — une alerte qui ne ment pas', () => {
     expect(sql).toMatch(/forced_on_order[\s\S]{0,120}batch_finish[\s\S]{0,120}consumed_at_stage\s*=\s*'finish'/);
   });
 });
+
+/**
+ * ⭐ Manques de LOTS — ajoutés le 08/08/2026 après test terrain.
+ *
+ * L'alerte ne regardait que les ingrédients : sur un plat `batch_finish` elle
+ * annonçait un manque de matière première alors que le vrai risque est le lot
+ * épuisé, et se taisait quand le lot manquait.
+ */
+describe('get_kitchen_queue_shortfalls — les manques de LOTS', () => {
+  const sql = codeOnly(lastDefinitionOf('get_kitchen_queue_shortfalls'));
+
+  it('expose les deux listes SÉPARÉMENT', () => {
+    // ⚠️ Gestes de réparation différents : approvisionner vs PRODUIRE. Une
+    // liste unique laisserait le cuisinier sans action claire.
+    expect(sql).toMatch(/'shortfalls'/);
+    expect(sql).toMatch(/'batch_shortfalls'/);
+  });
+
+  it('ne compte que les plats batch_finish NON basculés', () => {
+    // ⛔ `forced_on_order` cuisine la recette ENTIÈRE et ne touche AUCUN lot
+    // (mark_ready l. 476). L'inclure annoncerait un manque pour une assiette
+    // qui ne prélèvera rien.
+    expect(sql).toMatch(/NOT\s+q\.forced_on_order/);
+    expect(sql).toMatch(/d\.production_mode\s*=\s*'batch_finish'/);
+  });
+
+  it('ne compte que les lots ACTIFS', () => {
+    // ⚠️ Un lot 'closed', 'discarded' ou 'depleted' n'est plus prélevable :
+    // le compter annoncerait des portions qui n'existent pas.
+    expect(sql).toMatch(/pb\.status\s*=\s*'active'/);
+  });
+
+  it('lit la composition, pas la recette, pour les lots', () => {
+    expect(sql).toMatch(/dish_recipe_components/);
+    expect(sql).toMatch(/base_dish_id/);
+  });
+});
