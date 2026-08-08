@@ -16,6 +16,7 @@ import {
   type ProduceBatchResult,
   type BatchSource,
   type CloseBatchResult,
+  type BatchLossResult,
   type BatchCloseStatus,
 } from '../../services/supabase/batches.service';
 
@@ -189,5 +190,63 @@ export function useBatchMutations() {
     },
   });
 
-  return { produceBatch, closeBatch };
+  /**
+   * ⭐ Perte PARTIELLE — le lot reste en service.
+   *
+   * « 4 portions ont tourné, les 10 autres sont bonnes. » Sans ce geste, il
+   * fallait choisir entre tout jeter (perte surévaluée) ou ne rien déclarer
+   * (perte invisible, écart constaté plus tard à l'inventaire sans cause).
+   *
+   * ⚠️ Mêmes invalidations que `closeBatch`, et pour la même raison : jeter
+   * ne restaure AUCUNE matière. Les ingrédients sont sortis à la production.
+   */
+  const recordBatchLoss = useMutation<
+    BatchLossResult,
+    Error,
+    { batchId: string; qty: number; reason?: string | null }
+  >({
+    meta: { suppressGlobalError: true },
+    mutationFn: async ({ batchId, qty, reason }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      return BatchesService.recordLoss({ barId, batchId, qty, reason });
+    },
+    onSettled: () => {
+      const barId = currentBar?.id ?? '';
+      queryClient.invalidateQueries({ queryKey: batchKeys.active(barId) });
+      queryClient.invalidateQueries({ queryKey: kitchenKeys.all });
+    },
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        // ⭐ Le MONTANT n'est annoncé qu'à qui peut le voir (§8) ; le nombre
+        // de portions est une information de production, pas d'argent.
+        const canViewCosts = hasPermission('canViewKitchenCosts');
+        const perdues = result.lost_qty;
+        const base = `${perdues} portion${perdues > 1 ? 's' : ''} perdue${perdues > 1 ? 's' : ''}`;
+
+        // ⚠️ On annonce CE QUI RESTE : c'est l'information dont le cuisinier a
+        // besoin pour la suite du service, pas la perte qu'il vient de saisir.
+        const suite =
+          result.status === 'depleted'
+            ? ' - lot épuisé'
+            : ` - il reste ${result.remaining_qty}`;
+
+        toast(
+          canViewCosts && result.loss_value
+            ? `${base}${suite} (${Math.round(result.loss_value)} F)`
+            : `${base}${suite}`,
+          { icon: '🗑️', duration: 5000 }
+        );
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg);
+      });
+    },
+  });
+
+  return { produceBatch, closeBatch, recordBatchLoss };
 }

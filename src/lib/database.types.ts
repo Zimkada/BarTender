@@ -7679,6 +7679,15 @@ export type Database = {
         }
         Returns: Json
       }
+      record_batch_loss: {
+        Args: {
+          p_bar_id: string
+          p_batch_id: string
+          p_qty: number
+          p_reason?: string
+        }
+        Returns: Json
+      }
       record_provider_subscription_payment: {
         Args: {
           p_method?: string

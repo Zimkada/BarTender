@@ -101,6 +101,24 @@ export interface CloseBatchResult extends RpcEnvelope {
 }
 
 /**
+ * Résultat d'une perte PARTIELLE (§ perte partielle, 09/08/2026).
+ *
+ * ⚠️ Distinct de `CloseBatchResult` : ici le lot CONTINUE de servir, sauf si
+ * la perte l'a vidé — auquel cas `status` vaut `depleted`.
+ */
+export interface BatchLossResult extends RpcEnvelope {
+  batch_id: string;
+  /** Portions déclarées perdues à CET appel, pas le cumul. */
+  lost_qty: number;
+  /** Ce qu'il reste APRÈS la perte. */
+  remaining_qty: number;
+  /** `active` si le lot sert encore, `depleted` si la perte l'a vidé. */
+  status: BatchStatus;
+  /** ⚠️ MONTANT : à n'afficher qu'avec `canViewKitchenCosts` (§8). */
+  loss_value?: number;
+}
+
+/**
  * ⚠️ Reprise du contrat des RPC du module : `{success, error?}` en JSONB
  * plutôt qu'une exception SQL, pour pouvoir refuser avec un message métier.
  * Le service traduit ce contrat en exception applicative.
@@ -216,6 +234,39 @@ export const BatchesService = {
 
       if (error) throw error;
       return unwrapRpc<CloseBatchResult>(data as Json, 'Clôture du lot');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * ⭐ Perte PARTIELLE sur un lot qui reste en service.
+   *
+   * « 4 portions ont tourné, les 10 autres sont bonnes » : le service
+   * continue. Distinct de `close`, qui met `remaining_qty` à zéro et clôture.
+   *
+   * ⚠️ Le serveur CUMULE les pertes successives et REFUSE une quantité
+   * supérieure au reste — une saisie trop grande est une erreur, pas une
+   * perte totale.
+   */
+  async recordLoss(params: {
+    barId: string;
+    batchId: string;
+    qty: number;
+    reason?: string | null;
+  }): Promise<BatchLossResult> {
+    assertNetworkAvailable('déclarer une perte sur un lot');
+
+    try {
+      const { data, error } = await supabase.rpc('record_batch_loss', {
+        p_bar_id: params.barId,
+        p_batch_id: params.batchId,
+        p_qty: params.qty,
+        p_reason: params.reason ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<BatchLossResult>(data as Json, 'Déclaration de perte');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

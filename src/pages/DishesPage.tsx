@@ -83,7 +83,7 @@ export default function DishesPage() {
    * de plats-bases. Une requête de moins à chaque ouverture (§egress).
    */
   const { data: batches = [], isLoading: isLoadingBatches } = useActiveBatches(barId);
-  const { produceBatch, closeBatch } = useBatchMutations();
+  const { produceBatch, closeBatch, recordBatchLoss } = useBatchMutations();
 
   /**
    * ⚠️ Seuls les plats-BASES peuvent produire un lot. Le spaghetti-poulet
@@ -208,6 +208,11 @@ export default function DishesPage() {
             canViewCosts={canViewCosts}
             onCloseBatch={(batchId, status) => closeBatch.mutate({ batchId, status })}
             isClosing={closeBatch.isPending}
+            /* ⭐ Perte PARTIELLE - le lot reste en service (09/08/2026). */
+            onRecordLoss={(batchId, qty, reason) =>
+              recordBatchLoss.mutate({ batchId, qty, reason })
+            }
+            isRecordingLoss={recordBatchLoss.isPending}
           />
         )}
       </div>

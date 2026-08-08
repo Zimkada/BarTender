@@ -952,3 +952,50 @@ describe('upsert_dish — la vendabilité d’un plat-base', () => {
     expect(sql).toMatch(/p_dish \? 'photo_url'/);
   });
 });
+
+/**
+ * ⭐ `record_batch_loss` — perte PARTIELLE sur un lot qui reste en service.
+ *
+ * > « Des éléments du lot expirés avant, et non déclarer tout le stock
+ * >   restant expiré. » (09/08/2026)
+ */
+describe('record_batch_loss — la perte partielle', () => {
+  const sql = codeOnly(lastDefinitionOf('record_batch_loss'));
+
+  it('⛔ CUMULE les pertes, ne les écrase pas', () => {
+    // Deux pertes sur le même lot doivent compter deux fois. Une affectation
+    // simple ferait disparaître la première — silencieusement, et la perte
+    // totale du mois serait sous-évaluée.
+    expect(sql).toMatch(/COALESCE\(discarded_qty, 0\) \+ p_qty/);
+  });
+
+  it('REFUSE une quantité supérieure au reste', () => {
+    // ⛔ Plafonner en silence masquerait soit une faute de frappe, soit un
+    // écart réel entre le stock théorique et le bac.
+    expect(sql).toMatch(/p_qty > v_batch\.remaining_qty/);
+  });
+
+  it('ne clôture JAMAIS le lot', () => {
+    // ⭐ Seul `depleted` est posé, et c'est le seul statut automatique du
+    // module (§13.3) : il constate un fait, il ne juge pas. La clôture reste
+    // une décision humaine.
+    expect(sql).not.toMatch(/'discarded'|'expired'|'closed'/);
+    expect(sql).toMatch(/'depleted'/);
+  });
+
+  it('refuse un lot déjà clos', () => {
+    // Un lot clos a `remaining_qty = 0` : y déclarer une perte créerait un
+    // manque sur du stock qui n'existe plus.
+    expect(sql).toMatch(/v_batch\.status <> 'active'/);
+  });
+
+  it('verrouille la ligne pendant la mise à jour', () => {
+    // ⚠️ Deux déclarations simultanées doivent se sérialiser, sinon la seconde
+    // lit un `remaining_qty` périmé et la perte totale est sous-comptée.
+    expect(sql).toMatch(/FOR UPDATE/);
+  });
+
+  it('garde l’isolation multi-tenant', () => {
+    expect(sql).toMatch(/is_bar_member/);
+  });
+});

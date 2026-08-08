@@ -21,7 +21,8 @@ import { CookingPot, Clock, AlertTriangle, Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../common/EmptyState';
-import { ConfirmationModal } from '../common/ConfirmationModal';
+import { Modal } from '../ui/Modal';
+import { BatchLossForm } from './BatchLossForm';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { cn } from '../../lib/utils';
 import type { BatchWithDish, BatchCloseStatus } from '../../services/supabase/batches.service';
@@ -37,6 +38,13 @@ interface Props {
    */
   onCloseBatch: (batchId: string, status: BatchCloseStatus) => void;
   isClosing: boolean;
+  /**
+   * ⭐ Perte PARTIELLE - le lot reste en service (09/08/2026).
+   * ⚠️ `reason` est ici un TEXTE libre côté serveur : un lot qui continue n'a
+   * pas de statut de clôture où loger la cause.
+   */
+  onRecordLoss: (batchId: string, qty: number, reason: string) => void;
+  isRecordingLoss: boolean;
 }
 
 /** Âge d'un lot en heures — sert à signaler ce qui traîne. */
@@ -50,15 +58,20 @@ export function ProductionTab({
   canViewCosts,
   onCloseBatch,
   isClosing,
+  onRecordLoss,
+  isRecordingLoss,
 }: Props) {
   const { formatPrice } = useCurrencyFormatter();
 
   /**
-   * ⚠️ Le rejet demande CONFIRMATION, pas la clôture simple.
-   * Jeter un reste est une PERTE comptable irréversible ; déclarer un lot
-   * terminé ne coûte rien. Confirmer les deux banaliserait le geste qui compte.
+   * ⭐ Le lot dont on déclare une perte. Remplace l'ancienne confirmation
+   * binaire « jeter tout le reste ? » : un formulaire demande COMBIEN et
+   * POURQUOI (09/08/2026).
+   *
+   * ⚠️ La confirmation reste implicite mais entière : le formulaire annonce la
+   * conséquence avant le bouton, et une perte est irréversible.
    */
-  const [batchToDiscard, setBatchToDiscard] = useState<string | null>(null);
+  const [batchInLoss, setBatchInLoss] = useState<BatchWithDish | null>(null);
 
   if (isLoading) {
     return (
@@ -178,17 +191,18 @@ export function ProductionTab({
                   <Check size={14} className="mr-1.5" />
                   Terminer
                 </Button>
-                {/* ⚠️ Jeter passe par une CONFIRMATION : c'est une perte
-                    comptable irréversible, contrairement à « Terminer ». */}
+                {/* ⚠️ Passe par un FORMULAIRE : c'est une perte comptable
+                    irréversible, et la quantité perdue n'est pas toujours le
+                    reste entier (09/08/2026). */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setBatchToDiscard(batch.id)}
+                  onClick={() => setBatchInLoss(batch)}
                   disabled={isClosing}
                   className="flex-1 text-red-600 hover:text-red-700 dark:text-red-400"
                 >
                   <Trash2 size={14} className="mr-1.5" />
-                  Jeter le reste
+                  Déclarer une perte
                 </Button>
               </div>
             </div>
@@ -196,31 +210,45 @@ export function ProductionTab({
         })}
       </div>
 
-      {/* ⚠️ Le message annonce CE QUI SERA PERDU, en portions et - pour qui a
-          le droit de le voir - en montant. Une confirmation qui ne dit pas ce
-          qu'on perd ne sert à rien. */}
-      <ConfirmationModal
-        isOpen={batchToDiscard !== null}
-        onClose={() => setBatchToDiscard(null)}
-        onConfirm={() => {
-          if (batchToDiscard) {
-            onCloseBatch(batchToDiscard, 'discarded');
-          }
-          setBatchToDiscard(null);
-        }}
-        title="Jeter le reste du lot ?"
-        message={(() => {
-          const b = batches.find((x) => x.id === batchToDiscard);
-          if (!b) return 'Le reste sera compté en perte.';
-          const base = `${b.remaining_qty} portion${b.remaining_qty > 1 ? 's' : ''} de ${b.dish_name} seront comptées en perte.`;
-          return canViewCosts
-            ? `${base} Soit ${formatPrice(b.remaining_qty * b.unit_cost)} de matière.`
-            : base;
-        })()}
-        confirmLabel="Jeter"
-        isDestructive
-        isLoading={isClosing}
-      />
+      {/* ⭐ COMBIEN et POURQUOI, au lieu d'un simple oui/non.
+          ⚠️ Le formulaire porte lui-même l'avertissement : il annonce la
+          conséquence (« le lot continue avec 10 ») avant le bouton. */}
+      <Modal
+        open={batchInLoss !== null}
+        onClose={() => setBatchInLoss(null)}
+        title="Déclarer une perte"
+        description="La matière est déjà sortie du stock : elle ne revient pas."
+      >
+        {batchInLoss && (
+          <BatchLossForm
+            dishName={batchInLoss.dish_name}
+            remainingQty={batchInLoss.remaining_qty}
+            isSubmitting={isClosing || isRecordingLoss}
+            onCancel={() => setBatchInLoss(null)}
+            onSubmit={({ qty, reason }) => {
+              /**
+               * ⭐⭐ DEUX CHEMINS SELON L'AMPLEUR, et ce n'est pas cosmétique :
+               *   · perte TOTALE → `close_batch` avec le statut réel
+               *     (`expired` ou `discarded`) : le lot est clos, et la CAUSE
+               *     est enregistrée dans son statut ;
+               *   · perte PARTIELLE → `record_batch_loss` : le lot RESTE actif,
+               *     donc aucun statut de clôture ne peut porter la cause. Elle
+               *     va dans `discard_reason`.
+               *
+               * ⚠️ Passer par `record_batch_loss` pour une perte totale
+               * laisserait le lot en `depleted` — « épuisé », comme s'il avait
+               * été servi. La perte serait comptée, mais la cause perdue.
+               */
+              if (qty >= batchInLoss.remaining_qty) {
+                onCloseBatch(batchInLoss.id, reason);
+              } else {
+                onRecordLoss(batchInLoss.id, qty, reason);
+              }
+              setBatchInLoss(null);
+            }}
+          />
+        )}
+      </Modal>
     </>
   );
 }
