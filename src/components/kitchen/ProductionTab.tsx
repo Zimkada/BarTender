@@ -17,12 +17,11 @@
  * avec l'onglet Menu — c'est tout l'intérêt de la fusion.
  */
 
-import { CookingPot, Clock, AlertTriangle, Check, Trash2 } from 'lucide-react';
+import { CookingPot, Clock, AlertTriangle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../ui/Button';
 import { EmptyState } from '../common/EmptyState';
 import { Modal } from '../ui/Modal';
-import { ConfirmationModal } from '../common/ConfirmationModal';
 import { BatchLossForm } from './BatchLossForm';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { cn } from '../../lib/utils';
@@ -54,13 +53,12 @@ function hoursSince(iso: string): number {
 }
 
 /**
- * ⭐ Au-dessus de ce reste, « Terminer » demande confirmation.
+ * ⭐ En dessous de ce reste, la jauge passe au ROUGE : le lot touche à sa fin.
  *
- * ⚠️ MÊME SEUIL que le rouge de la jauge, et c'est délibéré : deux valeurs
- * différentes pour la même notion de « reste important » se contrediraient à
- * l'écran - une barre verte au-dessus d'un avertissement, ou l'inverse.
+ * ⚠️ A servi un temps de seuil de confirmation pour « Terminer » ; ce bouton
+ * ayant été retiré le 09/08/2026, la constante ne pilote plus que la couleur.
  */
-const RESTE_NOTABLE_PCT = 20;
+const JAUGE_CRITIQUE_PCT = 20;
 
 export function ProductionTab({
   batches,
@@ -82,20 +80,6 @@ export function ProductionTab({
    * conséquence avant le bouton, et une perte est irréversible.
    */
   const [batchInLoss, setBatchInLoss] = useState<BatchWithDish | null>(null);
-
-  /**
-   * ⭐⭐ Le lot qu'on s'apprête à TERMINER alors qu'il en reste beaucoup.
-   *
-   * ⛔ DÉFAUT TROUVÉ AU TEST DU 09/08/2026. « Terminer » pose `closed`, qui ne
-   * compte AUCUNE perte - c'est son sens : « terminé sans reste notable ».
-   * Mais rien n'empêchait de le cliquer sur un lot où il restait 8 portions :
-   * elles s'évaporaient des comptes sans avertissement, et la marge cuisine
-   * paraissait meilleure qu'elle ne l'était.
-   *
-   * ⚠️ « Déclarer une perte » n'a pas ce problème : son formulaire annonce
-   * déjà la conséquence avant le bouton.
-   */
-  const [batchToClose, setBatchToClose] = useState<BatchWithDish | null>(null);
 
   if (isLoading) {
     return (
@@ -186,7 +170,7 @@ export function ProductionTab({
                 <div
                   className={cn(
                     'h-full rounded-full transition-all',
-                    pct <= RESTE_NOTABLE_PCT
+                    pct <= JAUGE_CRITIQUE_PCT
                       ? 'bg-red-500'
                       : pct <= 50
                         ? 'bg-amber-500'
@@ -207,26 +191,29 @@ export function ProductionTab({
                 <p className="mt-2 text-caption text-muted-foreground">{batch.notes}</p>
               )}
 
-              {/* Actions de clôture — le lot ne se ferme JAMAIS tout seul. */}
-              <div className="mt-3 flex gap-2 border-t border-border pt-3">
-                {/* ⭐ CONFIRMATION SI LE RESTE EST NOTABLE (09/08/2026).
-                    Terminer un lot écoulé ne coûte rien et ne doit rien
-                    demander ; le faire sur 8 portions les fait disparaître
-                    des comptes sans qu'aucune perte soit enregistrée. */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    pct > RESTE_NOTABLE_PCT
-                      ? setBatchToClose(batch)
-                      : onCloseBatch(batch.id, 'closed')
-                  }
-                  disabled={isClosing}
-                  className="flex-1"
-                >
-                  <Check size={14} className="mr-1.5" />
-                  Terminer
-                </Button>
+              {/* ⛔⛔ « TERMINER » A ÉTÉ RETIRÉ le 09/08/2026.
+                  Il posait le statut `closed`, qui ne compte AUCUNE perte, et
+                  mettait `remaining_qty` à zéro : les portions restantes
+                  disparaissaient sans laisser le moindre chiffre.
+
+                  Trois raisons, dans l'ordre où l'exploitant les a posées :
+                  1. les portions ne sont PAS récupérables après clôture -
+                     « terminer » et « jeter » ont donc le même effet réel ;
+                  2. « même les petites quantités sont des pertes » : le seuil
+                     qui protégeait le geste laissait toujours une zone où le
+                     stock s'évaporait ;
+                  3. ⛔ PORTE OUVERTE À LA FRAUDE - c'était le seul geste
+                     faisant disparaître du stock sans quantité, sans motif et
+                     sans trace de son auteur. Le cuisinier, qui répond du
+                     stock, y avait accès.
+
+                  ⚠️ Le statut `closed` reste dans le modèle : des lots
+                  antérieurs le portent, et `close_batch` l'accepte toujours.
+                  Seul le BOUTON disparaît.
+
+                  ⭐ Un lot ne se ferme donc plus que sur une perte DÉCLARÉE,
+                  avec sa quantité et son motif. */}
+              <div className="mt-3 flex border-t border-border pt-3">
                 {/* ⚠️ Passe par un FORMULAIRE : c'est une perte comptable
                     irréversible, et la quantité perdue n'est pas toujours le
                     reste entier (09/08/2026). */}
@@ -245,30 +232,6 @@ export function ProductionTab({
           );
         })}
       </div>
-
-      {/* ⭐⭐ TERMINER AVEC UN RESTE NOTABLE - la confirmation dit ce qui va
-          disparaître, et propose l'alternative juste.
-          ⚠️ Le message ne CULPABILISE pas : conserver un reste pour demain est
-          un usage normal, et c'est même la raison pour laquelle aucun lot ne
-          se ferme automatiquement. */}
-      <ConfirmationModal
-        isOpen={batchToClose !== null}
-        onClose={() => setBatchToClose(null)}
-        onConfirm={() => {
-          if (batchToClose) onCloseBatch(batchToClose.id, 'closed');
-          setBatchToClose(null);
-        }}
-        title="Terminer ce lot ?"
-        message={
-          batchToClose
-            ? `Il reste ${batchToClose.remaining_qty} portion${batchToClose.remaining_qty > 1 ? 's' : ''} de ${batchToClose.dish_name}. ` +
-              'En terminant, elles ne seront comptées ni comme vendues ni comme perdues. ' +
-              'Si elles sont jetées, utilisez plutôt « Déclarer une perte ».'
-            : ''
-        }
-        confirmLabel="Terminer quand même"
-        isLoading={isClosing}
-      />
 
       {/* ⭐ COMBIEN et POURQUOI, au lieu d'un simple oui/non.
           ⚠️ Le formulaire porte lui-même l'avertissement : il annonce la

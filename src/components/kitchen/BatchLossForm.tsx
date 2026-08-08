@@ -24,7 +24,14 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { cn } from '../../lib/utils';
 
-/** ⭐ Le motif détermine le statut si la perte vide le lot. */
+/**
+ * ⭐ Le motif détermine le statut si la perte vide le lot.
+ *
+ * ⚠️ `closed` n'en fait PAS partie : ce statut ne compte aucune perte, et le
+ * bouton qui le posait a été retiré le 09/08/2026. Un lot ne se ferme plus que
+ * sur une perte déclarée - « terminer sans rien compter » faisait disparaître
+ * du stock sans laisser le moindre chiffre.
+ */
 export type LossReason = 'discarded' | 'expired';
 
 export interface BatchLossValues {
@@ -56,16 +63,37 @@ interface Props {
   isSubmitting?: boolean;
 }
 
+/**
+ * ⭐⭐ DEUX MOTIFS, PAS TROIS - arbitrage du 09/08/2026.
+ *
+ * Une première version en proposait quatre (« Périmé », « Plus consommable »,
+ * « Invendu non conservable », « Fin de service »). L'exploitant a ramené la
+ * liste : « périmé » et « plus consommable » décrivent le MÊME constat, « fin
+ * de service » et « invendu non conservable » aussi.
+ *
+ * ⛔ Un motif de plus n'aurait rien appris - il aurait ajouté de
+ * l'HÉSITATION. Un cuisinier qui doit choisir entre quatre libellés proches en
+ * fin de service clique le premier sans lire, et la statistique vaut moins que
+ * deux motifs bien séparés.
+ *
+ * ⭐ Ce qui les sépare vraiment, c'est le GESTE CORRECTIF :
+ *   · plus consommable → produit trop TÔT, ou mal conservé ;
+ *   · invendu          → produit TROP.
+ *
+ * ⚠️ « Périmé » a été écarté comme libellé : il suppose une DATE, or
+ * `expires_at` est facultatif et rarement saisi. Un plat peut se gâter avant
+ * sa date - c'est l'état qui compte, pas le calendrier.
+ */
 const MOTIFS: ReadonlyArray<{ value: LossReason; label: string; hint: string }> = [
   {
     value: 'expired',
-    label: 'Périmé',
-    hint: 'Le plat a tourné, il n’est plus consommable.',
+    label: 'Plus consommable',
+    hint: 'Le plat s’est gâté, ou a dépassé sa date.',
   },
   {
     value: 'discarded',
-    label: 'Invendu',
-    hint: 'Encore bon, mais personne ne l’a commandé.',
+    label: 'Invendu, non conservable',
+    hint: 'Encore bon, mais il ne se garde pas jusqu’au prochain service.',
   },
 ];
 
