@@ -325,5 +325,8 @@ GRANT EXECUTE ON FUNCTION public.get_kitchen_losses(UUID, DATE, DATE) TO authent
 --
 -- 6) TEST RÉEL DEPUIS L'UI, après avoir déclaré une perte de chaque type :
 --    → les trois apparaissent dans le journal, avec leur motif et leur auteur ;
---    → le total en tête égale la somme des lignes affichées ;
+--    → le total en tête égale la somme des lignes affichées TANT QUE
+--      `truncated` est false. Au-delà de 200 pertes, le total couvre la
+--      période ENTIÈRE alors que le détail est coupé - c'est VOULU, et
+--      l'écran l'annonce.
 --    → connecté en CUISINIER : les lignes sont visibles, les montants NON.
