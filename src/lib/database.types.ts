@@ -3304,6 +3304,8 @@ export type Database = {
         Row: {
           bar_id: string
           business_date: string
+          closed_at: string | null
+          closed_by: string | null
           created_at: string
           discard_reason: string | null
           discarded_at: string | null
@@ -3325,6 +3327,8 @@ export type Database = {
         Insert: {
           bar_id: string
           business_date: string
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           discard_reason?: string | null
           discarded_at?: string | null
@@ -3346,6 +3350,8 @@ export type Database = {
         Update: {
           bar_id?: string
           business_date?: string
+          closed_at?: string | null
+          closed_by?: string | null
           created_at?: string
           discard_reason?: string | null
           discarded_at?: string | null
@@ -3405,6 +3411,13 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -7272,6 +7285,10 @@ export type Database = {
           sales_count: number
           total_revenue: number
         }[]
+      }
+      get_kitchen_losses: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: Json
       }
       get_kitchen_metrics: {
         Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }

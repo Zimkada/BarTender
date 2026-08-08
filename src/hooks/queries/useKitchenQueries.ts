@@ -20,6 +20,7 @@ import {
   type KitchenMetrics,
   type KitchenProduction,
   type QueueShortfalls,
+  type KitchenLosses,
 } from '../../services/supabase/kitchen.service';
 
 // ===== Query Keys =====
@@ -48,6 +49,12 @@ export const kitchenKeys = {
    * mutation ait à connaître cette clé.
    */
   shortfalls: (barId: string) => [...kitchenKeys.all, 'shortfalls', barId] as const,
+  /**
+   * ⭐ Journal des pertes. Les DATES font partie de la clé : sans elles,
+   * changer de période servirait le cache de la précédente.
+   */
+  losses: (barId: string, start?: string, end?: string) =>
+    [...kitchenKeys.all, 'losses', barId, start ?? '', end ?? ''] as const,
 };
 
 /**
@@ -244,5 +251,38 @@ export function useQueueShortfalls(barId: string | undefined) {
       return failureCount < 2;
     },
     ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * ⭐ Journal des pertes cuisine - trois sources unifiées.
+ *
+ * ⛔⛔ LA GARDE EST `canViewKitchenOrders`, PAS `canViewKitchenCosts`, et c'est
+ * un arbitrage de l'exploitant : « le cuisinier peut même voir toutes les
+ * déclarations car il est responsable des stocks ».
+ *
+ * ⚠️ CE RELÂCHEMENT N'EST PAS SÛR TOUT SEUL, contrairement à
+ * `useKitchenProduction`. Cette RPC RETOURNE des montants - le masquage est
+ * APPLICATIF, donc contournable en lisant la réponse réseau. C'est accepté
+ * ici : le journal n'expose ni marge ni prix de vente, seulement le coût de ce
+ * qui a été perdu, sur un écran que le cuisinier alimente lui-même.
+ * ⛔ Si un prix de vente ou une marge entrait un jour dans cette RPC, cette
+ * garde deviendrait une vraie faille.
+ *
+ * ⚠️ `dailyStats` (2 min) : un journal se consulte, il ne se surveille pas.
+ */
+export function useKitchenLosses(
+  barId: string | undefined,
+  startDate?: string,
+  endDate?: string
+) {
+  const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
+
+  return useQuery<KitchenLosses>({
+    queryKey: kitchenKeys.losses(barId ?? '', startDate, endDate),
+    queryFn: () => KitchenService.getLosses(barId as string, startDate, endDate),
+    enabled: !!barId && hasRestaurant && hasPermission('canViewKitchenOrders'),
+    ...CACHE_STRATEGY.dailyStats,
   });
 }

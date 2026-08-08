@@ -1106,3 +1106,45 @@ describe('record_ingredient_lot_loss — la perte partielle sur ingrédient', ()
     expect(sql).toMatch(/is_bar_member/);
   });
 });
+
+/**
+ * ⭐ `get_kitchen_losses` — le journal des pertes, trois sources unifiées.
+ *
+ * La 3e source (ingrédients) n'entre dans AUCUNE autre métrique du module.
+ */
+describe('get_kitchen_losses — trois sources, jamais fusionnées', () => {
+  const sql = codeOnly(lastDefinitionOf('get_kitchen_losses'));
+
+  it('lit les TROIS sources de perte', () => {
+    expect(sql).toMatch(/kitchen_order_items/);
+    expect(sql).toMatch(/production_batches/);
+    // ⭐ Celle-ci était invisible partout ailleurs.
+    expect(sql).toMatch(/inventory_adjustment/);
+  });
+
+  it('⛔ ne compte un plat que si la matière est SORTIE', () => {
+    // Un plat annulé avant `ready` n'a rien consommé : l'inclure gonflerait
+    // les pertes de commandes qui n'ont rien coûté.
+    expect(sql).toMatch(/consumed_at IS NOT NULL/);
+    expect(sql).toMatch(/status = 'cancelled'/);
+  });
+
+  it('garde les sources DISTINCTES dans la sortie', () => {
+    // Les additionner masquerait lequel des trois gestes corriger.
+    expect(sql).toMatch(/'source'/);
+    expect(sql).toMatch(/by_source/);
+  });
+
+  it('est en LECTURE SEULE', () => {
+    expect(sql).not.toMatch(/\b(INSERT|UPDATE|DELETE)\s/i);
+  });
+
+  it('est STABLE et garde l’isolation multi-tenant', () => {
+    expect(lastDefinitionOf('get_kitchen_losses')).toMatch(/\bSTABLE\b/);
+    expect(sql).toMatch(/is_bar_member/);
+  });
+
+  it('applique la journée commerciale du bar', () => {
+    expect(sql).toMatch(/closing_hour/);
+  });
+});

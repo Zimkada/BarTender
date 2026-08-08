@@ -155,6 +155,37 @@ export interface BatchShortfallRow {
   missing: number;
 }
 
+/**
+ * Une ligne du journal des pertes (§ journal, 09/08/2026).
+ *
+ * ⭐ `source` reste DISTINCTE : le geste correctif diffère selon l'origine -
+ * erreur de commande, sur-production, ou problème d'achat.
+ */
+export interface KitchenLossLine {
+  source: 'dish' | 'batch' | 'ingredient';
+  occurred_at: string;
+  item_name: string;
+  qty: number;
+  /** « portion » pour un plat ou un lot, l'unité réelle pour un ingrédient. */
+  unit: string;
+  /** ⚠️ MONTANT : à masquer sans `canViewKitchenCosts` (§8). */
+  value: number;
+  /** Motif déclaré. NULL sur les gestes antérieurs au 09/08. */
+  reason: string | null;
+  /** Nom de l'auteur. NULL sur les gestes antérieurs à la traçabilité. */
+  actor_name: string | null;
+}
+
+export interface KitchenLosses extends RpcEnvelope {
+  start_date: string;
+  end_date: string;
+  /** ⚠️ MONTANTS : à masquer sans `canViewKitchenCosts` (§8). */
+  total_value: number;
+  total_count: number;
+  by_source: { dish: number; batch: number; ingredient: number };
+  lines: KitchenLossLine[];
+}
+
 export interface QueueShortfalls extends RpcEnvelope {
   shortfalls: IngredientShortfallRow[];
   /**
@@ -501,6 +532,35 @@ export const KitchenService = {
 
       if (error) throw error;
       return unwrapRpc<KitchenProduction>(data, 'Lecture de l’activité cuisine');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * ⭐ Journal des pertes - TROIS sources unifiées (09/08/2026).
+   *
+   * Plats annulés après `ready`, lots de production jetés, lots d'ingrédients
+   * perdus. La 3e n'entre dans AUCUNE autre métrique.
+   *
+   * ⚠️ Les MONTANTS sont retournés : c'est le CLIENT qui les masque selon
+   * `canViewKitchenCosts`. Le cuisinier voit le journal - il répond du stock -
+   * mais pas les valeurs (§8).
+   */
+  async getLosses(
+    barId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<KitchenLosses> {
+    try {
+      const { data, error } = await supabase.rpc('get_kitchen_losses', {
+        p_bar_id: barId,
+        p_start_date: startDate ?? undefined,
+        p_end_date: endDate ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<KitchenLosses>(data, 'Lecture du journal des pertes');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

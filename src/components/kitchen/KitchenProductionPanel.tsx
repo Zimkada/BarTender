@@ -31,6 +31,7 @@ import { cn } from '../../lib/utils';
 import { useKitchenProduction } from '../../hooks/queries/useKitchenQueries';
 import { useDateRangeFilter } from '../../hooks/useDateRangeFilter';
 import { PeriodFilter } from '../common/filters/PeriodFilter';
+import { KitchenLossesPanel } from './KitchenLossesPanel';
 import { dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import { useBarContext } from '../../context/BarContext';
 import type { TimeRange } from '../../types/dateFilters';
@@ -261,6 +262,22 @@ export function KitchenProductionPanel({ barId }: Props) {
                   Aucun plat sur cette période.
                 </p>
               )}
+
+              {/* ⭐⭐ LE JOURNAL DES PERTES, dans le MÊME panneau et sur la
+                  MÊME période (09/08/2026).
+                  ⛔ Pas un second panneau avec son propre sélecteur : deux
+                  périodes indépendantes sur le même écran feraient lire des
+                  chiffres qui ne se recoupent pas.
+                  ⚠️ Il complète l'activité ci-dessus, qui ne compte que les
+                  plats. Les lots jetés et les ingrédients perdus n'y
+                  apparaissent pas - et la 3e source n'entre dans AUCUNE
+                  autre métrique du module. */}
+              <div className="mt-5 border-t border-border pt-4">
+                <h4 className="mb-3 text-body-sm font-medium text-foreground">
+                  Pertes déclarées
+                </h4>
+                <KitchenLossesPanel barId={barId} startDate={start} endDate={end} />
+              </div>
             </>
           )}
         </div>
