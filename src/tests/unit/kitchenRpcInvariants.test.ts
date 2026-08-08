@@ -1058,8 +1058,14 @@ describe('closed_by — un chiffre sans nom ne se contrôle pas', () => {
 describe('record_ingredient_lot_loss — la perte partielle sur ingrédient', () => {
   const sql = codeOnly(lastDefinitionOf('record_ingredient_lot_loss'));
 
-  it('⛔ CUMULE les pertes, ne les écrase pas', () => {
-    expect(sql).toMatch(/COALESCE\(discarded_qty, 0\) \+ p_qty/);
+  it('⛔ N’ÉCRIT PAS `discarded_qty` sur un lot qui reste actif', () => {
+    // ⛔⛔ Défaut BLOQUANT trouvé en code review le 09/08/2026.
+    // `ingredient_lots_discard_coherence` impose `discarded_qty IS NULL` tant
+    // que le statut est `active` ou `depleted`. L'écrire faisait échouer le
+    // RPC À CHAQUE APPEL - et aucun test ne le voyait, puisqu'ils lisent le
+    // TEXTE du SQL et jamais les contraintes de la table.
+    // ⭐ La perte vit dans `ingredient_consumptions`, pas sur le lot.
+    expect(sql).not.toMatch(/discarded_qty\s*=/);
   });
 
   it('REFUSE une quantité supérieure au reste', () => {

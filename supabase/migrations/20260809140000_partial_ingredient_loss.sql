@@ -170,13 +170,33 @@ BEGIN
 
   v_lost_value := ROUND(p_qty * COALESCE(v_lot.unit_cost, 0), 2);
 
+  /**
+   * ⛔⛔ `discarded_qty` N'EST PAS ÉCRIT ICI - défaut BLOQUANT trouvé en code
+   * review le 09/08/2026, avant application.
+   *
+   * La contrainte `ingredient_lots_discard_coherence` impose :
+   *   (status IN ('expired','discarded') AND discarded_qty IS NOT NULL)
+   *   OR (status IN ('active','depleted') AND discarded_qty IS NULL)
+   *
+   * Une perte PARTIELLE laisse le lot `active`. Y écrire `discarded_qty`
+   * violait donc la contrainte : le RPC aurait échoué À CHAQUE APPEL, et
+   * aucun test ne l'aurait vu - ils lisent le TEXTE du SQL, jamais les
+   * contraintes de la table.
+   *
+   * ⭐ CE N'EST PAS UNE PERTE D'INFORMATION. La perte est journalisée dans
+   * `ingredient_consumptions` juste en dessous - même destination que
+   * `discard_ingredient_lot`, et c'est là que les métriques la liront.
+   * `discarded_qty` sur le lot ne décrit qu'une SORTIE DE LOT, pas une perte
+   * partielle : le sens de la colonne est préservé.
+   *
+   * ⚠️ DIFFÉRENCE ASSUMÉE avec `record_batch_loss` (lots de production), qui
+   * cumule bien son `discarded_qty` : `pb_discard_coherence` n'exige, elle,
+   * que la cohérence quantité/date, sans lien avec le statut. Deux tables,
+   * deux contraintes - la règle est celle de la table, pas de l'analogie.
+   */
   UPDATE public.ingredient_lots
   SET remaining_qty = v_new_remain,
-      status        = v_new_status,
-      -- ⭐⭐ CUMUL, jamais remplacement : deux pertes partielles sur le même lot
-      -- comptent deux fois. Écraser ferait disparaître la première.
-      discarded_qty = COALESCE(discarded_qty, 0) + p_qty,
-      discarded_at  = NOW()
+      status        = v_new_status
   WHERE id = p_lot_id;
 
   /**
