@@ -46,12 +46,13 @@ export const ingredientKeys = {
  * ⚠️ Quasi-statique : `CACHE_STRATEGY.products` (30 min). Le référentiel change
  * rarement — ce sont les LOTS qui bougent, pas la liste des ingrédients.
  */
-export function useIngredients(barId: string | undefined) {
+export function useIngredients(barId: string | undefined, includeRetired = false) {
   const { hasRestaurant } = useBarContext();
 
   return useQuery<IngredientRow[]>({
-    queryKey: ingredientKeys.list(barId ?? ''),
-    queryFn: () => IngredientsService.getIngredients(barId as string),
+    // ⚠️ `includeRetired` DANS LA CLÉ : deux listes distinctes, deux caches.
+    queryKey: [...ingredientKeys.list(barId ?? ''), includeRetired],
+    queryFn: () => IngredientsService.getIngredients(barId as string, includeRetired),
     // ⭐ §3 — aucune requête sur un bar pur.
     enabled: !!barId && hasRestaurant,
     ...CACHE_STRATEGY.products,

@@ -149,7 +149,9 @@ describe('Invariance des bars purs — aucune requête cuisine (§3)', () => {
       renderHook(() => useIngredients(BAR_ID), { wrapper: createWrapper() });
 
       await waitFor(() => {
-        expect(mockGetIngredients).toHaveBeenCalledWith(BAR_ID);
+        // ⚠️ `getIngredients` prend un second argument depuis le 09/08/2026.
+        // L'invariant tient : ce qui compte est que la requête PARTE.
+        expect(mockGetIngredients).toHaveBeenCalledWith(BAR_ID, expect.anything());
       });
     });
 

@@ -174,7 +174,7 @@ describe('Invariance des bars purs — aucune requête plats (§3)', () => {
       expect(
         mockGetDishes,
         'Aucune requête sur un bar AVEC cuisine — la garde §3 est trop restrictive'
-      ).toHaveBeenCalledWith(BAR_ID);
+      ).toHaveBeenCalledWith(BAR_ID, expect.anything());
     });
 
     it('useDishCategories appelle bien le service', async () => {

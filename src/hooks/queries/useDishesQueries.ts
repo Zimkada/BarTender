@@ -76,12 +76,16 @@ export const dishKeys = {
  * rarement dans une journée — ce sont les prix et la disponibilité qui bougent,
  * et une mutation invalide explicitement le cache.
  */
-export function useDishes(barId: string | undefined) {
+export function useDishes(barId: string | undefined, includeRetired = false) {
   const { hasRestaurant } = useBarContext();
 
   return useQuery<DishRow[]>({
-    queryKey: dishKeys.list(barId ?? ''),
-    queryFn: () => DishesService.getDishes(barId as string),
+    /**
+     * ⚠️ `includeRetired` DANS LA CLÉ : sans lui, ouvrir la liste des plats
+     * retirés servirait le cache de la carte active, et inversement.
+     */
+    queryKey: [...dishKeys.list(barId ?? ''), includeRetired],
+    queryFn: () => DishesService.getDishes(barId as string, includeRetired),
     // ⭐ §3 — aucune requête sur un bar pur.
     enabled: !!barId && hasRestaurant,
     ...CACHE_STRATEGY.products,

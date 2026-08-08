@@ -73,8 +73,17 @@ export default function DishesPage() {
     searchParams.get('tab') === 'production' ? 'production' : 'menu'
   );
   const [showProduceForm, setShowProduceForm] = useState(false);
+  /**
+   * ⭐ Affiche aussi les plats RETIRÉS de la carte (09/08/2026).
+   *
+   * ⛔ Sans cette bascule, un plat retiré disparaît de TOUS les écrans et ne
+   * peut plus être remis : la RPC accepte `active = true`, mais plus rien ne
+   * permet de désigner le plat. Le retrait était annoncé réversible sans
+   * l'être - bloquant trouvé en code review.
+   */
+  const [showRetired, setShowRetired] = useState(false);
 
-  const { dishes, availableIngredients, isLoading } = useUnifiedDishes(barId);
+  const { dishes, availableIngredients, isLoading } = useUnifiedDishes(barId, showRetired);
   const { data: dishCategoryRows = [] } = useDishCategories(barId);
 
   /**
@@ -192,13 +201,28 @@ export default function DishesPage() {
 
       <div className="px-4 sm:px-6 mt-4">
         {activeTab === 'menu' && (
-          <DishesTab
+          <>
+            {/* ⭐ ACCÈS AUX PLATS RETIRÉS - discret, sous les onglets : c'est
+                une consultation rare, pas un filtre de tous les jours.
+                ⚠️ Indispensable pour que le retrait soit RÉVERSIBLE. */}
+            <label className="mb-3 flex cursor-pointer items-center gap-2 text-caption text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={showRetired}
+                onChange={(e) => setShowRetired(e.target.checked)}
+                className="h-4 w-4 accent-brand"
+              />
+              Afficher aussi les plats retirés du menu
+            </label>
+
+            <DishesTab
             barId={barId}
             dishes={dishes}
             ingredients={availableIngredients}
             categories={dishCategories}
             isLoading={isLoading}
-          />
+            />
+          </>
         )}
 
         {activeTab === 'production' && (

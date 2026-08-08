@@ -193,7 +193,9 @@ describe('HomePage — invariance des bars purs (§3)', () => {
       expect(
         mockGetDishes,
         'Aucune requête sur un bar AVEC cuisine — la garde §3 est trop restrictive'
-      ).toHaveBeenCalledWith('bar-123');
+      // ⚠️ Second argument depuis le 09/08/2026 (`includeRetired`).
+      // L'invariant est inchangé : la requête PART sur un bar avec cuisine.
+      ).toHaveBeenCalledWith('bar-123', expect.anything());
     });
 
     it('affiche le sélecteur de portée', () => {

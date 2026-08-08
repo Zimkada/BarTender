@@ -35,12 +35,14 @@ export interface IngredientWithAlerts extends IngredientRow {
   expiringLotsCount: number;
 }
 
-export function useUnifiedKitchen(barId: string | undefined, expiringWithinDays = 3) {
+export function useUnifiedKitchen(barId: string | undefined, expiringWithinDays = 3,
+  includeRetired = false
+) {
   const {
     data: ingredients = [],
     isLoading: isLoadingIngredients,
     refetch: refetchIngredients,
-  } = useIngredients(barId);
+  } = useIngredients(barId, includeRetired);
 
   const {
     data: expiringLots = [],

@@ -265,17 +265,28 @@ export class IngredientsService {
   // ===== LECTURE =====
 
   /**
-   * Ingrédients actifs d'un bar.
+   * Ingrédients d'un bar - ACTIFS par défaut.
    * ⚠️ N'appeler que si `hasRestaurant` — §3 : pas un octet d'egress sur un bar pur.
+   *
+   * ⛔ `includeRetired` AJOUTÉ en code review le 09/08/2026 : sans lui, un
+   * ingrédient retiré disparaissait de TOUS les écrans et ne pouvait plus être
+   * remis au catalogue. Le retrait était annoncé réversible sans l'être.
    */
-  static async getIngredients(barId: string): Promise<IngredientRow[]> {
+  static async getIngredients(
+    barId: string,
+    includeRetired = false
+  ): Promise<IngredientRow[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('ingredients')
         .select('*')
-        .eq('bar_id', barId)
-        .eq('is_active', true)
-        .order('name');
+        .eq('bar_id', barId);
+
+      // ⚠️ Le défaut reste ACTIFS : les recettes et l'appro ne doivent pas
+      // proposer un ingrédient retiré du catalogue.
+      if (!includeRetired) query = query.eq('is_active', true);
+
+      const { data, error } = await query.order('name');
 
       if (error) throw error;
       return (data ?? []) as IngredientRow[];

@@ -98,6 +98,12 @@ export default function IngredientsPage() {
    * cette garde, elle évite le clic accidentel.
    */
   const [toRetire, setToRetire] = useState<IngredientWithAlerts | null>(null);
+  /**
+   * ⭐ Affiche aussi les ingrédients RETIRÉS du catalogue (09/08/2026).
+   * ⛔ Sans cette bascule, un ingrédient retiré disparaît de partout et ne
+   * peut plus être remis - le retrait était annoncé réversible sans l'être.
+   */
+  const [showRetired, setShowRetired] = useState(false);
   const [preselectedIngredient, setPreselectedIngredient] = useState<string | undefined>();
   /** Incrémenté après un enregistrement confirmé → nouvelle clé d'idempotence. */
   const [resetSignal, setResetSignal] = useState(0);
@@ -113,7 +119,7 @@ export default function IngredientsPage() {
     lowStockIngredients,
     ingredientsInDebt,
     isLoading,
-  } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS);
+  } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS, showRetired);
 
   const { receiveSupply, upsertIngredient, recordLotLoss, setIngredientActive } =
     useIngredientMutations();
@@ -295,7 +301,19 @@ export default function IngredientsPage() {
               <div className="space-y-2">
                 {/* ⭐ Création accessible en permanence, pas seulement depuis
                     l'état vide : on ajoute des ingrédients au fil du temps. */}
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between gap-3">
+                  {/* ⭐ ACCÈS AUX INGRÉDIENTS RETIRÉS - indispensable pour que
+                      le retrait soit RÉVERSIBLE (09/08/2026). */}
+                  <label className="flex cursor-pointer items-center gap-2 text-caption text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={showRetired}
+                      onChange={(e) => setShowRetired(e.target.checked)}
+                      className="h-4 w-4 accent-brand"
+                    />
+                    Afficher les retirés
+                  </label>
+
                   <Button size="sm" onClick={() => setEditingIngredient({ mode: 'create' })}>
                     <Plus size={16} className="mr-1.5" />
                     Nouvel ingrédient
@@ -388,15 +406,33 @@ export default function IngredientsPage() {
                           quantités disparaîtraient sans être comptées en perte.
                           ⚠️ Proposé MÊME avec du stock : le refus explique quoi
                           faire, alors qu'un bouton absent laisse chercher. */}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setToRetire(ingredient)}
-                        disabled={setIngredientActive.isPending}
-                        aria-label={`Retirer ${ingredient.name} du catalogue`}
-                      >
-                        <X size={14} />
-                      </Button>
+                      {ingredient.is_active ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setToRetire(ingredient)}
+                          disabled={setIngredientActive.isPending}
+                          aria-label={`Retirer ${ingredient.name} du catalogue`}
+                        >
+                          <X size={14} />
+                        </Button>
+                      ) : (
+                        /* ⚠️ AUCUNE confirmation pour la remise : c'est le geste
+                           qui RÉPARE, pas celui qui engage. */
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            setIngredientActive.mutate({
+                              ingredientId: ingredient.id,
+                              active: true,
+                            })
+                          }
+                          disabled={setIngredientActive.isPending}
+                        >
+                          Remettre
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -480,7 +516,10 @@ export default function IngredientsPage() {
             : ''
         }
         confirmLabel="Retirer"
-        isDestructive
+        /* ⚠️ PAS `isDestructive` - defaut trouve en code review le
+           09/08/2026. Le rouge signale l irreversible (jeter un lot, declarer
+           une perte). Un retrait se defait en un clic : le peindre en rouge
+           userait le signal la ou il compte vraiment. */
         isLoading={setIngredientActive.isPending}
       />
 

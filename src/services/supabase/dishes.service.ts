@@ -311,17 +311,29 @@ export class DishesService {
   // ===== LECTURE =====
 
   /**
-   * Plats actifs d'un bar.
+   * Plats d'un bar - ACTIFS par défaut.
+   *
    * ⚠️ N'appeler que si `hasRestaurant` — §3 : pas un octet d'egress sur un bar pur.
+   *
+   * ⛔ `includeRetired` AJOUTÉ en code review le 09/08/2026, et c'est un
+   * BLOQUANT qu'il corrige : le retrait était annoncé RÉVERSIBLE, mais cette
+   * query filtrait `is_active = true` à la source. Un plat retiré disparaissait
+   * de TOUS les écrans, y compris celui de gestion - plus rien ne permettait
+   * de le désigner pour le remettre. La RPC acceptait `active = true` sans
+   * qu'aucun chemin n'y mène.
    */
-  static async getDishes(barId: string): Promise<DishRow[]> {
+  static async getDishes(barId: string, includeRetired = false): Promise<DishRow[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('dishes')
         .select('*')
-        .eq('bar_id', barId)
-        .eq('is_active', true)
-        .order('name');
+        .eq('bar_id', barId);
+
+      // ⚠️ Le défaut reste ACTIFS : tous les appelants existants (grille de
+      // vente, sélecteurs, composition) continuent de ne voir que la carte.
+      if (!includeRetired) query = query.eq('is_active', true);
+
+      const { data, error } = await query.order('name');
 
       if (error) throw error;
       return (data ?? []) as DishRow[];

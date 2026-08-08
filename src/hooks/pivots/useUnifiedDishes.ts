@@ -48,12 +48,17 @@ import type { DishRow } from '../../services/supabase/dishes.service';
  *   vraie recette. Mieux vaut ne rien afficher qu'un drapeau faux.
  */
 
-export function useUnifiedDishes(barId: string | undefined) {
+/**
+ * @param includeRetired ⭐ Inclut les plats RETIRÉS de la carte. Réservé à
+ * l'écran de gestion : sans lui, un plat retiré disparaît de partout et ne
+ * peut plus être remis (bloquant trouvé en code review le 09/08/2026).
+ */
+export function useUnifiedDishes(barId: string | undefined, includeRetired = false) {
   const {
     data: dishes = [],
     isLoading: isLoadingDishes,
     refetch: refetchDishes,
-  } = useDishes(barId);
+  } = useDishes(barId, includeRetired);
 
   // ⭐ Ingrédients RÉUTILISÉS depuis le pivot cuisine — aucune requête de plus.
   const {

@@ -336,6 +336,15 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                       sur cet écran tout en étant introuvable à la vente : on
                       chercherait un bug là où il y a un réglage.
                       ⚠️ Ton NEUTRE, pas une alerte : c'est un choix du bar. */}
+                  {/* ⛔ PLAT RETIRÉ - le dire AVANT tout le reste : sans cela,
+                      il se lit comme un plat normal alors qu'il n'est plus au
+                      menu, et on chercherait pourquoi il ne se vend pas. */}
+                  {!dish.is_active && (
+                    <p className="mt-0.5 text-caption font-medium text-red-600 dark:text-red-400">
+                      Retiré du menu
+                    </p>
+                  )}
+
                   {/* ⚠️ `=== false` comme le filtre de la grille : un champ
                       absent ne doit pas afficher un badge qui contredirait ce
                       que la vente montre réellement. */}
@@ -459,16 +468,37 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                   compose encore actif - le message nomme lesquels.
                   ⚠️ `ghost` et discret : c'est un geste rare, pas une action
                   de tous les jours. */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDishToRetire(dish)}
-                disabled={setDishActive.isPending}
-                className="mt-1 w-full text-red-600 hover:text-red-700 dark:text-red-400"
-              >
-                <Trash2 size={14} className="mr-1.5" />
-                Retirer du menu
-              </Button>
+              {/* ⭐ RETIRER ou REMETTRE selon l'état. Un plat retiré n'apparaît
+                  ici que si « Afficher aussi les plats retirés » est coché -
+                  c'est le SEUL chemin pour le remettre au menu. */}
+              {dish.is_active ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDishToRetire(dish)}
+                  disabled={setDishActive.isPending}
+                  className="mt-1 w-full text-red-600 hover:text-red-700 dark:text-red-400"
+                >
+                  <Trash2 size={14} className="mr-1.5" />
+                  Retirer du menu
+                </Button>
+              ) : (
+                /* ⚠️ AUCUNE confirmation pour la remise : c'est le geste qui
+                   RÉPARE, pas celui qui engage. Le confirmer découragerait de
+                   corriger une erreur. */
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setDishActive.mutate({ dishId: dish.id, active: true })
+                  }
+                  disabled={setDishActive.isPending}
+                  className="mt-1 w-full"
+                >
+                  <Plus size={14} className="mr-1.5" />
+                  Remettre au menu
+                </Button>
+              )}
             </div>
             );
           })}
@@ -554,7 +584,10 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
             : ''
         }
         confirmLabel="Retirer"
-        isDestructive
+        /* ⚠️ PAS `isDestructive` - defaut trouve en code review le
+           09/08/2026. Le rouge signale l irreversible (jeter un lot, declarer
+           une perte). Un retrait se defait en un clic : le peindre en rouge
+           userait le signal la ou il compte vraiment. */
         isLoading={setDishActive.isPending}
       />
     </div>
