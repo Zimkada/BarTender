@@ -1048,3 +1048,55 @@ describe('closed_by — un chiffre sans nom ne se contrôle pas', () => {
     expect(loss).toMatch(/v_actor\s+UUID\s*:=\s*auth\.uid\(\)/);
   });
 });
+
+/**
+ * ⭐ `record_ingredient_lot_loss` — perte PARTIELLE sur un lot d'ingrédient.
+ *
+ * > « Pour ingrédients, est-il possible de déclarer perte sur certains
+ * >   éléments ? » (09/08/2026)
+ */
+describe('record_ingredient_lot_loss — la perte partielle sur ingrédient', () => {
+  const sql = codeOnly(lastDefinitionOf('record_ingredient_lot_loss'));
+
+  it('⛔ CUMULE les pertes, ne les écrase pas', () => {
+    expect(sql).toMatch(/COALESCE\(discarded_qty, 0\) \+ p_qty/);
+  });
+
+  it('REFUSE une quantité supérieure au reste', () => {
+    expect(sql).toMatch(/p_qty > v_lot\.remaining_qty/);
+  });
+
+  it('ne sort JAMAIS le lot pour cause', () => {
+    // ⭐ Seul `depleted` est posé - il CONSTATE que le lot est vide. Les
+    // statuts de cause (`expired`, `spoiled`) restent un geste humain.
+    expect(sql).toMatch(/'depleted'/);
+    expect(sql).not.toMatch(/status\s*=\s*'(expired|spoiled|damaged)'/);
+  });
+
+  it('⛔ RECALCULE le stock, ne le décrémente pas', () => {
+    // Leçon du CUMP : `current_stock - p_qty` accumulerait les dérives en
+    // silence. La formule doit repartir de la source de vérité, DETTES
+    // COMPRISES - l'omettre ferait diverger ce cache du reste du module.
+    expect(sql).toMatch(/ingredient_stock_debts/);
+    expect(sql).toMatch(/SUM\(remaining_qty\)/);
+  });
+
+  it('journalise la perte dans le flux de consommation', () => {
+    // ⭐ Une perte EST une sortie de matière : la tracer ailleurs créerait
+    // deux historiques concurrents.
+    expect(sql).toMatch(/ingredient_consumptions/);
+    expect(sql).toMatch(/'inventory_adjustment'/);
+  });
+
+  it('enregistre son auteur, capté de la session', () => {
+    expect(sql).toMatch(/v_actor_id\s+UUID\s*:=\s*auth\.uid\(\)/);
+  });
+
+  it('verrouille la ligne pendant la mise à jour', () => {
+    expect(sql).toMatch(/FOR UPDATE/);
+  });
+
+  it('garde l’isolation multi-tenant', () => {
+    expect(sql).toMatch(/is_bar_member/);
+  });
+});

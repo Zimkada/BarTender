@@ -144,6 +144,27 @@ export interface ConsumeResult extends RpcEnvelope {
   idempotent_replay: boolean;
 }
 
+/**
+ * Résultat d'une perte PARTIELLE sur un lot d'ingrédient (09/08/2026).
+ *
+ * ⚠️ Distinct de `DiscardResult` : ici le lot CONTINUE de servir, sauf si la
+ * perte l'a vidé - auquel cas `status` vaut `depleted`.
+ * ⛔ Pas d'`idempotent_replay` : une perte partielle N'EST PAS idempotente.
+ * Deux déclarations de 2 kg font 4 kg perdus, et c'est le comportement voulu -
+ * contrairement à une sortie de lot, qui ne peut avoir lieu qu'une fois.
+ */
+export interface IngredientLotLossResult extends RpcEnvelope {
+  lot_id: string;
+  /** Quantité déclarée à CET appel, pas le cumul. */
+  lost_qty: number;
+  /** Ce qu'il reste dans le lot APRÈS la perte. */
+  remaining_qty: number;
+  /** `active` si le lot sert encore, `depleted` si la perte l'a vidé. */
+  status: IngredientLotStatus;
+  /** ⚠️ MONTANT : à n'afficher qu'avec `canViewKitchenCosts` (§8). */
+  loss_value: number;
+}
+
 export interface DiscardResult extends RpcEnvelope {
   lot_id: string;
   lost_qty: number;
@@ -432,6 +453,47 @@ export class IngredientsService {
    * sortie. Un second appel avec un autre motif ne la corrige pas — sans ce
    * champ, la correction échouerait silencieusement.
    */
+  /**
+   * ⭐ Perte PARTIELLE sur un lot qui reste en stock (09/08/2026).
+   *
+   * « 2 kg sur 10 ont pourri, les 8 autres sont bons » : le lot continue de
+   * servir. Distinct de `discardLot`, qui sort le lot ENTIER.
+   *
+   * ⭐ Le LOT est choisi par l'utilisateur, jamais deviné en FEFO : deux lots
+   * du même ingrédient ont des coûts différents, et c'est celui du lot
+   * réellement abîmé qui doit être valorisé.
+   *
+   * ⚠️ Le serveur CUMULE les pertes successives et REFUSE une quantité
+   * supérieure au reste - une saisie trop grande est une erreur, pas une
+   * perte totale.
+   */
+  static async recordLotLoss(params: {
+    barId: string;
+    lotId: string;
+    qty: number;
+    reason: DiscardReason;
+    notes?: string;
+    businessDate?: string;
+  }): Promise<IngredientLotLossResult> {
+    assertNetworkAvailable('déclarer une perte sur un lot');
+
+    try {
+      const { data, error } = await supabase.rpc('record_ingredient_lot_loss', {
+        p_bar_id: params.barId,
+        p_lot_id: params.lotId,
+        p_qty: params.qty,
+        p_reason: params.reason,
+        p_notes: params.notes ?? undefined,
+        p_business_date: params.businessDate ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<IngredientLotLossResult>(data, 'Déclaration de perte');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }
+
   static async discardLot(params: {
     barId: string;
     lotId: string;

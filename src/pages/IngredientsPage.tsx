@@ -15,7 +15,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedPageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
@@ -23,6 +23,7 @@ import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
 import { IngredientForm } from '../components/kitchen/IngredientForm';
+import { IngredientLossFormLoader } from '../components/kitchen/IngredientLossForm';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useUnifiedKitchen, type IngredientWithAlerts } from '../hooks/pivots/useUnifiedKitchen';
@@ -82,6 +83,14 @@ export default function IngredientsPage() {
 
   const [activeTab, setActiveTab] = useState<TabId>('stock');
   const [showSupplyModal, setShowSupplyModal] = useState(false);
+  /**
+   * ⭐ L'ingrédient dont on déclare une perte (09/08/2026).
+   *
+   * ⚠️ On garde l'INGRÉDIENT et non le lot : le formulaire charge ses lots et
+   * laisse l'utilisateur choisir lequel est abîmé - deux lots du même
+   * ingrédient ont des coûts différents.
+   */
+  const [lossFor, setLossFor] = useState<IngredientWithAlerts | null>(null);
   const [preselectedIngredient, setPreselectedIngredient] = useState<string | undefined>();
   /** Incrémenté après un enregistrement confirmé → nouvelle clé d'idempotence. */
   const [resetSignal, setResetSignal] = useState(0);
@@ -99,7 +108,7 @@ export default function IngredientsPage() {
     isLoading,
   } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS);
 
-  const { receiveSupply, upsertIngredient } = useIngredientMutations();
+  const { receiveSupply, upsertIngredient, recordLotLoss } = useIngredientMutations();
 
   const openSupply = (ingredientId?: string) => {
     setPreselectedIngredient(ingredientId);
@@ -346,6 +355,24 @@ export default function IngredientsPage() {
                         <Plus size={14} className="mr-1" />
                         Appro
                       </Button>
+
+                      {/* ⭐ DÉCLARER UNE PERTE (09/08/2026). Le RPC
+                          `discard_ingredient_lot` existait depuis le 02/08
+                          mais AUCUN écran ne l'appelait : on ne pouvait rien
+                          déclarer, ni en partie ni en totalité.
+                          ⚠️ Masqué si l'ingrédient n'a plus de stock : sans
+                          lot, il n'y a rien à perdre. */}
+                      {ingredient.current_stock > 0 && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setLossFor(ingredient)}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400"
+                        >
+                          <Trash2 size={14} className="mr-1" />
+                          Perte
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -409,6 +436,34 @@ export default function IngredientsPage() {
           </p>
         )}
       </div>
+
+      {/* ⭐ DÉCLARER UNE PERTE sur un lot (09/08/2026).
+          ⚠️ Le chargement des lots est délégué au loader : `useIngredientLots`
+          ne doit s'exécuter QUE modale ouverte. Appelé depuis cette page, il
+          partirait pour chaque ingrédient de la liste. */}
+      <Modal
+        open={lossFor !== null}
+        onClose={() => setLossFor(null)}
+        title="Déclarer une perte"
+        description="La matière sort du stock : elle ne revient pas."
+      >
+        {lossFor && (
+          <IngredientLossFormLoader
+            barId={currentBar?.id}
+            ingredientId={lossFor.id}
+            ingredientName={lossFor.name}
+            unit={lossFor.unit}
+            isSubmitting={recordLotLoss.isPending}
+            onCancel={() => setLossFor(null)}
+            onSubmit={({ lotId, qty, reason }) => {
+              recordLotLoss.mutate(
+                { lotId, qty, reason },
+                { onSuccess: () => setLossFor(null) }
+              );
+            }}
+          />
+        )}
+      </Modal>
 
       <Modal
         open={showSupplyModal}

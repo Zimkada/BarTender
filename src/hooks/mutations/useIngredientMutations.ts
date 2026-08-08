@@ -25,6 +25,7 @@ import {
   type SupplyResult,
   type ConsumeResult,
   type DiscardResult,
+  type IngredientLotLossResult,
   type IngredientInput,
   type IngredientRow,
 } from '../../services/supabase/ingredients.service';
@@ -194,6 +195,57 @@ export function useIngredientMutations() {
   /**
    * Sort un lot du stock et valorise la perte (§8, 5e métrique).
    */
+  /**
+   * ⭐ Perte PARTIELLE sur un lot qui reste en stock (09/08/2026).
+   *
+   * « 2 kg sur 10 ont pourri » : sans ce geste, il fallait choisir entre tout
+   * sortir (perte surévaluée) ou ne rien déclarer (perte invisible, écart
+   * constaté plus tard à l'inventaire sans cause identifiable).
+   *
+   * ⛔ PAS d'idempotence, contrairement à `discardLot` : deux déclarations de
+   * 2 kg font 4 kg perdus. C'est voulu - une perte partielle peut se répéter,
+   * une sortie de lot non.
+   */
+  const recordLotLoss = useMutation<
+    IngredientLotLossResult,
+    Error,
+    { lotId: string; qty: number; reason: DiscardReason; notes?: string; businessDate?: string }
+  >({
+    meta: { suppressGlobalError: true },
+    mutationFn: async (input) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      return IngredientsService.recordLotLoss({
+        barId,
+        lotId: input.lotId,
+        qty: input.qty,
+        reason: input.reason,
+        notes: input.notes,
+        businessDate: input.businessDate,
+      });
+    },
+    onSettled: invalidateKitchenStock,
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        // ⚠️ On annonce CE QUI RESTE, pas seulement ce qui est perdu : c'est
+        // l'information dont le cuisinier a besoin pour la suite.
+        const suite =
+          result.status === 'depleted'
+            ? ' - lot épuisé'
+            : ` - il reste ${result.remaining_qty}`;
+
+        toast(`${result.lost_qty} perdu${suite}`, { icon: '🗑️', duration: 5000 });
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(msg);
+      });
+    },
+  });
+
   const discardLot = useMutation<DiscardResult, Error, DiscardInput>({
     meta: { suppressGlobalError: true },
     mutationFn: async (input) => {
@@ -270,5 +322,5 @@ export function useIngredientMutations() {
     },
   });
 
-  return { receiveSupply, consumeIngredients, discardLot, upsertIngredient };
+  return { receiveSupply, consumeIngredients, discardLot, recordLotLoss, upsertIngredient };
 }
