@@ -1157,3 +1157,52 @@ describe('get_kitchen_losses — trois sources, jamais fusionnées', () => {
     expect(sql).toMatch(/INTO v_totals[\s\S]{0,120}FROM toutes/);
   });
 });
+
+/**
+ * ⭐ Retrait d'un plat ou d'un ingrédient (09/08/2026).
+ *
+ * > « Est-ce possible de supprimer un plat, ingrédient… ? »
+ *
+ * Soft delete : l'historique reste. Deux blocages protègent chacun un chiffre.
+ */
+describe('set_dish_active / set_ingredient_active — retirer sans casser', () => {
+  const dish = codeOnly(lastDefinitionOf('set_dish_active'));
+  const ing = codeOnly(lastDefinitionOf('set_ingredient_active'));
+
+  it('⛔ un plat servant de BASE ne peut pas être retiré', () => {
+    // Retirer « Poisson braisé » alors qu'un plat composé en dépend casserait
+    // ce dernier en silence : plus de lot à prélever au service.
+    expect(dish).toMatch(/dish_recipe_components/);
+    expect(dish).toMatch(/base_dish_id = p_dish_id/);
+  });
+
+  it('⛔ un ingrédient AVEC du stock ne peut pas être retiré', () => {
+    // Ces quantités disparaîtraient des comptes sans être comptées en perte -
+    // exactement le trou que le bouton « Terminer » créait sur les lots.
+    expect(ing).toMatch(/ingredient_lots/);
+    expect(ing).toMatch(/v_stock > 0/);
+  });
+
+  it('⭐ l’ingrédient lit les LOTS, jamais le cache `current_stock`', () => {
+    // Le cache soustrait les dettes ouvertes : il pourrait valoir 0 alors
+    // qu'il reste de la matière physique.
+    expect(ing).not.toMatch(/current_stock/);
+  });
+
+  it('les deux blocages ne valent qu’AU RETRAIT', () => {
+    // Remettre un plat ou un ingrédient ne casse rien : bloquer là serait une
+    // friction sans objet.
+    expect(dish).toMatch(/IF NOT p_active THEN/);
+    expect(ing).toMatch(/IF NOT p_active THEN/);
+  });
+
+  it('sont idempotents — un double-clic ne lève pas d’erreur', () => {
+    expect(dish).toMatch(/is_active = p_active/);
+    expect(ing).toMatch(/is_active = p_active/);
+  });
+
+  it('gardent l’isolation multi-tenant', () => {
+    expect(dish).toMatch(/is_bar_member/);
+    expect(ing).toMatch(/is_bar_member/);
+  });
+});

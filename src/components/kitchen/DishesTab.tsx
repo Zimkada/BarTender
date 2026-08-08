@@ -21,10 +21,11 @@
  */
 
 import { useState, useMemo } from 'react';
-import { ChefHat, Plus, Pencil, UtensilsCrossed, TrendingDown, AlertTriangle, Layers } from 'lucide-react';
+import { ChefHat, Plus, Pencil, UtensilsCrossed, TrendingDown, AlertTriangle, Layers, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { EmptyState } from '../common/EmptyState';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 import { DishForm } from './DishForm';
 import { RecipeEditor, LOW_MARGIN_THRESHOLD } from './RecipeEditor';
 import { ComponentsEditor } from './ComponentsEditor';
@@ -69,7 +70,7 @@ type ModalMode =
 
 export function DishesTab({ barId, dishes, ingredients, categories, isLoading }: Props) {
   const { formatPrice } = useCurrencyFormatter();
-  const { upsertDish, replaceRecipe, replaceComponents, createDishCategory, getProductionModeLabel } =
+  const { upsertDish, replaceRecipe, replaceComponents, createDishCategory, setDishActive, getProductionModeLabel } =
     useDishMutations();
   const { upsertIngredient } = useIngredientMutations();
 
@@ -104,6 +105,12 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
   };
 
   const [modal, setModal] = useState<ModalMode>({ kind: 'none' });
+  /**
+   * ⭐ Le plat qu'on s'apprête à retirer du menu (09/08/2026).
+   * ⚠️ Une CONFIRMATION, contrairement au toggle Dispo/Coupé : couper un plat
+   * se défait en un clic, le retirer du menu le fait disparaître de la carte.
+   */
+  const [dishToRetire, setDishToRetire] = useState<DishRow | null>(null);
   /** Tri par marge croissante — désactivé par défaut (ordre alphabétique). */
   const [sortByMargin, setSortByMargin] = useState(false);
 
@@ -445,6 +452,23 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                   Composition
                 </Button>
               )}
+
+              {/* ⭐ RETIRER DU MENU (09/08/2026). Soft delete : l'historique
+                  des ventes continue de nommer ce plat.
+                  ⛔ Le serveur REFUSE si le plat sert de base a un plat
+                  compose encore actif - le message nomme lesquels.
+                  ⚠️ `ghost` et discret : c'est un geste rare, pas une action
+                  de tous les jours. */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDishToRetire(dish)}
+                disabled={setDishActive.isPending}
+                className="mt-1 w-full text-red-600 hover:text-red-700 dark:text-red-400"
+              >
+                <Trash2 size={14} className="mr-1.5" />
+                Retirer du menu
+              </Button>
             </div>
             );
           })}
@@ -509,6 +533,30 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
           />
         )}
       </Modal>
+
+      {/* ⭐ RETRAIT DU MENU - une CONFIRMATION, contrairement au toggle
+          Dispo/Coupé qui se défait en un clic (09/08/2026).
+          ⚠️ Le message dit ce qui est PRÉSERVÉ autant que ce qui change :
+          sans cela, « retirer » se lit comme « supprimer » et personne n'ose. */}
+      <ConfirmationModal
+        isOpen={dishToRetire !== null}
+        onClose={() => setDishToRetire(null)}
+        onConfirm={() => {
+          if (dishToRetire) {
+            setDishActive.mutate({ dishId: dishToRetire.id, active: false });
+          }
+          setDishToRetire(null);
+        }}
+        title="Retirer ce plat du menu ?"
+        message={
+          dishToRetire
+            ? `« ${dishToRetire.name} » ne sera plus proposé à la vente. Sa recette, ses coûts et l'historique de ses ventes sont conservés - vous pourrez le remettre au menu à tout moment.`
+            : ''
+        }
+        confirmLabel="Retirer"
+        isDestructive
+        isLoading={setDishActive.isPending}
+      />
     </div>
   );
 }

@@ -7911,6 +7911,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_dish_active: {
+        Args: { p_active: boolean; p_bar_id: string; p_dish_id: string }
+        Returns: Json
+      }
+      set_ingredient_active: {
+        Args: { p_active: boolean; p_bar_id: string; p_ingredient_id: string }
+        Returns: Json
+      }
       setup_promoter_bar: {
         Args: {
           p_address?: string

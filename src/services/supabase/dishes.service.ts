@@ -230,6 +230,21 @@ export interface DailyScopeTotals extends RpcEnvelope {
   refunds_total: number;
 }
 
+/**
+ * Résultat d'un retrait ou d'une remise en carte (09/08/2026).
+ *
+ * ⚠️ `used_by` n'est renseigné QUE sur un refus : il nomme les plats qui
+ * empêchent le retrait, pour que l'écran n'ait pas à les chercher.
+ */
+export interface SetDishActiveResult extends RpcEnvelope {
+  dish_id: string;
+  dish_name?: string;
+  is_active: boolean;
+  /** `true` si le plat était déjà dans cet état - double-clic sans erreur. */
+  unchanged?: boolean;
+  used_by?: string;
+}
+
 export interface DishCostResult extends RpcEnvelope {
   dish_id: string;
   dish_name: string;
@@ -478,6 +493,39 @@ export class DishesService {
 
       if (error) throw error;
       return unwrapRpc<ReplaceRecipeResult>(data, 'Enregistrement de la recette');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * ⭐ Retire un plat de la carte, ou l'y remet (09/08/2026).
+   *
+   * Soft delete : l'historique des ventes continue de le référencer, et le
+   * journal des pertes affiche toujours son nom. Un `DELETE` échouerait
+   * d'ailleurs sur les clés étrangères.
+   *
+   * ⛔ Le serveur REFUSE le retrait si le plat sert de base à un plat composé
+   * encore actif : le retirer casserait ce dernier en silence. Le message
+   * nomme les plats concernés.
+   *
+   * ⭐ RÉVERSIBLE : `active = true` le remet en carte, recette et coûts
+   * intacts.
+   */
+  static async setActive(
+    barId: string,
+    dishId: string,
+    active: boolean
+  ): Promise<SetDishActiveResult> {
+    try {
+      const { data, error } = await supabase.rpc('set_dish_active', {
+        p_bar_id: barId,
+        p_dish_id: dishId,
+        p_active: active,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<SetDishActiveResult>(data, 'Retrait du plat');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

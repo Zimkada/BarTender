@@ -26,6 +26,7 @@ import {
   type ConsumeResult,
   type DiscardResult,
   type IngredientLotLossResult,
+  type SetIngredientActiveResult,
   type IngredientInput,
   type IngredientRow,
 } from '../../services/supabase/ingredients.service';
@@ -322,5 +323,53 @@ export function useIngredientMutations() {
     },
   });
 
-  return { receiveSupply, consumeIngredients, discardLot, recordLotLoss, upsertIngredient };
+  /**
+   * ⭐ Retire un ingredient du catalogue, ou l'y remet (09/08/2026).
+   *
+   * ⛔ Le serveur REFUSE le retrait s'il reste du STOCK : ces quantites
+   * disparaîtraient des comptes sans etre comptees en perte. Le message donne
+   * la quantite restante et oriente vers la declaration de perte.
+   */
+  const setIngredientActive = useMutation<
+    SetIngredientActiveResult,
+    Error,
+    { ingredientId: string; active: boolean }
+  >({
+    meta: { suppressGlobalError: true },
+    mutationFn: async ({ ingredientId, active }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      return IngredientsService.setActive(barId, ingredientId, active);
+    },
+    onSettled: invalidateKitchenStock,
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        if (result.unchanged) return;
+
+        toast.success(
+          result.is_active
+            ? `« ${result.ingredient_name} » est de nouveau au catalogue`
+            : `« ${result.ingredient_name} » a été retiré du catalogue`
+        );
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        // ⭐ Duree longue : le message donne la quantite restante et le geste
+        // a faire, il faut le temps de le lire.
+        toast.error(msg, { duration: 7000 });
+      });
+    },
+  });
+
+  return {
+    receiveSupply,
+    consumeIngredients,
+    discardLot,
+    recordLotLoss,
+    setIngredientActive,
+    upsertIngredient,
+  };
 }

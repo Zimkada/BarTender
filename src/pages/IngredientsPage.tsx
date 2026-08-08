@@ -15,12 +15,13 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil, Trash2 } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedPageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
 import { IngredientForm } from '../components/kitchen/IngredientForm';
 import { IngredientLossFormLoader } from '../components/kitchen/IngredientLossForm';
@@ -91,6 +92,12 @@ export default function IngredientsPage() {
    * ingrédient ont des coûts différents.
    */
   const [lossFor, setLossFor] = useState<IngredientWithAlerts | null>(null);
+  /**
+   * ⭐ L'ingrédient qu'on s'apprête à retirer du catalogue (09/08/2026).
+   * ⛔ Le serveur REFUSE s'il reste du stock - la confirmation ne remplace pas
+   * cette garde, elle évite le clic accidentel.
+   */
+  const [toRetire, setToRetire] = useState<IngredientWithAlerts | null>(null);
   const [preselectedIngredient, setPreselectedIngredient] = useState<string | undefined>();
   /** Incrémenté après un enregistrement confirmé → nouvelle clé d'idempotence. */
   const [resetSignal, setResetSignal] = useState(0);
@@ -108,7 +115,8 @@ export default function IngredientsPage() {
     isLoading,
   } = useUnifiedKitchen(currentBar?.id, EXPIRY_WINDOW_DAYS);
 
-  const { receiveSupply, upsertIngredient, recordLotLoss } = useIngredientMutations();
+  const { receiveSupply, upsertIngredient, recordLotLoss, setIngredientActive } =
+    useIngredientMutations();
 
   const openSupply = (ingredientId?: string) => {
     setPreselectedIngredient(ingredientId);
@@ -373,6 +381,22 @@ export default function IngredientsPage() {
                           Perte
                         </Button>
                       )}
+
+                      {/* ⭐ RETIRER DU CATALOGUE (09/08/2026). Soft delete : les
+                          consommations passées continuent de le référencer.
+                          ⛔ Le serveur REFUSE s'il reste du stock - ces
+                          quantités disparaîtraient sans être comptées en perte.
+                          ⚠️ Proposé MÊME avec du stock : le refus explique quoi
+                          faire, alors qu'un bouton absent laisse chercher. */}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setToRetire(ingredient)}
+                        disabled={setIngredientActive.isPending}
+                        aria-label={`Retirer ${ingredient.name} du catalogue`}
+                      >
+                        <X size={14} />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -436,6 +460,29 @@ export default function IngredientsPage() {
           </p>
         )}
       </div>
+
+      {/* ⭐ RETRAIT DU CATALOGUE - confirmation avant le geste.
+          ⚠️ Le message dit ce qui est PRÉSERVÉ : sans cela, « retirer » se
+          lit comme « supprimer » et personne n'ose. */}
+      <ConfirmationModal
+        isOpen={toRetire !== null}
+        onClose={() => setToRetire(null)}
+        onConfirm={() => {
+          if (toRetire) {
+            setIngredientActive.mutate({ ingredientId: toRetire.id, active: false });
+          }
+          setToRetire(null);
+        }}
+        title="Retirer cet ingrédient ?"
+        message={
+          toRetire
+            ? `« ${toRetire.name} » ne sera plus proposé à l'appro ni dans les recettes. Son historique de consommation est conservé - vous pourrez le remettre au catalogue à tout moment.`
+            : ''
+        }
+        confirmLabel="Retirer"
+        isDestructive
+        isLoading={setIngredientActive.isPending}
+      />
 
       {/* ⭐ DÉCLARER UNE PERTE sur un lot (09/08/2026).
           ⚠️ Le chargement des lots est délégué au loader : `useIngredientLots`

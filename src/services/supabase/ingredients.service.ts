@@ -165,6 +165,21 @@ export interface IngredientLotLossResult extends RpcEnvelope {
   loss_value: number;
 }
 
+/**
+ * Résultat d'un retrait ou d'une remise au catalogue (09/08/2026).
+ *
+ * ⚠️ `remaining_stock` n'est renseigné QUE sur un refus : il dit COMBIEN
+ * reste, pour que l'écran n'ait pas à le recalculer.
+ */
+export interface SetIngredientActiveResult extends RpcEnvelope {
+  ingredient_id: string;
+  ingredient_name?: string;
+  is_active: boolean;
+  /** `true` si l'ingrédient était déjà dans cet état. */
+  unchanged?: boolean;
+  remaining_stock?: number;
+}
+
 export interface DiscardResult extends RpcEnvelope {
   lot_id: string;
   lost_qty: number;
@@ -467,6 +482,38 @@ export class IngredientsService {
    * supérieure au reste - une saisie trop grande est une erreur, pas une
    * perte totale.
    */
+  /**
+   * ⭐ Retire un ingrédient du catalogue, ou l'y remet (09/08/2026).
+   *
+   * ⛔ Le serveur REFUSE le retrait s'il reste du STOCK : ces quantités
+   * disparaîtraient des comptes sans être comptées en perte. Le message donne
+   * la quantité restante et oriente vers la déclaration de perte.
+   *
+   * ⚠️ Ne bloque PAS si l'ingrédient est utilisé dans une recette : la ligne
+   * reste, le plat affichera un coût incomplet. Bloquer là obligerait à
+   * démonter toutes les recettes avant de retirer un ingrédient du catalogue.
+   */
+  static async setActive(
+    barId: string,
+    ingredientId: string,
+    active: boolean
+  ): Promise<SetIngredientActiveResult> {
+    assertNetworkAvailable('retirer un ingrédient');
+
+    try {
+      const { data, error } = await supabase.rpc('set_ingredient_active', {
+        p_bar_id: barId,
+        p_ingredient_id: ingredientId,
+        p_active: active,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<SetIngredientActiveResult>(data, 'Retrait de l’ingrédient');
+    } catch (error) {
+      throw new Error(getErrorMessage(error));
+    }
+  }
+
   static async recordLotLoss(params: {
     barId: string;
     lotId: string;

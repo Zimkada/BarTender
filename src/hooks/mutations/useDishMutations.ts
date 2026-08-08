@@ -23,6 +23,7 @@ import {
   type RecipeLineInput,
   type ComponentLineInput,
   type DishProductionMode,
+  type SetDishActiveResult,
 } from '../../services/supabase/dishes.service';
 
 interface ReplaceRecipeInput {
@@ -255,8 +256,52 @@ export function useDishMutations() {
     },
   });
 
+  /**
+   * ⭐ Retire un plat de la carte, ou l'y remet (09/08/2026).
+   *
+   * ⛔ Le serveur REFUSE le retrait si le plat sert de base a un plat compose
+   * encore actif. Le message NOMME ces plats - un refus qui ne dit pas QUI
+   * bloque oblige a chercher dans toute la carte.
+   */
+  const setDishActive = useMutation<
+    SetDishActiveResult,
+    Error,
+    { dishId: string; active: boolean }
+  >({
+    meta: { suppressGlobalError: true },
+    mutationFn: async ({ dishId, active }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+
+      return DishesService.setActive(barId, dishId, active);
+    },
+    onSettled: invalidateDishes,
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        // ⚠️ Un double-clic n'annonce rien de neuf : le taire eviterait de
+        // faire croire a une seconde action.
+        if (result.unchanged) return;
+
+        toast.success(
+          result.is_active
+            ? `« ${result.dish_name} » est de nouveau au menu`
+            : `« ${result.dish_name} » a été retiré du menu`
+        );
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        // ⭐ Duree longue : le message nomme les plats bloquants, il faut le
+        // temps de les lire.
+        toast.error(msg, { duration: 7000 });
+      });
+    },
+  });
+
   return {
     upsertDish,
+    setDishActive,
     replaceRecipe,
     replaceComponents,
     createDishCategory,
