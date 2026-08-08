@@ -45,9 +45,23 @@ import { IngredientForm } from './IngredientForm';
  */
 export const LOW_MARGIN_THRESHOLD = 25;
 
-interface RecipeLineDraft extends RecipeLineInput {
+/**
+ * Une ligne EN COURS DE SAISIE.
+ *
+ * ⛔ N'étend plus `RecipeLineInput` depuis le 09/08/2026 : `quantity` y est un
+ * NOMBRE, et un nombre ne peut pas représenter une frappe intermédiaire.
+ * Taper « 0. » donnait 0, le champ se réécrivait vide, et le point
+ * disparaissait avant la décimale - aucune quantité inférieure à 1 n'était
+ * saisissable.
+ *
+ * ⚠️ Le brouillon garde donc le TEXTE ; `handleSave` convertit au dernier
+ * moment, avec `parseQty` qui accepte aussi la virgule.
+ */
+interface RecipeLineDraft extends Omit<RecipeLineInput, 'quantity'> {
   /** Clé de rendu stable — l'ingredient_id ne l'est pas (il peut être vide). */
   key: string;
+  /** ⚠️ TEXTE, pas nombre : voir le commentaire ci-dessus. */
+  quantity: string;
 }
 
 interface Props {
@@ -81,6 +95,22 @@ interface Props {
 
 let draftCounter = 0;
 const nextKey = () => `line-${++draftCounter}`;
+
+/**
+ * Convertit une quantité SAISIE en nombre.
+ *
+ * ⭐ La VIRGULE est acceptée : c'est ce que produit un clavier français, et
+ * `parseFloat('0,5')` vaut 0 - une recette « 0,5 kg de riz » devenait
+ * silencieusement « 0 kg ».
+ *
+ * ⚠️ Retourne 0 sur une saisie invalide ou incomplète (« 0. » en cours de
+ * frappe). La validation s'appuie dessus pour refuser une ligne sans
+ * quantité ; le CHAMP, lui, garde le texte brut.
+ */
+function parseQty(raw: string): number {
+  const n = parseFloat(raw.replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+}
 
 export function RecipeEditor({
   dish,
@@ -135,7 +165,7 @@ export function RecipeEditor({
       recipe.map((r) => ({
         key: nextKey(),
         ingredient_id: r.ingredient_id,
-        quantity: r.quantity,
+        quantity: String(r.quantity),
         yield_factor: r.yield_factor,
         is_optional: r.is_optional,
         consumed_at_stage: r.consumed_at_stage,
@@ -156,7 +186,7 @@ export function RecipeEditor({
       {
         key: nextKey(),
         ingredient_id: '',
-        quantity: 0,
+        quantity: '',
         yield_factor: 1,
         is_optional: false,
         consumed_at_stage: 'batch',
@@ -204,7 +234,7 @@ export function RecipeEditor({
 
     for (const line of lines) {
       if (!line.ingredient_id) return 'Chaque ligne doit désigner un ingrédient';
-      if (!line.quantity || line.quantity <= 0) {
+      if (!line.quantity || parseQty(line.quantity) <= 0) {
         const name = ingredientsById.get(line.ingredient_id)?.name ?? 'un ingrédient';
         return `Indiquez une quantité pour ${name}`;
       }
@@ -223,7 +253,16 @@ export function RecipeEditor({
   const handleSave = () => {
     if (validationError) return;
     onSave(
-      lines.map(({ key: _key, ...line }) => line)
+      /**
+       * ⛔ CONVERSION ICI, et nulle part ailleurs. `quantity` est du TEXTE
+       * pendant toute la saisie - c'est ce qui permet de taper « 0. » puis
+       * « 0.5 » sans que le champ se réécrive. Le RPC, lui, attend un NOMBRE :
+       * l'envoyer en texte le ferait échouer ou, pire, enregistrer 0.
+       */
+      lines.map(({ key: _key, quantity, ...line }) => ({
+        ...line,
+        quantity: parseQty(quantity),
+      }))
     );
   };
 
@@ -412,9 +451,21 @@ export function RecipeEditor({
                       inputMode="decimal"
                       min={0}
                       step="any"
-                      value={line.quantity || ''}
+                      value={line.quantity}
+                      /**
+                       * ⛔ SAISIE CONSERVÉE TELLE QUELLE - défaut trouvé au
+                       * test du 09/08/2026.
+                       *
+                       * L'ancien `parseFloat(...) || 0` reconvertissait à
+                       * chaque frappe : taper « 0. » donnait 0, que `|| 0`
+                       * gardait à 0, et le champ se réécrivait VIDE. Le point
+                       * disparaissait avant qu'on ait pu taper la décimale -
+                       * aucune valeur inférieure à 1 n'était saisissable.
+                       * ⚠️ La virgule était perdue aussi : `parseFloat('0,5')`
+                       * vaut 0. Or c'est ce que produit un clavier français.
+                       */
                       onChange={(e) =>
-                        updateLine(line.key, { quantity: parseFloat(e.target.value) || 0 })
+                        updateLine(line.key, { quantity: e.target.value })
                       }
                       className="h-10 w-24 rounded-md border border-border bg-background px-2 text-sm"
                       aria-label="Quantité"
