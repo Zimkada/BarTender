@@ -182,6 +182,12 @@ export interface KitchenLosses extends RpcEnvelope {
   /** ⚠️ MONTANTS : à masquer sans `canViewKitchenCosts` (§8). */
   total_value: number;
   total_count: number;
+  /**
+   * ⚠️ `true` si le détail est TRONQUÉ (plafond de 200 lignes). Les TOTAUX
+   * restent justes - ils couvrent la période entière. L'écran doit le dire,
+   * sinon le promoteur croirait avoir tout vu.
+   */
+  truncated?: boolean;
   by_source: { dish: number; batch: number; ingredient: number };
   lines: KitchenLossLine[];
 }

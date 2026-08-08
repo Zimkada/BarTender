@@ -190,6 +190,27 @@ BEGIN
     SELECT * FROM plats
     UNION ALL SELECT * FROM lots
     UNION ALL SELECT * FROM ingredients
+  ),
+
+  /**
+   * ⛔ PLAFOND SUR LES LIGNES AFFICHÉES - ajouté en code review le
+   * 09/08/2026.
+   *
+   * Un bar à 300 tickets/jour produit ~120 lignes sur 30 jours : confortable.
+   * Mais rien ne bornait ce JSONB - une période longue ou une activité
+   * dix fois supérieure le ferait grossir sans limite, sur un téléphone en
+   * cuisine.
+   *
+   * ⭐ 200 lignes : au-delà, personne ne fait défiler un journal. Qui cherche
+   * plus loin réduit sa période.
+   * ⚠️ Les TOTAUX sont calculés sur `toutes`, PAS sur cette version tronquée :
+   * le montant affiché reste JUSTE même si le détail est coupé. L'inverse
+   * ferait mentir le chiffre de tête.
+   */
+  bornees AS (
+    SELECT * FROM toutes
+    ORDER BY occurred_at DESC
+    LIMIT 200
   )
 
   SELECT
@@ -213,7 +234,7 @@ BEGIN
       ORDER BY t.occurred_at DESC
     ), '[]'::JSONB)
   INTO v_lines
-  FROM toutes t
+  FROM bornees t
   LEFT JOIN public.users u ON u.id = t.actor_id;
 
   /**
@@ -228,6 +249,7 @@ BEGIN
     COALESCE(SUM(value) FILTER (WHERE source = 'batch'), 0)        AS batch_value,
     COALESCE(SUM(value) FILTER (WHERE source = 'ingredient'), 0)   AS ingredient_value
   INTO v_totals
+  -- ⭐ `toutes` et NON `bornees` : le total doit couvrir la période entière.
   FROM toutes;
 
   RETURN jsonb_build_object(
@@ -236,6 +258,9 @@ BEGIN
     'end_date', v_end,
     'total_value', ROUND(v_totals.total_value, 2),
     'total_count', v_totals.total_count,
+    -- ⚠️ `true` si le détail est TRONQUÉ : l'écran doit le dire, sinon le
+    -- promoteur croirait avoir tout vu.
+    'truncated', v_totals.total_count > 200,
     'by_source', jsonb_build_object(
       'dish', ROUND(v_totals.dish_value, 2),
       'batch', ROUND(v_totals.batch_value, 2),

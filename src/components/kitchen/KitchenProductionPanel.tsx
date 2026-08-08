@@ -276,7 +276,16 @@ export function KitchenProductionPanel({ barId }: Props) {
                 <h4 className="mb-3 text-body-sm font-medium text-foreground">
                   Pertes déclarées
                 </h4>
-                <KitchenLossesPanel barId={barId} startDate={start} endDate={end} />
+                {/* ⚠️ `open ? barId : undefined` comme l'activité ci-dessus,
+                    bien que le bloc entier soit déjà sous `{open && …}`. La
+                    garde est EXPLICITE et non dépendante du rendu : si ce
+                    panneau devenait un jour toujours monté (animation de repli,
+                    pré-rendu), la requête partirait sans que rien ne l'annonce. */}
+                <KitchenLossesPanel
+                  barId={open ? barId : undefined}
+                  startDate={start}
+                  endDate={end}
+                />
               </div>
             </>
           )}

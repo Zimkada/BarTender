@@ -1147,4 +1147,13 @@ describe('get_kitchen_losses — trois sources, jamais fusionnées', () => {
   it('applique la journée commerciale du bar', () => {
     expect(sql).toMatch(/closing_hour/);
   });
+
+  it('⛔ borne les LIGNES mais jamais les TOTAUX', () => {
+    // ⚠️ Le détail est plafonné à 200 lignes ; les totaux, eux, couvrent la
+    // période ENTIÈRE. Calculer le total sur la version tronquée ferait
+    // MENTIR le chiffre de tête - un promoteur additionnerait 200 lignes et
+    // trouverait un autre montant que celui affiché.
+    expect(sql).toMatch(/LIMIT 200/);
+    expect(sql).toMatch(/INTO v_totals[\s\S]{0,120}FROM toutes/);
+  });
 });

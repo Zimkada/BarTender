@@ -145,6 +145,16 @@ export function KitchenLossesPanel({ barId, startDate, endDate }: Props) {
         )}
       </div>
 
+      {/* ⚠️ TRONCATURE ANNONCÉE : sans ce message, le promoteur croirait voir
+          tout le détail alors qu'il en manque. Les totaux ci-dessus, eux,
+          couvrent bien la période entière. */}
+      {data?.truncated && (
+        <p className="text-caption text-muted-foreground">
+          Seules les 200 pertes les plus récentes sont listées. Le total
+          ci-dessus couvre toute la période - réduisez-la pour voir le reste.
+        </p>
+      )}
+
       {/* ⭐ LE JOURNAL — le plus récent d'abord, ordre donné par la RPC. */}
       <ul className="space-y-2">
         {lines.map((line, i) => {
