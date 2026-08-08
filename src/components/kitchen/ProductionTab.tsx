@@ -225,7 +225,7 @@ export function ProductionTab({
             remainingQty={batchInLoss.remaining_qty}
             isSubmitting={isClosing || isRecordingLoss}
             onCancel={() => setBatchInLoss(null)}
-            onSubmit={({ qty, reason }) => {
+            onSubmit={({ qty, reason, reasonLabel }) => {
               /**
                * ⭐⭐ DEUX CHEMINS SELON L'AMPLEUR, et ce n'est pas cosmétique :
                *   · perte TOTALE → `close_batch` avec le statut réel
@@ -240,9 +240,12 @@ export function ProductionTab({
                * été servi. La perte serait comptée, mais la cause perdue.
                */
               if (qty >= batchInLoss.remaining_qty) {
+                // ⭐ Le STATUT porte la cause : aucun texte nécessaire.
                 onCloseBatch(batchInLoss.id, reason);
               } else {
-                onRecordLoss(batchInLoss.id, qty, reason);
+                // ⚠️ Le LIBELLÉ, pas la valeur technique : `discard_reason`
+                // est un TEXT destiné à être lu par un gérant.
+                onRecordLoss(batchInLoss.id, qty, reasonLabel);
               }
               setBatchInLoss(null);
             }}

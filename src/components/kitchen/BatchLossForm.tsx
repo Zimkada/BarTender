@@ -29,7 +29,22 @@ export type LossReason = 'discarded' | 'expired';
 
 export interface BatchLossValues {
   qty: number;
+  /**
+   * ⭐ Le motif, en valeur TECHNIQUE. Il sert de statut de clôture
+   * (`expired` / `discarded`) quand la perte est totale.
+   */
   reason: LossReason;
+  /**
+   * ⭐ Le MÊME motif en langage clair, pour `discard_reason` sur une perte
+   * partielle.
+   *
+   * ⛔ Défaut trouvé en code review le 09/08/2026 : le formulaire envoyait la
+   * valeur technique aux deux destinations. Un lot amputé portait alors
+   * « expired » dans un champ TEXT destiné à être LU - le gérant y aurait vu
+   * un mot de programmeur au lieu de « Périmé ».
+   * ⚠️ Un lot CLOS n'a pas ce problème : son statut porte déjà la cause.
+   */
+  reasonLabel: string;
 }
 
 interface Props {
@@ -77,7 +92,14 @@ export function BatchLossForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid || isSubmitting) return;
-    onSubmit({ qty: qtyNum, reason });
+    // ⚠️ Le libelle vient de la MEME source que les boutons radio : deux
+    // listes separees divergeraient au premier ajout de motif.
+    const motif = MOTIFS.find((m) => m.value === reason);
+    onSubmit({
+      qty: qtyNum,
+      reason,
+      reasonLabel: motif?.label ?? reason,
+    });
   };
 
   /** ⭐ Tout déclarer perdu est un cas courant : un raccourci évite la saisie. */

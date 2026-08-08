@@ -151,11 +151,28 @@ BEGIN
       -- ⭐⭐ CUMUL : `COALESCE(..., 0) + p_qty`. Deux pertes partielles sur le
       -- même lot comptent deux fois ; écraser ferait disparaître la première.
       discarded_qty  = COALESCE(discarded_qty, 0) + p_qty,
-      -- ⚠️ La date suit la DERNIÈRE perte. Les métriques bornent dessus, donc
-      -- un lot amputé lundi puis mercredi compte entièrement sur mercredi.
-      -- Imparfait et ASSUMÉ : dater chaque perte demanderait une table de
-      -- mouvements, pour un gain nul tant que personne ne consulte l'écart
-      -- au jour près.
+      /**
+       * ⛔⛔ LIMITE CONNUE, MESURÉE EN CODE REVIEW LE 09/08/2026.
+       *
+       * La date suit la DERNIÈRE perte, et les métriques bornent dessus. Un
+       * lot amputé de 4 lundi puis de 2 mercredi porte donc :
+       *   `discarded_qty = 6` (juste) et `discarded_at = mercredi`.
+       * Conséquence sur une période COURTE :
+       *   · lundi seul    → 0 perte  (les 4 ont disparu)
+       *   · mercredi seul → 6 pertes (surévalué de 4)
+       *   · lundi→mercredi → 6       (JUSTE)
+       *
+       * ⚠️ Le total est donc toujours exact ; seule sa RÉPARTITION dans le
+       * temps est fausse quand un lot subit plusieurs pertes à des jours
+       * différents. Un lot vivant plusieurs jours (une sauce), le cas est
+       * plausible.
+       *
+       * ⛔ GARDER LA PREMIÈRE DATE SERAIT AUSSI FAUX, en sens inverse. La
+       * seule correction exacte est une table de mouvements de lot - chaque
+       * perte avec sa date - ce qui suppose aussi de réécrire la requête de
+       * métriques. Écarté tant que personne ne consulte l'écart au jour près :
+       * le chiffre qui compte, « combien j'ai perdu ce mois-ci », reste juste.
+       */
       discarded_at   = NOW(),
       discard_reason = COALESCE(p_reason, discard_reason)
   WHERE id = p_batch_id;
