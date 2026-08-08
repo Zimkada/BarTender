@@ -17,6 +17,7 @@ import { getErrorMessage } from '../../utils/errorHandler';
 import { kitchenKeys } from '../queries/useKitchenQueries';
 import { dishKeys } from '../queries/useDishesQueries';
 import { ingredientKeys } from '../queries/useIngredientsQueries';
+import { batchKeys } from '../queries/useBatchQueries';
 // ⚠️ Clés IMPORTÉES et non écrites en dur : un littéral `['sales']` ne suivrait
 // pas un renommage et invaliderait silencieusement dans le vide — la pire
 // classe de bug de cache, car rien ne casse, l'écran affiche juste du périmé.
@@ -58,10 +59,13 @@ export function useKitchenMutations() {
   /**
    * ⭐ Invalidation ÉLARGIE, réservée aux transitions qui touchent le STOCK.
    *
-   * `ready` consomme des ingrédients par FEFO : les lots changent, donc les
-   * coûts matière de TOUS les plats qui partagent ces ingrédients changent
-   * aussi. Sans cette invalidation, l'écran Plats afficherait des marges
-   * calculées sur des lots déjà consommés.
+   * `ready` sort de la matière, et TROIS choses en dépendent :
+   *   · les COÛTS de tous les plats partageant ces ingrédients (`dishKeys`) ;
+   *   · le STOCK d'ingrédients (`ingredientKeys`) ;
+   *   · les LOTS DE PRODUCTION (`batchKeys`), depuis que `batch` et
+   *     `batch_finish` y prélèvent (20260808200000).
+   * Chacun a été oublié à son tour - et à chaque fois le symptôme était le
+   * même : un écran qui affiche un chiffre déjà faux, sans erreur visible.
    *
    * ⚠️ Volontairement PAS appliquée aux autres transitions : `accept` ne touche
    * à rien, et élargir sans raison ferait refetcher le catalogue à chaque clic
@@ -80,12 +84,31 @@ export function useKitchenMutations() {
      * `ready`. L'écran Ingrédients affichait donc un stock périmé pendant tout
      * un service, et l'avertissement de rupture aurait rassuré à tort.
      *
-     * ⚠️ `ingredientKeys.list` et non `.all` : les LOTS ont leur propre clé et
-     * ne sont pas affichés pendant le service. Élargir ferait refetcher des
-     * données que personne ne regarde, contre les 3 vagues d'egress (§3).
+     * ⚠️ `ingredientKeys.list` et non `.all` : les LOTS d'ingrédients ne sont
+     * pas affichés pendant le service. Élargir ferait refetcher des données
+     * que personne ne regarde, contre les 3 vagues d'egress (§3).
      */
     if (barId) {
       queryClient.invalidateQueries({ queryKey: ingredientKeys.list(barId) });
+
+      /**
+       * ⛔⛔ SECOND OUBLI, MÊME MOTIF - trouvé au test du 09/08/2026 :
+       * « ça a finalement été décrémenté, mais pas automatiquement ».
+       *
+       * Les LOTS DE PRODUCTION sont désormais décrémentés par `mark_ready`
+       * (migration 20260808200000 : un plat `batch` prélève dans son lot, un
+       * `batch_finish` dans ceux de ses composants). L'écran Production
+       * affichait donc des portions déjà servies jusqu'au prochain
+       * rafraîchissement manuel.
+       *
+       * ⚠️ `useActiveBatches` n'a NI `useSmartSync` NI `refetchInterval` - il
+       * a été écrit quand seule la production alimentait cet écran. Cette
+       * invalidation est le seul chemin par lequel le service le met à jour.
+       *
+       * ⭐ Coût nul en pratique : l'écran Production n'est pas monté pendant
+       * le service. React Query n'émet une requête que si la clé est observée.
+       */
+      queryClient.invalidateQueries({ queryKey: batchKeys.active(barId) });
     }
   };
 
