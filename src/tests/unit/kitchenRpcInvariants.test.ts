@@ -52,7 +52,25 @@ function lastDefinitionOf(functionName: string): string {
     );
     if (re.test(sql)) {
       const start = sql.search(re);
-      last = sql.slice(start);
+      /**
+       * ⛔⛔ BORNER À LA FIN DU CORPS — défaut trouvé le 09/08/2026 en
+       * CERTIFIANT un nouvel invariant : la régression injectée n'était pas
+       * détectée.
+       *
+       * Le `slice(start)` sans borne renvoyait TOUT le fichier à partir de la
+       * fonction. Dès qu'une migration en contient deux, la première
+       * « contenait » le corps de la seconde : un invariant sur `close_batch`
+       * passait au vert grâce à du code de `record_batch_loss`.
+       *
+       * ⚠️ Silencieux et GÉNÉRALISÉ : tous les tests portant sur une migration
+       * multi-fonctions étaient concernés, sans qu'aucun n'échoue.
+       *
+       * ⭐ `$$;` termine un corps PL/pgSQL et n'apparaît pas à l'intérieur -
+       * les corps de ce module sont tous délimités par `AS $$ … $$;`.
+       */
+      const body = sql.slice(start);
+      const end = body.indexOf('$$;');
+      last = end === -1 ? body : body.slice(0, end + 3);
     }
   }
 
@@ -997,5 +1015,36 @@ describe('record_batch_loss — la perte partielle', () => {
 
   it('garde l’isolation multi-tenant', () => {
     expect(sql).toMatch(/is_bar_member/);
+  });
+});
+
+/**
+ * ⭐⭐ TRAÇABILITÉ DES CLÔTURES DE LOT (09/08/2026).
+ *
+ * > « Est-ce que terminer n'est pas une porte ouverte à la fraude ? »
+ *
+ * Le bouton « Terminer » a été retiré le même jour, mais il restait qu'aucune
+ * clôture n'enregistrait son auteur : un promoteur voyait « 8 portions
+ * perdues » sans savoir qui l'avait saisi.
+ */
+describe('closed_by — un chiffre sans nom ne se contrôle pas', () => {
+  const close = codeOnly(lastDefinitionOf('close_batch'));
+  const loss = codeOnly(lastDefinitionOf('record_batch_loss'));
+
+  it('close_batch enregistre son auteur', () => {
+    expect(close).toMatch(/closed_by\s*=\s*v_actor/);
+  });
+
+  it('record_batch_loss aussi — c’est le geste le plus discret', () => {
+    // ⚠️ Une perte partielle ne fait pas disparaître le lot de l'écran :
+    // la tracer importe autant, sinon plus, qu'une clôture.
+    expect(loss).toMatch(/closed_by\s*=\s*v_actor/);
+  });
+
+  it('⛔ l’auteur vient de la SESSION, jamais d’un paramètre', () => {
+    // Un client peut mentir sur un paramètre ; il ne peut pas falsifier sa
+    // session. Recevoir l'auteur en argument viderait la trace de son sens.
+    expect(close).toMatch(/v_actor\s+UUID\s*:=\s*auth\.uid\(\)/);
+    expect(loss).toMatch(/v_actor\s+UUID\s*:=\s*auth\.uid\(\)/);
   });
 });
