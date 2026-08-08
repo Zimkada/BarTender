@@ -268,7 +268,9 @@ COMMENT ON FUNCTION public.record_ingredient_lot_loss(UUID, UUID, NUMERIC, TEXT,
   '⭐ Le LOT est choisi par l''utilisateur, pas deviné en FEFO : deux lots du '
   'même ingrédient ont des coûts différents, et c''est celui du lot réellement '
   'abîmé qui doit être valorisé. '
-  '⚠️ `discarded_qty` est CUMULÉ, jamais écrasé. '
+  '⛔ N''écrit PAS `discarded_qty` sur le lot : la contrainte '
+  'ingredient_lots_discard_coherence l''interdit tant que le statut reste '
+  'active. La perte est journalisée dans ingredient_consumptions. '
   '⛔ Ne sort JAMAIS le lot pour cause : si la perte le vide, le statut passe '
   '`depleted` (constat, pas jugement). '
   '⛔ REFUSE si la quantité dépasse le reste - une saisie trop grande est une '
@@ -320,8 +322,10 @@ GRANT EXECUTE ON FUNCTION public.record_ingredient_lot_loss(UUID, UUID, NUMERIC,
 --
 -- 6) TEST RÉEL DEPUIS L'UI, sur un lot actif de 10 kg :
 --    a. déclarer 2 kg perdus → il reste 8, lot TOUJOURS actif,
---       `discarded_qty` = 2, `current_stock` de l'ingrédient baisse de 2 ;
---    b. déclarer 1 kg de plus → il reste 7, `discarded_qty` = 3 (CUMUL) ;
+--       `current_stock` de l'ingrédient baisse de 2 ;
+--       ⚠️ `discarded_qty` du lot reste NULL - c'est VOULU : la perte vit
+--         dans `ingredient_consumptions`, pas sur le lot (cf. n°3).
+--    b. déclarer 1 kg de plus → il reste 7, DEUX lignes dans le journal ;
 --    c. déclarer 99 → REFUS avec « il ne reste que 7 » ;
 --    d. vérifier le journal :
 --       SELECT reference_key, qty_consumed, computed_cost, created_by
