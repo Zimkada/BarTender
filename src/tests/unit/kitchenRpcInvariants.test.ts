@@ -1206,3 +1206,42 @@ describe('set_dish_active / set_ingredient_active — retirer sans casser', () =
     expect(ing).toMatch(/is_bar_member/);
   });
 });
+
+/**
+ * ⭐⭐ L'APPRO CUISINE ENTRE EN COMPTABILITÉ (09/08/2026).
+ *
+ * Le module était comptablement borgne : le CA des plats remontait, aucun de
+ * leurs coûts n'y entrait.
+ */
+describe('receive_ingredient_supply — la dépense comptable', () => {
+  const sql = codeOnly(lastDefinitionOf('receive_ingredient_supply'));
+
+  it('crée une dépense dans une catégorie DÉDIÉE', () => {
+    // ⛔ `kitchen_supply` et non `supply` : fondu dans les achats de boissons,
+    // le coût de la cuisine deviendrait indistinguable.
+    expect(sql).toMatch(/INSERT INTO public\.expenses/);
+    expect(sql).toMatch(/'kitchen_supply'/);
+  });
+
+  it('⛔ ne fait JAMAIS échouer l’appro à cause de la dépense', () => {
+    // ⛔⛔ DEUX cas RÉELS où l'insertion échouerait, faisant perdre TOUT
+    // l'approvisionnement (transaction) :
+    //   · `expenses.amount` exige > 0, or un fournisseur peut OFFRIR ;
+    //   · `expenses.created_by` est NOT NULL, or l'acteur peut être NULL
+    //     sous `service_role`.
+    expect(sql).toMatch(/v_expense_amount > 0 AND v_actor_id IS NOT NULL/);
+  });
+
+  it('place la dépense APRÈS le garde d’idempotence', () => {
+    // Sinon un retry réseau créerait deux dépenses pour un seul appro.
+    const idx = sql.indexOf("'idempotent_replay', true");
+    const ins = sql.indexOf('INSERT INTO public.expenses');
+    expect(idx).toBeGreaterThan(-1);
+    expect(ins).toBeGreaterThan(idx);
+  });
+
+  it('date la dépense en journée COMMERCIALE', () => {
+    // Un appro reçu à 2h du matin appartient au service de la veille.
+    expect(sql).toMatch(/v_business_date/);
+  });
+});

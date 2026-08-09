@@ -98,7 +98,21 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
                         <Select
                             options={[
                                 ...Object.entries(EXPENSE_CATEGORY_LABELS)
-                                    .filter(([key]) => key !== 'custom')
+                                    /**
+                                     * ⛔ `kitchen_supply` EXCLUE, comme
+                                     * `custom` : elle naît d'un
+                                     * approvisionnement RÉEL, jamais d'une
+                                     * saisie libre (09/08/2026).
+                                     *
+                                     * ⚠️ Sans cette exclusion, elle
+                                     * apparaîtrait dans le formulaire d'un bar
+                                     * SANS cuisine - le §3 exige qu'un bar pur
+                                     * soit strictement identique.
+                                     * ⚠️ Et un gérant pourrait créer un « Appro
+                                     * cuisine » sans stock en face, faussant
+                                     * le rapprochement.
+                                     */
+                                    .filter(([key]) => key !== 'custom' && key !== 'kitchen_supply')
                                     .map(([key, data]) => ({ value: key, label: `${data.icon} ${data.label}` })),
                                 ...customCategories.map(cat => ({ value: `custom:${cat.id}`, label: `${cat.icon} ${cat.name}` }))
                             ]}
