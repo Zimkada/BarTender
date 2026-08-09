@@ -69,8 +69,45 @@ const createWrapper = () => {
   );
 };
 
-/** Laisse le temps aux imports dynamiques de toast de se résoudre. */
-const flushToasts = () => new Promise((resolve) => setTimeout(resolve, 50));
+/**
+ * Attend qu'un toast soit émis par les hooks.
+ *
+ * ⛔⛔ NE JAMAIS REVENIR À UN `setTimeout` FIXE. La version précédente
+ * attendait 50 ms en temps réel « pour laisser l'import dynamique se
+ * résoudre » : c'était une COURSE, pas une attente. Les hooks chargent
+ * `react-hot-toast` en `import()` dynamique, dont la résolution dépend de la
+ * charge machine — sous 35 fichiers de tests en parallèle, elle dépasse
+ * régulièrement 50 ms et l'assertion tombait sur un tableau VIDE. D'où des
+ * échecs intermittents (3 le 09/08/2026) systématiquement verts en isolé,
+ * qui érodaient la confiance dans le rouge de toute la suite.
+ *
+ * ⭐ `waitFor` interroge jusqu'à ce que la condition soit vraie : il est
+ * immédiat quand l'import est déjà résolu, et patient quand la machine rame.
+ *
+ * ⚠️ Prend le nombre de toasts ATTENDU, car `toastCalls` est vidé au
+ * `beforeEach` : attendre « au moins un » suffit pour les cas à un seul
+ * toast, mais un cas qui en émet deux (succès + avertissement) passerait dès
+ * le premier, et l'assertion sur le second redeviendrait une course.
+ */
+const flushToasts = (expected = 1) =>
+  waitFor(() => {
+    expect(toastCalls.length).toBeGreaterThanOrEqual(expected);
+  });
+
+/**
+ * Laisse passer le temps SANS rien attendre — pour les cas qui prouvent
+ * qu'AUCUN toast n'est émis.
+ *
+ * ⚠️ `waitFor` est inutilisable ici : une condition « rien ne s'est produit »
+ * est vraie immédiatement, donc l'attente serait un no-op et le test
+ * passerait même si un toast arrivait 10 ms plus tard. Il faut réellement
+ * laisser un délai s'écouler, puis constater le silence.
+ *
+ * ⭐ 100 ms plutôt que 50 : c'est le seul endroit où un délai fixe subsiste,
+ * autant lui donner une marge confortable. Le coût est payé deux fois dans
+ * toute la suite.
+ */
+const expectNoToast = () => new Promise((resolve) => setTimeout(resolve, 100));
 
 describe('useIngredientMutations — les anomalies ne sont jamais tues', () => {
   beforeEach(() => {
@@ -188,7 +225,7 @@ describe('useIngredientMutations — les anomalies ne sont jamais tues', () => {
           items: [{ ingredient_id: 'ing-1', qty: 4 }], referenceKey: 'ref-1',
         });
       });
-      await flushToasts();
+      await expectNoToast();
 
       expect(toastCalls).toHaveLength(0);
     });
@@ -229,7 +266,7 @@ describe('useIngredientMutations — les anomalies ne sont jamais tues', () => {
           items: [{ ingredient_id: 'ing-1', qty: 4 }], referenceKey: 'ref-1',
         });
       });
-      await flushToasts();
+      await expectNoToast();
 
       expect(toastCalls).toHaveLength(0);
     });
