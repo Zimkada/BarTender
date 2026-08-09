@@ -478,14 +478,18 @@ GRANT EXECUTE ON FUNCTION public.receive_ingredient_supply(UUID, UUID, NUMERIC, 
 --
 -- 5) ⚠️ La dépense est créée APRÈS le garde d'idempotence - sinon un retry
 --    réseau en créerait deux :
--- SELECT position('idempotent_replay'', true' in
---          regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g'))
---        < position('INSERT INTO public.expenses' in
---          regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g'))
---        AS ordre_correct
---   FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
---  WHERE n.nspname='public' AND p.proname='receive_ingredient_supply';
+-- SELECT strpos(def, 'INSERT INTO public.expenses')
+--      > strpos(def, 'idempotent_replay') AS ordre_correct
+--   FROM (
+--     SELECT regexp_replace(pg_get_functiondef(p.oid), '--[^
+]*', '', 'g') AS def
+--       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--      WHERE n.nspname='public' AND p.proname='receive_ingredient_supply'
+--   ) t;
 --   → true.
+--   ⚠️ Version corrigée le 09/08/2026 : la première utilisait `position(...
+--   in ...)` avec une apostrophe mal échappée - la requête échouait au lieu
+--   de répondre. Un post-vol qui ne s'exécute pas ne vérifie rien.
 --
 -- 6) SMOKE TEST - le refus est ATTENDU (auth.uid() vaut NULL ici) :
 -- SELECT public.receive_ingredient_supply(
