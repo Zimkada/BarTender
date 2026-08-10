@@ -1245,3 +1245,99 @@ describe('receive_ingredient_supply — la dépense comptable', () => {
     expect(sql).toMatch(/v_business_date/);
   });
 });
+
+/**
+ * ⛔⛔ CE BLOC N'EXISTAIT PAS, et c'était le trou de couverture le plus grave
+ * du module : `create_kitchen_order` est le POINT D'ENTRÉE DE TOUTE COMMANDE
+ * CUISINE, et aucun des 138 invariants ne le touchait.
+ *
+ * Il a été ajouté le 10/08/2026 après que la RPC, réécrite pour les formats
+ * de prix (§19.5), a PERDU CINQ ÉLÉMENTS de sa version d'origine — dont
+ * l'`UPDATE tickets SET fulfillment_status`, sans lequel un ticket devient
+ * clôturable alors que ses plats sont encore au feu. Les cinq ont été
+ * rattrapés par une relecture manuelle ligne à ligne ; ces invariants font
+ * que la prochaine réécriture n'aura pas besoin de cette chance.
+ */
+describe('create_kitchen_order — le point d\'entrée de toute commande', () => {
+  const sql = codeOnly(lastDefinitionOf('create_kitchen_order'));
+
+  /**
+   * ⭐ LA RÉGRESSION LA PLUS GRAVE des cinq, et la plus silencieuse : rien
+   * n'échoue, le ticket devient simplement clôturable alors que la cuisine
+   * travaille encore. Le serveur encaisse et ferme, les plats arrivent après.
+   */
+  it('marque le ticket `pending` — sinon il reste clôturable', () => {
+    expect(sql).toMatch(/fulfillment_status\s*=\s*'pending'/);
+    expect(sql).toMatch(/UPDATE public\.tickets/);
+  });
+
+  /** Le super_admin opère sur tous les bars sans être membre d'aucun. */
+  it('laisse passer le super_admin', () => {
+    expect(sql).toMatch(/is_super_admin\(\)/);
+  });
+
+  /**
+   * `jsonb_array_length` LÈVE une exception sur un objet ou un scalaire :
+   * sans ce test, un client mal formé reçoit une erreur SQL brute au lieu
+   * d'un refus lisible.
+   */
+  it('vérifie que p_items est bien un TABLEAU avant d\'en prendre la longueur', () => {
+    expect(sql).toMatch(/jsonb_typeof/);
+  });
+
+  /**
+   * ⭐ Le nom du plat dans le message : « Poisson braisé n'est plus
+   * disponible » se corrige en salle, « plat indisponible » laisse le serveur
+   * sans savoir lequel.
+   */
+  it('nomme le plat indisponible', () => {
+    expect(sql).toMatch(/v_dish\.name/);
+    expect(sql).toMatch(/v_dish\.is_available/);
+  });
+
+  /** Contrat de retour lu par le client — le renommer casse l'appelant. */
+  it('retourne `items_created`', () => {
+    expect(sql).toMatch(/'items_created'/);
+  });
+
+  /**
+   * ⛔ ISOLATION MULTI-TENANT dans l'INSERT, pas seulement dans la
+   * validation : si la passe 1 passait un jour d'un RETURN à un CONTINUE,
+   * cet INSERT insérerait le plat d'un AUTRE bar. Fuite silencieuse.
+   */
+  it('répète le filtre bar_id dans l\'écriture, pas seulement dans la validation', () => {
+    expect(sql).toMatch(/JOIN public\.dishes d[\s\S]*?d\.bar_id\s*=\s*p_bar_id/);
+  });
+
+  /**
+   * ⛔⛔ LA GARANTIE ANTI-FRAUDE FONDAMENTALE : le prix vient TOUJOURS de la
+   * base, jamais du client. Un serveur ne peut que DÉSIGNER une option
+   * existante, pas en fabriquer une.
+   */
+  it('relit le prix en base, ne l\'accepte jamais du client', () => {
+    expect(sql).toMatch(/COALESCE\(o\.price,\s*d\.price\)/);
+    // ⚠️ Aucune lecture d'un prix depuis le JSON d'entrée.
+    expect(sql).not.toMatch(/l->>'unit_price'/);
+    expect(sql).not.toMatch(/l->>'price'/);
+  });
+
+  /**
+   * ⛔ Le format doit appartenir à CE plat ET à CE bar : sans ces deux
+   * conditions, un identifiant substitué ferait payer le prix d'un autre
+   * plat — une fraude par simple échange d'UUID, invisible en base.
+   */
+  it('lie le format au plat ET au bar', () => {
+    expect(sql).toMatch(/o\.dish_id\s*=\s*d\.id/);
+    expect(sql).toMatch(/o\.bar_id\s*=\s*p_bar_id/);
+    expect(sql).toMatch(/o\.is_active\s*=\s*TRUE/);
+  });
+
+  /**
+   * ⭐ Pas de repli silencieux sur `dishes.price` ni sur « le premier
+   * format » : un serveur pressé validerait un « Grand » pour un petit
+   * poisson, et l'écart ne se verrait qu'à l'inventaire.
+   */
+  it('exige un format quand le plat en a', () => {
+    expect(sql).toMatch(/price_option_required/);
+  });
+});
