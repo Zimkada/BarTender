@@ -34,10 +34,19 @@ interface Props {
   items: RecoverableItem[];
   closingHour: number;
   onRecover: (item: RecoverableItem) => void;
-  isPending: boolean;
   /** ⚠️ Le cuisinier ne voit PAS les montants (§8) — recevoir n'est pas montrer. */
   canViewCosts: boolean;
   formatPrice: (v: number) => string;
+  /**
+   * ⭐ L'ID en cours de récupération, ou `null`.
+   *
+   * ⛔ DÉFAUT TROUVÉ À LA CODE REVIEW : la première version passait le
+   * `isPending` GLOBAL de la mutation, qui désactivait TOUS les boutons de la
+   * liste dès le premier clic. Un gérant récupérant trois plats en fin de
+   * service aurait dû attendre entre chacun, sur l'écran le moins patient
+   * qui soit. Seule la ligne en cours doit se figer.
+   */
+  pendingItemId: string | null;
 }
 
 /** Libellés alignés sur `KitchenLossesPanel` — un motif ne doit pas se lire différemment d'un écran à l'autre. */
@@ -63,7 +72,7 @@ function formatAge(iso: string | null): string {
 }
 
 export const RecoverableItemsPanel = memo(function RecoverableItemsPanel({
-  items, closingHour, onRecover, isPending, canViewCosts, formatPrice,
+  items, closingHour, onRecover, pendingItemId, canViewCosts, formatPrice,
 }: Props) {
   /**
    * ⭐ LE MARQUEUR DEMANDÉ : journée commerciale, pas date civile.
@@ -151,14 +160,18 @@ export const RecoverableItemsPanel = memo(function RecoverableItemsPanel({
                 )}
               </div>
 
+              {/* ⭐ Verrou CIBLÉ : seule la ligne en cours se fige, les autres
+                  restent cliquables. Le double-clic sur la MÊME ligne est
+                  bloqué ici, et la base le bloque de toute façon (clé
+                  d'idempotence `recovered:<item_id>` + garde `consumed_at`). */}
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onRecover(item)}
-                disabled={isPending}
+                disabled={pendingItemId === item.id}
               >
                 <RotateCcw className="mr-1 h-4 w-4" />
-                Remettre en vente
+                {pendingItemId === item.id ? 'Remise en vente…' : 'Remettre en vente'}
               </Button>
             </li>
           );

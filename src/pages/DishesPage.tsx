@@ -260,7 +260,13 @@ export default function DishesPage() {
               onRecover={(item) =>
                 recoverCancelledDish.mutate({ itemId: item.id })
               }
-              isPending={recoverCancelledDish.isPending}
+              /* ⭐ L'ID en cours, pas un booléen global : sinon un seul clic
+                 figerait toute la liste (cf. RecoverableItemsPanel). */
+              pendingItemId={
+                recoverCancelledDish.isPending
+                  ? recoverCancelledDish.variables?.itemId ?? null
+                  : null
+              }
               canViewCosts={canViewCosts}
               formatPrice={formatPrice}
             />

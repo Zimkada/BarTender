@@ -357,6 +357,17 @@ export function useKitchenMutations() {
       }
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
     },
+    /**
+     * ⚠️ PAS DE NOTIFICATION DE SUCCÈS, et c'est un alignement volontaire :
+     * `DishesPage` n'en émet pour AUCUNE de ses mutations (closeBatch,
+     * recordBatchLoss). En introduire une ici seulement rendrait l'écran
+     * incohérent — la disparition de la ligne et l'apparition du lot dans les
+     * portions disponibles font déjà le retour visuel.
+     *
+     * ⭐ `recovered_cost` reste dans la réponse : le jour où cet écran se
+     * dote de notifications, « 2 000 F sauvés » est le message à afficher —
+     * dire ce qui a été SAUVÉ, pas ce qui a été perdu.
+     */
     onError: (error) => {
       console.error('Récupération échouée:', getErrorMessage(error));
     },

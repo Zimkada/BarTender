@@ -862,11 +862,42 @@ export const KitchenService = {
    */
   async getRecoverableItems(barId: string): Promise<RecoverableItem[]> {
     try {
+      /**
+       * ⛔⛔ TROIS BORNES, TOUTES TROUVÉES À LA CODE REVIEW - la première
+       * version n'en avait AUCUNE.
+       *
+       * 1. COLONNES EXPLICITES au lieu de `*`. On n'utilise que sept champs ;
+       *    `kitchen_order_items` en porte une vingtaine. Trois vagues
+       *    d'optimisation d'egress ont été menées sur ce projet, on ne
+       *    réintroduit pas un `SELECT *` sur une table de service.
+       *
+       * 2. FENÊTRE DE 7 JOURS. Sans elle, la requête ramenait TOUT l'historique
+       *    des plats annulés jamais récupérés - une liste qui ne fait que
+       *    grossir, sur un écran ouvert plusieurs fois par service.
+       *    ⭐ 7 jours et non 1 : la file n'a volontairement PAS de borne
+       *    métier (un plat conditionné se garde), mais un plat d'il y a
+       *    trois semaines n'est plus une décision en attente, c'est de
+       *    l'archive. Sept jours couvre tout usage réel avec une marge large.
+       *
+       * 3. `limit(200)`. PostgREST tronque SILENCIEUSEMENT à `max_rows = 1000`.
+       *    ⛔ Combiné au tri CROISSANT, un bar au-delà du plafond aurait vu
+       *    les plats les PLUS ANCIENS et jamais ceux du jour : l'écran aurait
+       *    paru cassé sans qu'aucune erreur ne remonte. Une limite explicite
+       *    et basse rend la troncature intentionnelle plutôt que subie.
+       */
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
       const { data, error } = await supabase
         .from('kitchen_order_items')
-        .select(`*, dishes!inner ( name, production_mode )`)
+        .select(
+          `id, dish_id, quantity, cancelled_at, cancel_reason, computed_cost,
+           dishes!inner ( name, production_mode )`
+        )
         .eq('bar_id', barId)
         .eq('status', 'cancelled')
+        .gte('cancelled_at', sevenDaysAgo.toISOString())
+        .limit(200)
         /**
          * ⛔ LES DEUX FILTRES QUI DÉFINISSENT « RÉCUPÉRABLE », en miroir exact
          * des gardes de `recover_cancelled_dish` :
@@ -884,7 +915,18 @@ export const KitchenService = {
 
       if (error) throw error;
 
-      type RecoverableRow = KitchenOrderItemRow & {
+      /**
+       * ⚠️ Type LOCAL et non `KitchenOrderItemRow` : le `select` ne ramène
+       * que sept colonnes (cf. borne n°1 ci-dessus). Réutiliser le type de
+       * la table entière ferait croire que les autres champs sont là.
+       */
+      type RecoverableRow = {
+        id: string;
+        dish_id: string;
+        quantity: number;
+        cancelled_at: string | null;
+        cancel_reason: string | null;
+        computed_cost: number | null;
         dishes: { name: string; production_mode: string | null } | null;
       };
 
