@@ -44,7 +44,10 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useUnifiedDishes } from '../hooks/pivots/useUnifiedDishes';
 import { useDishCategories } from '../hooks/queries/useDishesQueries';
-import { useActiveBatches } from '../hooks/queries/useBatchQueries';
+import { useActiveBatches, useRecoverableItems } from '../hooks/queries/useBatchQueries';
+import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { RecoverableItemsPanel } from '../components/kitchen/RecoverableItemsPanel';
 import { useBatchMutations } from '../hooks/mutations/useBatchMutations';
 
 type TabId = 'menu' | 'production';
@@ -92,6 +95,18 @@ export default function DishesPage() {
    * de plats-bases. Une requête de moins à chaque ouverture (§egress).
    */
   const { data: batches = [], isLoading: isLoadingBatches } = useActiveBatches(barId);
+
+  /**
+   * ⭐ §19.4 - plats annulés dont la matière est encore engagée.
+   *
+   * ⚠️ La query porte sa PROPRE garde (`canValidateSales`) : un cuisinier ou
+   * un serveur n'émet même pas la requête. Décider qu'un plat reste servable
+   * est une décision sanitaire, réservée aux rôles de gestion comme
+   * l'annulation d'un plat prêt (§6.1).
+   */
+  const { data: recoverableItems = [] } = useRecoverableItems(barId);
+  const { recoverCancelledDish } = useKitchenMutations();
+  const { formatPrice } = useCurrencyFormatter();
   const { produceBatch, closeBatch, recordBatchLoss } = useBatchMutations();
 
   /**
@@ -223,6 +238,33 @@ export default function DishesPage() {
             isLoading={isLoading}
             />
           </>
+        )}
+
+        {/*
+          * ⭐ §19.4 - LA FILE EST MONTÉE ICI, PAS DANS `ProductionTab`, et ce
+          * n'est pas un détail de placement : `ProductionTab` retourne un
+          * `EmptyState` AVANT son rendu quand `batches` est vide. La file y
+          * serait donc invisible dans le cas le plus fréquent - un plat annulé
+          * alors qu'aucun lot n'est en cours, ce qui est la situation normale
+          * d'un bar qui ne fait que de la cuisine à la commande.
+          *
+          * ⚠️ Le composant se masque LUI-MÊME quand la liste est vide, et la
+          * query porte déjà sa garde de permission (`canValidateSales`) : la
+          * condition ici ne porte que sur l'onglet.
+          */}
+        {activeTab === 'production' && recoverableItems.length > 0 && (
+          <div className="mb-3">
+            <RecoverableItemsPanel
+              items={recoverableItems}
+              closingHour={currentBar?.closingHour ?? 6}
+              onRecover={(item) =>
+                recoverCancelledDish.mutate({ itemId: item.id })
+              }
+              isPending={recoverCancelledDish.isPending}
+              canViewCosts={canViewCosts}
+              formatPrice={formatPrice}
+            />
+          </div>
         )}
 
         {activeTab === 'production' && (

@@ -308,6 +308,17 @@ export function useKitchenMutations() {
      */
     onSettled: () => {
       invalidateStockDependent();
+      /**
+       * ⭐ §19.4 - annuler un plat DÉJÀ PRÊT le fait ENTRER dans la file des
+       * récupérables. Sans cette invalidation, le gérant ne l'y verrait qu'au
+       * rechargement suivant, c'est-à-dire au moment où il est trop tard pour
+       * en faire quelque chose.
+       * ⚠️ Non couvert par `invalidateStockDependent`, qui ne touche que
+       * `batchKeys.active`.
+       */
+      if (barId) {
+        queryClient.invalidateQueries({ queryKey: batchKeys.recoverable(barId) });
+      }
       queryClient.invalidateQueries({ queryKey: ticketKeys.all });
     },
     onError: (error) => {
@@ -315,5 +326,44 @@ export function useKitchenMutations() {
     },
   });
 
-  return { createOrder, acceptItem, forceOnOrder, markReady, serveItem, cancelItem };
+  /**
+   * Remet en vente un plat annulé dont la matière était déjà partie (§19.4).
+   *
+   * ⭐ `invalidateStockDependent` SUFFIT pour les lots : il invalide déjà
+   * `batchKeys.active(barId)`, la seule clé que l'écran Production lise.
+   * C'est important ici - cette mutation ne fait QUE créer un lot, et sans
+   * cette invalidation le plat récupéré n'apparaîtrait qu'au rechargement
+   * suivant, laissant croire que le bouton n'a rien fait.
+   *
+   * ⚠️ `ticketKeys` en revanche est nécessaire, comme pour `cancelItem` :
+   * la ligne reste `cancelled` mais son `cancel_note` change (il porte
+   * désormais la référence du lot), et l'écran du bon doit le refléter.
+   */
+  const recoverCancelledDish = useMutation({
+    mutationFn: async (input: { itemId: string; note?: string }) => {
+      if (!barId) throw new Error('Aucun bar sélectionné');
+      return KitchenService.recoverCancelledDish(barId, input.itemId, input.note);
+    },
+    onSettled: () => {
+      invalidateStockDependent();
+      /**
+       * ⛔ EXPLICITE : `invalidateStockDependent` invalide
+       * `batchKeys.active(barId)`, jamais `batchKeys.all` - la file des
+       * récupérables n'en fait donc PAS partie. Sans cette ligne, le plat
+       * resterait affiché comme récupérable après l'avoir récupéré.
+       */
+      if (barId) {
+        queryClient.invalidateQueries({ queryKey: batchKeys.recoverable(barId) });
+      }
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+    },
+    onError: (error) => {
+      console.error('Récupération échouée:', getErrorMessage(error));
+    },
+  });
+
+  return {
+    createOrder, acceptItem, forceOnOrder, markReady, serveItem, cancelItem,
+    recoverCancelledDish,
+  };
 }

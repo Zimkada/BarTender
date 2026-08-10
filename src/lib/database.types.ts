@@ -7800,6 +7800,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      recover_cancelled_dish: {
+        Args: { p_bar_id: string; p_item_id: string; p_note?: string }
+        Returns: Json
+      }
       refresh_all_materialized_views: {
         Args: { p_triggered_by?: string }
         Returns: {

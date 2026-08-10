@@ -21,6 +21,7 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
 import type { Json } from '../../lib/database.types';
+import type { DishProductionMode } from './dishes.service';
 
 // ===== TYPES =====
 
@@ -248,6 +249,42 @@ interface CancelResult extends TransitionResult {
   /** ⭐ `true` si la matière avait déjà été consommée : cette annulation COÛTE. */
   was_loss: boolean;
   lost_cost: number | null;
+}
+
+/**
+ * Un plat annulé dont la matière est encore engagée, donc récupérable (§19.4).
+ *
+ * ⚠️ Pas de `business_date` : `kitchen_order_items` n'en porte pas. L'UI la
+ * dérive de `cancelled_at` avec le `closingHour` du bar.
+ */
+export interface RecoverableItem {
+  id: string;
+  dish_id: string;
+  dish_name: string;
+  /** ⚠️ `on_order` : le lot créé ne sera consommé par AUCUNE commande. */
+  production_mode: DishProductionMode;
+  quantity: number;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  /** Coût de la LIGNE entière, pas d'une portion (cf. recover_cancelled_dish). */
+  computed_cost: number | null;
+}
+
+/**
+ * Résultat d'une récupération de plat annulé (§19.4).
+ *
+ * ⭐ `recovered_cost` est ce qui a été SAUVÉ, pas ce qui a été perdu : le coût
+ * quitte la ligne annulée pour rejoindre le lot. Dire au gérant « 2 000 F
+ * sauvés » à l'instant où il agit est le seul moment où le chiffre porte.
+ */
+interface RecoverResult {
+  success: boolean;
+  item_id: string;
+  /** Le lot créé - c'est lui qui porte désormais la matière et sa valeur. */
+  batch_id: string;
+  qty: number;
+  recovered_cost: number;
+  idempotent_replay: boolean;
 }
 
 /**
@@ -791,6 +828,125 @@ export const KitchenService = {
 
       if (error) throw error;
       return unwrapRpc<CancelResult>(data, 'Annulation du plat');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Plats annulés dont la matière est encore engagée - §19.4.
+   *
+   * ⭐⭐ POURQUOI CETTE FILE EXISTE, et pourquoi PAS une case dans la modale
+   * d'annulation (arbitrage du 10/08/2026, après contre-expertise).
+   *
+   * Demander « ce plat est-il récupérable ? » au moment d'annuler exige une
+   * décision PRÉDICTIVE : personne ne sait encore si une table le prendra.
+   * On le saura dans quelques minutes. Pire, l'écran affiche « perte de
+   * 2 000 F » en rouge quand on refuse et rien quand on accepte : c'est une
+   * incitation à cocher par optimisme, qui transformerait une perte VISIBLE
+   * en lot fantôme que personne ne regarde.
+   *
+   * ⛔ Un « annuler + récupérer » en un clic effacerait AUSSI le seul signal
+   * d'alerte existant : aujourd'hui, annuler un plat prêt laisse une perte
+   * anormale dans le journal, qui interroge. La file rend la récupération
+   * délibérée et traçable, au lieu d'en faire un réflexe de flux.
+   *
+   * ⚠️ AUCUNE BORNE TEMPORELLE, et c'est un choix métier explicite : un plat
+   * préparé le matin, bien conditionné, se sert légitimement en fin de
+   * journée. Les LOTS de production n'expirent pas non plus tout seuls
+   * (`expires_at` est informatif, « la fermeture est toujours humaine ») -
+   * borner les plats récupérés alors que les lots ne le sont pas ferait obéir
+   * deux portions du même plat à des règles opposées.
+   * ⭐ L'écran affiche l'ÂGE et marque ce qui date d'une journée commerciale
+   * antérieure. Il informe, il ne décide pas à la place du bar.
+   */
+  async getRecoverableItems(barId: string): Promise<RecoverableItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('kitchen_order_items')
+        .select(`*, dishes!inner ( name, production_mode )`)
+        .eq('bar_id', barId)
+        .eq('status', 'cancelled')
+        /**
+         * ⛔ LES DEUX FILTRES QUI DÉFINISSENT « RÉCUPÉRABLE », en miroir exact
+         * des gardes de `recover_cancelled_dish` :
+         *   · `consumed_at NOT NULL` - la matière a réellement été engagée.
+         *     Une ligne annulée avant `ready` n'a rien consommé, la récupérer
+         *     créerait un lot valorisé à zéro.
+         *   · Une ligne DÉJÀ récupérée a vu son `consumed_at` remis à NULL
+         *     (le coût migre vers le lot) : elle sort donc d'elle-même de
+         *     cette liste, sans qu'aucun drapeau supplémentaire soit requis.
+         */
+        .not('consumed_at', 'is', null)
+        .is('sale_id', null)
+        // Le plus ancien d'abord : c'est celui dont l'état se dégrade le plus.
+        .order('cancelled_at', { ascending: true });
+
+      if (error) throw error;
+
+      type RecoverableRow = KitchenOrderItemRow & {
+        dishes: { name: string; production_mode: string | null } | null;
+      };
+
+      return ((data ?? []) as unknown as RecoverableRow[]).map((row) => ({
+        id: row.id,
+        dish_id: row.dish_id,
+        dish_name: row.dishes?.name ?? '—',
+        /**
+         * ⚠️ REMONTÉ JUSQU'À L'UI : un plat `on_order` récupéré entre dans un
+         * bac que RIEN ne consomme automatiquement (le prélèvement ne regarde
+         * les lots que pour `batch` et `batch_finish`). Sans cet avertissement
+         * à l'écran, un clic fabriquerait un déchet comptable silencieux.
+         */
+        production_mode: (row.dishes?.production_mode ?? 'on_order') as DishProductionMode,
+        quantity: row.quantity,
+        /**
+         * ⚠️ `kitchen_order_items` NE PORTE PAS de `business_date` - vérifié.
+         * La journée commerciale se DÉRIVE de `cancelled_at` côté UI, avec le
+         * `closingHour` du bar (que ce service n'a pas). C'est là que se
+         * calcule le marqueur « journée précédente ».
+         */
+        cancelled_at: row.cancelled_at,
+        cancel_reason: row.cancel_reason,
+        computed_cost: row.computed_cost,
+      }));
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  },
+
+  /**
+   * Remet en vente un plat annulé dont la matière était déjà partie (§19.4).
+   *
+   * ⭐ POURQUOI CE GESTE EXISTE. Un plat déjà `ready` que le client refuse
+   * part sinon DIRECTEMENT en perte, alors qu'il est encore servable. En
+   * salle, le cuisinier le sert à la table d'à côté - et les comptes
+   * affichent une perte ET une vente sans matière, deux chiffres faux en
+   * sens inverse.
+   *
+   * ⚠️ APPEL SÉQUENTIEL, jamais fusionné avec `cancelItem` : on annule quand
+   * le client part, on décide ensuite si le plat est récupérable - parfois
+   * après être allé le regarder.
+   *
+   * ⚠️ Réservé au gérant côté RPC (§6.1). L'UI doit refléter cette garde,
+   * mais c'est la base qui l'applique.
+   */
+  async recoverCancelledDish(
+    barId: string,
+    itemId: string,
+    note?: string
+  ): Promise<RecoverResult> {
+    assertNetworkAvailable('récupérer un plat');
+
+    try {
+      const { data, error } = await supabase.rpc('recover_cancelled_dish', {
+        p_bar_id: barId,
+        p_item_id: itemId,
+        p_note: note ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<RecoverResult>(data, 'Récupération du plat');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

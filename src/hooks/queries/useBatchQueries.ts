@@ -18,10 +18,25 @@ import {
   BatchesService,
   type BatchWithDish,
 } from '../../services/supabase/batches.service';
+import {
+  KitchenService,
+  type RecoverableItem,
+} from '../../services/supabase/kitchen.service';
 
 export const batchKeys = {
   all: ['batches'] as const,
   active: (barId: string) => [...batchKeys.all, 'active', barId] as const,
+  /**
+   * ⭐ Sous `batchKeys.all` : récupérer un plat CRÉE un lot, les deux listes
+   * bougent ensemble.
+   *
+   * ⛔ MAIS `invalidateStockDependent` invalide `batchKeys.active(barId)`, PAS
+   * `.all` : cette clé n'est donc PAS couverte par lui. Toute mutation qui
+   * fait entrer ou sortir un plat de la file doit l'invalider EXPLICITEMENT
+   * (cf. `recoverCancelledDish` et `cancelItem`) - sans quoi le plat annulé
+   * n'apparaîtrait dans la file qu'au rechargement suivant.
+   */
+  recoverable: (barId: string) => [...batchKeys.all, 'recoverable', barId] as const,
 };
 
 /**
@@ -53,6 +68,37 @@ export function useActiveBatches(barId: string | undefined) {
     queryFn: () => BatchesService.getActiveBatches(barId as string),
     enabled:
       !!barId && hasRestaurant && hasPermission('canManageIngredientStock'),
+    ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * Plats annulés dont la matière est encore engagée - §19.4.
+ *
+ * ⛔⛔ GARDE PLUS STRICTE QUE `useActiveBatches`, et ce n'est pas une
+ * précaution excessive : `recover_cancelled_dish` est réservée aux rôles de
+ * GESTION (super_admin / promoteur / gerant). Le cuisinier, qui a pourtant
+ * `canManageIngredientStock`, ne peut PAS récupérer un plat - décider qu'un
+ * plat reste servable après annulation est une décision sanitaire et
+ * commerciale (§6.1), la même qui lui interdit déjà d'annuler un plat prêt.
+ *
+ * ⭐ Charger cette liste pour quelqu'un qui ne peut rien en faire serait du
+ * volume mort ET un affichage trompeur : il verrait des plats récupérables
+ * sans pouvoir agir. La garde est donc RÉSEAU, pas seulement visuelle.
+ *
+ * ⚠️ `canValidateSales` est la permission qui coïncide EXACTEMENT avec la
+ * liste blanche du RPC (true pour super_admin/promoteur/gerant, false pour
+ * serveur ET cuisinier). On teste une PERMISSION, jamais un rôle brut -
+ * même règle que partout ailleurs dans le socle.
+ */
+export function useRecoverableItems(barId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
+
+  return useQuery<RecoverableItem[]>({
+    queryKey: batchKeys.recoverable(barId ?? ''),
+    queryFn: () => KitchenService.getRecoverableItems(barId as string),
+    enabled: !!barId && hasRestaurant && hasPermission('canValidateSales'),
     ...CACHE_STRATEGY.salesAndStock,
   });
 }
