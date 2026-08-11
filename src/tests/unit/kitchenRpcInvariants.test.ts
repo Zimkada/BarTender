@@ -1341,3 +1341,118 @@ describe('create_kitchen_order — le point d\'entrée de toute commande', () =>
     expect(sql).toMatch(/price_option_required/);
   });
 });
+
+/**
+ * §19.6 — RAPPROCHEMENT REÇUS ↔ VENDUS PAR TAILLE (11/08/2026).
+ *
+ * Le restaurateur trie son carton à la réception et compte : « 12 grands, 20
+ * moyens, 8 petits ». Ce comptage ne valorise RIEN — il sert au contrôle a
+ * posteriori. Ces invariants gardent les trois décisions qui rendent ce
+ * chiffre CROYABLE.
+ */
+describe('get_size_reconciliation — le contrôle du carton', () => {
+  const sql = codeOnly(lastDefinitionOf('get_size_reconciliation'));
+
+  /**
+   * ⭐ Une assiette PRÊTE n'est pas vendue. La compter ferait apparaître un
+   * écart pendant le service, qui se résorberait seul — et le gérant
+   * cesserait de croire le chiffre. Les plats ANNULÉS sont exclus par le
+   * même filtre : ils appartiennent au journal des pertes.
+   */
+  it('ne compte que les plats SERVIS', () => {
+    expect(sql).toMatch(/koi\.status\s*=\s*'served'/);
+    expect(sql).toMatch(/koi\.served_at IS NOT NULL/);
+  });
+
+  /**
+   * ⛔ Le rapprochement passe par l'ASSOCIATION explicite, jamais par une
+   * comparaison de libellés : deux « Grand » n'ont aucun rapport garanti, et
+   * un renommage casserait le lien EN SILENCE.
+   */
+  it('relie vente et taille par IDENTIFIANT, pas par nom', () => {
+    expect(sql).toMatch(/price_option_sizes/);
+    expect(sql).toMatch(/pos\.price_option_id\s*=\s*koi\.price_option_id/);
+  });
+
+  /**
+   * ⛔⛔ FANOUT — le défaut classique de ce genre de requête.
+   *
+   * Joindre reçus et vendus dans un même FROM multiplierait les lignes (un
+   * carton compté × chaque vente de la période). Les deux agrégats DOIVENT
+   * être calculés séparément puis rapprochés sur la taille.
+   * ⚠️ Le cas nominal l'exige : « braisé » et « frit » pointent la MÊME
+   * taille, et le GROUP BY les additionne au lieu de les dupliquer.
+   */
+  it('agrège reçus et vendus SÉPARÉMENT avant de les rapprocher', () => {
+    expect(sql).toMatch(/WITH received AS/);
+    expect(sql).toMatch(/sold AS/);
+    expect(sql).toMatch(/GROUP BY pos\.size_id/);
+  });
+
+  /** Une taille sans mouvement noierait les écarts réels dans des lignes vides. */
+  it('écarte les tailles sans aucun mouvement', () => {
+    expect(sql).toMatch(/r\.qty IS NOT NULL OR so\.qty IS NOT NULL/);
+  });
+});
+
+describe('record_lot_counts — compter sans jamais bloquer', () => {
+  const sql = codeOnly(lastDefinitionOf('record_lot_counts'));
+
+  /**
+   * ⛔ Sans cette garde, on pourrait compter des « grands poissons » sur un
+   * carton de riz — et le rapprochement deviendrait absurde en silence.
+   */
+  it('exige que la taille appartienne à l\'ingrédient DU LOT', () => {
+    expect(sql).toMatch(/ingredient_id\s*=\s*v_lot\.ingredient_id/);
+  });
+
+  /**
+   * ⭐ §4.4 — compter plus d'unités que le lot n'en contient est un
+   * AVERTISSEMENT, jamais un refus : un carton annoncé pour 40 poissons peut
+   * en contenir 42. On signale, on ne bloque pas.
+   */
+  it('signale un dépassement sans refuser la saisie', () => {
+    expect(sql).toMatch(/exceeds_lot/);
+    // ⚠️ Aucun RETURN d'erreur sur ce dépassement.
+    expect(sql).not.toMatch(/error[^\n]*dépasse/i);
+  });
+
+  /** Le comptage se REMPLACE en entier : deux saisies ne s'additionnent pas. */
+  it('remplace le comptage du lot au lieu de le cumuler', () => {
+    expect(sql).toMatch(/DELETE FROM public\.ingredient_lot_counts/);
+  });
+});
+
+describe('replace_ingredient_sizes — retirer sans perdre l\'historique', () => {
+  const sql = codeOnly(lastDefinitionOf('replace_ingredient_sizes'));
+
+  /**
+   * ⛔ Une taille est référencée par des comptages RÉELS. La supprimer
+   * ferait perdre « combien de Grands ai-je reçus en juillet » — et buterait
+   * de toute façon sur le RESTRICT.
+   */
+  it('RETIRE une taille absente, ne la supprime jamais', () => {
+    expect(sql).toMatch(/SET is_active = FALSE/);
+    expect(sql).not.toMatch(/DELETE FROM public\.ingredient_sizes/);
+  });
+
+  /**
+   * ⚠️ La contrainte UNIQUE est sensible à la casse : « Grand » et « grand »
+   * y passeraient tous les deux (même défaut trouvé le 10/08 sur les formats
+   * de prix).
+   */
+  it('refuse les doublons insensiblement à la casse', () => {
+    expect(sql).toMatch(/lower\(TRIM\(s->>'label'\)\)/);
+  });
+
+  /**
+   * ⭐ Réconciliation par LIBELLÉ : recréer une taille retirée retrouve son
+   * id, donc tout son historique de comptage.
+   * ⚠️ Aucun `id` accepté du client — c'est le piège du 10/08, où fournir
+   * l'id faisait tomber le conflit sur la clé primaire lors d'un renommage.
+   */
+  it('réconcilie par libellé, sans accepter d\'id du client', () => {
+    expect(sql).toMatch(/ON CONFLICT \(ingredient_id, label\)/);
+    expect(sql).not.toMatch(/v_size->>'id'/);
+  });
+});
