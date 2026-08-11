@@ -364,6 +364,111 @@ export function useIngredientMutations() {
     },
   });
 
+  // ═══════════════════════════════════════════════════════════════════
+  // §19.6 — TAILLES ET COMPTAGE DES CARTONS
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Déclare les tailles d'un ingrédient — liste COMPLÈTE, la RPC réconcilie.
+   *
+   * ⚠️ Une taille absente est RETIRÉE, jamais supprimée : elle est référencée
+   * par des comptages réels, et « combien de Grands ai-je reçus en juillet »
+   * doit continuer de répondre.
+   */
+  const replaceSizes = useMutation({
+    meta: { suppressGlobalError: true },
+    mutationFn: async (input: {
+      ingredientId: string;
+      sizes: Array<{ label: string; sort_order?: number }>;
+    }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+      return IngredientsService.replaceSizes(barId, input.ingredientId, input.sizes);
+    },
+    onSettled: (_data, _error, variables) => {
+      if (currentBar?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ingredientKeys.sizes(currentBar.id, variables.ingredientId),
+        });
+      }
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => toast.error(msg));
+    },
+  });
+
+  /**
+   * Compte un lot par taille — « ce carton : 12 grands, 20 moyens, 8 petits ».
+   *
+   * ⚠️ DÉCLARATIF : aucun effet sur le stock ni sur le coût. On n'invalide
+   * donc PAS `invalidateKitchenStock` - rien de ce qu'il rafraîchit n'a bougé.
+   *
+   * ⭐ `exceeds_lot` REMONTÉ EN AVERTISSEMENT, jamais en erreur (§4.4) : un
+   * carton annoncé pour 40 poissons peut en contenir 42. Le taire priverait
+   * le gérant du signal ; le refuser bloquerait un cas réel.
+   */
+  const recordLotCounts = useMutation({
+    meta: { suppressGlobalError: true },
+    mutationFn: async (input: {
+      lotId: string;
+      counts: Array<{ size_id: string; qty: number }>;
+    }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+      return IngredientsService.recordLotCounts(barId, input.lotId, input.counts);
+    },
+    onSettled: (_data, _error, variables) => {
+      if (currentBar?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ingredientKeys.lotCounts(currentBar.id, variables.lotId),
+        });
+        // ⭐ Le rapprochement dépend de ces comptages : toute période affichée
+        // devient périmée. On invalide LARGE, cet écran étant rarement ouvert.
+        queryClient.invalidateQueries({ queryKey: ingredientKeys.all });
+      }
+    },
+    onSuccess: (result) => {
+      import('react-hot-toast').then(({ default: toast }) => {
+        if (result.exceeds_lot) {
+          toast(
+            `Comptage enregistré, mais il dépasse la quantité reçue (${result.counted_total} pour ${result.lot_qty}).`,
+            { icon: '⚠️', duration: 6000 }
+          );
+        } else {
+          toast.success('Comptage enregistré');
+        }
+      });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => toast.error(msg));
+    },
+  });
+
+  /**
+   * Associe un format de plat à une taille d'ingrédient — §19.6.
+   *
+   * ⚠️ `sizeId = null` RETIRE l'association : un format peut cesser d'être
+   * suivi sans qu'on supprime quoi que ce soit.
+   */
+  const setPriceOptionSize = useMutation({
+    meta: { suppressGlobalError: true },
+    mutationFn: async (input: { priceOptionId: string; sizeId: string | null }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+      return IngredientsService.setPriceOptionSize(barId, input.priceOptionId, input.sizeId);
+    },
+    // ⭐ L'association change ce que le rapprochement voit : on invalide large.
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ingredientKeys.all });
+    },
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => toast.error(msg));
+    },
+  });
+
   return {
     receiveSupply,
     consumeIngredients,
@@ -371,5 +476,8 @@ export function useIngredientMutations() {
     recordLotLoss,
     setIngredientActive,
     upsertIngredient,
+    replaceSizes,
+    recordLotCounts,
+    setPriceOptionSize,
   };
 }

@@ -70,6 +70,72 @@ export interface IngredientLotRow {
  * retournée a toujours ses valeurs — c'est une anomalie détectée, pas une
  * ligne partielle — mais le typage reste fidèle au schéma plutôt qu'optimiste.
  */
+/**
+ * §19.6 — taille d'un ingrédient acheté en gros (Grand / Moyen / Petit…).
+ *
+ * ⭐ Sur l'INGRÉDIENT et non sur le plat : un même carton alimente plusieurs
+ * plats (poisson braisé ET frit), et « Grand » est une caractéristique du
+ * poisson, pas d'une recette.
+ */
+export interface IngredientSizeRow {
+  id: string;
+  ingredient_id: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** Comptage d'un lot par taille — déclaratif, sans effet sur le stock. */
+export interface LotCountRow {
+  id: string;
+  lot_id: string;
+  size_id: string;
+  counted_qty: number;
+}
+
+/**
+ * Une ligne de rapprochement : reçus, vendus, écart.
+ *
+ * ⚠️ `gap` POSITIF = il reste ; NÉGATIF = on a vendu plus qu'on n'a reçu.
+ * C'est le second cas qui intéresse — erreur de tri, ou facturation d'un
+ * grand pour un moyen servi.
+ */
+export interface SizeReconciliationRow {
+  size_id: string;
+  size_label: string;
+  ingredient_id: string;
+  ingredient_name: string;
+  received: number;
+  sold: number;
+  gap: number;
+}
+
+interface SizeReconciliationResult extends RpcEnvelope {
+  start: string;
+  end: string;
+  rows: SizeReconciliationRow[];
+}
+
+interface ReplaceSizesResult extends RpcEnvelope {
+  ingredient_id: string;
+  sizes_count: number;
+  retired_count: number;
+}
+
+interface RecordLotCountsResult extends RpcEnvelope {
+  lot_id: string;
+  lines_count: number;
+  counted_total: number;
+  lot_qty: number;
+  /** ⭐ Signale un comptage supérieur au lot — avertissement, jamais refus. */
+  exceeds_lot: boolean;
+}
+
+interface SetPriceOptionSizeResult extends RpcEnvelope {
+  price_option_id: string;
+  linked: boolean;
+}
+
 export interface StockConsistencyViolation {
   ingredient_id: string | null;
   bar_id: string | null;
@@ -596,6 +662,166 @@ export class IngredientsService {
 
       if (error) throw error;
       return data ?? [];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // §19.6 — TAILLES ET RAPPROCHEMENT CARTON ↔ VENTES
+  // ═══════════════════════════════════════════════════════════════════
+  //
+  // ⭐ Un carton de poisson acheté en gros contient des tailles différentes.
+  // Le restaurateur trie et compte à la réception : ce comptage ne VALORISE
+  // rien (le carton entre à son prix global, chaque unité porte le CUMP) — il
+  // sert au CONTRÔLE A POSTERIORI, exactement comme son cahier.
+
+  /** Tailles ACTIVES d'un ingrédient, triées. */
+  static async getSizes(barId: string, ingredientId: string): Promise<IngredientSizeRow[]> {
+    try {
+      const { data, error } = await supabase
+        .from('ingredient_sizes')
+        .select('id, ingredient_id, label, sort_order, is_active')
+        .eq('bar_id', barId)
+        .eq('ingredient_id', ingredientId)
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) throw error;
+      return data ?? [];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Déclare les tailles d'un ingrédient — liste COMPLÈTE, la RPC réconcilie.
+   *
+   * ⚠️ Une taille absente est RETIRÉE, jamais supprimée : elle est référencée
+   * par des comptages réels, et « combien de Grands ai-je reçus en juillet »
+   * doit continuer de répondre.
+   */
+  static async replaceSizes(
+    barId: string,
+    ingredientId: string,
+    sizes: Array<{ label: string; sort_order?: number }>
+  ): Promise<ReplaceSizesResult> {
+    assertNetworkAvailable('enregistrer les tailles');
+
+    try {
+      const { data, error } = await supabase.rpc('replace_ingredient_sizes', {
+        p_bar_id: barId,
+        p_ingredient_id: ingredientId,
+        p_sizes: sizes as unknown as Json,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<ReplaceSizesResult>(data, 'Enregistrement des tailles');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /** Comptage par taille déjà saisi pour un lot. */
+  static async getLotCounts(barId: string, lotId: string): Promise<LotCountRow[]> {
+    try {
+      const { data, error } = await supabase
+        .from('ingredient_lot_counts')
+        .select('id, lot_id, size_id, counted_qty')
+        .eq('bar_id', barId)
+        .eq('lot_id', lotId);
+
+      if (error) throw error;
+      return data ?? [];
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Compte un lot par taille — « ce carton : 12 grands, 20 moyens, 8 petits ».
+   *
+   * ⚠️ DÉCLARATIF : aucun effet sur `remaining_qty`, `unit_cost` ni le stock.
+   * Le lot garde ses 40 unités et son coût moyen.
+   *
+   * ⚠️ Compter PLUS que le lot ne contient n'est PAS refusé (§4.4) : un carton
+   * annoncé pour 40 poissons peut en contenir 42. Le résultat porte
+   * `exceeds_lot` pour que l'UI le signale sans bloquer.
+   */
+  static async recordLotCounts(
+    barId: string,
+    lotId: string,
+    counts: Array<{ size_id: string; qty: number }>
+  ): Promise<RecordLotCountsResult> {
+    assertNetworkAvailable('compter un approvisionnement');
+
+    try {
+      const { data, error } = await supabase.rpc('record_lot_counts', {
+        p_bar_id: barId,
+        p_lot_id: lotId,
+        p_counts: counts as unknown as Json,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<RecordLotCountsResult>(data, 'Comptage de l\'approvisionnement');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Associe un format de plat à une taille d'ingrédient.
+   *
+   * ⚠️ `sizeId = null` RETIRE l'association — un format peut cesser d'être
+   * suivi sans qu'on supprime quoi que ce soit.
+   *
+   * ⭐ Plusieurs formats peuvent pointer la MÊME taille : c'est le cas
+   * nominal (braisé et frit consomment tous deux du poisson grand), et le
+   * rapprochement les additionne.
+   */
+  static async setPriceOptionSize(
+    barId: string,
+    priceOptionId: string,
+    sizeId: string | null
+  ): Promise<SetPriceOptionSizeResult> {
+    assertNetworkAvailable('associer un format à une taille');
+
+    try {
+      const { data, error } = await supabase.rpc('set_price_option_size', {
+        p_bar_id: barId,
+        p_price_option_id: priceOptionId,
+        p_size_id: sizeId ?? undefined,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<SetPriceOptionSizeResult>(data, 'Association du format');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Rapprochement reçus ↔ vendus par taille, sur une période.
+   *
+   * ⚠️ PAR PÉRIODE, PAS PAR CARTON : un carton reçu la veille et vendu le
+   * lendemain apparaît dans deux périodes différentes. L'écran doit donc dire
+   * « sur la période », jamais « il manque X ».
+   */
+  static async getSizeReconciliation(
+    barId: string,
+    start: string,
+    end: string
+  ): Promise<SizeReconciliationRow[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_size_reconciliation', {
+        p_bar_id: barId,
+        p_start: start,
+        p_end: end,
+      });
+
+      if (error) throw error;
+      const result = unwrapRpc<SizeReconciliationResult>(data, 'Rapprochement des tailles');
+      return result.rows ?? [];
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

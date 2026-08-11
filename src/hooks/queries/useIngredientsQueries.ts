@@ -26,7 +26,11 @@ import {
   type IngredientRow,
   type IngredientLotRow,
   type StockConsistencyViolation,
+  type IngredientSizeRow,
+  type LotCountRow,
+  type SizeReconciliationRow,
 } from '../../services/supabase/ingredients.service';
+import { useAuth } from '../../context/AuthContext';
 
 // ===== Query Keys =====
 // Hiérarchiques, pour permettre une invalidation ciblée ou large (§13.15).
@@ -38,6 +42,18 @@ export const ingredientKeys = {
   expiring: (barId: string, withinDays: number) =>
     [...ingredientKeys.all, 'expiring', barId, withinDays] as const,
   consistency: (barId: string) => [...ingredientKeys.all, 'consistency', barId] as const,
+  /** §19.6 — tailles déclarées d'un ingrédient (Grand / Moyen / Petit…). */
+  sizes: (barId: string, ingredientId: string) =>
+    [...ingredientKeys.all, 'sizes', barId, ingredientId] as const,
+  /** §19.6 — comptage par taille d'un lot reçu. */
+  lotCounts: (barId: string, lotId: string) =>
+    [...ingredientKeys.all, 'lot-counts', barId, lotId] as const,
+  /**
+   * §19.6 — rapprochement reçus ↔ vendus sur une période.
+   * ⚠️ Les DATES font partie de la clé : deux périodes sont deux résultats.
+   */
+  reconciliation: (barId: string, start: string, end: string) =>
+    [...ingredientKeys.all, 'reconciliation', barId, start, end] as const,
 };
 
 /**
@@ -114,6 +130,74 @@ export function useStockConsistencyCheck(barId: string | undefined, enabled = fa
     queryFn: () => IngredientsService.getStockConsistencyViolations(barId as string),
     // ⭐ Triple garde : §3, cible, ET demande explicite de l'appelant.
     enabled: !!barId && hasRestaurant && enabled,
+    ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// §19.6 — TAILLES ET RAPPROCHEMENT CARTON ↔ VENTES
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Tailles déclarées d'un ingrédient — §19.6.
+ *
+ * ⭐ Sur l'INGRÉDIENT et non sur le plat : un même carton alimente plusieurs
+ * plats, et « Grand » est une caractéristique du poisson, pas d'une recette.
+ *
+ * ⚠️ `ingredientId` optionnel : sans lui, aucune requête ne part. C'est ce qui
+ * permet de monter le hook dans un formulaire avant qu'un ingrédient ne soit
+ * choisi.
+ */
+export function useIngredientSizes(barId: string | undefined, ingredientId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<IngredientSizeRow[]>({
+    queryKey: ingredientKeys.sizes(barId ?? '', ingredientId ?? ''),
+    queryFn: () => IngredientsService.getSizes(barId as string, ingredientId as string),
+    enabled: !!barId && !!ingredientId && hasRestaurant,
+    // ⭐ Quasi-statique : les tailles d'un ingrédient ne changent presque
+    // jamais, contrairement à son stock.
+    ...CACHE_STRATEGY.products,
+  });
+}
+
+/** Comptage par taille déjà saisi pour un lot — §19.6. */
+export function useLotCounts(barId: string | undefined, lotId: string | undefined) {
+  const { hasRestaurant } = useBarContext();
+
+  return useQuery<LotCountRow[]>({
+    queryKey: ingredientKeys.lotCounts(barId ?? '', lotId ?? ''),
+    queryFn: () => IngredientsService.getLotCounts(barId as string, lotId as string),
+    enabled: !!barId && !!lotId && hasRestaurant,
+    ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * Rapprochement reçus ↔ vendus par taille — §19.6.
+ *
+ * ⛔ GARDE `canViewKitchenCosts` : c'est un écran de CONTRÔLE, qui sert à
+ * repérer un serveur facturant du grand pour du moyen servi. Le montrer à
+ * celui qu'il surveille le viderait de son sens.
+ *
+ * ⚠️ `enabled` explicite en plus : cet écran n'est pas ouvert en permanence,
+ * et la requête ne doit pas partir tant qu'il ne l'est pas.
+ */
+export function useSizeReconciliation(
+  barId: string | undefined,
+  start: string,
+  end: string,
+  enabled = true
+) {
+  const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
+
+  return useQuery<SizeReconciliationRow[]>({
+    queryKey: ingredientKeys.reconciliation(barId ?? '', start, end),
+    queryFn: () => IngredientsService.getSizeReconciliation(barId as string, start, end),
+    enabled:
+      !!barId && !!start && !!end && hasRestaurant &&
+      hasPermission('canViewKitchenCosts') && enabled,
     ...CACHE_STRATEGY.salesAndStock,
   });
 }

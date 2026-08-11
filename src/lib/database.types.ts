@@ -2520,6 +2520,100 @@ export type Database = {
           },
         ]
       }
+      ingredient_lot_counts: {
+        Row: {
+          bar_id: string
+          counted_qty: number
+          created_at: string
+          created_by: string | null
+          id: string
+          lot_id: string
+          size_id: string
+        }
+        Insert: {
+          bar_id: string
+          counted_qty: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_id: string
+          size_id: string
+        }
+        Update: {
+          bar_id?: string
+          counted_qty?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_id?: string
+          size_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_size_id_fkey"
+            columns: ["size_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_lots: {
         Row: {
           bar_id: string
@@ -2631,6 +2725,93 @@ export type Database = {
           },
           {
             foreignKeyName: "ingredient_lots_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_sizes: {
+        Row: {
+          bar_id: string
+          created_at: string
+          id: string
+          ingredient_id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_stock_consistency_violations"
+            referencedColumns: ["ingredient_id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_ingredient_id_fkey"
             columns: ["ingredient_id"]
             isOneToOne: false
             referencedRelation: "ingredients"
@@ -3392,6 +3573,87 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_option_sizes: {
+        Row: {
+          bar_id: string
+          created_at: string
+          id: string
+          price_option_id: string
+          size_id: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          id?: string
+          price_option_id: string
+          size_id: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          id?: string
+          price_option_id?: string
+          size_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_price_option_id_fkey"
+            columns: ["price_option_id"]
+            isOneToOne: true
+            referencedRelation: "dish_price_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_size_id_fkey"
+            columns: ["size_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_sizes"
             referencedColumns: ["id"]
           },
         ]
@@ -7519,6 +7781,10 @@ export type Database = {
         }[]
       }
       get_plan_price: { Args: { p_plan: string }; Returns: number }
+      get_size_reconciliation: {
+        Args: { p_bar_id: string; p_end: string; p_start: string }
+        Returns: Json
+      }
       get_subscription_overview: {
         Args: {
           p_limit?: number
@@ -7812,6 +8078,10 @@ export type Database = {
         }
         Returns: Json
       }
+      record_lot_counts: {
+        Args: { p_bar_id: string; p_counts: Json; p_lot_id: string }
+        Returns: Json
+      }
       record_provider_subscription_payment: {
         Args: {
           p_method?: string
@@ -7963,6 +8233,10 @@ export type Database = {
         Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
         Returns: Json
       }
+      replace_ingredient_sizes: {
+        Args: { p_bar_id: string; p_ingredient_id: string; p_sizes: Json }
+        Returns: Json
+      }
       reverse_supply: { Args: { p_supply_id: string }; Returns: Json }
       safe_refresh_materialized_view: {
         Args: {
@@ -8021,6 +8295,14 @@ export type Database = {
       }
       set_ingredient_active: {
         Args: { p_active: boolean; p_bar_id: string; p_ingredient_id: string }
+        Returns: Json
+      }
+      set_price_option_size: {
+        Args: {
+          p_bar_id: string
+          p_price_option_id: string
+          p_size_id?: string
+        }
         Returns: Json
       }
       setup_promoter_bar: {
