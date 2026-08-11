@@ -31,6 +31,7 @@ import {
 } from '../hooks/queries/useIngredientsQueries';
 import { useDishes } from '../hooks/queries/useDishesQueries';
 import { PriceOptionSizeLinker } from '../components/kitchen/PriceOptionSizeLinker';
+import { LotCountForm } from '../components/kitchen/LotCountForm';
 import { IngredientForm } from '../components/kitchen/IngredientForm';
 import { IngredientLossFormLoader } from '../components/kitchen/IngredientLossForm';
 import { useBarContext } from '../context/BarContext';
@@ -139,6 +140,15 @@ export default function IngredientsPage() {
    * chiffre est le plus fiable, pas la plus courte.
    */
   const [controlDays, setControlDays] = useState(7);
+  /**
+   * ⭐ §19.6 — le lot qu'on vient de recevoir et qu'on propose de compter.
+   *
+   * ⚠️ On garde le `ingredientId` AVEC le lot : le formulaire doit charger les
+   * tailles de l'ingrédient, et le lot seul ne les porte pas.
+   */
+  const [countingLot, setCountingLot] = useState<
+    { lotId: string; ingredientId: string } | null
+  >(null);
   /** Formulaire d'ingrédient : création, ou édition d'un existant. */
   const [editingIngredient, setEditingIngredient] = useState<
     { mode: 'create' } | { mode: 'edit'; ingredient: IngredientWithAlerts } | null
@@ -197,11 +207,33 @@ export default function IngredientsPage() {
 
   const handleSupply = (values: SupplyFormValues) => {
     receiveSupply.mutate(values, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         // ⚠️ Le signal n'est envoyé QU'APRÈS confirmation : renouveler la clé
         // avant la réponse annulerait la protection anti-double-clic.
         setResetSignal((n) => n + 1);
         setShowSupplyModal(false);
+
+        /**
+         * ⭐ §19.6 — ENCHAÎNEMENT VERS LE COMPTAGE, si l'ingrédient est trié.
+         *
+         * Le tri se fait À LA RÉCEPTION, carton ouvert, pas trois heures
+         * après : proposer le comptage à ce moment précis est le seul moyen
+         * qu'il ait lieu. Un écran différé ne serait jamais ouvert.
+         *
+         * ⛔⛔ DEUX GARDES, et la première n'est PAS défensive.
+         *
+         * `lot_id` peut être NULL : quand l'appro n'a fait que SOLDER DES
+         * DETTES (on avait consommé sans stock), aucun lot n'est créé. Il n'y
+         * a alors rien à compter - ouvrir un écran de comptage sur un carton
+         * inexistant serait absurde, et la RPC refuserait.
+         *
+         * ⚠️ Un REJEU (`idempotent_replay`) retourne un `lot_id` valide mais
+         * l'appro a déjà eu lieu : proposer de compter à nouveau ferait
+         * REMPLACER un comptage existant par un écran vide.
+         */
+        if (result.lot_id && !result.idempotent_replay) {
+          setCountingLot({ lotId: result.lot_id, ingredientId: values.ingredientId });
+        }
       },
       // ⛔ PAS de `onError` qui incrémenterait resetSignal.
       //
@@ -692,6 +724,29 @@ export default function IngredientsPage() {
           onSubmit={handleSupply}
           onCancel={() => setShowSupplyModal(false)}
         />
+      </Modal>
+
+      {/*
+        ⭐ §19.6 — COMPTAGE proposé JUSTE APRÈS l'appro : le tri se fait carton
+        ouvert, pas trois heures après. Un écran différé ne serait jamais
+        ouvert.
+        ⚠️ Entièrement FACULTATIF - « Plus tard » ferme sans rien perdre :
+        l'approvisionnement est déjà enregistré, seul le contrôle sera
+        indisponible pour cette livraison.
+      */}
+      <Modal
+        open={countingLot !== null}
+        onClose={() => setCountingLot(null)}
+        title="Répartir cette livraison par taille"
+      >
+        {countingLot && (
+          <LotCountForm
+            barId={currentBar?.id}
+            lotId={countingLot.lotId}
+            ingredientId={countingLot.ingredientId}
+            onDone={() => setCountingLot(null)}
+          />
+        )}
       </Modal>
 
       <Modal
