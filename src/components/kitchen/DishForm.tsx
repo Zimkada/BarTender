@@ -15,7 +15,7 @@
  */
 
 import { useState } from 'react';
-import { AlertTriangle, Plus, X } from 'lucide-react';
+import { AlertTriangle, Plus, X, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import type { DishRow, DishInput } from '../../services/supabase/dishes.service';
@@ -30,7 +30,19 @@ interface Props {
   dish?: DishRow;
   categories: DishCategoryOption[];
   isSaving: boolean;
-  onSave: (dish: DishInput) => void;
+  /**
+   * ⚠️ SECOND ARGUMENT OPTIONNEL (§19.5) : les formats de prix, envoyés dans
+   * un appel SÉPARÉ par le parent (`replace_dish_price_options`) car
+   * `upsert_dish` ne les connaît pas. Optionnel pour ne casser aucun appelant.
+   *
+   * ⭐ Tableau VIDE = « ce plat n'a plus de formats », instruction ACTIVE qui
+   * les retire tous. `undefined` = « ne touche pas aux formats ». La
+   * distinction compte : sans elle, décocher la case ne retirerait rien.
+   */
+  onSave: (
+    dish: DishInput,
+    priceOptions?: Array<{ label: string; price: number; sort_order: number }>
+  ) => void;
   onCancel: () => void;
   /**
    * ⭐ Création de catégorie EN LIGNE.
@@ -108,6 +120,53 @@ export function DishForm({
     dish?.portions_per_batch ? String(dish.portions_per_batch) : ''
   );
 
+  /**
+   * ⭐ §19.5 — FORMATS DE PRIX, désactivés par défaut.
+   *
+   * Répond au carton de poisson non trié : le même plat se vend 2 000 F avec
+   * un gros poisson et 1 000 F avec un petit. Mêmes ingrédients, même recette,
+   * même coût — seul le PRIX varie.
+   *
+   * ⚠️ REPLIÉ tant que le gérant ne l'active pas. Trois mécanismes optionnels
+   * qui s'empilent rendraient ce formulaire illisible : celui qui vend à prix
+   * fixe ne doit rien voir de plus qu'avant.
+   */
+  const [useFormats, setUseFormats] = useState(
+    (dish?.dish_price_options?.length ?? 0) > 1
+  );
+
+  /**
+   * ⚠️ Le prix reste du TEXTE tant qu'on saisit — leçon du 09/08 : convertir à
+   * chaque frappe détruit la saisie (taper « 15 » donne 1 puis 15, effacer
+   * réécrit 0) et `parseFloat('1,5')` vaut 1 sur un clavier français.
+   */
+  const [formats, setFormats] = useState<Array<{ label: string; price: string }>>(() => {
+    const existing = dish?.dish_price_options ?? [];
+    if (existing.length > 1) {
+      return existing.map((o) => ({ label: o.label, price: String(o.price) }));
+    }
+    // ⭐ Trois SUGGESTIONS, pas un référentiel : le gérant renomme, supprime,
+    // complète. Un poulet se vend « Entier / Demi », une boisson « 33 / 50cl ».
+    return [
+      { label: 'Grand', price: '' },
+      { label: 'Moyen', price: '' },
+      { label: 'Petit', price: '' },
+    ];
+  });
+
+  /** ⚠️ Accepte la virgule : clavier français. Miroir de `parseQty` (09/08). */
+  const parseAmount = (v: string): number => parseFloat(v.replace(',', '.'));
+
+  const activeFormats = useFormats
+    ? formats
+        .filter((f) => f.label.trim() && f.price.trim())
+        .map((f, i) => ({
+          label: f.label.trim(),
+          price: parseAmount(f.price),
+          sort_order: i,
+        }))
+    : [];
+
   const priceValue = parseFloat(price);
   const portionsValue = parseInt(portions, 10);
 
@@ -117,8 +176,32 @@ export function DishForm({
    */
   const validationError = (() => {
     if (!name.trim()) return 'Le nom du plat est obligatoire';
-    if (!price || Number.isNaN(priceValue) || priceValue < 0) {
+
+    /**
+     * ⭐ §19.5 — avec des formats, le prix du plat n'est plus demandé : il
+     * devient une valeur technique (`dishes.price` est NOT NULL) que
+     * `create_kitchen_order` ignore au profit du format choisi. Le remplir
+     * automatiquement évite de poser au gérant une question sans usage.
+     */
+    if (!useFormats && (!price || Number.isNaN(priceValue) || priceValue < 0)) {
       return 'Indiquez un prix de vente';
+    }
+
+    if (useFormats) {
+      // ⚠️ Miroir de la garde SQL : un choix unique n'est pas un choix, il
+      // impose une étape au serveur sans rien lui apprendre.
+      if (activeFormats.length < 2) {
+        return 'Indiquez au moins deux formats, avec leur nom et leur prix';
+      }
+      if (activeFormats.some((f) => Number.isNaN(f.price) || f.price < 0)) {
+        return 'Chaque format doit avoir un prix valide';
+      }
+      // ⚠️ Miroir du `lower(TRIM(...))` serveur : la contrainte UNIQUE est
+      // sensible à la casse, « Grand » et « grand » y passeraient tous deux.
+      const labels = activeFormats.map((f) => f.label.toLowerCase());
+      if (new Set(labels).size !== labels.length) {
+        return 'Deux formats portent le même nom';
+      }
     }
     // ⚠️ Miroir de `dishes_batch_portions_coherence` : sans rendement, le coût
     // d'une portion serait une division par NULL, donc silencieusement nul.
@@ -134,7 +217,15 @@ export function DishForm({
     onSave({
       id: dish?.id,
       name: name.trim(),
-      price: priceValue,
+      /**
+       * ⭐ §19.5 — avec des formats, `price` est rempli AUTOMATIQUEMENT avec
+       * le prix du premier format. La base l'exige (NOT NULL) mais plus rien
+       * ne le lit : les grilles affichent une fourchette, et la commande relit
+       * le prix du format choisi. Demander ce chiffre au gérant serait une
+       * question sans usage ; y mettre 0 ferait afficher « 0 F » partout où un
+       * écran non encore adapté lirait `dish.price`.
+       */
+      price: useFormats ? activeFormats[0].price : priceValue,
       category_id: categoryId || null,
       preparation_time_min: prepTime ? parseInt(prepTime, 10) : null,
       is_batch_base: preparedInAdvance,
@@ -148,7 +239,14 @@ export function DishForm({
        */
       is_sellable: preparedInAdvance ? sellable : true,
       is_available: dish?.is_available ?? true,
-    });
+    },
+    /**
+     * ⭐ TABLEAU VIDE quand la case est décochée, jamais `undefined` : c'est
+     * une instruction ACTIVE de retirer les formats existants. Passer
+     * `undefined` laisserait un plat afficher une fourchette après que le
+     * gérant a demandé un prix ferme.
+     */
+    activeFormats);
   };
 
   const inputClass =
@@ -171,20 +269,106 @@ export function DishForm({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor="dish-price" className="block text-sm font-medium mb-1.5">
-            Prix de vente
+        {/* ⭐ §19.5 — le champ prix DISPARAÎT quand les formats sont actifs :
+            le garder demanderait un chiffre que plus rien ne facture. */}
+        {!useFormats && (
+          <div>
+            <label htmlFor="dish-price" className="block text-sm font-medium mb-1.5">
+              Prix de vente
+            </label>
+            <input
+              id="dish-price"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className={inputClass}
+              placeholder="2500"
+            />
+          </div>
+        )}
+
+        {/* ⭐⭐ §19.5 — FORMATS DE PRIX, repliés par défaut.
+            Un gérant qui vend à prix fixe ne voit qu'une case décochée. */}
+        <div className="rounded-lg border border-border p-3">
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useFormats}
+              onChange={(e) => setUseFormats(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-brand"
+            />
+            <span className="min-w-0">
+              <span className="block text-sm font-medium">
+                Plusieurs prix selon la taille
+              </span>
+              <span className="block text-caption text-muted-foreground">
+                Pour un plat dont la taille varie d'une assiette à l'autre - un
+                poisson pris dans un carton, par exemple. Le serveur choisira le
+                format à la commande.
+              </span>
+            </span>
           </label>
-          <input
-            id="dish-price"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className={inputClass}
-            placeholder="2500"
-          />
+
+          {useFormats && (
+            <div className="mt-3 space-y-2">
+              {formats.map((f, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={f.label}
+                    onChange={(e) =>
+                      setFormats((cur) =>
+                        cur.map((x, j) => (j === i ? { ...x, label: e.target.value } : x))
+                      )
+                    }
+                    className={cn(inputClass, 'flex-1')}
+                    placeholder="Grand"
+                    aria-label={`Nom du format ${i + 1}`}
+                  />
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={f.price}
+                    onChange={(e) =>
+                      setFormats((cur) =>
+                        cur.map((x, j) => (j === i ? { ...x, price: e.target.value } : x))
+                      )
+                    }
+                    className={cn(inputClass, 'w-28')}
+                    placeholder="2000"
+                    aria-label={`Prix du format ${i + 1}`}
+                  />
+                  {/* ⚠️ Retrait possible jusqu'à DEUX lignes : en dessous, la
+                      validation refuse de toute façon. */}
+                  <button
+                    type="button"
+                    onClick={() => setFormats((cur) => cur.filter((_, j) => j !== i))}
+                    disabled={formats.length <= 2}
+                    className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                    aria-label={`Supprimer le format ${i + 1}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setFormats((cur) => [...cur, { label: '', price: '' }])}
+                className="text-caption text-brand-primary hover:underline"
+              >
+                + Ajouter un format
+              </button>
+
+              {/* ⚠️ Dit ce qui se passe AVANT que le gérant ne s'en étonne :
+                  un format retiré reste dans l'historique des ventes. */}
+              <p className="text-caption text-muted-foreground">
+                Un format retiré ne disparaît pas de vos ventes passées.
+              </p>
+            </div>
+          )}
         </div>
 
         <div>

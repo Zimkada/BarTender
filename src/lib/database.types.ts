@@ -1708,6 +1708,92 @@ export type Database = {
           },
         ]
       }
+      dish_price_options: {
+        Row: {
+          bar_id: string
+          created_at: string
+          dish_id: string
+          id: string
+          is_active: boolean
+          label: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          dish_id: string
+          id?: string
+          is_active?: boolean
+          label: string
+          price: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          dish_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dish_recipe_components: {
         Row: {
           bar_id: string
@@ -2956,6 +3042,7 @@ export type Database = {
           kitchen_order_id: string
           last_reminder_at: string | null
           modifiers: Json | null
+          price_option_id: string | null
           quantity: number
           ready_at: string | null
           ready_by: string | null
@@ -2983,6 +3070,7 @@ export type Database = {
           kitchen_order_id: string
           last_reminder_at?: string | null
           modifiers?: Json | null
+          price_option_id?: string | null
           quantity: number
           ready_at?: string | null
           ready_by?: string | null
@@ -3010,6 +3098,7 @@ export type Database = {
           kitchen_order_id?: string
           last_reminder_at?: string | null
           modifiers?: Json | null
+          price_option_id?: string | null
           quantity?: number
           ready_at?: string | null
           ready_by?: string | null
@@ -3096,6 +3185,13 @@ export type Database = {
             columns: ["kitchen_order_id"]
             isOneToOne: false
             referencedRelation: "kitchen_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_price_option_id_fkey"
+            columns: ["price_option_id"]
+            isOneToOne: false
+            referencedRelation: "dish_price_options"
             referencedColumns: ["id"]
           },
           {
@@ -7857,6 +7953,10 @@ export type Database = {
       }
       replace_dish_components: {
         Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
+        Returns: Json
+      }
+      replace_dish_price_options: {
+        Args: { p_bar_id: string; p_dish_id: string; p_options: Json }
         Returns: Json
       }
       replace_dish_recipe: {

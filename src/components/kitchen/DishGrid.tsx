@@ -24,6 +24,7 @@ import { UtensilsCrossed, Plus, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import type { DishRow } from '../../services/supabase/dishes.service';
+import { hasPriceOptions, formatPriceRange } from './priceOptionHelpers';
 
 interface Props {
   dishes: DishRow[];
@@ -85,8 +86,14 @@ const DishCard = memo<CardProps>(function DishCard({ dish, quantity, onAdd }) {
       </p>
 
       <div className="mt-1 flex items-baseline justify-between gap-1">
+        {/* ⭐ §19.5 — FOURCHETTE pour un plat à formats. Afficher `dish.price`
+            montrerait un prix que RIEN ne facture : pour ces plats, c'est une
+            valeur technique que la base exige (NOT NULL) mais que
+            `create_kitchen_order` ignore au profit du format choisi. */}
         <span className="text-sm font-semibold text-brand-primary">
-          {formatPrice(dish.price)}
+          {hasPriceOptions(dish.dish_price_options)
+            ? formatPriceRange(dish.dish_price_options, formatPrice)
+            : formatPrice(dish.price)}
         </span>
         {/* ⭐ Le DÉLAI est l'information la plus utile au serveur en salle :
             elle lui permet d'annoncer une attente au client au lieu de la

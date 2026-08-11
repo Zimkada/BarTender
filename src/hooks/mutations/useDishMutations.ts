@@ -299,11 +299,38 @@ export function useDishMutations() {
     },
   });
 
+  /**
+   * Formats de prix d'un plat — §19.5.
+   *
+   * ⚠️ APPEL SÉPARÉ de `upsertDish`, et non fusionné : `upsert_dish` ne connaît
+   * pas les formats, et les lui faire connaître aurait modifié une RPC utilisée
+   * par tous les plats pour un besoin qui ne concerne que certains.
+   *
+   * ⚠️ `meta.suppressGlobalError` : l'erreur est affichée par l'appelant, qui
+   * garde le formulaire ouvert pour que le gérant corrige au lieu de tout
+   * ressaisir. Même règle que `replaceComponents`.
+   */
+  const replacePriceOptions = useMutation({
+    meta: { suppressGlobalError: true },
+    mutationFn: async (input: {
+      dishId: string;
+      options: Array<{ label: string; price: number; sort_order: number }>;
+    }) => {
+      const barId = currentBar?.id;
+      if (!barId) throw new Error('Aucun bar sélectionné');
+      return DishesService.replacePriceOptions(barId, input.dishId, input.options);
+    },
+    // ⭐ Les formats sont chargés AVEC les plats (`getDishes`) : c'est la liste
+    // des plats qu'il faut rafraîchir, pas une clé dédiée.
+    onSettled: invalidateDishes,
+  });
+
   return {
     upsertDish,
     setDishActive,
     replaceRecipe,
     replaceComponents,
+    replacePriceOptions,
     createDishCategory,
     /** Exposé pour l'UI : traduire un mode dérivé en langage clair. */
     getProductionModeLabel: (mode: DishProductionMode) => PRODUCTION_MODE_LABELS[mode],

@@ -34,12 +34,42 @@ export type DishProductionMode = 'on_order' | 'batch' | 'batch_finish';
 /** §16.8 — à quel moment l'ingrédient est consommé dans un régime batch_finish. */
 export type ConsumedAtStage = 'batch' | 'finish';
 
+/**
+ * Format de prix d'un plat — §19.5.
+ *
+ * ⭐ RÉPOND AU CARTON DE POISSON NON TRIÉ : le même plat se vend 2 000 F avec
+ * un gros poisson et 1 000 F avec un petit. Mêmes ingrédients, même recette,
+ * même coût matière (le CUMP du carton) — seul le PRIX varie.
+ *
+ * ⛔ Le serveur CHOISIT un format, il ne saisit jamais un montant. C'est la
+ * différence entre un prix libre — le levier de fraude le plus direct d'un
+ * POS — et une sélection dans une liste que le gérant a fermée.
+ */
+export interface DishPriceOptionRow {
+  id: string;
+  label: string;
+  price: number;
+  sort_order: number;
+  is_active: boolean;
+}
+
 export interface DishRow {
   id: string;
   bar_id: string;
   name: string;
   category_id: string | null;
+  /**
+   * ⚠️ TOUJOURS RENSEIGNÉ (NOT NULL en base), mais IGNORÉ quand le plat a des
+   * formats : c'est alors une valeur technique que plus rien ne lit. L'UI la
+   * remplit avec le prix du premier format plutôt que de poser au gérant une
+   * question sans usage.
+   */
   price: number;
+  /**
+   * ⭐ Formats ACTIFS, triés par `sort_order` puis prix décroissant.
+   * Tableau VIDE = plat à prix ferme, comportement d'origine inchangé.
+   */
+  dish_price_options?: DishPriceOptionRow[];
   production_mode: DishProductionMode;
   preparation_time_min: number | null;
   /** `true` = ce plat PRODUIT un lot (riz cuit, poulet bouilli). */
@@ -149,6 +179,14 @@ interface ReplaceRecipeResult extends RpcEnvelope {
   duplicate_ingredients?: string[];
   /** Présent uniquement en cas d'échec sur isolation. */
   invalid_ingredient_ids?: string[];
+}
+
+/** §19.5 — résultat du remplacement des formats de prix. */
+interface ReplacePriceOptionsResult extends RpcEnvelope {
+  dish_id: string;
+  options_count: number;
+  /** Formats devenus inactifs faute d'être dans la liste envoyée. */
+  retired_count: number;
 }
 
 interface ReplaceComponentsResult extends RpcEnvelope {
@@ -324,9 +362,22 @@ export class DishesService {
    */
   static async getDishes(barId: string, includeRetired = false): Promise<DishRow[]> {
     try {
+      /**
+       * ⭐ §19.5 — LES FORMATS SONT CHARGÉS AVEC LE PLAT, en une seule requête.
+       *
+       * La grille de vente doit savoir SI un plat a des formats pour afficher
+       * une fourchette (« 1 000 - 2 000 F ») au lieu d'un prix unique, et pour
+       * ouvrir le choix au clic. Une seconde requête par plat serait un N+1 sur
+       * l'écran le plus sollicité du service.
+       *
+       * ⚠️ `dish_price_options(...)` sans `!inner` : un plat SANS format doit
+       * remonter quand même. Un `!inner` les ferait tous disparaître de la
+       * carte - exactement le défaut que `includeRetired` a corrigé le 09/08,
+       * un filtre trop strict posé à la source.
+       */
       let query = supabase
         .from('dishes')
-        .select('*')
+        .select('*, dish_price_options(id, label, price, sort_order, is_active)')
         .eq('bar_id', barId);
 
       // ⚠️ Le défaut reste ACTIFS : tous les appelants existants (grille de
@@ -336,7 +387,25 @@ export class DishesService {
       const { data, error } = await query.order('name');
 
       if (error) throw error;
-      return (data ?? []) as DishRow[];
+
+      /**
+       * ⛔ LE FILTRE DES FORMATS RETIRÉS SE FAIT ICI, PAS DANS LA REQUÊTE.
+       *
+       * PostgREST n'applique pas un filtre de table imbriquée comme on
+       * l'attend : `.eq('dish_price_options.is_active', true)` exclurait les
+       * PLATS dont aucun format n'est actif, au lieu de filtrer les formats.
+       * Un plat dont tous les formats sont retirés doit rester à la carte,
+       * avec son `price` — il redevient simplement un plat à prix ferme.
+       */
+      return (data ?? []).map((row) => {
+        const d = row as DishRow & { dish_price_options?: DishPriceOptionRow[] };
+        return {
+          ...d,
+          dish_price_options: (d.dish_price_options ?? [])
+            .filter((o) => o.is_active)
+            .sort((a, b) => a.sort_order - b.sort_order || b.price - a.price),
+        };
+      }) as DishRow[];
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
@@ -570,6 +639,45 @@ export class DishesService {
 
       if (error) throw error;
       return unwrapRpc<ReplaceComponentsResult>(data, 'Enregistrement de la composition');
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Remplace les formats de prix d'un plat — §19.5.
+   *
+   * ⭐ On envoie la LISTE COMPLÈTE, la RPC réconcilie par libellé. C'est le
+   * geste réel de l'écran d'édition, où l'on voit et modifie tous les formats
+   * d'un coup.
+   *
+   * ⚠️ LISTE VIDE = retour au prix ferme : tous les formats sont RETIRÉS
+   * (jamais supprimés, ils sont référencés par les commandes passées) et le
+   * plat retombe sur `dishes.price`.
+   *
+   * ⚠️ UN SEUL format est REFUSÉ par la base : un choix unique n'est pas un
+   * choix, il impose une étape au serveur sans rien lui apprendre.
+   *
+   * ⚠️ Pas d'`id` dans les lignes : la réconciliation se fait par LIBELLÉ.
+   * Renommer un format crée donc un nouveau format et retire l'ancien —
+   * l'historique reste attaché au nom sous lequel les plats ont été vendus.
+   */
+  static async replacePriceOptions(
+    barId: string,
+    dishId: string,
+    options: Array<{ label: string; price: number; sort_order?: number }>
+  ): Promise<ReplacePriceOptionsResult> {
+    assertNetworkAvailable('enregistrer les formats de prix');
+
+    try {
+      const { data, error } = await supabase.rpc('replace_dish_price_options', {
+        p_bar_id: barId,
+        p_dish_id: dishId,
+        p_options: options as unknown as Json,
+      });
+
+      if (error) throw error;
+      return unwrapRpc<ReplacePriceOptionsResult>(data, 'Enregistrement des formats');
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }

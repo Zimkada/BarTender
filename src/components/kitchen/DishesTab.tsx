@@ -48,6 +48,7 @@ import type {
 } from '../../services/supabase/dishes.service';
 import type { IngredientWithAlerts } from '../../hooks/pivots/useUnifiedKitchen';
 import type { IngredientInput } from '../../services/supabase/ingredients.service';
+import { hasPriceOptions, formatPriceRange } from './priceOptionHelpers';
 
 interface DishCategoryOption {
   id: string;
@@ -70,7 +71,7 @@ type ModalMode =
 
 export function DishesTab({ barId, dishes, ingredients, categories, isLoading }: Props) {
   const { formatPrice } = useCurrencyFormatter();
-  const { upsertDish, replaceRecipe, replaceComponents, createDishCategory, setDishActive, getProductionModeLabel } =
+  const { upsertDish, replaceRecipe, replaceComponents, replacePriceOptions, createDishCategory, setDishActive, getProductionModeLabel } =
     useDishMutations();
   const { upsertIngredient } = useIngredientMutations();
 
@@ -215,9 +216,43 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
     });
   };
 
-  const handleSaveDish = (dish: DishInput) => {
+  /**
+   * ⭐ §19.5 — DEUX APPELS ENCHAÎNÉS, et l'ordre n'est pas négociable.
+   *
+   * `replace_dish_price_options` a besoin du `dish_id`, que la CRÉATION ne
+   * connaît qu'après l'`upsert`. On enchaîne donc dans `onSuccess`, en prenant
+   * l'id RETOURNÉ par le serveur plutôt que celui du formulaire — en création
+   * ce dernier est `undefined`.
+   *
+   * ⚠️ LA MODALE NE SE FERME QU'APRÈS LES DEUX. Si les formats échouent, elle
+   * reste ouverte avec la saisie intacte : le plat existe déjà, mais ses
+   * formats non - fermer laisserait le gérant croire que tout est enregistré,
+   * et son poisson se vendrait au prix technique.
+   *
+   * ⚠️ `priceOptions` VIDE est une instruction ACTIVE (retirer tous les
+   * formats), `undefined` signifie « ne pas y toucher ». On teste donc la
+   * présence du tableau, jamais sa longueur.
+   */
+  const handleSaveDish = (
+    dish: DishInput,
+    priceOptions?: Array<{ label: string; price: number; sort_order: number }>
+  ) => {
     upsertDish.mutate(dish, {
-      onSuccess: () => setModal({ kind: 'none' }),
+      onSuccess: (saved) => {
+        if (!priceOptions) {
+          setModal({ kind: 'none' });
+          return;
+        }
+
+        replacePriceOptions.mutate(
+          { dishId: saved.id, options: priceOptions },
+          {
+            onSuccess: () => setModal({ kind: 'none' }),
+            // ⚠️ Modale laissée OUVERTE : le message d'erreur vient de la
+            // mutation, le gérant corrige ses formats sans tout ressaisir.
+          }
+        );
+      },
     });
   };
 
@@ -325,7 +360,11 @@ export function DishesTab({ barId, dishes, ingredients, categories, isLoading }:
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{dish.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatPrice(dish.price)}
+                    {/* ⭐ §19.5 — fourchette si le plat a des formats : son
+                        `price` n'est alors qu'une valeur technique. */}
+                    {hasPriceOptions(dish.dish_price_options)
+                      ? formatPriceRange(dish.dish_price_options, formatPrice)
+                      : formatPrice(dish.price)}
                     {' • '}
                     {getProductionModeLabel(dish.production_mode)}
                     {dish.preparation_time_min ? ` • ${dish.preparation_time_min} min` : ''}
