@@ -51,6 +51,16 @@ export interface DishPriceOptionRow {
   price: number;
   sort_order: number;
   is_active: boolean;
+  /**
+   * ⭐ §19.6 — taille d'ingrédient que ce format consomme, `null` s'il n'est
+   * pas suivi. C'est ce lien qui permet le rapprochement carton ↔ ventes.
+   *
+   * ⚠️ APLATI depuis `price_option_sizes` : PostgREST retourne un TABLEAU
+   * pour une relation, même quand une contrainte UNIQUE garantit au plus une
+   * ligne. Laisser le tableau obligerait chaque appelant à faire `[0]?.` et
+   * à connaître cette subtilité.
+   */
+  size_id?: string | null;
 }
 
 export interface DishRow {
@@ -377,7 +387,12 @@ export class DishesService {
        */
       let query = supabase
         .from('dishes')
-        .select('*, dish_price_options(id, label, price, sort_order, is_active)')
+        .select(
+          `*, dish_price_options(
+            id, label, price, sort_order, is_active,
+            price_option_sizes(size_id)
+          )`
+        )
         .eq('bar_id', barId);
 
       // ⚠️ Le défaut reste ACTIFS : tous les appelants existants (grille de
@@ -403,7 +418,25 @@ export class DishesService {
           ...d,
           dish_price_options: (d.dish_price_options ?? [])
             .filter((o) => o.is_active)
-            .sort((a, b) => a.sort_order - b.sort_order || b.price - a.price),
+            .sort((a, b) => a.sort_order - b.sort_order || b.price - a.price)
+            /**
+             * ⭐ §19.6 — APLATIT la relation `price_option_sizes`.
+             *
+             * ⚠️ PostgREST retourne un TABLEAU pour toute relation, même
+             * quand une contrainte UNIQUE (`pos_unique_per_option`) garantit
+             * au plus une ligne. Sans cet aplatissement, chaque appelant
+             * devrait écrire `[0]?.size_id` et connaître cette subtilité —
+             * et le premier qui l'oublierait lirait `undefined` en silence.
+             */
+            .map((o) => {
+              const withRel = o as typeof o & {
+                price_option_sizes?: Array<{ size_id: string }>;
+              };
+              return {
+                ...o,
+                size_id: withRel.price_option_sizes?.[0]?.size_id ?? null,
+              };
+            }),
         };
       }) as DishRow[];
     } catch (error) {

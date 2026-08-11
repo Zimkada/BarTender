@@ -25,7 +25,12 @@ import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
 import { IngredientSizesEditor } from '../components/kitchen/IngredientSizesEditor';
 import { SizeReconciliationPanel } from '../components/kitchen/SizeReconciliationPanel';
-import { useSizeReconciliation } from '../hooks/queries/useIngredientsQueries';
+import {
+  useSizeReconciliation,
+  useAllIngredientSizes,
+} from '../hooks/queries/useIngredientsQueries';
+import { useDishes } from '../hooks/queries/useDishesQueries';
+import { PriceOptionSizeLinker } from '../components/kitchen/PriceOptionSizeLinker';
 import { IngredientForm } from '../components/kitchen/IngredientForm';
 import { IngredientLossFormLoader } from '../components/kitchen/IngredientLossForm';
 import { useBarContext } from '../context/BarContext';
@@ -164,6 +169,18 @@ export default function IngredientsPage() {
     start.setDate(start.getDate() - controlDays);
     return { start: dateToYYYYMMDD(start), end: dateToYYYYMMDD(end) };
   }, [controlDays]);
+
+  /**
+   * ⚠️ Plats et tailles chargés SEULEMENT sur l'onglet Contrôle : ce sont
+   * deux requêtes qui n'ont aucune raison de partir depuis l'écran Stock.
+   */
+  const { data: dishes = [] } = useDishes(
+    activeTab === 'control' ? currentBar?.id : undefined
+  );
+  const { data: allSizes = [] } = useAllIngredientSizes(
+    currentBar?.id,
+    activeTab === 'control'
+  );
 
   const { data: reconciliation = [], isLoading: isLoadingReconciliation } =
     useSizeReconciliation(
@@ -363,6 +380,16 @@ export default function IngredientsPage() {
                   {w.label}
                 </button>
               ))}
+            </div>
+
+            {/*
+              ⭐ §19.6 — L'ASSOCIATION AU-DESSUS DU RAPPROCHEMENT, et dans cet
+              ordre : c'est elle qui le rend possible. Un gérant qui voit
+              « aucun mouvement » trouve juste au-dessus ce qui lui manque.
+              ⚠️ Le composant se masque LUI-MÊME sans formats ni tailles.
+            */}
+            <div className="mb-4">
+              <PriceOptionSizeLinker dishes={dishes} sizes={allSizes} />
             </div>
 
             <SizeReconciliationPanel

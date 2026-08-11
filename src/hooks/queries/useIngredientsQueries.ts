@@ -45,6 +45,8 @@ export const ingredientKeys = {
   /** §19.6 — tailles déclarées d'un ingrédient (Grand / Moyen / Petit…). */
   sizes: (barId: string, ingredientId: string) =>
     [...ingredientKeys.all, 'sizes', barId, ingredientId] as const,
+  /** §19.6 — TOUTES les tailles du bar, pour l'écran d'association. */
+  allSizes: (barId: string) => [...ingredientKeys.all, 'all-sizes', barId] as const,
   /** §19.6 — comptage par taille d'un lot reçu. */
   lotCounts: (barId: string, lotId: string) =>
     [...ingredientKeys.all, 'lot-counts', barId, lotId] as const,
@@ -170,6 +172,28 @@ export function useLotCounts(barId: string | undefined, lotId: string | undefine
     queryFn: () => IngredientsService.getLotCounts(barId as string, lotId as string),
     enabled: !!barId && !!lotId && hasRestaurant,
     ...CACHE_STRATEGY.salesAndStock,
+  });
+}
+
+/**
+ * TOUTES les tailles actives du bar — §19.6.
+ *
+ * ⭐ UN appel, pas un par ingrédient : l'écran d'association les liste toutes
+ * dans un sélecteur. Une query par ingrédient serait un N+1.
+ *
+ * ⚠️ Même garde que le rapprochement (`canViewKitchenCosts`) : ces deux blocs
+ * vivent sur le même onglet et servent le même contrôle.
+ */
+export function useAllIngredientSizes(barId: string | undefined, enabled = true) {
+  const { hasRestaurant } = useBarContext();
+  const { hasPermission } = useAuth();
+
+  return useQuery<Array<IngredientSizeRow & { ingredient_name: string }>>({
+    queryKey: ingredientKeys.allSizes(barId ?? ''),
+    queryFn: () => IngredientsService.getAllSizes(barId as string),
+    enabled:
+      !!barId && hasRestaurant && hasPermission('canViewKitchenCosts') && enabled,
+    ...CACHE_STRATEGY.products,
   });
 }
 

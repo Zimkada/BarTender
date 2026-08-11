@@ -676,6 +676,42 @@ export class IngredientsService {
   // rien (le carton entre à son prix global, chaque unité porte le CUMP) — il
   // sert au CONTRÔLE A POSTERIORI, exactement comme son cahier.
 
+  /**
+   * TOUTES les tailles actives du bar, avec le nom de leur ingrédient.
+   *
+   * ⭐ UN appel, pas un par ingrédient : l'écran d'association liste les
+   * tailles de tout le bar dans un sélecteur. Une query par ingrédient serait
+   * un N+1 sur un écran de configuration.
+   */
+  static async getAllSizes(
+    barId: string
+  ): Promise<Array<IngredientSizeRow & { ingredient_name: string }>> {
+    try {
+      const { data, error } = await supabase
+        .from('ingredient_sizes')
+        .select('id, ingredient_id, label, sort_order, is_active, ingredients!inner(name)')
+        .eq('bar_id', barId)
+        .eq('is_active', true)
+        .order('sort_order');
+
+      if (error) throw error;
+
+      type Row = IngredientSizeRow & { ingredients: { name: string } | null };
+      return ((data ?? []) as unknown as Row[]).map((r) => ({
+        id: r.id,
+        ingredient_id: r.ingredient_id,
+        label: r.label,
+        sort_order: r.sort_order,
+        is_active: r.is_active,
+        // ⚠️ Repli : `!inner` garantit la jointure, mais un ingrédient sans nom
+        // afficherait une option vide dans le sélecteur.
+        ingredient_name: r.ingredients?.name ?? 'Ingrédient',
+      }));
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
   /** Tailles ACTIVES d'un ingrédient, triées. */
   static async getSizes(barId: string, ingredientId: string): Promise<IngredientSizeRow[]> {
     try {
