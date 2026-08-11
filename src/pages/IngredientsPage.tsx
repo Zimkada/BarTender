@@ -15,7 +15,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil, Trash2, X } from 'lucide-react';
+import { Package, AlertTriangle, Clock, Plus, TrendingDown, ChefHat, Pencil, Trash2, X, Scale } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { TabbedPageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
@@ -23,6 +23,9 @@ import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { SupplyForm, type SupplyFormValues } from '../components/kitchen/SupplyForm';
+import { IngredientSizesEditor } from '../components/kitchen/IngredientSizesEditor';
+import { SizeReconciliationPanel } from '../components/kitchen/SizeReconciliationPanel';
+import { useSizeReconciliation } from '../hooks/queries/useIngredientsQueries';
 import { IngredientForm } from '../components/kitchen/IngredientForm';
 import { IngredientLossFormLoader } from '../components/kitchen/IngredientLossForm';
 import { useBarContext } from '../context/BarContext';
@@ -31,6 +34,7 @@ import { useUnifiedKitchen, type IngredientWithAlerts } from '../hooks/pivots/us
 import { useIngredientMutations } from '../hooks/mutations/useIngredientMutations';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { cn } from '../lib/utils';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 /**
  * ⭐ DÉCOUPAGE DU 03/08/2026 — « Plats » est sorti d'ici pour devenir sa propre
@@ -44,7 +48,7 @@ import { cn } from '../lib/utils';
  * Un onglet masqué reste acceptable ; c'est toute une PAGE à onglets
  * conditionnels qui devenait ingérable.
  */
-type TabId = 'stock' | 'expiring' | 'supply';
+type TabId = 'stock' | 'expiring' | 'supply' | 'control';
 
 /**
  * Fenêtre d'alerte de péremption, en jours.
@@ -55,6 +59,20 @@ type TabId = 'stock' | 'expiring' | 'supply';
  * listant les lots de 7.
  */
 const EXPIRY_WINDOW_DAYS = 3;
+
+/**
+ * ⭐ §19.6 — fenêtres du rapprochement.
+ *
+ * ⚠️ Aucune option « aujourd'hui » : sur une seule journée, un carton reçu la
+ * veille et vendu le jour même produit un écart négatif qui n'est qu'un
+ * artefact de découpage. Proposer ce choix inviterait à conclure au vol sur
+ * un chiffre que le mécanisme ne peut pas garantir.
+ */
+const CONTROL_WINDOWS = [
+  { days: 7, label: '7 jours', periodLabel: 'sur les 7 derniers jours' },
+  { days: 30, label: '30 jours', periodLabel: 'sur les 30 derniers jours' },
+  { days: 90, label: '3 mois', periodLabel: 'sur les 3 derniers mois' },
+] as const;
 
 /**
  * Formate une date SQL (`YYYY-MM-DD`) en date française.
@@ -107,6 +125,15 @@ export default function IngredientsPage() {
   const [preselectedIngredient, setPreselectedIngredient] = useState<string | undefined>();
   /** Incrémenté après un enregistrement confirmé → nouvelle clé d'idempotence. */
   const [resetSignal, setResetSignal] = useState(0);
+  /**
+   * ⭐ §19.6 — fenêtre du rapprochement, en jours glissants.
+   *
+   * ⚠️ 7 jours par DÉFAUT et non 1 : sur une journée, un carton reçu la
+   * veille et vendu aujourd'hui produit un écart négatif ALARMANT qui n'est
+   * qu'un artefact de découpage. Le défaut doit être la fenêtre où le
+   * chiffre est le plus fiable, pas la plus courte.
+   */
+  const [controlDays, setControlDays] = useState(7);
   /** Formulaire d'ingrédient : création, ou édition d'un existant. */
   const [editingIngredient, setEditingIngredient] = useState<
     { mode: 'create' } | { mode: 'edit'; ingredient: IngredientWithAlerts } | null
@@ -123,6 +150,28 @@ export default function IngredientsPage() {
 
   const { receiveSupply, upsertIngredient, recordLotLoss, setIngredientActive } =
     useIngredientMutations();
+
+  /**
+   * ⭐ §19.6 — rapprochement reçus ↔ vendus.
+   *
+   * ⚠️ `enabled` sur l'onglet ACTIF : cet écran est consulté ponctuellement,
+   * la requête ne doit pas partir tant qu'il n'est pas ouvert. La query porte
+   * en plus ses propres gardes (§3 + `canViewKitchenCosts`).
+   */
+  const controlRange = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - controlDays);
+    return { start: dateToYYYYMMDD(start), end: dateToYYYYMMDD(end) };
+  }, [controlDays]);
+
+  const { data: reconciliation = [], isLoading: isLoadingReconciliation } =
+    useSizeReconciliation(
+      currentBar?.id,
+      controlRange.start,
+      controlRange.end,
+      activeTab === 'control'
+    );
 
   const openSupply = (ingredientId?: string) => {
     setPreselectedIngredient(ingredientId);
@@ -178,6 +227,19 @@ export default function IngredientsPage() {
       // atteignable au clavier et présent dans le DOM.
       ...(canViewCosts
         ? [{ id: 'supply', label: 'Appro', icon: Plus }]
+        : []),
+      /**
+       * ⭐ §19.6 — CONTRÔLE : ce qui a été reçu face à ce qui a été vendu,
+       * par taille. Le contrôle que le restaurateur fait déjà au cahier.
+       *
+       * ⛔ MÊME GARDE QUE L'APPRO, et pour une raison plus forte : cet écran
+       * sert à repérer un serveur qui facture du grand en servant du moyen.
+       * Le montrer à celui qu'il surveille le viderait de son sens.
+       * ⚠️ La query porte la MÊME permission — la garde est RÉSEAU, pas
+       * seulement visuelle : un onglet masqué en CSS resterait atteignable.
+       */
+      ...(canViewCosts
+        ? [{ id: 'control', label: 'Contrôle', icon: Scale }]
         : []),
     ],
     [expiringLots.length, canViewCosts]
@@ -274,7 +336,46 @@ export default function IngredientsPage() {
           </div>
         )}
 
-        {isLoading && activeTab !== 'supply' && (
+        {/* ===== §19.6 — Onglet Contrôle ===== */}
+        {activeTab === 'control' && canViewCosts && (
+          <div className="rounded-xl border border-border bg-card p-4">
+            {/*
+              ⚠️ SÉLECTEUR EN JOURS GLISSANTS, pas de dates calendaires.
+              Le rapprochement se fait PAR PÉRIODE : un carton reçu la veille
+              et vendu le lendemain apparaît dans deux périodes. Élargir la
+              fenêtre est le premier réflexe à avoir devant un écart — le
+              sélecteur doit donc rendre ce geste immédiat.
+            */}
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <span className="text-caption text-muted-foreground">Afficher</span>
+              {CONTROL_WINDOWS.map((w) => (
+                <button
+                  key={w.days}
+                  type="button"
+                  onClick={() => setControlDays(w.days)}
+                  className={cn(
+                    'rounded-lg border px-3 py-1.5 text-caption transition-colors',
+                    controlDays === w.days
+                      ? 'border-brand-primary bg-brand-subtle font-medium text-brand-primary'
+                      : 'border-border hover:bg-muted'
+                  )}
+                >
+                  {w.label}
+                </button>
+              ))}
+            </div>
+
+            <SizeReconciliationPanel
+              rows={reconciliation}
+              isLoading={isLoadingReconciliation}
+              periodLabel={
+                CONTROL_WINDOWS.find((w) => w.days === controlDays)?.periodLabel ?? ''
+              }
+            />
+          </div>
+        )}
+
+        {isLoading && activeTab !== 'supply' && activeTab !== 'control' && (
           <p className="text-center text-muted-foreground py-8">Chargement…</p>
         )}
 
@@ -596,6 +697,27 @@ export default function IngredientsPage() {
             onSave={handleSaveIngredient}
             onCancel={() => setEditingIngredient(null)}
           />
+        )}
+
+        {/*
+          ⭐ §19.6 — TAILLES, sous le formulaire et non dedans.
+          Elles passent par une RPC DISTINCTE de `upsert_ingredient` : les
+          fondre dans le formulaire ferait croire à un seul enregistrement,
+          alors que deux appels indépendants ont lieu.
+
+          ⚠️ EN MODIFICATION SEULEMENT : la RPC exige un ingrédient EXISTANT.
+          Le composant se masque LUI-MÊME sans `ingredientId` — la condition
+          ici ne porte que sur le mode, pour ne pas dépendre de deux gardes
+          qui pourraient diverger.
+        */}
+        {editingIngredient?.mode === 'edit' && (
+          <div className="mt-4">
+            <IngredientSizesEditor
+              barId={currentBar?.id}
+              ingredientId={editingIngredient.ingredient.id}
+              ingredientName={editingIngredient.ingredient.name}
+            />
+          </div>
         )}
       </Modal>
     </div>
