@@ -323,6 +323,23 @@ export function useDishMutations() {
     // ⭐ Les formats sont chargés AVEC les plats (`getDishes`) : c'est la liste
     // des plats qu'il faut rafraîchir, pas une clé dédiée.
     onSettled: invalidateDishes,
+    /**
+     * ⛔⛔ SANS CE HANDLER, L'ÉCHEC ÉTAIT SILENCIEUX - défaut trouvé à la code
+     * review. `suppressGlobalError` coupe le toast générique, et rien ne le
+     * remplaçait : la modale restait ouverte SANS message, le gérant sans
+     * savoir pourquoi son enregistrement ne se terminait pas.
+     *
+     * ⚠️ C'est le pire cas de ce chantier : le PLAT est déjà créé à cet
+     * instant (premier appel réussi), seuls ses formats manquent. Un gérant
+     * qui abandonne croirait son poisson configuré, et il se vendrait au prix
+     * technique - un chiffre que personne n'a choisi.
+     */
+    onError: (error) => {
+      const msg = getErrorMessage(error);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(`Plat enregistré, mais ses formats n'ont pas pu l'être : ${msg}`);
+      });
+    },
   });
 
   return {
