@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
@@ -13,6 +13,10 @@ import { useCategoryManagement } from '../hooks/useCategoryManagement';
 import { useStock } from '../context/hooks/useStock';
 import { ProductGridSkeleton } from '../components/skeletons';
 import { DishGrid } from '../components/kitchen/DishGrid';
+import { PriceOptionPicker } from '../components/kitchen/PriceOptionPicker';
+import { hasPriceOptions } from '../components/kitchen/priceOptionHelpers';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import type { DishRow } from '../services/supabase/dishes.service';
 import {
   CatalogScopeSwitcher,
   type CatalogScope,
@@ -21,7 +25,25 @@ import { useDishes, useDishCategories } from '../hooks/queries/useDishesQueries'
 
 export default function HomePage() {
   const { addToCart, cart, addDish, kitchenQuantities } = useAppContext();
+
+  /**
+   * ⭐ §19.5 — le plat dont on attend le choix du format.
+   *
+   * Un plat SANS format entre directement au panier : le mécanisme est
+   * invisible pour les bars qui vendent à prix fixe, et n'ajoute aucune étape
+   * au geste le plus fréquent du service.
+   */
+  const [dishAwaitingFormat, setDishAwaitingFormat] = useState<DishRow | null>(null);
+
+  const handleAddDish = useCallback((dish: DishRow) => {
+    if (hasPriceOptions(dish.dish_price_options)) {
+      setDishAwaitingFormat(dish);
+      return;
+    }
+    addDish(dish);
+  }, [addDish]);
   const { currentBar, hasRestaurant } = useBarContext();
+  const { formatPrice } = useCurrencyFormatter();
 
   const { products, categories, getProductStockInfo, isLoading } = useStock();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -380,7 +402,7 @@ export default function HomePage() {
             )}
             <DishGrid
               dishes={filteredDishes}
-              onAddDish={addDish}
+              onAddDish={handleAddDish}
               quantities={kitchenQuantities}
               isLoading={isLoadingDishes}
               categoryName={
@@ -392,6 +414,20 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* ⭐ §19.5 — choix du format, uniquement pour un plat qui en a.
+          Un bar qui vend à prix fixe ne rend jamais ce composant. */}
+      {dishAwaitingFormat && (
+        <PriceOptionPicker
+          dish={dishAwaitingFormat}
+          formatPrice={formatPrice}
+          onCancel={() => setDishAwaitingFormat(null)}
+          onPick={(option) => {
+            addDish(dishAwaitingFormat, option);
+            setDishAwaitingFormat(null);
+          }}
+        />
+      )}
 
       {/* Category Modal for Add/Edit */}
       <CategoryModal

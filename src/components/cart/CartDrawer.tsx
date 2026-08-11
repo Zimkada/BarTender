@@ -54,8 +54,9 @@ interface CartDrawerProps {
      * code review du 04/08/2026 — le pire profil, celui qu'on ne diagnostique
      * jamais.
      */
-    onUpdateKitchenQuantity?: (dishId: string, quantity: number) => void;
-    onRemoveDish?: (dishId: string) => void;
+    onUpdateKitchenQuantity?: (lineKey: string, quantity: number) => void;
+    /** ⚠️ §19.5 — CLE DE LIGNE, pas un `dishId` (plusieurs formats par plat). */
+    onRemoveDish?: (lineKey: string) => void;
     /** ⚠️ INDICATIF : ces plats ne sont pas encore vendus (§6). */
     kitchenTotal?: number;
 }

@@ -11,7 +11,7 @@ import {
   CartItem,
 } from '../types';
 import type { KitchenCartItem } from '../hooks/useKitchenCart';
-import type { DishRow } from '../services/supabase/dishes.service';
+import type { DishRow, DishPriceOptionRow } from '../services/supabase/dishes.service';
 
 export interface AppContextType {
   // L'ÉTAT DES DONNÉES EST MAINTENANT GÉRÉ PAR LES SMART HOOKS (useUnifiedSales, etc.)
@@ -39,11 +39,20 @@ export interface AppContextType {
    * du §3 est structurelle, pas conditionnelle.
    */
   kitchenItems: KitchenCartItem[];
-  addDish: (dish: DishRow) => void;
-  updateKitchenQuantity: (dishId: string, quantity: number) => void;
-  removeDish: (dishId: string) => void;
-  setDishModifiers: (dishId: string, modifiers: string[]) => void;
+  /** ⭐ §19.5 — `priceOption` absent pour un plat à prix ferme. */
+  addDish: (dish: DishRow, priceOption?: DishPriceOptionRow) => void;
+  /**
+   * ⚠️ §19.5 — ces trois fonctions prennent la CLÉ DE LIGNE, pas un `dishId` :
+   * un même plat peut occuper plusieurs lignes (un Grand et un Petit), et agir
+   * par `dishId` toucherait les deux. Utiliser `kitchenLineKey` pour la
+   * construire — jamais la concaténer à la main.
+   */
+  updateKitchenQuantity: (lineKey: string, quantity: number) => void;
+  removeDish: (lineKey: string) => void;
+  setDishModifiers: (lineKey: string, modifiers: string[]) => void;
   clearKitchenCart: () => void;
+  /** ⭐ §19.5 — construit la clé d'une ligne du panier cuisine. */
+  kitchenLineKey: (dishId: string, priceOptionId?: string) => string;
   /** Quantités par `dish_id` — alimente les pastilles de `DishGrid`. */
   kitchenQuantities: Record<string, number>;
   /** ⚠️ INDICATIF : ces plats ne sont pas encore vendus (§6). */

@@ -411,6 +411,17 @@ export interface KitchenOrderLineInput {
   dish_id: string;
   quantity: number;
   modifiers?: Json;
+  /**
+   * ⭐ §19.5 — format choisi, `undefined` pour un plat à prix ferme.
+   *
+   * ⛔ UN IDENTIFIANT, JAMAIS UN PRIX. `create_kitchen_order` relit le montant
+   * en base : un serveur ne peut que DÉSIGNER un format créé par le gérant,
+   * pas en fabriquer un. C'est la garantie anti-fraude d'origine, préservée.
+   *
+   * ⚠️ La RPC REFUSE la commande si le plat a des formats actifs et que ce
+   * champ est absent — pas de repli silencieux sur `dishes.price`.
+   */
+  price_option_id?: string;
 }
 
 // ===== HELPERS =====

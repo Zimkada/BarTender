@@ -213,6 +213,18 @@ export function Cart({
             dish_id: i.dish.id,
             quantity: i.quantity,
             modifiers: i.modifiers && i.modifiers.length > 0 ? i.modifiers : undefined,
+            /**
+             * ⭐⭐ §19.5 — ON ENVOIE L'IDENTIFIANT, JAMAIS LE PRIX.
+             *
+             * `create_kitchen_order` relit le montant en base à partir de cet
+             * id. C'est la garantie anti-fraude d'origine, préservée : un
+             * serveur ne peut que DÉSIGNER un format que le gérant a créé, il
+             * ne peut pas en fabriquer le prix.
+             *
+             * ⚠️ `undefined` pour un plat à prix ferme — le serveur retombe
+             * alors sur `dishes.price`, exactement comme avant.
+             */
+            price_option_id: i.priceOption?.id,
           })),
         });
 

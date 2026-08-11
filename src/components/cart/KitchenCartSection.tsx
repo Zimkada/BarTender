@@ -20,12 +20,16 @@
 
 import { Minus, Plus, Trash2, UtensilsCrossed, Clock } from 'lucide-react';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
-import type { KitchenCartItem } from '../../hooks/useKitchenCart';
+import { lineKey, type KitchenCartItem } from '../../hooks/useKitchenCart';
 
 interface Props {
   items: KitchenCartItem[];
-  onUpdateQuantity: (dishId: string, quantity: number) => void;
-  onRemove: (dishId: string) => void;
+  /**
+   * ⚠️ §19.5 — prennent la CLE DE LIGNE, pas un `dishId` : un meme plat peut
+   * occuper plusieurs lignes (un Grand et un Petit).
+   */
+  onUpdateQuantity: (lineKey: string, quantity: number) => void;
+  onRemove: (lineKey: string) => void;
   subtotal: number;
 }
 
@@ -69,14 +73,23 @@ export function KitchenCartSection({
 
       <ul className="space-y-2">
         {items.map((item) => (
+          /* ⛔ §19.5 — CLE COMPOSITE : deux formats du meme plat partageraient
+             sinon la meme `key`, et React reutiliserait le mauvais noeud. */
           <li
-            key={item.dish.id}
+            key={lineKey(item.dish.id, item.priceOption?.id)}
             className="flex items-center gap-2 rounded-xl bg-card px-3 py-2 border border-border"
           >
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">
                 {item.dish.name}
               </p>
+              {/* ⭐ §19.5 — le FORMAT choisi. Sans lui, deux lignes du meme
+                  plat seraient indistinguables dans le panier. */}
+              {item.priceOption && (
+                <p className="truncate text-[11px] font-medium text-brand-primary">
+                  {item.priceOption.label}
+                </p>
+              )}
               {/* ⚠️ Les modificateurs restent VISIBLES dans le panier : c'est
                   la dernière occasion de corriger « sans piment » avant que la
                   commande ne parte en cuisine. */}
@@ -86,14 +99,14 @@ export function KitchenCartSection({
                 </p>
               )}
               <p className="text-[11px] text-muted-foreground">
-                {formatPrice(item.dish.price)} × {item.quantity}
+                {formatPrice(item.priceOption?.price ?? item.dish.price)} × {item.quantity}
               </p>
             </div>
 
             <div className="flex items-center gap-1.5 rounded-lg border border-border bg-muted p-0.5">
               <button
                 type="button"
-                onClick={() => onUpdateQuantity(item.dish.id, item.quantity - 1)}
+                onClick={() => onUpdateQuantity(lineKey(item.dish.id, item.priceOption?.id), item.quantity - 1)}
                 aria-label={`Retirer un ${item.dish.name}`}
                 className="flex h-6 w-6 items-center justify-center rounded-md border border-brand-subtle bg-card text-brand-primary transition-transform active:scale-90"
               >
@@ -104,7 +117,7 @@ export function KitchenCartSection({
               </span>
               <button
                 type="button"
-                onClick={() => onUpdateQuantity(item.dish.id, item.quantity + 1)}
+                onClick={() => onUpdateQuantity(lineKey(item.dish.id, item.priceOption?.id), item.quantity + 1)}
                 aria-label={`Ajouter un ${item.dish.name}`}
                 className="flex h-6 w-6 items-center justify-center rounded-md border border-brand-subtle bg-card text-brand-primary transition-transform active:scale-90"
               >
@@ -114,7 +127,7 @@ export function KitchenCartSection({
 
             <button
               type="button"
-              onClick={() => onRemove(item.dish.id)}
+              onClick={() => onRemove(lineKey(item.dish.id, item.priceOption?.id))}
               aria-label={`Supprimer ${item.dish.name}`}
               className="flex h-7 w-7 items-center justify-center rounded-lg text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950"
             >

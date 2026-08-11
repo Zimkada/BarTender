@@ -33,7 +33,7 @@ import { useCategoryMutations } from '../hooks/mutations/useCategoryMutations';
 import { useCart } from '../hooks/useCart';
 import { useKitchenCart } from '../hooks/useKitchenCart';
 import { useStock } from './hooks/useStock';
-import type { DishRow } from '../services/supabase/dishes.service';
+import type { DishRow, DishPriceOptionRow } from '../services/supabase/dishes.service';
 
 import { AppContext, AppContextType } from './AppContext';
 
@@ -143,6 +143,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         quantities: kitchenQuantities,
         kitchenTotal,
         kitchenItemCount,
+        lineKey: kitchenLineKey,
     } = useKitchenCart();
 
     // 🧹 Fix: Vider le panier quand on change de bar pour éviter les mélanges
@@ -210,7 +211,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
      * serveur, cuisine comprise. Cohérent avec `create_sale_idempotent`, qui
      * REFUSE déjà un serveur dans ce mode (whitelist_create_sale_roles:216).
      */
-    const addDish = useCallback((dish: DishRow) => {
+    const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow) => {
         if (!!currentSession && !hasPermission('canSell')) {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast('Votre rôle ne permet pas de prendre une commande.', {
@@ -232,7 +233,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return;
         }
 
-        baseAddDish(dish);
+        baseAddDish(dish, priceOption);
     }, [baseAddDish, isSimplifiedMode, currentSession, hasPermission]);
     // --- END CART STATE & LOGIC ---
 
@@ -616,7 +617,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings, users,
         customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
-        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers,
+        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers, kitchenLineKey,
         clearKitchenCart, kitchenQuantities, kitchenTotal, kitchenItemCount,
         addCategory,
         linkCategory,
@@ -629,7 +630,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings, users,
         customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
-        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers,
+        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers, kitchenLineKey,
         clearKitchenCart, kitchenQuantities, kitchenTotal, kitchenItemCount,
         addCategory,
         linkCategory,

@@ -20,7 +20,7 @@
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { DishRow } from '../services/supabase/dishes.service';
+import type { DishRow, DishPriceOptionRow } from '../services/supabase/dishes.service';
 
 export interface KitchenCartItem {
   dish: DishRow;
@@ -30,12 +30,43 @@ export interface KitchenCartItem {
    * quand elle est manquée (§9) — une assiette refaite.
    */
   modifiers?: string[];
+  /**
+   * ⭐ §19.5 — format choisi, `undefined` pour un plat à prix ferme.
+   *
+   * ⚠️ On garde l'OPTION ENTIÈRE et non son seul id : le panier doit afficher
+   * « Grand — 2 000 F » sans re-chercher le libellé dans le plat à chaque
+   * rendu. Seul l'`id` part au serveur, qui relit le prix en base.
+   */
+  priceOption?: DishPriceOptionRow;
+}
+
+/**
+ * ⛔⛔ CLÉ DE LIGNE — LE DÉFAUT LE PLUS GRAVE QUE §19.5 AURAIT INTRODUIT.
+ *
+ * Le panier indexait sur `dish.id` SEUL. Un grand et un petit poisson y
+ * fusionnaient donc en « 2 × Poisson braisé » au même prix, AVANT même
+ * l'envoi au serveur : la perte de données était irrattrapable côté base.
+ *
+ * ⭐ Une clé COMPOSITE, et une fonction unique plutôt qu'une comparaison à
+ * deux champs répétée dans cinq fonctions — c'est là que les divergences
+ * s'installent.
+ *
+ * ⚠️ Les MODIFICATEURS n'entrent PAS dans la clé, volontairement : « sans
+ * piment » se règle APRÈS l'ajout, sur une ligne existante. Les y inclure
+ * empêcherait de retrouver la ligne qu'on vient de modifier.
+ */
+export function lineKey(dishId: string, priceOptionId?: string): string {
+  return priceOptionId ? `${dishId}::${priceOptionId}` : dishId;
+}
+
+function itemKey(item: KitchenCartItem): string {
+  return lineKey(item.dish.id, item.priceOption?.id);
 }
 
 export function useKitchenCart() {
   const [items, setItems] = useState<KitchenCartItem[]>([]);
 
-  const addDish = useCallback((dish: DishRow) => {
+  const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow) => {
     /**
      * ⛔ MIROIR EXACT de la passe 1 de `create_kitchen_order`, qui exige
      * `is_active` ET `is_available`.
@@ -55,34 +86,42 @@ export function useKitchenCart() {
      */
     if (!dish.is_active || !dish.is_available) return;
 
+    const key = lineKey(dish.id, priceOption?.id);
+
     setItems((current) => {
-      const existing = current.find((i) => i.dish.id === dish.id);
+      const existing = current.find((i) => itemKey(i) === key);
       if (existing) {
         return current.map((i) =>
-          i.dish.id === dish.id ? { ...i, quantity: i.quantity + 1 } : i
+          itemKey(i) === key ? { ...i, quantity: i.quantity + 1 } : i
         );
       }
-      return [...current, { dish, quantity: 1 }];
+      return [...current, { dish, quantity: 1, priceOption }];
     });
   }, []);
 
-  const updateQuantity = useCallback((dishId: string, quantity: number) => {
+  /**
+   * ⚠️ SIGNATURE ÉLARGIE (§19.5) : ces quatre fonctions prennent désormais la
+   * CLÉ DE LIGNE, pas un `dishId`. Un même plat peut occuper plusieurs lignes
+   * (un Grand et un Petit) — agir par `dishId` toucherait les deux, ou la
+   * mauvaise.
+   */
+  const updateQuantity = useCallback((key: string, quantity: number) => {
     setItems((current) => {
       // ⚠️ Quantité nulle ou négative = retrait. Laisser une ligne à 0
       // enverrait une commande de zéro plat en cuisine.
-      if (quantity <= 0) return current.filter((i) => i.dish.id !== dishId);
-      return current.map((i) => (i.dish.id === dishId ? { ...i, quantity } : i));
+      if (quantity <= 0) return current.filter((i) => itemKey(i) !== key);
+      return current.map((i) => (itemKey(i) === key ? { ...i, quantity } : i));
     });
   }, []);
 
-  const removeDish = useCallback((dishId: string) => {
-    setItems((current) => current.filter((i) => i.dish.id !== dishId));
+  const removeDish = useCallback((key: string) => {
+    setItems((current) => current.filter((i) => itemKey(i) !== key));
   }, []);
 
-  const setModifiers = useCallback((dishId: string, modifiers: string[]) => {
+  const setModifiers = useCallback((key: string, modifiers: string[]) => {
     setItems((current) =>
       current.map((i) =>
-        i.dish.id === dishId
+        itemKey(i) === key
           ? { ...i, modifiers: modifiers.length > 0 ? modifiers : undefined }
           : i
       )
@@ -91,10 +130,19 @@ export function useKitchenCart() {
 
   const clearKitchenCart = useCallback(() => setItems([]), []);
 
-  /** Quantités par `dish_id` — alimente les pastilles de `DishGrid`. */
+  /**
+   * Quantités par `dish_id` — alimente les pastilles de `DishGrid`.
+   *
+   * ⭐ §19.5 — on CUMULE les formats d'un même plat : la grille montre une
+   * carte par PLAT, pas par format. Un Grand et deux Petits doivent y afficher
+   * « 3 ». Une affectation simple (`map[id] = qty`) écraserait le premier
+   * format par le second et sous-compterait la pastille.
+   */
   const quantities = useMemo(() => {
     const map: Record<string, number> = {};
-    for (const item of items) map[item.dish.id] = item.quantity;
+    for (const item of items) {
+      map[item.dish.id] = (map[item.dish.id] ?? 0) + item.quantity;
+    }
     return map;
   }, [items]);
 
@@ -113,7 +161,9 @@ export function useKitchenCart() {
    *    rafraîchissement à chaque frappe coûterait plus que le défaut évité.
    */
   const kitchenTotal = useMemo(
-    () => items.reduce((sum, i) => sum + i.dish.price * i.quantity, 0),
+    // ⭐ §19.5 — prix du FORMAT choisi, sinon celui du plat. Sommer
+    // `dish.price` afficherait le prix technique d'un plat à formats.
+    () => items.reduce((sum, i) => sum + (i.priceOption?.price ?? i.dish.price) * i.quantity, 0),
     [items]
   );
 
@@ -132,5 +182,12 @@ export function useKitchenCart() {
     quantities,
     kitchenTotal,
     kitchenItemCount,
+    /**
+     * ⭐ §19.5 — EXPOSÉE pour que l'UI identifie une ligne du panier.
+     * Le composant ne doit pas reconstruire cette clé lui-même : deux
+     * implémentations finiraient par diverger, et les lignes deviendraient
+     * intouchables.
+     */
+    lineKey,
   };
 }
