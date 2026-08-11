@@ -65,7 +65,19 @@ export function LotCountForm({ barId, lotId, ingredientId, onDone }: Props) {
     .map((s) => ({ size_id: s.id, qty: parseQty(values[s.id] ?? '') }))
     .filter((c) => !Number.isNaN(c.qty) && c.qty > 0);
 
-  if (isLoadingSizes) {
+  /**
+   * ⛔⛔ LES DEUX CHARGEMENTS, PAS SEULEMENT LES TAILLES - défaut trouvé à la
+   * code review.
+   *
+   * Avec `isLoadingSizes` seul, une fenêtre existait : les tailles arrivent,
+   * le comptage EXISTANT pas encore. Le formulaire s'affichait alors VIDE sur
+   * un lot déjà compté, et enregistrer dans cet état EFFAÇAIT le comptage
+   * précédent - la RPC remplace, elle ne cumule pas.
+   *
+   * ⚠️ La fenêtre est courte mais réelle : deux requêtes distinctes, dont une
+   * peut répondre avant l'autre. Sur un réseau de maquis, elle s'élargit.
+   */
+  if (isLoadingSizes || isLoadingCounts) {
     return (
       <p className="py-6 text-center text-caption text-muted-foreground">
         Chargement…

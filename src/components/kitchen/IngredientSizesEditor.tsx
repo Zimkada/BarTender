@@ -169,11 +169,21 @@ export function IngredientSizesEditor({ barId, ingredientId, ingredientName }: P
         deux appels indépendants ont lieu - dont un peut échouer seul.
       */}
       <div className="mt-3 flex justify-end">
+        {/*
+          ⛔⛔ `isLoading` DANS LA GARDE DU BOUTON - défaut trouvé à la code
+          review, jumeau de celui de `LotCountForm`.
+
+          L'effet ci-dessus empêche d'ÉCRASER l'état pendant le chargement,
+          mais rien n'empêchait d'ENREGISTRER pendant ce temps : le bloc
+          s'affiche décoché avec les trois suggestions, et cliquer alors
+          remplaçait les tailles réelles de l'ingrédient - la RPC remplace,
+          elle ne cumule pas.
+        */}
         <Button
           size="sm"
           variant="outline"
           onClick={handleSave}
-          disabled={!canSave || replaceSizes.isPending}
+          disabled={isLoading || !canSave || replaceSizes.isPending}
         >
           {replaceSizes.isPending
             ? 'Enregistrement…'

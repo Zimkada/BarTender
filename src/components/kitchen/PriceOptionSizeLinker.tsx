@@ -107,6 +107,24 @@ export const PriceOptionSizeLinker = memo(function PriceOptionSizeLinker({
                 'rounded-lg border border-border bg-background px-3 py-2 text-sm',
                 'focus:border-brand-primary focus:outline-none'
               )}
+              /**
+               * ⚠️ TOUTES les tailles du bar sont proposées, PAS seulement
+               * celles des ingrédients de la recette - question soulevée à la
+               * code review, tranchée volontairement ainsi.
+               *
+               * Restreindre à la recette casserait deux cas réels :
+               *   · un plat en régime `batch` consomme un LOT, pas des
+               *     ingrédients : sa recette est vide, et aucune taille ne lui
+               *     serait proposée ;
+               *   · un plat dont la recette n'est pas encore saisie - or les
+               *     formats se configurent souvent avant elle.
+               *
+               * ⭐ Une association absurde (un format de riz pointant une
+               * taille de poisson) ne CORROMPT rien : le rapprochement
+               * afficherait une ligne visiblement fausse, que le gérant
+               * corrigerait. Bloquer un cas légitime coûte plus cher que
+               * laisser passer une erreur qui se voit.
+               */
               aria-label={`Taille consommée par ${dish.name} ${option.label}`}
             >
               <option value="">Non suivi</option>
