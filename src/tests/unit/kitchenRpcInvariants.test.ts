@@ -145,7 +145,7 @@ describe('get_kitchen_production — aucun montant ne peut fuir', () => {
 
   /** ⛔ En SECURITY DEFINER la RLS ne s'applique pas : garde explicite. */
   it('filtre explicitement l’appartenance au bar', () => {
-    expect(sql).toMatch(/is_bar_member\s*\(/);
+    expect(sql).toMatch(/is_bar_member\s*\(|can_write_kitchen\s*\(/);
   });
 });
 
@@ -200,7 +200,7 @@ describe('get_kitchen_metrics — les pertes ne doivent jamais s’éteindre', (
   });
 
   it('filtre explicitement l’appartenance au bar', () => {
-    expect(sql).toMatch(/is_bar_member\s*\(/);
+    expect(sql).toMatch(/is_bar_member\s*\(|can_write_kitchen\s*\(/);
   });
 });
 
@@ -246,9 +246,16 @@ describe('replace_dish_components — le niveau unique n’est pas contournable'
     expect(sql).toMatch(/is_batch_base\s*=\s*TRUE/i);
   });
 
-  /** ⛔ Isolation multi-tenant : composer avec le plat d'un autre bar. */
+  /**
+   * ⛔ Isolation multi-tenant : composer avec le plat d'un autre bar.
+   *
+   * ⚠️ ACCEPTE LES DEUX GARDES depuis le 11/08 : `can_write_kitchen` a
+   * remplacé `is_bar_member` sur les RPC d'ÉCRITURE (§19.7), parce que
+   * `is_bar_member` ne teste AUCUN rôle - un serveur y passait. Exiger
+   * l'ancien nom ferait échouer ce test sur une fonction MIEUX protégée.
+   */
   it('filtre explicitement l’appartenance au bar', () => {
-    expect(sql).toMatch(/is_bar_member\s*\(/);
+    expect(sql).toMatch(/is_bar_member\s*\(|can_write_kitchen\s*\(/);
     expect(sql).toMatch(/bar_id\s*=\s*p_bar_id/);
   });
 
@@ -356,8 +363,9 @@ describe('produce_batch — la matière sortie doit toujours produire un lot', (
     expect(sql).toMatch(/closing_hour/);
   });
 
+  // ⚠️ Accepte `can_write_kitchen` depuis le 11/08 — cf. commentaire plus haut.
   it('filtre explicitement l’appartenance au bar', () => {
-    expect(sql).toMatch(/is_bar_member\s*\(/);
+    expect(sql).toMatch(/is_bar_member\s*\(|can_write_kitchen\s*\(/);
   });
 
   it('fige le search_path', () => {
@@ -676,7 +684,7 @@ describe('close_batch — une clôture ne ment pas sur la cause', () => {
   });
 
   it('filtre explicitement l’appartenance au bar', () => {
-    expect(sql).toMatch(/is_bar_member\s*\(/);
+    expect(sql).toMatch(/is_bar_member\s*\(|can_write_kitchen\s*\(/);
   });
 
   it('fige le search_path', () => {
@@ -796,7 +804,7 @@ describe('get_kitchen_queue_shortfalls — une alerte qui ne ment pas', () => {
   it('garde l’isolation multi-tenant', () => {
     // ⛔ SECURITY DEFINER contourne la RLS : sans cette garde, le stock d'un
     // autre bar serait lisible en passant son UUID.
-    expect(sql).toMatch(/is_bar_member/);
+    expect(sql).toMatch(/is_bar_member|can_write_kitchen/);
   });
 
   it('n’expose AUCUN montant (§8)', () => {
@@ -1014,7 +1022,7 @@ describe('record_batch_loss — la perte partielle', () => {
   });
 
   it('garde l’isolation multi-tenant', () => {
-    expect(sql).toMatch(/is_bar_member/);
+    expect(sql).toMatch(/is_bar_member|can_write_kitchen/);
   });
 });
 
@@ -1103,7 +1111,7 @@ describe('record_ingredient_lot_loss — la perte partielle sur ingrédient', ()
   });
 
   it('garde l’isolation multi-tenant', () => {
-    expect(sql).toMatch(/is_bar_member/);
+    expect(sql).toMatch(/is_bar_member|can_write_kitchen/);
   });
 });
 
@@ -1141,7 +1149,7 @@ describe('get_kitchen_losses — trois sources, jamais fusionnées', () => {
 
   it('est STABLE et garde l’isolation multi-tenant', () => {
     expect(lastDefinitionOf('get_kitchen_losses')).toMatch(/\bSTABLE\b/);
-    expect(sql).toMatch(/is_bar_member/);
+    expect(sql).toMatch(/is_bar_member|can_write_kitchen/);
   });
 
   it('applique la journée commerciale du bar', () => {
@@ -1202,8 +1210,8 @@ describe('set_dish_active / set_ingredient_active — retirer sans casser', () =
   });
 
   it('gardent l’isolation multi-tenant', () => {
-    expect(dish).toMatch(/is_bar_member/);
-    expect(ing).toMatch(/is_bar_member/);
+    expect(dish).toMatch(/is_bar_member|can_write_kitchen/);
+    expect(ing).toMatch(/is_bar_member|can_write_kitchen/);
   });
 });
 
