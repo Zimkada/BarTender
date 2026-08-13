@@ -20,6 +20,11 @@ import {
 } from '../data/guides/owner-guides';
 import { SERVEUR_FIRST_SALE_GUIDE, SERVEUR_DASHBOARD_GUIDE, SERVEUR_HISTORY_GUIDE, SERVEUR_RETURNS_GUIDE, SERVEUR_CONSIGNMENTS_GUIDE } from '../data/guides/serveur-guides';
 import { ACCOUNTING_MODULE_GUIDE } from '../data/guides/accounting-guides';
+import {
+  KITCHEN_SETUP_GUIDE,
+  KITCHEN_SERVICE_GUIDE,
+  KITCHEN_ORDER_GUIDE,
+} from '../data/guides/kitchen-guides';
 import { GuideTour, GuideTrigger } from '../types/guide';
 
 /**
@@ -46,6 +51,10 @@ const GUIDES_REGISTRY: Record<string, GuideTour> = {
   'serveur-returns': SERVEUR_RETURNS_GUIDE,
   'serveur-consignments': SERVEUR_CONSIGNMENTS_GUIDE,
   'accounting-guide': ACCOUNTING_MODULE_GUIDE,
+  // ⭐ §19.8 — module Restauration.
+  'kitchen-setup': KITCHEN_SETUP_GUIDE,
+  'kitchen-service': KITCHEN_SERVICE_GUIDE,
+  'kitchen-order': KITCHEN_ORDER_GUIDE,
 };
 
 export const useGuideTrigger = (guideId: string) => {

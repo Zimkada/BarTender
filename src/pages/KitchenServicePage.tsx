@@ -295,6 +295,9 @@ export default function KitchenServicePage() {
     <div className="mx-auto w-full max-w-6xl px-4 pb-24 pt-4">
       <SimplePageHeader
         title="Service"
+        /* ⭐ §19.8 — le serveur y sert, le cuisinier y produit : la visite
+           s adapte au role via targetRoles et visibleFor. */
+        guideId={currentSession?.role === 'serveur' ? 'kitchen-order' : 'kitchen-service'}
         subtitle="File de production de la cuisine"
         icon={<ChefHat className="h-5 w-5" />}
         actions={

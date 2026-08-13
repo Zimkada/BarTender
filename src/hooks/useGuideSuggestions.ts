@@ -7,8 +7,10 @@
 import { useMemo } from 'react';
 import { useGuide } from '@/context/GuideContext';
 import { useAuth } from '@/context/AuthContext';
+import { useBarContext } from '@/context/BarContext';
 import { OWNER_GUIDES } from '@/data/guides/owner-guides';
 import { SERVEUR_GUIDES } from '@/data/guides/serveur-guides'; // Contains all 5 serveur guides
+import { KITCHEN_GUIDES } from '@/data/guides/kitchen-guides';
 import { GuideTour, UserRole } from '@/types/guide';
 
 /**
@@ -34,9 +36,30 @@ const filterStepsByRole = (guide: GuideTour, role: UserRole): GuideTour => {
  * Serveur sees BARTENDER_GUIDES
  */
 const GUIDES_BY_ROLE: Record<string, GuideTour[]> = {
-  promoteur: OWNER_GUIDES,
-  gerant: OWNER_GUIDES.filter(g => g.targetRoles.includes('gerant')),
-  serveur: SERVEUR_GUIDES,
+  /**
+   * ⭐ §19.8 — les visites cuisine s'ajoutent aux listes existantes, elles ne
+   * les remplacent pas : un promoteur avec restaurant a besoin des deux.
+   * ⚠️ `requiresRestaurant` les écarte pour un bar pur — cf. le filtre plus
+   * bas, qui vit dans le hook et non ici.
+   */
+  promoteur: [...OWNER_GUIDES, ...KITCHEN_GUIDES.filter(g => g.targetRoles.includes('promoteur'))],
+  gerant: [
+    ...OWNER_GUIDES.filter(g => g.targetRoles.includes('gerant')),
+    ...KITCHEN_GUIDES.filter(g => g.targetRoles.includes('gerant')),
+  ],
+  serveur: [...SERVEUR_GUIDES, ...KITCHEN_GUIDES.filter(g => g.targetRoles.includes('serveur'))],
+  /**
+   * ⭐ §19.8 — LE CUISINIER, absent jusqu'ici de ce registre.
+   *
+   * ⛔ Sans cette entrée il retombait sur `serveur` par le repli
+   * `|| []` plus bas : il voyait donc les guides de VENTE, et aucun de ceux
+   * qui décrivent son propre métier.
+   *
+   * ⚠️ `targetRoles` fait le tri : il ne verra que les visites qui le
+   * nomment explicitement — sa file, la production, les pertes — jamais
+   * « Monter votre carte » ni les écrans de coûts.
+   */
+  cuisinier: KITCHEN_GUIDES.filter(g => g.targetRoles.includes('cuisinier')),
 };
 
 export interface GuideSuggestion {
@@ -56,11 +79,25 @@ export interface GuideSuggestion {
 export const useGuideSuggestions = (): GuideSuggestion[] => {
   const { currentSession } = useAuth();
   const { hasCompletedGuide } = useGuide();
+  const { hasRestaurant } = useBarContext();
 
   const userRole = (currentSession?.role || 'serveur') as UserRole;
 
   return useMemo(() => {
-    const guides = GUIDES_BY_ROLE[userRole] || [];
+    /**
+     * ⛔⛔ §3 — FILTRAGE PAR RESTAURANT, à l'endroit le plus visible.
+     *
+     * Une visite « Monter votre carte » proposée à un bar qui ne vend que des
+     * boissons ne serait pas une gêne mineure : c'est dans la liste d'aide
+     * que l'utilisateur vient comprendre son application. Y trouver des
+     * fonctions qu'il n'a pas lui ferait douter du reste.
+     *
+     * ⚠️ Le défaut (`requiresRestaurant` absent) laisse passer : les dix
+     * visites existantes n'ont pas à être modifiées.
+     */
+    const guides = (GUIDES_BY_ROLE[userRole] || []).filter(
+      g => !g.requiresRestaurant || hasRestaurant
+    );
 
     return guides.map(guide => {
       // Filter steps by role visibility
@@ -76,7 +113,7 @@ export const useGuideSuggestions = (): GuideSuggestion[] => {
         guide: filteredGuide, // Include filtered guide object
       };
     });
-  }, [userRole, hasCompletedGuide]);
+  }, [userRole, hasCompletedGuide, hasRestaurant]);
 };
 
 /**

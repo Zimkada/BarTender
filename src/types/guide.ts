@@ -75,6 +75,19 @@ export interface GuideTour {
   // Who sees this
   targetRoles: UserRole[];
 
+  /**
+   * ⭐ §3 — cette visite ne concerne-t-elle QUE les bars avec cuisine ?
+   *
+   * ⛔ SANS CE FILTRE, une visite « Monter votre carte » apparaîtrait dans la
+   * liste d'aide d'un bar qui ne vend que des boissons. C'est le §3 violé à
+   * l'endroit le PLUS visible : celui où l'utilisateur vient justement
+   * chercher de quoi comprendre son application.
+   *
+   * ⚠️ Absent = visible partout. Le défaut reste donc le comportement actuel
+   * pour les dix visites existantes, qui n'ont pas à être modifiées.
+   */
+  requiresRestaurant?: boolean;
+
   // Tour metadata
   estimatedDuration: number; // minutes
   difficulty: GuideDifficulty;

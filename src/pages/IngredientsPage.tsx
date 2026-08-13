@@ -307,6 +307,9 @@ export default function IngredientsPage() {
           usage restant de la modale. */}
       <TabbedPageHeader
         title="Ingrédients"
+        /* ⭐ §19.8 — visite « Monter votre carte » : c'est ici qu'on crée
+           les ingrédients et qu'on approvisionne. */
+        guideId="kitchen-setup"
         subtitle={`${ingredients.length} ingrédient${ingredients.length > 1 ? 's' : ''}`}
         icon={<ChefHat size={22} />}
         tabs={tabs}

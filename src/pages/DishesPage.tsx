@@ -192,6 +192,8 @@ export default function DishesPage() {
     <div className="min-h-screen bg-brand-subtle pb-20">
       <TabbedPageHeader
         title="Plats"
+        /* ⭐ §19.8 — la production et les pertes vivent sur cet écran. */
+        guideId="kitchen-service"
         subtitle={
           activeTab === 'menu'
             ? `${dishes.length} plat${dishes.length > 1 ? 's' : ''} au menu`
