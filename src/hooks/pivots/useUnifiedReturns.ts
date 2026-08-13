@@ -31,7 +31,7 @@ export interface UnifiedReturn extends Omit<Return, 'returnedAt' | 'businessDate
 
 export const useUnifiedReturns = (barId: string | undefined, closingHour?: number) => {
     const queryClient = useQueryClient();
-    const { currentSession: session } = useAuth();
+    const { currentSession: session, hasPermission } = useAuth();
     const { currentBar } = useBarContext();
 
     // 🚀 Real-time synchronization for returns (cross-device + cross-tab)
@@ -193,7 +193,11 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
             closeHour
         );
 
-        if (session?.role === 'serveur') {
+        // 🛡️ Périmètre piloté par PERMISSION, jamais par rôle brut : un rôle sans
+        // canViewAllSales ne voit que ses propres retours (cf. MATRICE_RBAC_CUISINIER §6).
+        // ⚠️ `session &&` est requis : l'ancien test `session?.role === 'serveur'`
+        // assurait aussi le narrowing TypeScript, que hasPermission() ne fait pas.
+        if (session && !hasPermission('canViewAllSales')) {
             // Server sees only their own returns (mode switching support)
             return todayReturnsList.filter(r =>
                 r.returnedBy === session.userId ||
@@ -206,7 +210,7 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
         }
 
         return todayReturnsList;
-    }, [unifiedReturns, session, closingHour]);
+    }, [unifiedReturns, session, closingHour, hasPermission]);
 
     /**
      * 📊 HELPER: Returns by Sale — O(1) lookup via pre-indexed Map

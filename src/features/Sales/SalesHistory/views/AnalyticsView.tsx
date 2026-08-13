@@ -1,5 +1,5 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useBarContext } from '../../../../context/BarContext';
 import { useUnifiedSales } from '../../../../hooks/pivots/useUnifiedSales';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
@@ -8,6 +8,12 @@ import { TopProductsChart } from '../../../../components/analytics/TopProductsCh
 import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
 import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
 import { ChartTooltip } from '../../../../components/charts/ChartTooltip';
+import { KitchenAnalyticsBlock } from '../../../../components/kitchen/KitchenAnalyticsBlock';
+import { ScopeSwitcher } from '../../../../components/common/ScopeSwitcher';
+import {
+  itemMatchesScope,
+  type ActivityScope,
+} from '../../../../components/common/scopeHelpers';
 import {
   LineChart,
   CartesianGrid,
@@ -100,7 +106,22 @@ export function AnalyticsView({
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
-  const { currentBar } = useBarContext();
+  const { currentBar, hasRestaurant } = useBarContext();
+
+  /**
+   * ⭐ Portée des statistiques — Tout / Bar / Restau (§9).
+   *
+   * ⚠️ « Tout » par défaut : c'est la vue qui répond à « combien j'ai fait
+   * aujourd'hui ». Démarrer sur « Bar » masquerait le CA restaurant sans que
+   * l'utilisateur l'ait demandé.
+   *
+   * ⭐ VERROU §3 : sur un bar pur, la portée est TOUJOURS 'all'. Le sélecteur
+   * ne s'y rend pas, donc `setScope` n'est jamais appelé — mais rien ne
+   * l'empêcherait structurellement (URL, état persisté). Sans ce verrou, une
+   * portée 'kitchen' viderait tous les graphiques d'un bar sans cuisine.
+   */
+  const [rawScope, setScope] = useState<ActivityScope>('all');
+  const scope: ActivityScope = hasRestaurant ? rawScope : 'all';
   // ⚡ Egress: ne charger que la période analysée + la période précédente (pour les
   // comparaisons de tendance), au lieu des 6 mois du défaut dataTier. La fenêtre
   // = [startDate - durée ; endDate], soit 2× la durée de la période courante.
@@ -144,11 +165,83 @@ export function AnalyticsView({
     ];
   }, [themeConfig]);
 
-  const getSaleNetRevenue = (sale: Sale): number => {
-    const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
-    const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
-    return sale.total - refundAmount;
-  };
+  /**
+   * ⭐⭐ INDEX DES REMBOURSEMENTS PAR VENTE — défaut de performance trouvé le
+   * 05/08/2026 (« la répartition met un petit temps à s'actualiser »).
+   *
+   * ⛔ AVANT : `returns.filter(r => r.saleId === sale.id)` était appelé DANS
+   * la boucle sur les ventes — un parcours complet des retours POUR CHAQUE
+   * vente. Sur 200 ventes et 50 retours : 10 000 comparaisons.
+   * ⚠️ Et ce coût était payé QUATRE FOIS : `getScopedNetRevenue` est appelée
+   * par les KPI, la période précédente, la courbe d'évolution et la
+   * répartition — chacune reparcourant tout.
+   *
+   * ⭐ Une Map construite UNE fois : la recherche passe de O(n) à O(1), donc
+   * le total de O(n×m) à O(n+m). C'est le changement de portée qui en
+   * bénéficie le plus — il invalide tous les useMemo d'un coup.
+   */
+  const refundBySaleId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const r of returns) {
+      if (!isConfirmedReturn(r)) continue;
+      map.set(r.saleId, (map.get(r.saleId) ?? 0) + r.refundAmount);
+    }
+    return map;
+  }, [returns]);
+
+  /**
+   * ⭐⭐ CA NET **DE LA PORTÉE COURANTE** — défaut signalé en test terrain le
+   * 05/08/2026, relevé SQL à l'appui.
+   *
+   * ⛔ Les KPI sommaient `getSaleNetRevenue(s)` — le total de la vente
+   * ENTIÈRE — sans jamais regarder les items. Une vente mixte (boisson +
+   * plat) comptait donc INTÉGRALEMENT en portée Restau.
+   * Mesuré sur le bar de test : l'écran affichait 11 400 F alors que le CA
+   * plats réel valait 5 000 F. Un promoteur aurait cru sa cuisine DEUX FOIS
+   * plus rentable qu'elle ne l'est — et aurait décidé sur ce chiffre.
+   *
+   * ⚠️ C'est ce que signalait l'avertissement ESLint « missing dependency:
+   * scope » sur le useMemo des KPI, que j'avais écarté comme préexistant. Il
+   * ne l'était pas : il désignait ce défaut.
+   *
+   * ⭐ Le remboursement est réparti AU PRORATA de la part de la portée dans
+   * la vente : rembourser un plat ne doit pas amputer le CA des boissons, et
+   * inversement. Même simplification que la répartition par catégorie plus
+   * bas — cohérente d'un bloc à l'autre du même écran.
+   */
+  const getScopedNetRevenue = useCallback((sale: Sale): number => {
+    const scopedGross = sale.items.reduce(
+      (sum, item) => (itemMatchesScope(item, scope) ? sum + item.total_price : sum),
+      0
+    );
+    // ⚠️ En portée « Tout », `scopedGross` vaut le brut : on retombe
+    // exactement sur `getSaleNetRevenue`, donc AUCUN changement pour un bar
+    // pur ou une portée non filtrée (§3).
+    if (scopedGross === 0) return 0;
+
+    // ⭐ O(1) via l index, au lieu d un parcours complet des retours.
+    const refundAmount = refundBySaleId.get(sale.id) ?? 0;
+    if (refundAmount === 0) return scopedGross;
+
+    const ratio = sale.total > 0 ? scopedGross / sale.total : 0;
+    return scopedGross - refundAmount * ratio;
+  }, [scope, refundBySaleId]);
+
+  /** Articles de la portée courante — même règle que le CA. */
+  const getScopedItemCount = useCallback(
+    (sale: Sale): number =>
+      sale.items.reduce(
+        (sum, item) => (itemMatchesScope(item, scope) ? sum + item.quantity : sum),
+        0
+      ),
+    [scope]
+  );
+
+  /** Une vente COMPTE dans la portée si elle y a au moins un article. */
+  const saleTouchesScope = useCallback(
+    (sale: Sale): boolean => sale.items.some((item) => itemMatchesScope(item, scope)),
+    [scope]
+  );
 
 
   // Calculer période précédente pour comparaison
@@ -178,30 +271,35 @@ export function AnalyticsView({
     const currentRevenue = sales.reduce((sum, s) => {
       // Pour les stats, on ne compte que les ventes validées (ou optimistes qui le seront)
       if (s.status !== 'validated' && !s.isOptimistic) return sum;
-      return sum + getSaleNetRevenue(s);
+      return sum + getScopedNetRevenue(s);
     }, 0);
 
+    // ⚠️ items_count VOLONTAIREMENT IGNORE : ce compteur denormalise porte
+    // TOUS les articles de la vente, sans distinction de portee. L utiliser
+    // ferait compter les boissons en portee Restau — le defaut meme qu on
+    // corrige ici.
     const currentItems = sales.reduce((sum, s) => {
       if (s.status !== 'validated' && !s.isOptimistic) return sum;
-      if (typeof s.items_count === 'number') return sum + s.items_count;
-      return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
+      return sum + getScopedItemCount(s);
     }, 0);
 
-    const currentCount = sales.filter(s => s.status === 'validated' || s.isOptimistic).length;
+    // ⚠️ Une vente ne compte QUE si elle contient un article de la portee :
+    // sinon une soiree 100 % boissons afficherait « 11 ventes » en Restau.
+    const currentCount = sales.filter(
+      s => (s.status === 'validated' || s.isOptimistic) && saleTouchesScope(s)
+    ).length;
 
     // 2. Calculer CA NET de la période précédente (pour la tendance)
-    const prevGrossRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
-    const prevSaleIds = new Set(previousPeriodSales.map(s => s.id));
-    const prevRefunds = returns
-      .filter(r => prevSaleIds.has(r.saleId) && isConfirmedReturn(r))
-      .reduce((sum, r) => sum + r.refundAmount, 0);
-    const prevRevenue = prevGrossRevenue - prevRefunds;
-
-    const prevCount = previousPeriodSales.length;
-    const prevItems = previousPeriodSales.reduce((sum, s) => {
-      if (typeof s.items_count === 'number') return sum + s.items_count;
-      return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
-    }, 0);
+    // ⚠️ MEME portee sur la periode precedente : comparer un CA Restau a un
+    // CA global produirait des tendances absurdes (« -60 % » alors que la
+    // cuisine progresse).
+    const prevRevenue = previousPeriodSales.reduce(
+      (sum, s) => sum + getScopedNetRevenue(s), 0
+    );
+    const prevCount = previousPeriodSales.filter(saleTouchesScope).length;
+    const prevItems = previousPeriodSales.reduce(
+      (sum, s) => sum + getScopedItemCount(s), 0
+    );
 
     // 3. Calculer les variations
     const revenueChange = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : (currentRevenue > 0 ? 100 : 0);
@@ -226,7 +324,16 @@ export function AnalyticsView({
       kpi: { value: currentKpiValue, label: stats.kpiLabel, change: 0 },
       items: { value: currentItems, change: itemsChange }
     };
-  }, [sales, stats.kpiLabel, previousPeriodSales, returns, startDate, endDate, timeRange]);
+    // ⚠️ Les trois helpers sont des `useCallback` qui dependent de `scope` :
+    // les mettre en deps couvre `scope` TRANSITIVEMENT, et ESLint peut le
+    // verifier. Reciter `scope` a la main marchait aussi, mais laissait un
+    // avertissement permanent — or c est un avertissement de cette famille,
+    // ecarte comme « preexistant », qui avait masque le CA faux.
+    // ⚠️ `returns` RETIRE : ce bloc ne le lit plus directement, il passe par
+    // `refundBySaleId` — lui-meme capte par `getScopedNetRevenue`. Le garder
+    // etait inoffensif mais laissait un avertissement, donc du bruit.
+  }, [sales, stats.kpiLabel, previousPeriodSales, startDate, endDate, timeRange,
+      getScopedNetRevenue, getScopedItemCount, saleTouchesScope]);
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
@@ -253,7 +360,9 @@ export function AnalyticsView({
 
         if (grouped.has(hour)) {
           const existing = grouped.get(hour)!;
-          existing.revenue += getSaleNetRevenue(sale);
+          // ⭐ CA de la PORTEE — sinon la courbe montrait des pics superieurs
+          // au CA plats reel (test terrain : 3 200 F pour des plats a 2 500).
+          existing.revenue += getScopedNetRevenue(sale);
           existing.sales += 1;
         }
       });
@@ -280,7 +389,7 @@ export function AnalyticsView({
       if (!grouped[label]) {
         grouped[label] = { label, revenue: 0, sales: 0, timestamp };
       }
-      grouped[label].revenue += getSaleNetRevenue(sale);
+      grouped[label].revenue += getScopedNetRevenue(sale);
       grouped[label].sales += 1;
       // Le timestamp est utilisé pour le tri chronologique des jours
       grouped[label].timestamp = Math.min(grouped[label].timestamp, timestamp);
@@ -288,7 +397,9 @@ export function AnalyticsView({
 
     return Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
 
-  }, [sales, startDate, endDate, closeHour]);
+    // ⚠️ `getScopedNetRevenue` porte `scope` : la courbe se recalcule bien au
+    // changement de portee, et la dependance est verifiable par ESLint.
+  }, [sales, startDate, endDate, closeHour, getScopedNetRevenue]);
 
   // Répartition par catégorie (sur CA NET pour cohérence avec le reste du dashboard)
   const categoryData = useMemo(() => {
@@ -299,14 +410,44 @@ export function AnalyticsView({
       if (sale.status !== 'validated') return;
 
       // Calcul du net pour cette vente (total - retours associés)
-      const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
-      const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+      // ⭐ O(1) via l index (cf. refundBySaleId plus haut).
+      const refundAmount = refundBySaleId.get(sale.id) ?? 0;
       const saleNet = sale.total - refundAmount;
 
       // Pro-rata du net sur les items (simplification: on applique le ratio net/brut à chaque item)
       const ratio = sale.total > 0 ? saleNet / sale.total : 0;
 
       sale.items.forEach((item) => {
+        /**
+         * ⭐ PORTÉE — l'item entre-t-il dans ce que l'utilisateur regarde ?
+         * Règle partagée avec le Dashboard (`itemMatchesScope`) : les deux
+         * écrans doivent classer un item de la MÊME façon, sinon leurs
+         * chiffres divergeraient pour la même journée.
+         */
+        if (!itemMatchesScope(item, scope)) return;
+
+        /**
+         * ⭐ Un PLAT n'a pas de `product_id` : il porte `item_type: 'dish'` et
+         * `dish_id` (format retenu le 04/08/2026). `find` retournerait donc
+         * `undefined` et tout son CA tomberait dans « Autre ».
+         *
+         * ⚠️ On REGROUPE sous « Restau » plutôt qu'on n'EXCLUT : ce graphique
+         * est une RÉPARTITION du CA, il doit totaliser 100 %. En portée
+         * « Tout », exclure les plats produirait un camembert qui ne couvre pas
+         * tout le chiffre d'affaires — plus trompeur que le défaut corrigé.
+         *
+         * ⚠️ Un seul libellé pour tous les plats, sans détailler leurs
+         * catégories : mélanger « Grillades » et « Bière » dans le même
+         * camembert brouillerait la lecture. La répartition fine des plats
+         * relèvera des cartes de la portée « Restau ».
+         */
+        if ((item.item_type ?? 'product') === 'dish') {
+          const itemNet = (item.unit_price || 0) * item.quantity * ratio;
+          catRevenue['Restau'] = (catRevenue['Restau'] || 0) + itemNet;
+          totalNet += itemNet;
+          return;
+        }
+
         const productId = item.product_id;
         const product = (_products || []).find(p => p.id === productId);
         const categoryId = product?.categoryId;
@@ -345,7 +486,80 @@ export function AnalyticsView({
         percentage: totalNet > 0 ? (othersValue / totalNet) * 100 : 0
       }
     ];
-  }, [sales, categories, _products, returns]);
+    /**
+     * ⛔⛔ `scope` MANQUAIT — c'est LA cause du délai signalé le 05/08/2026
+     * (« la répartition met un petit temps avant de s'actualiser lors du
+     * switch bar ↔ restau »).
+     *
+     * Le graphique lit `itemMatchesScope(item, scope)` mais ne se recalculait
+     * PAS au changement de portée : il restait figé sur la précédente jusqu'à
+     * ce qu'une AUTRE dépendance bouge (un refetch des ventes, par exemple).
+     * D'où l'impression de latence — ce n'était pas un calcul lent, c'était
+     * un calcul qui n'avait pas lieu.
+     *
+     * ⚠️ Ce n'était donc pas un défaut d'animation Recharts, comme je l'avais
+     * d'abord supposé. Vérifier avant de conclure.
+     *
+     * ⭐ `refundBySaleId` ajouté aussi : la Map remplace le filtre imbriqué.
+     */
+  }, [sales, categories, _products, refundBySaleId, scope]);
+
+  /**
+   * ⭐⭐ TOP PRODUITS FILTRÉ PAR PORTÉE — 05/08/2026.
+   *
+   * ⚠️ La RPC `get_top_products_aggregated` ne connaît pas la portée : elle
+   * renvoie boissons ET plats mélangés. On filtre donc ICI, sur les NOMS de
+   * plats relevés dans les ventes de la période.
+   *
+   * ⚠️ FILTRAGE PAR NOM et non par id : la RPC laisse `product_id` à NULL
+   * pour un plat (elle groupe sur `dish_id` depuis la migration
+   * 20260805100000, mais n'expose pas cette clé dans son RETURNS TABLE).
+   * Le nom est le seul lien disponible — et il est figé à la vente, donc
+   * stable.
+   *
+   * ⚠️ LIMITE CONNUE, relevée à la code review du 05/08/2026 : un PRODUIT et
+   * un PLAT homonymes seraient confondus. `dishes` garantit l'unicité du nom
+   * ENTRE PLATS (idx_dishes_unique_name_per_bar), mais rien n'empêche un
+   * `bar_products` de porter le même libellé — ce sont deux tables.
+   * ⭐ Le plat l'emporterait : `dishNames.has(name)` classerait les DEUX en
+   * Restau. Risque accepté — un bar nommant identiquement une boisson et un
+   * plat créerait de toute façon une confusion pour ses serveurs.
+   * ⛔ La correction propre serait d'exposer `dish_id` dans le RETURNS TABLE
+   * de la RPC : une migration de plus sur une fonction que TOUS les bars
+   * utilisent, pour un cas qui ne s'est jamais produit.
+   *
+   * ⛔ LIMITE ASSUMÉE : la RPC plafonne à `p_limit` AVANT ce filtrage. Si les
+   * 5 premiers articles sont des boissons, la portée Restau affichera une
+   * liste courte, voire vide, alors que des plats se vendent. Corriger
+   * exigerait un paramètre de portée dans la RPC — une seconde migration sur
+   * une fonction que TOUS les bars utilisent. Le gain ne le justifie pas
+   * tant qu'aucun bar n'a assez de plats pour que le cas se produise.
+   *
+   * ⭐ En portée « Tout », la liste est retournée TELLE QUELLE : aucun coût,
+   * aucun changement pour un bar pur (§3).
+   */
+  const dishNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const sale of sales) {
+      for (const item of sale.items) {
+        if ((item.item_type ?? 'product') === 'dish') names.add(item.product_name);
+      }
+    }
+    return names;
+  }, [sales]);
+
+  const scopedTopProducts = useMemo(() => {
+    if (scope === 'all') return stats.topProducts;
+
+    const keep = (row: { name: string }) =>
+      scope === 'kitchen' ? dishNames.has(row.name) : !dishNames.has(row.name);
+
+    return {
+      byUnits: stats.topProducts.byUnits.filter(keep),
+      byRevenue: stats.topProducts.byRevenue.filter(keep),
+      byProfit: stats.topProducts.byProfit.filter(keep),
+    };
+  }, [stats.topProducts, scope, dishNames]);
 
   // Performance par utilisateur
   const userPerformance = useTeamPerformance({
@@ -355,7 +569,10 @@ export function AnalyticsView({
     barMembers: safeBarMembers,
     startDate,
     endDate,
-    closeHour
+    closeHour,
+    // ⭐ Sans cette portee, le graphique affichait le CA TOTAL de chaque
+    // membre en Restau — boissons comprises (test terrain 05/08/2026).
+    scope
   });
 
   const TrendIcon = ({ change }: { change: number }) => {
@@ -377,6 +594,16 @@ export function AnalyticsView({
 
   return (
     <div className="space-y-4">
+      {/* ⭐ Portée — placée AVANT les chiffres : elle définit ce qu'ils
+          couvrent. La mettre après laisserait lire des montants sans savoir
+          de quoi ils parlent.
+          §3 — ne rend RIEN sur un bar pur : l'écran est alors identique. */}
+      <ScopeSwitcher
+        scope={scope}
+        onScopeChange={setScope}
+        hasRestaurant={hasRestaurant}
+      />
+
       {/* KPIs principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`} data-guide="analytics-kpis">
         <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
@@ -421,6 +648,25 @@ export function AnalyticsView({
           </div>
         </div>
       </div>
+
+      {/* ⭐⭐ MÉTRIQUES CUISINE — portée Restau UNIQUEMENT.
+          Placées APRÈS les KPI ventes : elles les COMPLÈTENT, elles ne les
+          remplacent pas. Le CA et les ventes restent calculés depuis `sales`,
+          comme en portée Bar — une seule source par chiffre.
+          ⚠️ En portée « Tout », ce bloc est MASQUÉ : mélanger une marge
+          matière (cuisine seule) à un CA global laisserait croire que le
+          taux couvre aussi les boissons.
+          ⚠️ Le composant se masque LUI-MÊME sans `canViewKitchenCosts` et
+          sans données — la condition ici ne porte que sur la portée. */}
+      {scope === 'kitchen' && (
+        <KitchenAnalyticsBlock
+          barId={currentBar?.id}
+          startDate={startDate}
+          endDate={endDate}
+          formatPrice={formatPrice}
+          isMobile={isMobile}
+        />
+      )}
 
       {/* Graphiques principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`} data-guide="analytics-charts">
@@ -490,16 +736,36 @@ export function AnalyticsView({
         />
       </div>
 
-      {/* Top produits - Composant dédié */}
+      {/* ⭐⭐ TOP PRODUITS — FILTRÉ par portée depuis le 05/08/2026.
+          ⛔ Il affichait « Whisky Cola, Racines, Beaufort » en portée Restau.
+          ⚠️ Je l'avais d'abord MASQUÉ, en concluant trop vite que sa source
+          SQL n'était pas filtrable. L'utilisateur a demandé ce qu'on perdait
+          à le garder : la réponse était les TROIS AXES (unités, revenu,
+          marge) que le classement des plats du bloc cuisine n'a pas.
+          ⭐ La migration 20260805100000 a rendu ce classement JUSTE pour les
+          plats (clé COALESCE(product_id, dish_id) + marge FEFO). Le filtrer
+          est donc devenu la bonne réponse — et il redonne les trois axes. */}
       <div data-guide="analytics-top-products">
         <TopProductsChart
-          data={stats.topProducts}
+          data={scopedTopProducts}
           metric={topProductMetric}
           onMetricChange={setTopProductMetric}
           limit={topProductsLimit}
           onLimitChange={setTopProductsLimit}
           isLoading={isLoadingTopProducts}
           isMobile={isMobile}
+          /* ⚠️ En portee Restau sans plat vendu, le message par defaut
+             (« Aucune vente enregistree ») CONTREDIRAIT les KPI juste
+             au-dessus, qui affichent le CA des boissons. */
+          emptyLabel={
+            scope === 'kitchen'
+              ? { title: 'Aucun plat vendu',
+                  hint: 'Les ventes de cette periode ne comportent pas de plats.' }
+              : scope === 'bar'
+                ? { title: 'Aucune boisson vendue',
+                    hint: 'Les ventes de cette periode ne comportent pas de boissons.' }
+                : undefined
+          }
           formatPrice={formatPrice}
         />
       </div>

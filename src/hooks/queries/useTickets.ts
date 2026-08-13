@@ -6,6 +6,7 @@ import type { Ticket, Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useServerMappings } from '../useServerMappings';
 import { useAuth } from '../../context/AuthContext';
+import { useKitchenQueue } from './useKitchenQueries';
 import { SalesService, type OfflineSale } from '../../services/supabase/sales.service';
 import { syncManager } from '../../services/SyncManager';
 import { offlineQueue } from '../../services/offlineQueue';
@@ -102,8 +103,21 @@ export interface TicketWithSummary extends Ticket {
  */
 export function useTickets(barId: string | undefined) {
     const queryClient = useQueryClient();
-    const { currentSession } = useAuth();
-    const isServerRole = currentSession?.role === 'serveur';
+    /**
+     * ⭐ File cuisine — DEJA EN CACHE (meme queryKey que l ecran Service), donc
+     * AUCUNE requete supplementaire. Sur un bar pur, `enabled: hasRestaurant`
+     * la desactive : le tableau reste vide et rien ne change (§3).
+     */
+    const { data: kitchenQueue = [] } = useKitchenQueue(barId);
+    const { currentSession, hasPermission } = useAuth();
+    // 🛡️ Périmètre de lecture piloté par PERMISSION, jamais par rôle brut : un rôle
+    // sans canViewAllSales ne voit que ses propres bons (MATRICE_RBAC_CUISINIER §6).
+    // ⚠️ `!!currentSession &&` : hasPermission() renvoie false sans session, ce qui
+    // restreindrait le périmètre au lieu de l'ouvrir — sûr, mais divergent de
+    // l'ancien `role === 'serveur'` (false sans session). On conserve l'équivalence
+    // stricte : pas de session ⟹ pas de restriction (les queries sont de toute
+    // façon désactivées, et RootLayout redirige avant tout rendu).
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
 
     // ⚡ Egress: fenêtre bornée à journée courante + veille (garde-fou egress —
     // évite le Cas 2 full-scan de getBarSales, items jsonb inclus, cap 500).
@@ -391,13 +405,50 @@ export function useTickets(barId: string | undefined) {
                 }
             });
 
+            /**
+             * ⭐⭐ LES PLATS EN CUISINE COMPTENT DANS LE BON — signalé en test
+             * terrain le 04/08/2026 : un bon affichait « 1 Whisky Cola /
+             * 500 FCFA » alors qu'un Poulet braisé à 2 500 F cuisait pour
+             * cette table.
+             *
+             * ⚠️ Techniquement cohérent — le plat n'est pas encore VENDU, sa
+             * vente naît au `serve` (§6) — mais PRATIQUEMENT inacceptable : le
+             * serveur regarde ce bon pour savoir ce que la table a commandé,
+             * et le « net à payer » annoncé au client était FAUX.
+             *
+             * ⚠️ Les lignes `served` sont EXCLUES : leur vente existe déjà et
+             * a été comptée ci-dessus. Les inclure doublerait le montant.
+             * `getQueue` ne remonte de toute façon que pending/accepted/
+             * preparing/ready.
+             */
+            const pendingKitchen = kitchenQueue.filter(
+                (k) => k.ticket_id === ticket.id
+            );
+
+            for (const line of pendingKitchen) {
+                totalAmount += line.unit_price * line.quantity;
+                productMap.set(
+                    line.dish_name,
+                    (productMap.get(line.dish_name) || 0) + line.quantity
+                );
+            }
+
             // Label : top 3 produits par quantité
             const parts = Array.from(productMap.entries())
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 3)
                 .map(([name, qty]) => `${qty} ${name}`);
 
-            const productSummary = parts.length > 0 ? parts.join(', ') : 'Bon vide';
+            /**
+             * ⚠️ Suffixe « en cuisine » plutôt qu'un simple ajout à la liste :
+             * sans lui, le serveur croirait ces plats déjà servis et les
+             * facturerait sans vérifier qu'ils sont sortis.
+             */
+            const kitchenSuffix =
+                pendingKitchen.length > 0 ? ' • en cuisine' : '';
+
+            const productSummary =
+                parts.length > 0 ? parts.join(', ') + kitchenSuffix : 'Bon vide';
 
             // Résolution du nom du serveur via les mappings
             const mapping = mappings.find(m => m.userId === ticket.serverId);
@@ -413,12 +464,22 @@ export function useTickets(barId: string | undefined) {
                 // Masqué des bons ouverts (dashboard + sélecteur panier) — il ne reste
                 // plus rien à payer. Un bon neuf jamais utilisé (hasEverHadSales=false)
                 // est conservé pour rester sélectionnable.
-                isGhost: hasEverHadSales && allTicketSales.length === 0
+                // ⚠️ `pendingKitchen.length === 0` AJOUTÉ le 04/08/2026 : un bon
+                // dont toutes les ventes ont été annulées MAIS dont des plats
+                // cuisent encore n'est PAS fantôme — il attend des assiettes.
+                // Le masquer ferait disparaître une table en cours de service.
+                isGhost:
+                    hasEverHadSales &&
+                    allTicketSales.length === 0 &&
+                    pendingKitchen.length === 0
             };
         });
 
         return allTickets.filter(ticket => !ticket.isGhost);
-    }, [tickets, allRelevantSales, mappings, offlineQueueSales, returns]);
+        // ⚠️ `kitchenQueue` INDISPENSABLE dans les deps : sans elle, le résumé
+        // du bon resterait figé quand un plat passe en cuisine ou en est
+        // retiré — le montant annoncé au client divergerait silencieusement.
+    }, [tickets, allRelevantSales, mappings, offlineQueueSales, returns, kitchenQueue]);
 
     const refetchTickets = async () => {
         // 1. Force refresh offline data immediately (no debounce) but don't block

@@ -38,6 +38,9 @@ vi.mock('../../context/BarContext', () => ({
 vi.mock('../../context/AuthContext', () => ({
     useAuth: vi.fn(() => ({
         currentSession: { userId: 'user-123', role: 'gerant' },
+        // Périmètre piloté par permission (MATRICE_RBAC_CUISINIER §6) :
+        // 'gerant' voit toutes les ventes.
+        hasPermission: (permission: string): boolean => permission === 'canViewAllSales',
     })),
 }));
 

@@ -12,7 +12,7 @@ import type { Sale, SaleItem } from '../types';
 
 
 export function useDashboardAnalytics(currentBarId: string | undefined) {
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const { currentBar } = useBarContext();
 
     // 🚀 Smart Hooks (Elite Mission) - Complete Migration
@@ -46,7 +46,14 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     const todayDateStr = useMemo(() => getCurrentBusinessDateString(currentBar?.closingHour), [currentBar?.closingHour]);
 
     // Role helpers
-    const isServerRole = currentSession?.role === 'serveur';
+    // 🛡️ Périmètre de lecture piloté par PERMISSION, jamais par rôle brut.
+    // Un rôle sans canViewAllSales ne voit que ses propres données. Testé par
+    // rbac-role-baseline.integration.test.ts : aujourd'hui seul 'serveur' est
+    // dans ce cas, donc comportement strictement identique — mais un futur rôle
+    // (cuisinier) ne bascule plus par défaut dans la branche « voit tout ».
+    // ⚠️ `!!currentSession &&` : sans session, hasPermission() renvoie false et
+    // restreindrait le périmètre — divergent de l'ancien `role === 'serveur'`.
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
     const currentUserId = currentSession?.userId;
     const { data: topProductsServer = [] } = useTopProducts({
         barId: currentBarId || '',

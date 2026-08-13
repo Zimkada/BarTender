@@ -65,7 +65,10 @@ export function Header({
   unreadNotificationsCount = 0,
 }: HeaderProps) {
   // const { formatPrice } = useCurrencyFormatter(); // Unused
-  const { currentSession, logout } = useAuth();
+  const { currentSession, logout, hasPermission } = useAuth();
+  // 🛡️ Le sélecteur multi-bar suit la permission, jamais le rôle brut
+  // (MATRICE_RBAC_CUISINIER §5.1bis) : canSwitchBars a exactement ce profil.
+  const canSwitchBars = hasPermission('canSwitchBars');
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
@@ -187,7 +190,7 @@ export function Header({
               <div className="glass-button-2026 rounded-xl flex items-center mb-2">
                 {/* Partie Gauche: Nom du bar */}
                 <div className="flex-[1.5] border-r border-white/15 px-3 py-2.5 min-w-0">
-                  {currentSession?.role === 'promoteur' ? (
+                  {canSwitchBars ? (
                     <BarSelector onCreateNew={onShowCreateBar} variant="transparent" />
                   ) : (
                     <div className="flex items-center gap-2 min-w-0">
@@ -258,7 +261,7 @@ export function Header({
             </Button>
 
             {/* Titre / Sélecteur de bar unifié */}
-            {currentSession?.role === 'promoteur' ? (
+            {canSwitchBars ? (
               <BarSelector onCreateNew={onShowCreateBar} />
             ) : (
               <div className="flex items-center gap-2.5 min-w-0">

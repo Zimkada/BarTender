@@ -130,9 +130,26 @@ export function useSalesExport({
                 const name = item.product_name;
                 const volume = item.product_volume || '';
                 const price = item.unit_price;
-                // For now, we can try to find product to get category
-                const product = products.find(p => p.id === item.product_id);
-                const category = categories.find(c => c.id === product?.categoryId);
+
+                /**
+                 * ⭐ Module restauration — un PLAT n'a pas de `product_id` : il
+                 * porte `item_type: 'dish'` et `dish_id`.
+                 *
+                 * ⚠️ Sans ce traitement, `find` retournerait `undefined` et
+                 * chaque plat sortirait en « Non classé » — indiscernable d'un
+                 * produit dont la catégorie a été supprimée.
+                 *
+                 * ⚠️ Un export SORT de l'application : il peut être transmis à
+                 * un comptable ou archivé. Une donnée fausse y survit au
+                 * correctif, contrairement à un écran qu'on recharge.
+                 */
+                const isDish = (item.item_type ?? 'product') === 'dish';
+                const product = isDish
+                    ? undefined
+                    : products.find(p => p.id === item.product_id);
+                const category = isDish
+                    ? undefined
+                    : categories.find(c => c.id === product?.categoryId);
                 const cost = 0; // TODO: Calculer depuis Supply
                 const total = price * item.quantity;
                 const benefice = (price - cost) * item.quantity;
@@ -144,7 +161,11 @@ export function useSalesExport({
                     'Heure': new Date(saleTimestamp).toLocaleTimeString('fr-FR'),
                     'ID Transaction': sale.id.slice(-6),
                     'Produit': name,
-                    'Catégorie': category?.name || 'Non classé',
+                    // ⭐ « Restau » plutôt que « Non classé » : un plat n'est pas
+                    // un produit sans catégorie, c'est un article d'une autre
+                    // nature. Les confondre rendrait l'export inexploitable pour
+                    // séparer les deux activités.
+                    'Catégorie': isDish ? 'Restau' : (category?.name || 'Non classé'),
                     'Volume': volume,
                     'Quantité': item.quantity,
                     'Prix unitaire': price,

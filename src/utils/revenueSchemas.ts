@@ -12,8 +12,25 @@ const normalizeVolume = (val: unknown) => {
     return undefined;
 };
 
+/**
+ * ⛔⛔ MÊME DÉFAUT que dans `useSalesQueries`, corrigé le 04/08/2026 — mais
+ * ici l'impact aurait été BLOQUANT, pas seulement cosmétique.
+ *
+ * `product_id` obligatoire rejetait tout PLAT (qui porte `dish_id`, §4.2).
+ * Deux conséquences distinctes :
+ *   · `parseSaleItemsFromDb` → items vidés en LECTURE (défaut « Bon vide »)
+ *   · `validItems` → une vente de plats SEULS aurait levé « Aucun article
+ *     valide dans la vente ». La validation unifiée à venir aurait échoué
+ *     dès son premier essai.
+ *
+ * ⚠️ `product_id` reste EXIGÉ pour un produit : le relâcher partout
+ * masquerait une vraie corruption sur les boissons. La distinction se fait
+ * sur `item_type`, comme `COALESCE(item->>'item_type','product')` en SQL.
+ */
 export const SaleItemSchema = z.object({
-    product_id: z.string().uuid(),
+    product_id: z.string().uuid().optional(),
+    dish_id: z.string().uuid().optional(),
+    item_type: z.enum(['product', 'dish']).optional(),
     product_name: z.string(),
     quantity: z.number().min(0), // Quantité positive
     unit_price: z.number().min(0), // Prix positif
@@ -23,7 +40,12 @@ export const SaleItemSchema = z.object({
     promotion_id: z.string().uuid().optional(),
     promotion_name: z.string().optional(),
     product_volume: z.preprocess(normalizeVolume, z.number().min(0).optional()), // ✨ Accepte string|number, convertit en number
-});
+}).refine(
+    // ⭐ L'identifiant reste OBLIGATOIRE — seul son NOM change selon la nature
+    // de l'article. Sans ce refine, un item sans aucun id passerait.
+    (item) => (item.item_type === 'dish' ? !!item.dish_id : !!item.product_id),
+    { message: 'Un produit doit porter product_id, un plat doit porter dish_id' }
+);
 
 // Helper to map DB casing to CamelCase
 const mapSaleToCamel = (val: unknown) => {

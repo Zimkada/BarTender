@@ -5,9 +5,12 @@ import {
   Package,
   Zap,
   RotateCcw,
-  LayoutDashboard
+  LayoutDashboard,
+  ChefHat
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
+import type { UserRole } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { networkManager } from '../services/NetworkManager';
 import { useNotifications } from './Notifications';
@@ -18,7 +21,18 @@ interface NavItem {
   path?: string;
   onClick?: () => void;
   color: string;
-  roles: Array<'promoteur' | 'gerant' | 'serveur'>;
+  /**
+   * ⚠️ Aligné sur `UserRole` : l'union figée précédente ignorait `cuisinier`,
+   * et le filtre passant par un cast `as readonly string[]`, le compilateur ne
+   * signalait rien — un cuisinier obtenait une barre VIDE (un bandeau de 64 px
+   * sans aucun bouton).
+   */
+  roles: UserRole[];
+  /**
+   * ⭐ Entrée du module restauration : masquée si le bar n'a pas la cuisine
+   * activée (§3).
+   */
+  requiresRestaurant?: boolean;
 }
 
 interface MobileNavigationProps {
@@ -27,6 +41,8 @@ interface MobileNavigationProps {
 
 export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   const { currentSession } = useAuth();
+  // ⭐ §3 — conditionne l'entrée cuisine du cuisinier.
+  const { hasRestaurant } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
@@ -93,6 +109,20 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       path: '/returns',
       color: 'text-red-600',
       roles: ['promoteur', 'gerant', 'serveur']
+    },
+    {
+      // ⭐ CUISINIER UNIQUEMENT (§9) : « Autres rôles : ne rien ajouter,
+      //    plafond atteint. La Cuisine reste au menu latéral. »
+      //    Sans cette entrée, le cuisinier voyait une barre VIDE — un bandeau
+      //    de 64 px sans aucun bouton.
+      // ⚠️ §9 prévoit 3 items pour lui (Commandes / Recettes / Ingrédients) ;
+      //    les deux premiers arrivent en phases 2 et 3.
+      icon: <ChefHat size={24} />,
+      label: 'Ingrédients',
+      path: '/kitchen/ingredients',
+      color: 'text-amber-600',
+      roles: ['cuisinier'],
+      requiresRestaurant: true
     }
     // ❌ Retiré : « Import/Export » → /settings. La barre ne rend que 5 entrées et
     // le promoteur en avait 6 : cet item était tronqué, donc invisible pour lui et
@@ -100,7 +130,11 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   ];
 
   const navItems = allNavItems.filter(item =>
-    currentSession?.role ? (item.roles as readonly string[]).includes(currentSession.role) : false
+    currentSession?.role
+      ? item.roles.includes(currentSession.role)
+        // ⭐ §3 — sur un bar pur, l'entrée cuisine n'apparaît pas.
+        && (!item.requiresRestaurant || hasRestaurant)
+      : false
   );
 
   // ⭐ Garde-fou : la barre ne tient que 5 entrées. Le slice ne doit JAMAIS avoir

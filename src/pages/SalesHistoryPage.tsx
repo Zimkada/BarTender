@@ -41,6 +41,7 @@ import { TabbedPageHeader } from '../components/common/PageHeader/patterns/Tabbe
 import { PeriodFilter } from '../components/common/filters/PeriodFilter';
 import { GuideTourModal } from '../components/guide/GuideTourModal';
 import { SalesService } from '../services/supabase/sales.service';
+import { mapSalesData } from '../hooks/queries/useSalesQueries';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -57,7 +58,7 @@ export default function SalesHistoryPage() {
     const { returns: unifiedReturns, getReturnsBySale: getReturnsBySaleFromHook } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
     const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
     const { isMobile } = useViewport();
     const { showSuccess, showError } = useFeedback();
 
@@ -154,20 +155,60 @@ export default function SalesHistoryPage() {
         queryKey: ['sales', 'detail', selectedSaleId],
         queryFn: async (): Promise<import('../types').Sale | null> => {
             const sale = await SalesService.getSaleById(selectedSaleId!);
-            return (sale as unknown as import('../types').Sale) ?? null;
+            if (!sale) return null;
+            /**
+             * ⛔⛔ MAPPING OBLIGATOIRE — defaut trouve en test terrain le
+             * 05/08/2026 : le ticket affichait « Invalid Date » et « Serveur
+             * non specifie » des que ce detail etait utilise.
+             *
+             * getSaleById renvoie les colonnes BRUTES de la base
+             * (snake_case : created_at, sold_by...). Le modal attend le type
+             * APPLICATIF (camelCase : createdAt, soldBy) — d ou des champs
+             * introuvables, silencieusement.
+             *
+             * ⚠️ Le cast `as unknown as Sale` MASQUAIT le probleme : il
+             * faisait taire TypeScript sans convertir quoi que ce soit. Un
+             * cast qui traverse `unknown` doit toujours alerter.
+             *
+             * ⭐ mapSalesData est le SEUL mapper du projet : la liste
+             * l utilise deja. Deux chemins de conversion divergeraient.
+             */
+            return mapSalesData([sale as unknown as Parameters<typeof mapSalesData>[0][0]])[0] ?? null;
         },
         enabled: !!selectedSaleId && !needsDetailedSalesList,
         staleTime: 60_000,
     });
 
+    /**
+     * ⛔⛔ PRIORITÉ AU DÉTAIL — défaut trouvé en test terrain le 05/08/2026 :
+     * le ticket affichait « Sous-total (0 articles) » et aucune ligne, alors
+     * que la base contenait bien l'article.
+     *
+     * En vue LISTE, `unifiedSales` est chargé avec `includeItems: false`
+     * (optimisation d'egress, §3) : la vente EXISTE mais son tableau `items`
+     * est VIDE. L'ancien ordre `saleFromActiveData || selectedSaleDetail`
+     * la retenait donc toujours, et la query de détail — chargée EXPRÈS pour
+     * ce cas, `enabled: !needsDetailedSalesList` — n'était JAMAIS utilisée.
+     *
+     * ⚠️ Le défaut touchait TOUTES les ventes, boissons comprises. Le module
+     * restauration l'a seulement rendu visible : sur une vente de plat, le
+     * ticket paraissait entièrement vide.
+     *
+     * ⭐ `selectedSaleDetail` D'ABORD : il n'existe que quand la liste est
+     * allégée, et il porte alors les articles. Sinon on retombe sur la liste,
+     * qui les a déjà (vues Cartes et Analytique).
+     */
     const selectedSale = useMemo(() => {
         if (!selectedSaleId) return null;
         const saleFromActiveData = unifiedSales.find(sale => sale.id === selectedSaleId);
-        return saleFromActiveData || selectedSaleDetail || null;
+        return selectedSaleDetail || saleFromActiveData || null;
     }, [selectedSaleId, unifiedSales, selectedSaleDetail]);
 
     // ✨ Filter metrics for servers
-    const isServerRole = currentSession?.role === 'serveur';
+    // 🛡️ Périmètre piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6)
+    // ⚠️ `!!currentSession &&` : sans session, hasPermission() renvoie false et
+    // restreindrait le périmètre — divergent de l'ancien `role === 'serveur'`.
+    const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
     const serverIdForAnalytics = isServerRole ? currentSession?.userId : undefined;
 
     // HOOK: Statistiques & Top Produits

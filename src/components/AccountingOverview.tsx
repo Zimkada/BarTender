@@ -3,9 +3,12 @@ import {
   DollarSign,
   Download,
   Plus,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ChefHat
 } from 'lucide-react';
 import { PeriodFilter } from './common/filters/PeriodFilter';
+import { computeScopedGrossRevenue } from './common/scopeHelpers';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { Button } from './ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -132,7 +135,8 @@ function calculateExpenseMetricsFromUnified(
 
 export function AccountingOverview({ period }: AccountingOverviewProps) {
   const { currentSession } = useAuth();
-  const { currentBar } = useBarContext();
+  const { currentBar, hasRestaurant } = useBarContext();
+  const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
   // Période reçue depuis AccountingPage (source unique de vérité)
@@ -256,6 +260,82 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
   // ✨ V12: Revenue directement depuis useRevenueStats (query directe, toujours frais)
   const totalRevenue = currentPeriodRevenueStats.netRevenue;
+
+  /**
+   * ⭐ PART CUISINE DU CA (09/08/2026) - §3 et §9.
+   *
+   * Second appel VOLONTAIREMENT distinct de celui de la ligne 152 : celui-ci
+   * charge `includeItems: true`, indispensable pour ventiler ligne par ligne.
+   * Les deux coexistent sans se telescoper - `options` fait partie de la
+   * queryKey de `useSales`, donc chacun a son entree de cache.
+   *
+   * ⛔ `enabled: hasRestaurant` - GARDE RESEAU DU §3. Sans elle, un bar PUR
+   * paierait le surcout des items (mesure : ~1,8 Mo sur un mois) pour une
+   * carte qu'il ne verra jamais. L'invariance des bars purs se joue au niveau
+   * RESEAU, pas seulement a l'affichage.
+   *
+   * ⚠️⚠️ CA BRUT, ET C'EST UN CHOIX, PAS UN OUBLI. Le CA NET exigerait de
+   * ventiler les retours - or un remboursement porte sur une VENTE entiere
+   * (`returns.sale_id`), pas sur un item : la table ne dit pas quelle part
+   * concernait les plats. `get_daily_scope_totals` a tranche pareil le
+   * 04/08 (« NON ventiles, limite assumee »). L'Historique, lui, applique un
+   * ratio au prorata qu'il documente comme une APPROXIMATION ; on ne la
+   * reprend pas ici, car cet ecran sert a DECIDER.
+   *
+   * ⚠️ Ce chiffre ne se compare donc PAS a `totalRevenue` (net) : il se
+   * compare au BRUT, d'ou `grossRevenue` ci-dessous pour la part.
+   */
+  const { sales: salesWithItems, isLoading: isLoadingKitchenSales } = useUnifiedSales(currentBar?.id, {
+    startDate: dateToYYYYMMDD(periodStart),
+    endDate: dateToYYYYMMDD(periodEnd),
+    status: 'validated',
+    includeItems: true,
+    enabled: hasRestaurant,
+  });
+
+  /**
+   * ⛔⛔ LE REFILTRAGE LOCAL N'EST PAS REDONDANT - defaut trouve a la revue.
+   *
+   * `useUnifiedSales` FUSIONNE les ventes serveur et les ventes OFFLINE (file
+   * IndexedDB). Or les options `startDate` / `endDate` / `status` ne sont
+   * passees qu'a la requete SERVEUR : cote offline, le pivot ne filtre QUE
+   * les doublons de synchronisation. Deux fuites en decoulaient :
+   *
+   *   1. PERIODE - une vente offline de juillet encore en file serait
+   *      comptee dans « ce mois ». En comptabilite, un chiffre qui deborde
+   *      sa periode est un faux.
+   *   2. STATUT - une vente en attente de validation gerant (`pending`)
+   *      serait comptee comme un CA acquis, alors que le reste de l'ecran
+   *      s'en tient volontairement a `validated` (cf. ligne 155).
+   *
+   * ⭐ C'est exactement la raison d'etre de `filteredSales` (ligne 246), qui
+   * refiltre par periode apres le meme hook. On applique ici la MEME regle,
+   * plus le statut - sinon la carte cuisine ne parlerait pas de la meme
+   * chose que les KPI juste au-dessus.
+   */
+  const kitchenGrossRevenue = useMemo(() => {
+    if (!hasRestaurant) return 0;
+    return computeScopedGrossRevenue(salesWithItems, 'kitchen', periodStart, periodEnd);
+  }, [salesWithItems, hasRestaurant, periodStart, periodEnd]);
+
+  /**
+   * Part de la cuisine dans le CA BRUT de la periode (cf. commentaire ci-dessus).
+   *
+   * ⚠️ ECART CONNU ET ASSUME sur le denominateur, hors ligne UNIQUEMENT.
+   * `useRevenueStats` compte les ventes offline via `getOfflineSales`, qui les
+   * force a `'validated'` (« le user a vendu ») sans lire le statut reel du
+   * payload. Le numerateur, lui, passe par `useUnifiedSales` qui conserve ce
+   * statut - donc une vente de SERVEUR en mode complet, en attente de
+   * validation gerant et non encore synchronisee, entre au denominateur mais
+   * pas au numerateur : la part cuisine est alors legerement SOUS-evaluee.
+   *
+   * ⭐ On ne « corrige » pas en relachant le filtre du numerateur : compter un
+   * plat non valide comme du CA acquis serait un faux plus grave qu'une part
+   * momentanement basse. L'ecart se resorbe seul a la synchronisation, et il
+   * est nul des que le bar est en ligne ou en mode simplifie.
+   */
+  const grossRevenue = currentPeriodRevenueStats.grossRevenue;
+  const kitchenShare = grossRevenue > 0 ? (kitchenGrossRevenue / grossRevenue) * 100 : 0;
 
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [isExporting, setIsExporting] = useState(false);
@@ -784,6 +864,50 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
         }}
       />
       </div>
+
+      {/*
+        * ⭐ PART CUISINE - §3 : STRICTEMENT INVISIBLE sur un bar pur, et la
+        * requete elle-meme ne part pas (cf. `enabled: hasRestaurant`).
+        *
+        * ⚠️ CA BRUT, affiche comme tel. C'est le SEUL chiffre exact sans
+        * hypothese : ventiler le NET supposerait de repartir les retours, et
+        * une marge cuisine supposerait une cle de repartition des charges
+        * communes (electricite, loyer, salaire d'un serveur qui porte les
+        * deux plats ET les bieres). Cette cle est une decision de gestion du
+        * promoteur - l'inventer donnerait un resultat FAUX avec l'apparence
+        * de la precision, sur l'ecran qui sert justement a decider.
+        */}
+      {hasRestaurant && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h5 className="mb-1 flex items-center gap-1 text-micro text-muted-foreground">
+            <ChefHat size={12} />
+            Dont cuisine ({periodLabel})
+          </h5>
+          {/* ⛔ ETAT DE CHARGEMENT EXPLICITE - defaut trouve a la revue, et
+              QUATRIEME occurrence du meme motif sur ce module : une donnee pas
+              encore chargee lue comme ABSENTE. Sans cette garde, la carte
+              affichait « 0 FCFA / Aucune vente de plat » pendant le fetch -
+              un chiffre FAUX presente comme un constat, sur l'ecran qui sert
+              a decider. Un tiret ne pretend rien. */}
+          {isLoadingKitchenSales ? (
+            <>
+              <p className="text-h2 font-semibold tabular-nums text-muted-foreground">—</p>
+              <p className="mt-1 text-caption text-muted-foreground">Calcul en cours…</p>
+            </>
+          ) : (
+            <>
+              <p className="text-h2 font-semibold tabular-nums">
+                {formatPrice(kitchenGrossRevenue)}
+              </p>
+              <p className="mt-1 text-caption text-muted-foreground">
+                {kitchenGrossRevenue > 0
+                  ? `${kitchenShare.toFixed(1)} % du chiffre d'affaires brut`
+                  : "Aucune vente de plat sur la période"}
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Charts Section */}
       <Suspense fallback={<div className="h-64 bg-muted rounded-xl animate-pulse flex items-center justify-center text-muted-foreground">Chargement graphiques...</div>}>

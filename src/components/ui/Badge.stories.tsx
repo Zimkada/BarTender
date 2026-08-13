@@ -1,5 +1,12 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { CheckCircle, XCircle, AlertCircle, Info, Package, TrendingUp } from 'lucide-react';
+/**
+ * ⚠️ `Info` ALIASE en `InfoIcon` — la story exportee s appelle aussi `Info`
+ * (ligne ~65), et la collision CASSAIT LE BUILD STORYBOOK :
+ *     TypeError: Duplicate declaration "Info"
+ * ⭐ C est l IMPORT qu on renomme, pas la story : son nom s affiche dans la
+ * barre laterale de Storybook.
+ */
+import { CheckCircle, XCircle, Info as InfoIcon, Package, TrendingUp } from 'lucide-react';
 import { Badge } from './Badge';
 import { Card, CardContent } from './Card';
 
@@ -111,7 +118,7 @@ export const WithDot: Story = {
 export const WithIconAndDot: Story = {
   args: {
     variant: 'info',
-    icon: <Info size={12} />,
+    icon: <InfoIcon size={12} />,
     dot: true,
     children: 'Info',
   },
@@ -179,7 +186,7 @@ export const OrderStatus: Story = {
               <p className="font-medium">Commande #1234</p>
               <p className="text-sm text-gray-600">15,000 FCFA</p>
             </div>
-            <Badge variant="info" icon={<Info size={12} />}>
+            <Badge variant="info" icon={<InfoIcon size={12} />}>
               En préparation
             </Badge>
           </div>

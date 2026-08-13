@@ -1,3 +1,37 @@
+/**
+ * QuickSaleFlow — vente rapide au comptoir.
+ *
+ * ⭐⭐ CET ÉCRAN NE PREND PAS DE COMMANDE CUISINE — décision du 04/08/2026.
+ *
+ * ⛔ Ce n'est PAS un oubli. Trois raisons, dans l'ordre de leur poids :
+ *
+ * 1. CE N'EST PAS LE MÊME MÉTIER. Cet écran sert quelqu'un qui attend
+ *    debout : raccourcis clavier, saisie au vol, validation en un geste. Une
+ *    commande de cuisine demande une table, un délai annoncé au client,
+ *    parfois un modificateur (« sans piment »). Greffer l'un sur l'autre
+ *    dégraderait les deux.
+ *
+ * 2. LA DUPLICATION EST LE RISQUE AVÉRÉ DE CE CHANTIER. L'enchaînement
+ *    ticket → cuisine → boissons vit dans `Cart.tsx` et a déjà révélé trois
+ *    défauts à sa code review (ticket orphelin hors ligne, cache tickets
+ *    périmé, bon fantôme). L'implanter ici avant de l'avoir éprouvé en
+ *    conditions réelles reproduirait ce qui s'est passé le même jour avec les
+ *    trois schémas Zod : le même défaut à trois endroits, découvert une fois.
+ *
+ * 3. LE CONTOURNEMENT EST TRIVIAL. Un serveur qui doit commander un plat
+ *    passe par l'Accueil, qui porte la grille avec sélecteur Tout/Bar/Restau.
+ *
+ * ⚠️ L'INVARIANCE EST STRUCTURELLE, pas conditionnelle : cet écran monte
+ * `CartDrawer` SANS lui passer les props cuisine, qui sont toutes
+ * optionnelles. La section ne peut donc pas s'afficher — il n'y a aucune
+ * condition à maintenir ni à tester.
+ *
+ * ⭐ SI LE TERRAIN LE RÉCLAME : extraire d'abord l'enchaînement de
+ * `Cart.tsx` dans une fonction partagée, PUIS l'appeler des deux côtés.
+ * Jamais deux implémentations de la même règle — c'est le principe qui a
+ * guidé tout le module.
+ */
+
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Search, Zap, X, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -36,7 +70,7 @@ interface QuickSaleFlowProps {
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // --- HOOKS & CONTEXTS ---
   const { currentBar, isSimplifiedMode } = useBarContext();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { isMobile } = useViewport();
   const { formatPrice } = useCurrencyFormatter();
 
@@ -171,6 +205,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const handleCheckout = useCallback(async (assignedServerName?: string, paymentMethod: PaymentMethod = 'cash', ticketId?: string): Promise<boolean> => {
     if (cart.length === 0 || !currentSession || !currentBar) return false;
 
+    // ⛔ Dernier rempart client : sans canSell, aucune vente n'est tentée.
+    //    create_sale_idempotent la refuserait (guard liste blanche), mais
+    //    autant ne pas laisser l'utilisateur composer puis échouer.
+    if (!hasPermission('canSell')) {
+      toast.error("Votre rôle ne permet pas d'enregistrer une vente.", { duration: 4000 });
+      return false;
+    }
+
     // 1. Resolve Server ID (if Simplified Mode)
     let serverId: string | undefined;
 
@@ -222,7 +264,11 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         paymentMethod,
         serverId,
         ticketId: ticketId || undefined,
-        status: (currentSession.role === 'serveur') ? 'pending' : 'validated',
+        // 🛡️ Statut piloté par PERMISSION, jamais par rôle brut : sans
+        // canValidateSales, la vente naît 'pending' et passe par le gérant.
+        // ⛔ Avant, tout rôle ≠ 'serveur' créait des ventes directement validées —
+        // un futur rôle (cuisinier) en aurait hérité (MATRICE_RBAC_CUISINIER §6, zone 5).
+        status: hasPermission('canValidateSales') ? 'validated' : 'pending',
         notes: isSimplifiedMode ? `Serveur: ${assignedServerName}` : undefined,
         idempotencyKey: saleIdempotencyKeyRef.current // ⭐ UUID stable par panier
       });
@@ -248,7 +294,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       toast.error(error instanceof Error ? error.message : 'Erreur vente');
       return false; // ⭐ Échec — CartDrawer conserve server/bon pour permettre le retry
     }
-  }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile]);
+  }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile, hasPermission]);
 
 
   // --- HELPERS ---
@@ -298,7 +344,17 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   if (!isOpen) return null;
 
   // ACCESS CHECK
-  if (isSimplifiedMode && currentSession?.role === 'serveur') {
+  // ⛔ Sans canSell, l'écran de vente rapide n'est JAMAIS accessible, quel que
+  //    soit le mode (constat du 02/08/2026 : un cuisinier y accédait en mode
+  //    complet). Sans effet sur les 4 rôles historiques, qui ont tous canSell.
+  if (!!currentSession && !hasPermission('canSell')) {
+    return null;
+  }
+
+  // 🛡️ En mode simplifié, seul qui peut valider ses propres ventes accède à la
+  // vente rapide — le gérant crée les ventes (cf. create_sale_idempotent, qui
+  // applique la même règle côté DB). Piloté par permission, jamais par rôle brut.
+  if (isSimplifiedMode && !!currentSession && !hasPermission('canValidateSales')) {
     return null;
   }
 

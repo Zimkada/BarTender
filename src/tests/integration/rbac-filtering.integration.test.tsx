@@ -26,6 +26,10 @@ const {
 } = vi.hoisted(() => ({
   mockUseSales: vi.fn(() => ({ data: [], isLoading: false })),
   mockUseReturns: vi.fn(() => ({ data: [], isLoading: false })),
+  // ⚠️ Le périmètre de lecture est piloté par permission (MATRICE_RBAC_CUISINIER §6).
+  // hasPermission est DÉRIVÉ du rôle simulé, pour que les mockReturnValue posés
+  // dans chaque describe restent cohérents sans avoir à déclarer la permission
+  // à chaque fois : 'serveur' → canViewAllSales false, les autres → true.
   mockUseAuth: vi.fn(() => ({
     currentSession: { userId: 'user-123', role: 'serveur', userName: 'Jean' },
   })),
@@ -55,7 +59,16 @@ vi.mock('../../hooks/queries/useReturnsQueries', () => ({
 }));
 
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: mockUseAuth,
+  // hasPermission dérivé du rôle courant du mock : les describe n'ont qu'à poser
+  // currentSession, la permission suit automatiquement (serveur = pas de lecture globale).
+  useAuth: () => {
+    const auth = mockUseAuth();
+    return {
+      ...auth,
+      hasPermission: (_permission: string): boolean =>
+        auth.currentSession?.role !== 'serveur',
+    };
+  },
 }));
 
 vi.mock('../../services/offlineQueue', () => ({

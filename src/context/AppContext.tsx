@@ -10,6 +10,8 @@ import {
   ExpenseCategoryCustom,
   CartItem,
 } from '../types';
+import type { KitchenCartItem } from '../hooks/useKitchenCart';
+import type { DishRow, DishPriceOptionRow } from '../services/supabase/dishes.service';
 
 export interface AppContextType {
   // L'ÉTAT DES DONNÉES EST MAINTENANT GÉRÉ PAR LES SMART HOOKS (useUnifiedSales, etc.)
@@ -23,6 +25,39 @@ export interface AppContextType {
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
+
+  /**
+   * ⭐ PANIER CUISINE — état SÉPARÉ du panier boissons (module restauration).
+   *
+   * ⚠️ Deux listes, mais UNE SEULE addition : à la validation, les deux
+   * partent sur le MÊME `ticket_id` (§16.7 — « sinon l'addition serait
+   * fragmentée »). La séparation est de SAISIE, pas de facturation.
+   *
+   * ⚠️ Un plat n'entre PAS dans `cart` : `CartItem.product` est typé `Product`
+   * et consommé par 11 fichiers du flux de vente commun à tous les bars. Sur
+   * un bar pur, `kitchenItems` reste vide et rien ne s'affiche — l'invariance
+   * du §3 est structurelle, pas conditionnelle.
+   */
+  kitchenItems: KitchenCartItem[];
+  /** ⭐ §19.5 — `priceOption` absent pour un plat à prix ferme. */
+  addDish: (dish: DishRow, priceOption?: DishPriceOptionRow) => void;
+  /**
+   * ⚠️ §19.5 — ces trois fonctions prennent la CLÉ DE LIGNE, pas un `dishId` :
+   * un même plat peut occuper plusieurs lignes (un Grand et un Petit), et agir
+   * par `dishId` toucherait les deux. Utiliser `kitchenLineKey` pour la
+   * construire — jamais la concaténer à la main.
+   */
+  updateKitchenQuantity: (lineKey: string, quantity: number) => void;
+  removeDish: (lineKey: string) => void;
+  setDishModifiers: (lineKey: string, modifiers: string[]) => void;
+  clearKitchenCart: () => void;
+  /** ⭐ §19.5 — construit la clé d'une ligne du panier cuisine. */
+  kitchenLineKey: (dishId: string, priceOptionId?: string) => string;
+  /** Quantités par `dish_id` — alimente les pastilles de `DishGrid`. */
+  kitchenQuantities: Record<string, number>;
+  /** ⚠️ INDICATIF : ces plats ne sont pas encore vendus (§6). */
+  kitchenTotal: number;
+  kitchenItemCount: number;
 
   // Catégories
   addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => Promise<Category>;

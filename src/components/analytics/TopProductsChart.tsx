@@ -33,6 +33,11 @@ interface TopProductsChartProps {
   isLoading?: boolean;
   isMobile?: boolean;
   formatPrice: (price: number) => string;
+  /**
+   * ⭐ Libelle de l etat vide, adapte a la PORTEE — 05/08/2026.
+   * ⚠️ OPTIONNEL : omis, le message reste rigoureusement celui d avant (§3).
+   */
+  emptyLabel?: { title: string; hint: string };
 }
 
 export function TopProductsChart({
@@ -43,6 +48,7 @@ export function TopProductsChart({
   onLimitChange,
   isLoading = false,
   isMobile = false,
+  emptyLabel,
   formatPrice
 }: TopProductsChartProps) {
 
@@ -69,11 +75,16 @@ export function TopProductsChart({
       <div className="bg-card rounded-xl p-4 border border-border">
         <div className="flex flex-col items-center justify-center py-12">
           <BarChart3 size={48} className="text-muted-foreground/40 mb-4" />
+          {/* ⚠️ En portee Restau SANS plat vendu, « Aucune vente enregistree »
+              serait FAUX : des ventes existent, ce sont des boissons — et les
+              KPI juste au-dessus les affichent. Deux affirmations
+              contradictoires sur le meme ecran (defaut trouve a la code
+              review du 05/08/2026). */}
           <h4 className="text-sm font-semibold text-foreground/80 mb-2">
-            Aucun produit vendu
+            {emptyLabel?.title ?? 'Aucun produit vendu'}
           </h4>
           <p className="text-xs text-muted-foreground text-center">
-            Aucune vente enregistrée sur cette période
+            {emptyLabel?.hint ?? 'Aucune vente enregistrée sur cette période'}
           </p>
         </div>
       </div>

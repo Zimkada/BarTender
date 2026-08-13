@@ -29,10 +29,12 @@ export default function ConsignmentPage() {
   const stockManager = useUnifiedStock(currentBar?.id);
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { isMobile } = useViewport();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
 
-  // ✨ Déterminer si l'utilisateur est en mode read-only (serveur)
-  const isReadOnly = currentSession?.role === 'serveur';
+  // ✨ Déterminer si l'utilisateur est en mode read-only
+  // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6) :
+  // qui ne peut pas créer de consignation n'a que la lecture.
+  const isReadOnly = !!currentSession && !hasPermission('canCreateConsignment');
 
   // Configuration des onglets pour TabbedPageHeader
   const tabs = [
@@ -105,7 +107,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 
   const { sales } = useUnifiedSales(currentBar?.id, consignmentSalesFilters);
   const { barMembers } = useBarContext();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { showSuccess, showError } = useFeedback();
   const [searchTerm, setSearchTerm] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState<"all" | "soon" | "expired">("all");
@@ -131,7 +133,8 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
     return sale?.soldBy ? usersMap.get(sale.soldBy) : undefined;
   }, [salesMap, usersMap]);
 
-  const isServerRole = currentSession?.role === "serveur";
+  // 🛡️ Périmètre de lecture par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6)
+  const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
 
   const activeConsignments = useMemo(() => {
     let consignments = stockManager.consignments.filter(
@@ -337,7 +340,7 @@ const HistoryTab: React.FC<{ stockManager: ReturnType<typeof useUnifiedStock> }>
 
   const { sales } = useUnifiedSales(currentBar?.id, historySalesFilters);
   const { barMembers } = useBarContext();
-  const { currentSession } = useAuth();
+  const { currentSession, hasPermission } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const [filterStatus, setFilterStatus] = useState<"all" | "claimed" | "expired" | "forfeited">("all");
   const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
@@ -363,7 +366,8 @@ const HistoryTab: React.FC<{ stockManager: ReturnType<typeof useUnifiedStock> }>
     return sale?.soldBy ? usersMap.get(sale.soldBy) : undefined;
   }, [salesMap, usersMap]);
 
-  const isServerRole = currentSession?.role === "serveur";
+  // 🛡️ Périmètre de lecture par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6)
+  const isServerRole = !!currentSession && !hasPermission('canViewAllSales');
 
   const historyConsignments = useMemo(() => {
     let filtered = stockManager.consignments.filter(

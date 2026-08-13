@@ -861,6 +861,55 @@ Insertion après *Inventaire* (même registre mental), icône `ChefHat`, filtre 
 `rôle + currentBar.hasRestaurant`. Une entrée, pas quatre — elle mène à une page à onglets,
 comme Inventaire.
 
+> ⭐⭐ **ARBITRAGE DU 03/08/2026 — cette prescription est RÉVISÉE pour la phase 3.**
+>
+> **Décision : « Cuisine » devient un GROUPE de menu avec sous-entrées, et le découpage est
+> la PREMIÈRE tâche de la phase 3 — avant d'écrire l'onglet Service.**
+>
+> **Ce qui a changé depuis la rédaction de ce §9 :**
+>
+> | Moment | Onglets de la page | Verdict |
+> |---|---|---|
+> | Écriture du plan | 0 (page inexistante) | entrée unique évidente |
+> | Fin phase 1 | 2 (Stock, Péremption) | entrée unique encore juste |
+> | **Fin phase 2** | **3** (Plats, Stock, Péremption) | limite atteinte |
+> | Phase 3 prévue | **5** (+ Service, + Appro) | **illisible sur mobile** |
+>
+> **Trois arguments pour le groupe :**
+>
+> 1. **Cinq onglets ne tiennent pas sur mobile**, et l'un d'eux (Appro) doit être masqué au
+>    cuisinier — un `TabbedPageHeader` à onglets conditionnels par rôle devient vite
+>    incompréhensible à maintenir.
+> 2. **Les écrans ont des rythmes d'usage opposés** : *Service* est du temps réel pour le
+>    cuisinier en plein rush ; *Plats* est de la configuration pour le promoteur. Les mettre
+>    au même niveau mélange deux métiers.
+> 3. **Le RBAC est plus propre par route** : un onglet masqué reste dans le bundle et dans le
+>    DOM ; une route gardée par `ProtectedRoute` ne se charge pas du tout.
+>
+> ⭐ **Ce §9 le prévoyait déjà à moitié** : il prescrit « 3 items (Commandes / Recettes /
+> Ingrédients) » pour le cuisinier en navigation mobile — donc une navigation ÉCLATÉE pour lui,
+> et une entrée unique pour le promoteur. Le groupe réconcilie les deux publics.
+>
+> **⚠️ POURQUOI PAS MAINTENANT (fin phase 2) :** *Service* et *Appro* n'existent pas encore.
+> Découper aujourd'hui créerait 4 routes dont 2 mèneraient à des pages vides, à remplir ensuite.
+> Découper au début de la phase 3, c'est écrire les nouvelles pages directement au bon endroit —
+> même travail, une seule fois. Et on saura alors ce que *Service* contient vraiment.
+>
+> **⚠️ RISQUE §3 À TRAITER AU DÉCOUPAGE — le point le plus facile à rater :**
+> chaque route est un chunk lazy. Aujourd'hui, un bar pur ne télécharge **jamais** le chunk
+> cuisine (une seule route à surveiller). Avec 4 routes, ce sont **4 chunks** à tenir hors
+> préchargement : 4 occasions d'oublier au lieu d'une. Prévoir un test §3 par route, sur le
+> modèle de `dishesInvariance.test.tsx`.
+>
+> **Structure cible :**
+> ```
+> Cuisine  (groupe, icône ChefHat)
+>   ├─ Service       → cuisinier, gérant, promoteur   (phase 3)
+>   ├─ Plats         → gérant, promoteur              (existe : onglet Plats)
+>   ├─ Ingrédients   → cuisinier, gérant, promoteur   (existe : onglets Stock + Péremption)
+>   └─ Appro         → gérant, promoteur UNIQUEMENT   (§9 : le cuisinier touche à l'argent)
+> ```
+
 ### Navigation mobile
 
 - **Cuisinier** : 3 items (Commandes / Recettes / Ingrédients) — c'est son outil principal.
@@ -1330,7 +1379,12 @@ l'auteur, motif, et visibilité dans le Z de caisse. Ne pas la traiter comme un 
 
 Le serveur propose, le client choisit, le système enregistre les deux cas sans en privilégier un.
 
-#### 12.4.c ✅ `precooked` → reporté Post-V1 (erreur de catégorisation)
+#### 12.4.c ⚠️ `precooked` → reporté Post-V1 — **CORRIGÉ le 08/08/2026, cf. §19.2**
+
+> ⛔ **La conclusion ci-dessous est FAUSSE pour un article SERVI EN SALLE.** Le critère n'est pas
+> « acheté ou produit » mais « servi en salle ou vendu au comptoir » : un `bar_product` compte en
+> portée **Bar**, donc un akassa acheté et servi à table sous-évaluerait le CA restauration.
+> La bonne réponse est un **plat dont la recette compte une seule ligne** (§19.2).
 
 §16.8 disait qu'un plat `precooked` « se vend comme une boisson, retour possible ». Mais `dishes`
 **n'a pas de stock** (§4.1) et `returns.product_id` pointe **obligatoirement** vers `bar_products`
@@ -1535,6 +1589,56 @@ contradictoires.
 **UX à l'activation** : proposer explicitement le passage en mode complet, avec l'explication
 (« la cuisine nécessite un compte pour le cuisinier »). Ne **jamais** basculer le mode silencieusement.
 
+**État d'implémentation (02/08/2026)** : appliqué dans `BarContext.hasRestaurant`, qui exige
+`settings.hasRestaurant === true` **ET** `operatingMode === 'full'`. Un bar dont le drapeau serait
+`true` en base alors qu'il est repassé en simplifié n'expose donc pas la cuisine — l'incohérence est
+rendue inoffensive au lieu d'être subie. Couvert par `BarContext.test.ts`.
+
+#### ⏸ Question rouverte : une « cuisine simplifiée » est-elle possible ? — POST-V1
+
+> Soulevée par le fondateur le 02/08/2026 : *« ne peut-on pas permettre au gérant d'enregistrer les
+> opérations cuisine en mode simplifié, en les simplifiant comme pour les ventes de boissons ? »*
+>
+> La question est **fondée** et le §13.4 ci-dessus tranchait plus fermement que le §15.7, qui
+> qualifiait le point de « non bloquant, à trancher ». Cette sous-section lève la tension.
+
+**Le parallèle avec les ventes est réel.** En mode simplifié, le gérant enregistre une vente et
+**attribue** un serveur par son nom : le serveur n'a pas de compte, c'est une chaîne
+(`serversList`, `server_name_mappings`). Le principe est *un seul opérateur authentifié, plusieurs
+acteurs nommés*.
+
+**Pourquoi il ne se transpose pas directement.** La différence n'est pas le nombre de comptes, c'est
+la **nature de l'objet enregistré** :
+
+| | Vente de boisson | Production d'un plat |
+|---|---|---|
+| Forme | événement **instantané** | **séquence** dans le temps (§6.1) |
+| Enregistrement | un seul, a posteriori | 3 à 5 transitions horodatées |
+| Effet de `mark_ready` | — | ⭐ **décrément FEFO + coût matière figé** |
+
+Un gérant qui saisirait les transitions a posteriori les **inventerait** : « le plat était prêt à
+19h42 » suppose que quelqu'un l'a constaté à 19h42. Or `mark_ready` n'est pas un horodatage
+décoratif — il déclenche la consommation de matière et fige `computed_cost`, donc toute la chaîne de
+marge (§8).
+
+**Le cas qui resterait légitime** : un bar-resto où le gérant fait **réellement** tout — il prend la
+commande, il cuisine, il sert. Les transitions ne sont alors pas fictives, elles sont simplement
+toutes faites par la même personne. Une « cuisine simplifiée » y aurait du sens : pas d'écran
+cuisinier, pas de file d'attente, le gérant enregistre un plat vendu et le stock se décrémente.
+
+**Décision : POST-V1.** Trois raisons, par ordre de poids :
+
+1. Cela **double les chemins à tester** dans la machine d'état — le cœur du module, et l'endroit où
+   une erreur coûte le plus cher ;
+2. Les métriques qui font la valeur du module (écart théorique/réel, temps de préparation, pertes
+   §8) supposent des transitions **constatées**, pas déclarées. Un mode dégradé produirait des
+   chiffres d'apparence identique mais de fiabilité moindre — sans que rien ne le signale ;
+3. Mode minoritaire : la V1 doit prouver sa valeur sur le cas nominal avant de se ramifier.
+
+⚠ **Signal terrain à surveiller** : si une part significative des bars-restos s'avère être en mode
+simplifié, cet arbitrage remonte en priorité. Ce n'est pas un refus de principe mais un
+séquencement — le besoin est réel, la V1 n'est pas le bon moment.
+
 ### 13.5 Offline cuisine — règles strictes
 
 | Opération | Offline |
@@ -1610,6 +1714,58 @@ statistique de bar (§3).
 ⭐ **Motif systématique** : trois tables nomment `product_id` sans FK (`sales.items`,
 `returns.product_id`, `promotion_applications.product_id`). **Auditer tout `product_id` sans FK**, pas
 seulement ces trois-là.
+
+> ⭐⭐ **INVENTAIRE FAIT LE 03/08/2026 → [`INVENTAIRE_SALES_ITEMS.md`](INVENTAIRE_SALES_ITEMS.md)**
+>
+> Relevé **en production** (`pg_get_functiondef` / `pg_get_viewdef` / `pg_constraint`), et non
+> par vérification de cette checklist point par point — leçon du Pré-0, où l'inventaire par
+> motif a dû être repris trois fois.
+>
+> **Ce que le relevé CORRIGE dans ce §13.9 :**
+>
+> | Affirmation ci-dessus | Réalité vérifiée |
+> |---|---|
+> | `returns.product_id` sans FK | ❌ **A une FK** — protégé par construction |
+> | `promotion_applications.product_id` sans FK | ✅ exact |
+> | — | ⭐ **`bar_product_audit_log.product_id`** sans FK, **non mentionné ici** |
+>
+> **Résultat du balayage** : 6 fonctions à traiter (3 écartées après vérification),
+> **3 vues MATÉRIALISÉES**, 2 tables sans FK. Les 6 autres colonnes `product_id` du schéma
+> ont une FK : un `dish_id` y serait rejeté par la base. Le rayon d'exposition est donc plus
+> ÉTROIT que ce §13.9 le laissait craindre — mais il contient deux objets de plus
+> (`bar_ancillary_stats_mat`, `admin_generate_bar_report`).
+>
+> ⚠️ **Le point le plus grave n'était pas dans cette checklist** : les vues MATÉRIALISÉES
+> *stockent* leur résultat. Un plat qui y entre y **reste** jusqu'au prochain `REFRESH`.
+> → **Le filtre doit être posé AVANT la première vente d'un plat**, sinon un `REFRESH`
+> complet sera nécessaire pour purger l'historique agrégé.
+> ⏱️ Délai mesuré : les triggers `pg_notify` avec un débounce de 10 min, le cron rafraîchit
+> toutes les 30 min. Une donnée fausse est figée dans la vue jusqu'au refresh suivant.
+>
+> ⭐ **Deux vues sont HORS périmètre, contrairement à ce qu'un balayage textuel suggère** :
+> `top_products_by_period_mat` est une **vue MORTE** (retirée du refresh par la migration
+> `20260607160000` — le dashboard passe par `get_top_products_aggregated` qui lit les tables
+> brutes), et `bar_stats_multi_period_mat` est une **cascade** de `daily_sales_summary_mat`
+> qui hérite donc du correctif de sa source.
+>
+> ⭐ **Contre-exemple utile** : `compute_sale_items_count` lit `sales.items` et ne doit
+> **PAS** être filtré — c'est un compteur d'articles vendus, et un plat *est* un article
+> vendu. La question n'est pas « lit-il les items ? » mais « produit-il une statistique
+> PRODUIT ? ».
+>
+> **Trois cibles de la table ci-dessous n'existent pas en SQL** (forecasting, exports,
+> résumés de ticket) : elles vivent côté client.
+>
+> ⭐ **VOLET CLIENT FAIT → [`INVENTAIRE_SALES_ITEMS_CLIENT.md`](INVENTAIRE_SALES_ITEMS_CLIENT.md)**
+> Résultat : sur 33 fichiers itérant sur `sales.items`, **DEUX seulement** exigent un filtre
+> (`AnalyticsView.tsx` pour la répartition du CA par catégorie, `useSalesExport.ts` pour
+> l'export CSV). Le reste est couvert par le correctif SQL, correct par nature (comptage
+> d'articles), mort, ou protégé par le compilateur.
+>
+> ⭐ **Le typage fait l'inventaire à notre place** : quand `SaleItem` recevra `item_type`
+> comme champ OBLIGATOIRE, tout code construisant un item sans le renseigner cassera à la
+> compilation. C'est la différence structurelle avec le JSONB, qui ne signale rien — et une
+> raison de plus pour que le champ ne soit **pas** optionnel dans le type.
 
 ### 13.10 `bar_categories.type` — backfill et étanchéité
 
@@ -1755,7 +1911,7 @@ RLS `bar_members`) **avant** d'ajouter le rôle `cuisinier`. Ajouter d'abord fer
 | **0** | Ajout rôle `cuisinier` + `has_restaurant` + permissions + **`operatingMode = 'full'` exigé** (§13.4) | Rien de visible | **Élevé** — 56 fichiers, 17 migrations |
 | **1** | `ingredients` (+ `cost_mode`, §16.3) + **`ingredient_lots` FIFO/FEFO** (§16.13) + `ingredient_supplies` + **vue de cohérence des caches** (§13.11) + écran appro + saisie en portions (§16.6) + **écran de détail du coût** | Le promoteur suit ses achats cuisine, aujourd'hui invisibles, **et ses pertes par péremption** | Moyen — nouveau moteur de valorisation (table neuve, aucune reprise) |
 | **2** | `dishes` (+ **`production_mode`**, §16.8) + `dish_ingredients` + **`dish_recipe_components`** (1 niveau garanti par RPC, §13.8) + marge théorique + **`bar_categories.type` + backfill** (§13.10) + **assistant d'onboarding recettes** (§13.12) | **Le promoteur découvre la marge réelle de ses plats** — souvent une révélation | Faible — lecture seule |
-| **3A** | Machine d'état (§6) + `fulfillment_status` piloté par RPC (§13.7) + `isTicketClosed` (§13.6) + **checklist `sales.items`** (§13.9) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§16.7) + motifs cuisine de `cancel_sale` (§13.14) + régime **`on_order`** seul + arbitrages §15.1 à §15.6 | Prise de commande à table, **sans emporté, sans prépaiement, sans lot** | **Élevé** — touche au flux de vente |
+| **3A** | ⭐ **PRÉREQUIS : découpage de la page Cuisine en groupe de menu** (arbitrage 03/08/2026, cf. §9 « Menu latéral ») — à faire AVANT d'écrire l'écran Service, sinon la page atteint 5 onglets illisibles sur mobile · Machine d'état (§6) + `fulfillment_status` piloté par RPC (§13.7) + `isTicketClosed` (§13.6) + **checklist `sales.items`** (§13.9) + écran Service + **`mark_kitchen_item_ready`** et **`serve_kitchen_item`** + format `sales.items` (§4.2) + bon implicite (§16.7) + motifs cuisine de `cancel_sale` (§13.14) + régime **`on_order`** seul + arbitrages §15.1 à §15.6 | Prise de commande à table, **sans emporté, sans prépaiement, sans lot** | **Élevé** — touche au flux de vente |
 | **3B** | **`production_batches`** (+ `status`, §13.3) + **`kitchen_item_batch_consumptions`** (§12.4.d) + régime **`batch_finish`** | Spaghetti-poulet, alloco-poisson | Moyen |
 | **3C** | Régime **`batch`** complet + **`ingredient_stock_debts`** (§13.2) + **`service_alerts`** (§16.10) | Riz sauce, plats du jour | Moyen |
 | **4** | **`ingredient_adjustments`** + inventaire physique (rythme + **gel par période**, §16.5) + écart théorique/réel + **enregistrement** des pertes (§16.11) | Détection gaspillage et fuites | Moyen |
@@ -2091,6 +2247,15 @@ le plus probable est qu'un bar-resto en mode simplifié donne quand même un com
 qui signifie que « mode simplifié » et « restauration » sont partiellement contradictoires, et
 mérite d'être dit.
 
+> **✅ TRANCHÉ — voir §13.4.** La restauration exige le mode complet en V1, et c'est **appliqué**
+> (`BarContext.hasRestaurant` teste les deux conditions). L'hypothèse formulée ici était la bonne :
+> un bar-resto donne un compte à son cuisinier.
+>
+> ⏸ La variante « cuisine simplifiée » — le gérant seul enregistrant tout, comme il le fait pour les
+> ventes — a été rouverte le 02/08/2026 puis **reportée Post-V1**. Le raisonnement complet, et
+> pourquoi le parallèle avec les ventes ne se transpose pas (événement instantané vs séquence
+> horodatée déclenchant le décrément FEFO), est en **§13.4**.
+
 ---
 
 ## 16. Test « service réel » — corrections métier (30/07/2026)
@@ -2320,6 +2485,23 @@ plat → jamais pour un bar pur.
 Un bon implicite consomme donc un numéro visible dans le suivi. Acceptable, mais à ne pas découvrir
 en production — le promoteur verra plus de bons qu'il n'en a créés manuellement.
 
+**Décision du 04/08/2026 — `QuickSaleFlow` ne prend PAS de commande cuisine.**
+
+L'enchaînement ticket → cuisine → boissons vit dans `Cart.tsx` uniquement. La vente rapide reste
+un écran de comptoir : boissons seulement.
+
+| Raison | Détail |
+|---|---|
+| Métiers distincts | La vente rapide sert quelqu'un qui attend debout (raccourcis, validation en un geste). Une commande cuisine demande table, délai annoncé, modificateurs. |
+| Duplication = risque avéré | L'enchaînement a révélé 3 défauts à sa code review. Le même jour, 3 schémas Zod portaient le même défaut à 3 endroits. L'implanter deux fois avant de l'éprouver reproduirait ce motif. |
+| Contournement trivial | Commander un plat passe par l'Accueil, qui porte la grille avec sélecteur Tout/Bar/Restau. |
+
+**Invariance structurelle** : `QuickSaleFlow` monte `CartDrawer` sans lui passer les props cuisine,
+toutes optionnelles. La section ne *peut pas* s'afficher — aucune condition à maintenir.
+
+⚠ **Si le terrain le réclame** : extraire d'abord l'enchaînement de `Cart.tsx` dans une fonction
+partagée, **puis** l'appeler des deux côtés. Jamais deux implémentations de la même règle.
+
 ### 16.8 ⭐⭐ `production_mode` : quatre régimes de production
 
 Le plan supposait que **tout** plat passe par la cuisine à la commande. Faux, et de loin : c'est
@@ -2332,7 +2514,7 @@ la complétude du modèle (pas de cinquième cas caché) :
 | `production_mode` | Lot | Finition à la commande | Délai | Bon | Retour | Exemple |
 |---|---|---|---|---|---|---|
 | `on_order` | non | totale | 20-40 min | oui | non | poulet braisé, poisson grillé |
-| **`batch`** | oui | **aucune** | nul | non | non | **riz gras + sauce légume** |
+| **`batch`** | oui | **aucune** | nul | **oui** ⚠ | non | **riz gras + sauce légume**, akassa |
 | **`batch_finish`** | oui | **partielle** | 5-10 min | oui | non | **spaghetti-poulet, alloco-poisson** |
 | ~~`precooked`~~ | — | aucune | nul | non | ✅ oui | ⏸ **Post-V1** (§12.4.c) — pâtisserie, beignet |
 
@@ -2360,13 +2542,51 @@ service.**
 Matin       : 5 kg riz + sauce cuisinés     → ingrédients décrémentés ICI (une seule fois)
               → production_batches : 20 portions, unit_cost = coût lot / 20
 Service     : commande « riz + légumes »    → prélève 1 portion de chaque lot
-              → vente immédiate (comme une boisson), AUCUN passage cuisine
+              → PASSAGE CUISINE COMME LES AUTRES RÉGIMES (corrigé 08/08/2026)
               → remaining_qty décrémenté, PAS les ingrédients
 Fin de jour : reste conservable → report ; sinon discarded_qty = perte valorisée
 ```
 
 ⚠ **Piège à éviter** : décrémenter les ingrédients à chaque portion servie **double-compterait** la
 matière déjà consommée le matin. Le service ne touche **que** `remaining_qty`.
+
+> ### ⛔ CORRECTION DU 08/08/2026 — `batch` PASSE PAR LA CUISINE
+>
+> La première rédaction écrivait « vente immédiate (comme une boisson), AUCUN passage cuisine », et
+> le tableau des régimes porte encore `Bon : non`. **C'est faux**, démenti par le terrain :
+>
+> > « Dans un bar restau, même pour le riz gras, c'est le cuisinier qui sert du bac vers l'assiette,
+> > puis le serveur vient récupérer et servir le client. Pour l'akassa c'est pareil. »
+>
+> L'erreur venait d'un raisonnement sur le **modèle de stock** (une portion décomptée, comme un
+> casier) qui a oublié la **géographie** : où la portion se trouve, et qui a le droit d'y toucher.
+> Une bouteille est dans le frigo du bar — le serveur se sert. Une portion de riz gras est dans le
+> bac **en cuisine** : le serveur ne peut pas se servir, et si la commande n'apparaît pas sur
+> l'écran Service, **personne ne dit au cuisinier de dresser l'assiette**. Il n'a aucune autre
+> interface.
+>
+> **Ce qui distingue `batch` de `on_order` n'est donc PAS le circuit, mais ce qui est DÉCOMPTÉ** :
+> `remaining_qty` au lieu des ingrédients. Le reste (bon, statuts, chrono) est identique.
+>
+> ⚠️ Conséquence sur le tableau du §16.8 : la colonne `Bon` de la ligne `batch` doit se lire **oui**.
+>
+> #### Lot vide → REFUS avec alternative
+>
+> Arbitrage du 08/08/2026, **aligné sur `batch_finish`** (§16.9, arbitrage du 07/08) : quand le bac
+> est vide, `accept_kitchen_item` REFUSE et propose de préparer à la commande.
+>
+> Le repli sur les ingrédients bruts a été **écarté** : il supposerait de recuisiner un bac entier
+> pour une assiette, ce qui n'arrive pas en cuisine réelle. Un riz gras épuisé est épuisé — le
+> serveur doit pouvoir dire « c'est terminé » plutôt que de laisser le client attendre.
+>
+> ⭐ C'est le même raisonnement que le 07/08 : on refuse **parce qu'une alternative existe**. Un
+> ingrédient manquant, lui, n'en a aucune — d'où la dette (§4.4). L'asymétrie est conservée.
+>
+> #### ⚠️ Ce que le code fait aujourd'hui (à corriger)
+>
+> `mark_ready_kitchen_item` ne prélève dans un lot que pour `batch_finish`. Un plat `batch` décompte
+> donc ses **ingrédients** — exactement le double-comptage interdit ci-dessus. Pour un lot
+> `purchased` (§19.3) c'est pire : on décompterait du maïs jamais utilisé.
 
 Le coût de la portion est un **coût moyen de lot** : `coût du lot / portions_per_batch`, figé à la
 production.
@@ -3118,7 +3338,164 @@ pouvait contredire une autre section sans que rien ne le signale — ce qui s'es
 
 ---
 
-## 19. Sources externes consultées
+## 19. ⭐ Découvertes terrain — 08/08/2026
+
+Trois manques relevés par l'exploitant **après la livraison de la phase 3**, en confrontant le
+module à des cas réels de maquis béninois. Aucun n'est un défaut d'implémentation : ce sont des
+**angles morts du plan lui-même**.
+
+⚠️ Aucun n'est bloquant. Le module fonctionne, avec des contournements dont le coût est mesurable.
+Ils sont notés ici pour être tranchés **après le test terrain complet**, ensemble plutôt qu'un à un.
+
+### 19.1 ⛔ Suppléments — l'accompagnement se recommande
+
+> « Pour un plat comme frites au poulet à 2500, le client demande une portion de frites
+> complémentaire sans le poulet. » Puis : « ça peut se constater pour presque tous les plats :
+> akassa poisson, akassa poulet, où le client demande une ou plusieurs boules complémentaires. »
+
+**Le plan suppose partout qu'un plat se vend entier.** Le §16 couvre les régimes, les lots, les
+pertes — jamais la composition d'une commande. Or au Bénin l'accompagnement se recommande : c'est le
+geste normal, pas l'exception.
+
+`kitchen_order_items.modifiers` existe et s'affiche en cuisine, mais **aucun écran ne le saisit**, et
+surtout il **ne touche pas au prix** : c'est un texte (« sans piment »), pas un article facturable.
+
+| Contournement | Ce qu'il donne | Ce qu'il coûte |
+|---|---|---|
+| ⭐ Créer « Boule d'akassa » comme plat à part | coût, marge et statistiques EXACTS · zéro code · **prélève le même lot que les assiettes** (depuis `is_sellable`, cf. note ci-dessous) | deux lignes au ticket · la cuisine ne voit pas le lien avec le plat |
+| Le vendre en `bar_product` | — | ⛔ FAUX : compte en portée Bar (cf. §19.2) |
+
+**Recommandation V1 : le plat séparé.** Ce n'est pas un pis-aller — une portion vendue seule EST un
+article distinct. Ce qui manque est du confort de saisie et du groupement en cuisine, pas de
+l'exactitude.
+
+**Ce qu'il faudrait vraiment** : un article rattaché à une ligne de plat, avec son prix et sa
+recette, qui part en cuisine AVEC le plat. Chantier comparable à 3B.1 — table, RPC, saisie au panier,
+affichage groupé.
+
+> ### ⭐ LE CONTOURNEMENT S'EST RENFORCÉ — mise à jour du 08/08/2026
+>
+> `is_sellable` (migration 20260808220000, certifiée) lève la limite qui rendait le plat séparé
+> bancal. Avant elle, « Boule d'akassa » devait être **soit** un plat-base produisant un lot,
+> **soit** un article de vente — les deux rôles ne cohabitaient pas proprement.
+>
+> Un seul plat porte désormais les trois rôles :
+>
+> | Réglage | Ce qu'il apporte |
+> |---|---|
+> | coché « préparé d'avance » | produit son lot (§16.8) |
+> | composant d'« Akassa Poisson » | prélève dans ce lot |
+> | `is_sellable = true` | vendable seul, en supplément |
+>
+> ⭐ **Conséquence** : une boule commandée en supplément prélève dans **le même bac** que celles
+> servies dans les assiettes. C'est physiquement juste — le cuisinier puise au même endroit — et le
+> coût suit sans double-comptage (cf. correction `batch`, 20260808200000).
+>
+> ⚠️ Ce qui reste imparfait, et c'est du **confort**, jamais de l'exactitude :
+>   · deux lignes au ticket (« Akassa Poisson 1500 » + « Boule d'akassa 200 ») ;
+>   · la cuisine ne voit pas le lien entre les deux entrées de la file.
+>
+> ### ⏸ POURQUOI LE CHANTIER COMPLET N'EST PAS LANCÉ
+>
+> Il achète du confort de saisie, pas de la justesse. Le lancer avant d'avoir mesuré la gêne réelle
+> serait optimiser à l'aveugle — le §16.8 a déjà coûté une correction pour avoir modélisé sans
+> terrain (« vente immédiate, aucun passage cuisine »).
+>
+> **Deux questions à trancher AU SERVICE, pas ici** :
+>   1. les serveurs trouvent-ils la seconde ligne pénible, ou naturelle ?
+>   2. le cuisinier confond-il les deux entrées, ou fait-il le lien seul ?
+>
+> Selon les réponses, la correction peut se réduire à un **groupement visuel en cuisine** — sans
+> table ni RPC, à une fraction du coût annoncé.
+
+### 19.2 ⛔ Le §12.4.c est FAUX pour un article servi en salle
+
+> « L'akassa n'est pas servi au bar, c'est au restau. Ou bien on le fait passer par la cuisine avec
+> comme seul ingrédient lui-même ? »
+
+Le §12.4.c pose qu'un article acheté prêt et revendu en l'état « est un `bar_product`, pas un plat ».
+**C'est vrai pour des beignets vendus au comptoir. C'est faux dès que l'article est servi en salle** :
+la ventilation Bar/Restau (§9) repose sur `item_type`, qui vaut `'dish'` uniquement si l'article vit
+dans `dishes`. Un akassa acheté compterait donc en **Bar** — et le CA restauration serait sous-évalué
+d'autant.
+
+⭐ **La solution de l'exploitant est meilleure que celle du plan** : un plat dont la recette compte
+**une seule ligne**.
+
+```
+ingredient  « Akassa prêt »       unité = boule, acheté 100 F
+dish        « Boule d'akassa »    prix 150 F, régime on_order
+recette     1 boule, yield_factor 1
+```
+
+À `ready`, le FEFO décrémente une boule et fige `computed_cost` à 100 F — marge exacte de 50 F.
+L'article compte en **portée Restau**, l'approvisionnement passe par l'écran Ingrédients au prix
+réellement payé, et le stock hérite de la **péremption** des lots d'ingrédients.
+
+> ### ⚠️ PORTÉE DE CE MONTAGE — précisée le 08/08/2026
+>
+> Ce `on_order` à ligne unique vaut pour un accompagnement **TOUJOURS acheté prêt**, jamais produit.
+>
+> ⛔ **Dès que le bar le PRODUIT, même occasionnellement, ce montage devient faux** : le plat doit
+> être un **plat-base `batch`** (coché « préparé d'avance »), et l'origine se déclare sur le LOT via
+> `source = 'produced' | 'purchased'` (§19.3, migration 20260808140000). Les deux origines
+> coexistent dans une seule file FIFO — c'est l'arbitrage du §19.3.
+>
+> Garder le montage `on_order` dans ce cas décompterait les ingrédients à chaque portion servie,
+> alors que le lot a déjà consommé la matière : **double-comptage**.
+>
+> ⭐ Distinction pratique : « est-ce que je le fabrique parfois ? » Non → `on_order` à ligne unique.
+> Oui → plat-base `batch`, quelle que soit la fréquence.
+
+⚠️ `preparation_time_min` reste NULL : il ne calibre que les alertes de retard, un article sans délai
+n'en déclenche aucune.
+
+⚠️ **Coût assumé** : l'article passe quand même par la file de production (« Commencer » puis
+« Prêt ») alors qu'on le pose simplement dans l'assiette. C'est ce passage qui décrémente le stock et
+fige le coût — deux clics pour la traçabilité.
+
+**→ Le §12.4.c doit être corrigé** : le critère n'est pas « acheté ou produit », c'est **« servi en
+salle ou vendu au comptoir »**.
+
+### 19.3 ⚠️ Lot APPROVISIONNÉ — un plat-base parfois acheté, parfois produit
+
+> « Si dans ce même restau par moment on produit de l'akassa, ça fera deux recettes pour un même plat
+> ou bien on crée deux plats ? »
+
+Le cas : un maquis **produit** son akassa certains jours (maïs, eau, travail) et **l'achète** d'autres
+jours. Même article vendu, deux économies.
+
+`produce_batch` consomme TOUJOURS la recette du plat-base. Un lot acheté n'a pas de recette à
+consommer — il a un **prix payé**.
+
+| Contournement | Verdict |
+|---|---|
+| Deux plats (« maison » / « acheté ») | ✅ coûts exacts, mais statistiques scindées et deux lignes au menu |
+| Un plat, recette réécrite selon le jour | ⛔ **DANGEREUX** — un oubli un jour d'achat donne un coût faux, sans aucun signal |
+
+**Recommandation V1 : deux plats.** L'inconvénient est mesurable et même informatif — le promoteur
+verra ce que chaque mode lui coûte.
+
+⭐ **Ce qu'il faudrait** : un paramètre optionnel sur `produce_batch` pour déclarer un lot à coût
+DIRECT, court-circuitant le FEFO. « J'ai acheté 40 boules à 100 F. » Une migration, un champ dans le
+formulaire de production. C'est le plus petit des trois chantiers et le plus rentable.
+
+#### ✅ Le FIFO n'a PAS besoin de distinguer l'origine
+
+> « Doit-on faire du FIFO, chacun décrémentant en fonction de sa nature ? »
+
+**Non — une seule file, et c'est déjà ce que fait le code** (`ORDER BY produced_at ASC`).
+
+La raison est physique : l'akassa acheté à 8h et celui produit à 14h sont dans le **même bac**. Le
+cuisinier sert le plus ancien. Chaque assiette prend le coût de SON lot — 100 F ou 60 F — donc le
+coût reste exact des deux côtés.
+
+⚠️ Séparer les files supposerait un critère de choix (servir le produit d'abord ? l'acheté ?). Aucun
+n'a de sens métier. **Le trou est en amont, à la création du lot acheté — jamais au prélèvement.**
+
+---
+
+## 20. Sources externes consultées
 
 - [Slant POS — ingredient usage tracking](https://blog.slantco.com/how-pos-systems-help-track-ingredient-usage-and-profitability/)
 - [Restaurant365 — food inventory management](https://www.restaurant365.com/blog/food-inventory-management/)

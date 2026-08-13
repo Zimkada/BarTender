@@ -39,6 +39,9 @@ vi.mock('../../services/supabase/analytics.service', () => ({
 vi.mock('../../context/AuthContext', () => ({
     useAuth: vi.fn(() => ({
         currentSession: { userId: 'user-123', role: 'gerant' },
+        // Le statut de vente est piloté par permission (MATRICE_RBAC_CUISINIER §5.1bis).
+        // Ce mock simule un gérant : canValidateSales = true → ventes 'validated'.
+        hasPermission: (permission: string): boolean => permission === 'canValidateSales',
     })),
 }));
 

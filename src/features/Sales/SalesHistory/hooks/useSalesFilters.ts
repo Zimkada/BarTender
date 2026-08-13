@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useAuth } from '../../../../context/AuthContext';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
 import type { Sale, SaleItem, Return, UserSession } from '../../../../types';
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
@@ -32,16 +33,25 @@ export function useSalesFilters({
     const searchTerm = controlledSearchTerm ?? internalSearchTerm;
     const setSearchTerm = controlledSetSearchTerm ?? setInternalSearchTerm;
 
+    // 🛡️ Périmètre de lecture piloté par PERMISSION, jamais par rôle brut
+    // (cf. MATRICE_RBAC_CUISINIER §6). `currentSession` reste une prop : elle sert
+    // à identifier l'utilisateur (userId), pas à décider de ses droits.
+    const { hasPermission } = useAuth();
+    const canViewAllSales = hasPermission('canViewAllSales');
+
     // 2. Filtrage des ventes
     const filteredSales = useMemo(() => {
-        const isServer = currentSession?.role === 'serveur';
+        // ⚠️ userId extrait ici : l'ancien test `currentSession?.role === ...` assurait
+        // aussi le narrowing TypeScript, que canViewAllSales ne fait pas.
+        const currentUserId = currentSession?.userId;
+        const isServer = !canViewAllSales && !!currentUserId;
 
         // A. Filtrage initial basé sur le rôle et le statut actif
         const activeStatus = statusFilter === 'all' ? undefined : (statusFilter || 'validated');
 
         const baseSales = sales.filter(sale => {
             if (isServer) {
-                return sale.status === 'validated' && sale.soldBy === currentSession.userId;
+                return sale.status === 'validated' && sale.soldBy === currentUserId;
             } else {
                 return activeStatus ? sale.status === activeStatus : true;
             }
@@ -74,16 +84,18 @@ export function useSalesFilters({
                 );
             return getDate(b).getTime() - getDate(a).getTime();
         });
-    }, [sales, externalStartDate, externalEndDate, searchTerm, currentSession, closeHour, statusFilter]);
+    }, [sales, externalStartDate, externalEndDate, searchTerm, currentSession, closeHour, statusFilter, canViewAllSales]);
 
     // 3. Filtrage des retours
     const filteredReturns = useMemo(() => {
-        const isServer = currentSession?.role === 'serveur';
+        // ⚠️ Même raison qu'au-dessus : extraire userId pour conserver le narrowing.
+        const currentUserId = currentSession?.userId;
+        const isServer = !canViewAllSales && !!currentUserId;
 
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseReturns = returns.filter(returnItem => {
             if (isServer) {
-                return returnItem.server_id === currentSession.userId || returnItem.returnedBy === currentSession.userId;
+                return returnItem.server_id === currentUserId || returnItem.returnedBy === currentUserId;
             }
             return true;
         });
@@ -103,7 +115,7 @@ export function useSalesFilters({
             const dateB = new Date(String(('returned_at' in b ? b.returned_at : undefined) || b.returnedAt)).getTime();
             return dateB - dateA;
         });
-    }, [returns, externalStartDate, externalEndDate, currentSession, closeHour]);
+    }, [returns, externalStartDate, externalEndDate, currentSession, closeHour, canViewAllSales]);
 
     return {
         searchTerm,

@@ -35,6 +35,13 @@ interface BarContextType {
   assignedRole: UserRole | null;
   operatingMode: 'full' | 'simplified';
   isSimplifiedMode: boolean;
+  /**
+   * ⭐ Le bar courant fait de la restauration (§3, §13.4).
+   * ⚠️ À utiliser sur CHAQUE query/subscription cuisine :
+   * `enabled: !!barId && hasRestaurant`. Une requête qui part « pour rien »
+   * sur un bar pur casse l'invariance réseau — le niveau le plus insidieux.
+   */
+  hasRestaurant: boolean;
   switchBar: (barId: string) => Promise<void>;
 
   // Membres du bar
@@ -91,6 +98,22 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const isSimplifiedMode = useMemo(() => {
     return operatingMode === 'simplified';
   }, [operatingMode]);
+
+  /**
+   * ⭐ Restauration active sur ce bar (§3).
+   *
+   * ⚠️ DOUBLE condition volontaire : le drapeau ET le mode complet (§13.4).
+   * Un bar dont `hasRestaurant` serait `true` en base alors qu'il est repassé
+   * en mode simplifié ne doit PAS exposer la cuisine — un cuisinier a besoin
+   * d'un compte pour faire avancer la production, ce que le mode simplifié
+   * exclut. Cette garde rend l'incohérence inoffensive au lieu de la subir.
+   *
+   * ⚠️ Absent ⟹ `false` : tous les bars existants sont purs, l'app leur reste
+   * strictement identique.
+   */
+  const hasRestaurant = useMemo(() => {
+    return currentBar?.settings?.hasRestaurant === true && operatingMode === 'full';
+  }, [currentBar?.settings?.hasRestaurant, operatingMode]);
 
   // Fonction pour charger les bars depuis Supabase
   const refreshBars = useCallback(async () => {
@@ -692,6 +715,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     assignedRole,
     operatingMode,
     isSimplifiedMode,
+    hasRestaurant,
     switchBar,
     barMembers,
     getBarMembers,

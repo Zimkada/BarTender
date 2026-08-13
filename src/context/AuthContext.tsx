@@ -367,8 +367,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [currentSession, setCurrentSession]);
 
   const hasPermission = useCallback((permission: keyof RolePermissions) => {
-    return currentSession?.permissions?.[permission] ?? false;
-  }, [currentSession]);
+    if (!currentSession?.role) return false;
+
+    // ⭐ DÉRIVÉ DU RÔLE, pas de la session persistée (fix 02/08/2026).
+    //
+    // `currentSession.permissions` est figée au login ET persistée
+    // (useDataStore). Toute permission AJOUTÉE ensuite en est absente pour les
+    // sessions existantes — constaté en prod : après l'ajout de
+    // `canValidateSales`, les ventes d'un promoteur naissaient `pending` parce
+    // que la permission manquait de sa session restaurée.
+    //
+    // Passer par getPermissionsByRole (donc ROLE_PERMISSIONS) supprime la classe
+    // entière de problème : la source de vérité est la table, jamais une copie
+    // datée. `session.permissions` reste peuplée pour compatibilité mais n'est
+    // plus lue ici — c'est le MÊME helper qui l'alimente au login.
+    const permissions = getPermissionsByRole(currentSession.role);
+    return permissions?.[permission] ?? false;
+  }, [currentSession?.role]);
 
   // const createUser = useCallback(async (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole): Promise<User | null> => {
   //   if (!currentSession) return null;

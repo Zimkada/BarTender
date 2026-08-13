@@ -31,7 +31,9 @@ import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
 import { useReturnsMutations } from '../hooks/mutations/useReturnsMutations';
 import { useCategoryMutations } from '../hooks/mutations/useCategoryMutations';
 import { useCart } from '../hooks/useCart';
+import { useKitchenCart } from '../hooks/useKitchenCart';
 import { useStock } from './hooks/useStock';
+import type { DishRow, DishPriceOptionRow } from '../services/supabase/dishes.service';
 
 import { AppContext, AppContextType } from './AppContext';
 
@@ -125,14 +127,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
     });
 
+    /**
+     * ⭐ PANIER CUISINE — séparé du panier boissons (module restauration).
+     * Voir `useKitchenCart` : `CartItem.product` est typé `Product` et
+     * consommé par tout le flux de vente. Sur un bar pur, cette liste reste
+     * vide et aucune section cuisine ne s'affiche (§3).
+     */
+    const {
+        kitchenItems,
+        addDish: baseAddDish,
+        updateQuantity: updateKitchenQuantity,
+        removeDish,
+        setModifiers: setDishModifiers,
+        clearKitchenCart,
+        quantities: kitchenQuantities,
+        kitchenTotal,
+        kitchenItemCount,
+        lineKey: kitchenLineKey,
+    } = useKitchenCart();
+
     // 🧹 Fix: Vider le panier quand on change de bar pour éviter les mélanges
     useEffect(() => {
         setCart([]);
-    }, [currentBar?.id, setCart]);
+        // ⚠️ Le panier CUISINE aussi : des plats d'un autre bar seraient
+        // refusés par `create_kitchen_order` (isolation par bar_id) — mais
+        // surtout, le serveur les verrait à l'écran comme s'ils étaient
+        // commandables ici.
+        clearKitchenCart();
+    }, [currentBar?.id, setCart, clearKitchenCart]);
 
     const addToCart = useCallback((product: Product) => {
+        // ⛔ Qui n'a PAS le droit de vendre ne compose pas de panier — quel que
+        //    soit le mode opérationnel. Constaté en test le 02/08/2026 : un
+        //    cuisinier (canSell = false) pouvait remplir un panier et voir
+        //    « LANCER LA VENTE » en mode complet, la vente n'échouant qu'au RPC.
+        //    ⚠️ Sans effet sur les 4 rôles historiques : tous ont canSell = true
+        //    (invariant vérifié par rbac-role-baseline).
+        if (!!currentSession && !hasPermission('canSell')) {
+            // ⚠️ Message explicite, comme le cas voisin : un refus muet laisse
+            // l'utilisateur cliquer sans comprendre pourquoi rien ne se passe.
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('Votre rôle ne permet pas de vendre.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
         // Check if server in simplified mode - prevent adding to cart
-        const isServerRole = currentSession?.role === 'serveur';
+        // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6 zone 4)
+        const isServerRole = !!currentSession && !hasPermission('canValidateSales');
 
         if (isSimplifiedMode && isServerRole) {
             import('react-hot-toast').then(({ default: toast }) => {
@@ -145,11 +190,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         baseAddToCart(product);
-    }, [baseAddToCart, isSimplifiedMode, currentSession?.role]);
+    }, [baseAddToCart, isSimplifiedMode, currentSession, hasPermission]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
         baseUpdateCartQuantity(productId, quantity);
     }, [baseUpdateCartQuantity]);
+
+    /**
+     * ⭐ Commander un plat obéit AUX MÊMES GARDES que vendre une boisson.
+     *
+     * ⚠️ Les deux règles sont RÉPLIQUÉES et non factorisées, volontairement :
+     * elles portent des messages différents et pourraient diverger (le §6.1
+     * autorise le serveur à SERVIR un plat sans le laisser en COMMANDER en
+     * mode simplifié). Une abstraction prématurée les figerait ensemble.
+     *
+     * ⛔ `canSell` : un cuisinier ne compose pas de commande. Il a
+     * `canViewKitchenOrders` pour PRODUIRE, jamais pour prendre commande.
+     *
+     * ⛔ Mode simplifié : décision du 04/08/2026 — le panier est masqué au
+     * serveur, cuisine comprise. Cohérent avec `create_sale_idempotent`, qui
+     * REFUSE déjà un serveur dans ce mode (whitelist_create_sale_roles:216).
+     */
+    const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow) => {
+        if (!!currentSession && !hasPermission('canSell')) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('Votre rôle ne permet pas de prendre une commande.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
+        const isServerRole = !!currentSession && !hasPermission('canValidateSales');
+        if (isSimplifiedMode && isServerRole) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('En mode simplifié, seul le gérant prend les commandes.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
+        baseAddDish(dish, priceOption);
+    }, [baseAddDish, isSimplifiedMode, currentSession, hasPermission]);
     // --- END CART STATE & LOGIC ---
 
     // Filtrage automatique (désactivé dans AppProvider - géré par Smart Hooks)
@@ -299,7 +384,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             customerName: saleData.customerName,
             customerPhone: saleData.customerPhone,
             notes: saleData.notes,
-            status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
+            // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis)
+            status: hasPermission('canValidateSales') ? 'validated' : 'pending',
             serverId: saleData.serverId,
             ticketId: saleData.ticketId
         };
@@ -308,6 +394,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // sans attendre la réponse serveur. Si la mutation échoue, la vente
         // est déjà dans la queue offline (visible via useUnifiedSales).
         clearCart();
+        /**
+         * ⚠️ LE PANIER CUISINE N'EST VOLONTAIREMENT PAS VIDÉ ICI.
+         *
+         * `addSale` ne vend QUE les boissons. Les plats partent par
+         * `create_kitchen_order` et leur vente naît au `serve` (§6) — les
+         * effacer ici les FERAIT PERDRE avant qu'ils n'atteignent la cuisine.
+         *
+         * ⭐ À REPRENDRE quand la validation unifiée existera : c'est ELLE qui
+         * enchaînera ticket → cuisine → boissons et videra les DEUX paniers,
+         * une fois les trois étapes confirmées. Vider ici serait vider trop
+         * tôt et sans savoir si la cuisine a accepté.
+         */
 
         const result = await salesMutations.createSale.mutateAsync(newSaleData);
 
@@ -354,7 +452,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.log('[AppProvider.addReturn] Calling returnsMutations.createReturn.mutate');
 
         // ✅ NEW: Auto-validate if created by Manager/Admin
-        const finalStatus = (currentSession.role === 'promoteur' || currentSession.role === 'gerant')
+        // 🛡️ Piloté par PERMISSION, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis).
+        // canManageInventory gouverne déjà les retours ici (cf. updateReturn/deleteReturn)
+        // et a le même profil : true pour super_admin/promoteur/gerant, false pour serveur.
+        const finalStatus = hasPermission('canManageInventory')
             ? 'approved'
             : 'pending';
 
@@ -366,7 +467,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             status: finalStatus, // Override the status from the UI
             businessDate: getCurrentBusinessDateString(currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR)
         });
-    }, [currentBar, currentSession, returnsMutations]);
+    }, [currentBar, currentSession, returnsMutations, hasPermission]);
 
     const provideExchange = useCallback(async (returnData: Pick<Return, 'saleId' | 'productId' | 'productName' | 'productVolume' | 'quantitySold' | 'quantityReturned' | 'reason' | 'returnedAt' | 'refundAmount' | 'isRefunded' | 'autoRestock' | 'manualRestockRequired'> & Partial<Return>, swapProduct: Product, ticketId?: string) => {
         if (!currentBar || !currentSession) return;
@@ -388,7 +489,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 barId: currentBar.id,
                 returnedBy: currentSession.userId,
                 server_id: serverId || undefined,
-                status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'approved' : 'pending',
+                // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis)
+                status: hasPermission('canManageInventory') ? 'approved' : 'pending',
                 businessDate: getCurrentBusinessDateString(currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR)
             });
 
@@ -410,7 +512,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 sourceReturnId: finalReturnId, // 🛡️ FIX P2: Magic Swap traçabilité (typage correct, interface Sale L322)
                 idempotencyKey: saleIdempotencyKey, // ✅ Clé fixe pour protéger des retries
                 serverId: serverId || undefined,
-                status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
+                // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis)
+                status: hasPermission('canValidateSales') ? 'validated' : 'pending',
                 paymentMethod: 'cash',
                 ticketId: ticketId || undefined, // ✅ Rattachement au bon original si présent
                 notes: `Échange Produit (Source: Retour #${finalReturnId.slice(0, 8)})`
@@ -439,15 +542,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
             throw error;
         }
-    }, [currentBar, currentSession, returnsMutations, salesMutations]);
+    }, [currentBar, currentSession, returnsMutations, salesMutations, hasPermission]);
 
     const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
         console.log('[AppProvider.updateReturn] CALLED for:', returnId, 'with:', updates);
 
-        // ✅ FIX: Allow if Manager/Promoteur OR if they have the permission
-        const canUpdate = hasPermission('canManageInventory') ||
-            currentSession?.role === 'gerant' ||
-            currentSession?.role === 'promoteur';
+        // 🛡️ Par permission seule : le `|| role === 'gerant'/'promoteur'` historique
+        // était redondant (ces rôles ont canManageInventory) et aurait laissé passer
+        // tout futur rôle ajouté à la liste (MATRICE_RBAC_CUISINIER §5.1bis).
+        const canUpdate = hasPermission('canManageInventory');
 
         if (!canUpdate || !currentBar || !currentSession) {
             console.error('[AppProvider.updateReturn] BLOCKED by permission check!', {
@@ -465,9 +568,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const deleteReturn = useCallback((returnId: string) => {
         console.log('[AppProvider.deleteReturn] CALLED for:', returnId);
 
-        const canDelete = hasPermission('canManageInventory') ||
-            currentSession?.role === 'gerant' ||
-            currentSession?.role === 'promoteur';
+        // 🛡️ Par permission seule — même raison que updateReturn ci-dessus.
+        const canDelete = hasPermission('canManageInventory');
 
         if (!canDelete || !currentBar || !currentSession) {
             console.error('[AppProvider.deleteReturn] BLOCKED by permission check!', {
@@ -515,6 +617,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings, users,
         customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
+        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers, kitchenLineKey,
+        clearKitchenCart, kitchenQuantities, kitchenTotal, kitchenItemCount,
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,
@@ -526,6 +630,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         settings, users,
         customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
+        kitchenItems, addDish, updateKitchenQuantity, removeDish, setDishModifiers, kitchenLineKey,
+        clearKitchenCart, kitchenQuantities, kitchenTotal, kitchenItemCount,
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,

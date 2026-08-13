@@ -1,5 +1,5 @@
 // src/routes/index.tsx
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Suspense } from 'react';
 import { lazyWithRetry } from '../utils/lazyWithRetry';
 import { AuthLayout } from '../layouts/AuthLayout';
@@ -27,6 +27,16 @@ const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
 // === Composants refactorisés en pages (export default) ===
 const InventoryPage = lazyWithRetry(() => import('../pages/InventoryPage'));
 const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
+// ⭐ Module restauration — chargé UNIQUEMENT à la navigation, et jamais
+// préchargé (§3 : « aucun préchargement de la route cuisine si
+// has_restaurant = false »). Sur un bar pur, ce chunk n'est jamais téléchargé.
+const IngredientsPage = lazyWithRetry(() => import('../pages/IngredientsPage'));
+// ⭐ Découpage du 03/08/2026 : « Plats » a sa propre route.
+// ⚠️ §3 — chunk lazy DISTINCT. Chaque route cuisine ajoutée est un chunk de
+// plus à tenir hors préchargement pour les bars purs : la garde
+// `requiresRestaurant` ci-dessous est donc obligatoire sur CHACUNE.
+const DishesPage = lazyWithRetry(() => import('../pages/DishesPage'));
+const KitchenServicePage = lazyWithRetry(() => import('../pages/KitchenServicePage'));
 // SettingsPage is lazy loaded above
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
@@ -107,6 +117,64 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <InventoryPage /> },
         ],
+      },
+      {
+        // ⭐ Stock cuisine — double garde (§3, §13.15) :
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL directe
+        //   canManageIngredientStock : gérant, promoteur et cuisinier ; pas le serveur
+        path: 'kitchen/ingredients',
+        element: (
+          <ProtectedRoute permission="canManageIngredientStock" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <IngredientsPage /> },
+        ],
+      },
+      {
+        // ⭐ Plats — page issue du découpage du 03/08/2026.
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL
+        //   canManageRecipes   : gérant, promoteur et cuisinier ; PAS le serveur
+        //     (§9 : « il ne gère pas la cuisine, il vend des plats »)
+        path: 'kitchen/dishes',
+        element: (
+          <ProtectedRoute permission="canManageRecipes" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <DishesPage /> },
+        ],
+      },
+      {
+        // ⭐ Écran Service — la file de production (§9).
+        //   requiresRestaurant : inaccessible sur un bar pur, même par URL
+        //   canViewKitchenOrders : la permission la PLUS LARGE des trois pages
+        //     cuisine — le SERVEUR l'a aussi, car il doit voir ce qui est
+        //     `ready` pour le retirer (§6.1). Exiger `canManageRecipes` ici
+        //     l'exclurait de l'écran où il fait l'essentiel de son travail.
+        path: 'kitchen/service',
+        element: (
+          <ProtectedRoute permission="canViewKitchenOrders" requiresRestaurant />
+        ),
+        children: [
+          { index: true, element: <KitchenServicePage /> },
+        ],
+      },
+      {
+        // ⭐ Production — FUSIONNÉE dans « Plats » le 08/08/2026 (onglet
+        //   `production`). Les deux écrans lisaient la même liste de plats.
+        //
+        // ⚠️ REDIRECTION CONSERVÉE, la route n'est pas supprimée :
+        //   `BatchAlertBanner` navigue vers cette URL depuis l'écran Service,
+        //   et un raccourci navigateur peut la viser. Une 404 sur une alerte
+        //   de rupture de lot serait un cul-de-sac en plein service.
+        // ⛔ `replace` : l'ancienne URL ne doit pas rester dans l'historique,
+        //   sinon le retour arrière y reboucle.
+        // ⚠️ SANS GARDE, ET C'EST VOLONTAIRE (§3) : cette route ne rend aucune
+        //   UI et ne charge aucun chunk — elle redirige. La cible
+        //   `/kitchen/dishes` porte `requiresRestaurant` ET `canManageRecipes` :
+        //   un bar pur ou un serveur est arrêté à l'arrivée, pas ici. Dupliquer
+        //   la garde créerait deux endroits à tenir d'accord.
+        path: 'kitchen/production',
+        element: <Navigate to="/kitchen/dishes?tab=production" replace />,
       },
       { path: 'analytics', element: <AnalyticsPage /> },
       {

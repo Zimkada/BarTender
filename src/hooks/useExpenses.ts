@@ -6,6 +6,18 @@ import { Expense, ExpenseCategoryCustom } from '../types';
 
 export const EXPENSE_CATEGORY_LABELS = {
   supply: { label: 'Approvisionnements', icon: '📦', color: 'green' },
+  /**
+   * ⭐ Appro cuisine (09/08/2026) - DISTINCT de `supply`, et c'est le cœur de
+   * l'arbitrage : fondu dans les achats de boissons, le coût de la cuisine
+   * deviendrait indistinguable et « combien me coûte ma cuisine ? » resterait
+   * sans réponse.
+   *
+   * ⛔ CATÉGORIE SYSTÈME : écrite par `receive_ingredient_supply`, JAMAIS
+   * saisie à la main. `ExpenseFormModal` l'exclut explicitement de sa liste -
+   * sans quoi elle apparaîtrait dans le formulaire d'un bar SANS cuisine, ce
+   * qui violerait l'invariance du §3.
+   */
+  kitchen_supply: { label: 'Appro cuisine', icon: '🥘', color: 'orange' },
   water: { label: 'Facture Eau', icon: '💧', color: 'blue' },
   electricity: { label: 'Facture Électricité', icon: '⚡', color: 'yellow' },
   maintenance: { label: 'Entretien/Réparations', icon: '🔧', color: 'gray' },

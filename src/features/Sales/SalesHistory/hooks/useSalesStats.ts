@@ -43,11 +43,27 @@ export function useSalesStats({
                 );
 
                 // 2. Charger les top produits via RPC
+                /**
+                 * ⭐ MARGE DE SECURITE sur la limite — 05/08/2026.
+                 *
+                 * ⚠️ AnalyticsView filtre ce classement PAR PORTEE (Bar /
+                 * Restau) APRES reception. Si le serveur ne renvoyait que
+                 * topProductsLimit  lignes, une portee Restau pourrait
+                 * n en garder AUCUNE alors que des plats se vendent — les 5
+                 * premieres etant des boissons.
+                 * ⭐ x4 plafonne a 50 : assez pour qu une portee trouve ses
+                 * lignes, assez peu pour ne pas alourdir la reponse (§3 —
+                 * l egress reste borne).
+                 * ⚠️ Le plafond FINAL reste topProductsLimit, applique
+                 * apres tri ligne 132 : l utilisateur voit bien son top 5.
+                 */
+                const FETCH_MULTIPLIER = 4;
+                const MAX_FETCH = 50;
                 const products = await AnalyticsService.getTopProducts(
                     currentBar.id,
                     startDate,
                     endDate,
-                    topProductsLimit,
+                    Math.min(topProductsLimit * FETCH_MULTIPLIER, MAX_FETCH),
                     'quantity',
                     serverId
                 );

@@ -41,13 +41,134 @@ export class CategoriesService {
           global_category:global_categories (*)
         `)
                 .eq('bar_id', barId)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                // 🛡️ §3 — BOISSONS uniquement. Ce service alimente le catalogue
+                // produits : sans ce filtre, les catégories de plats
+                // (type='dish') y remonteraient pour les bars-restos.
+                // Les catégories de plats se lisent via getDishCategories().
+                .eq('type', 'product');
 
             if (error) {
                 throw new Error('Erreur lors de la récupération des catégories');
             }
 
             return data || [];
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ⭐ Catégories de PLATS (§13.10) — module restauration.
+     *
+     * ⚠️ N'appeler que si `hasRestaurant` : §3, pas un octet d'egress sur un
+     * bar pur. La query `useDishCategories` porte la garde.
+     *
+     * ⚠️ Pas de jointure `global_categories` ici, contrairement aux boissons :
+     * il n'existe pas de catalogue global de plats. Une catégorie de plats est
+     * toujours propre au bar (custom_name), ce qui rend la requête plus légère.
+     */
+    static async getDishCategories(barId: string): Promise<BarCategory[]> {
+        try {
+            const { data, error } = await supabase
+                .from('bar_categories')
+                .select('*')
+                .eq('bar_id', barId)
+                .eq('is_active', true)
+                .eq('type', 'dish');
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ⭐ Créer une catégorie de PLATS.
+     *
+     * ⚠️ Distincte de `createCustomCategory` par le seul `type`, mais méthode
+     * SÉPARÉE volontairement : un paramètre `type` optionnel sur la méthode
+     * existante ferait dépendre l'étanchéité d'un argument qu'on peut oublier.
+     * Deux méthodes explicites valent mieux qu'un drapeau silencieux.
+     *
+     * ⚠️⚠️ L'UNICITÉ EN BASE NE PROTÈGE RIEN ICI — vérifié, pas supposé.
+     *
+     * La contrainte relevée en prod est `UNIQUE (bar_id, name)`, sur la colonne
+     * `name`. Or les catégories personnalisées — plats ET boissons, c'est le
+     * comportement existant du projet — écrivent `custom_name` et laissent
+     * `name` à NULL. En SQL, NULL n'entre PAS dans une contrainte d'unicité :
+     * deux catégories custom homonymes passent donc sans erreur.
+     *
+     * ⭐ D'où la garde APPLICATIVE ci-dessous. Sans elle, un promoteur pourrait
+     * créer deux fois « Grillades » et ne plus savoir laquelle rattacher à quel
+     * plat.
+     *
+     * ⚠️ Le garde 23505 est CONSERVÉ malgré tout : si `name` venait à être
+     * rempli un jour (backfill, autre chemin d'écriture), la contrainte
+     * mordrait et l'erreur Postgres brute serait illisible.
+     */
+    static async createDishCategory(
+        barId: string,
+        data: { name: string; color?: string }
+    ): Promise<BarCategory> {
+        try {
+            const trimmed = data.name.trim();
+            if (!trimmed) {
+                throw new Error('Le nom de la catégorie est obligatoire');
+            }
+
+            // ⭐ Garde applicative — l'unicité SQL ne mord pas sur `custom_name`
+            // (cf. commentaire ci-dessus). Comparaison insensible à la casse :
+            // « Grillades » et « grillades » sont la même catégorie.
+            //
+            // ⚠️ Ne compare qu'aux catégories ACTIVES (getDishCategories filtre
+            // is_active = true) — c'est VOULU : une catégorie supprimée (soft
+            // delete) ne doit pas bloquer la re-création d'un homonyme. Même
+            // parti pris que l'index partiel `idx_ingredients_unique_name_per_bar`
+            // de la phase 1.
+            //
+            // ⚠️ Fenêtre de concurrence assumée : deux créations simultanées du
+            // même nom passeraient toutes deux la garde. Le cas suppose deux
+            // utilisateurs créant LA MÊME catégorie à LA MÊME seconde sur le
+            // même bar — négligeable ici, et le coût d'une vraie protection
+            // (contrainte SQL sur custom_name, donc migration d'une table en
+            // production) serait sans commune mesure.
+            const existing = await CategoriesService.getDishCategories(barId);
+            const clash = existing.some(
+                (c) => (c.custom_name || c.name || '').trim().toLowerCase() === trimmed.toLowerCase()
+            );
+            if (clash) {
+                throw new Error(`La catégorie « ${trimmed} » existe déjà.`);
+            }
+
+            const payload: BarCategoryInsert = {
+                bar_id: barId,
+                custom_name: trimmed,
+                custom_color: data.color || '#F59E0B',
+                is_active: true,
+                type: 'dish',
+            };
+
+            const { data: newCategory, error } = await supabase
+                .from('bar_categories')
+                .insert(payload)
+                .select()
+                .single();
+
+            if (error || !newCategory) {
+                // 23505 = violation d'unicité. Le message Postgres brut
+                // ('duplicate key value violates unique constraint...') serait
+                // incompréhensible pour un promoteur.
+                if (error?.code === '23505') {
+                    throw new Error(
+                        `Le nom « ${data.name} » est déjà utilisé par une autre catégorie de ce bar.`
+                    );
+                }
+                throw new Error(error?.message || 'Erreur lors de la création de la catégorie');
+            }
+
+            return newCategory;
         } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
@@ -65,7 +186,9 @@ export class CategoriesService {
           global_category:global_categories (*)
         `)
                 .eq('bar_id', barId)
-                .eq('is_active', true);
+                .eq('is_active', true)
+                // 🛡️ §3 — BOISSONS uniquement, même raison que getCategories.
+                .eq('type', 'product');
 
             if (error) throw error;
             return data || [];
@@ -89,6 +212,10 @@ export class CategoriesService {
                 custom_name: data.name,
                 custom_color: data.color || '#3B82F6',
                 is_active: true,
+                // 🛡️ §3 — explicite plutôt que de compter sur le DEFAULT SQL :
+                // ce service crée des catégories de BOISSONS. Les catégories de
+                // plats passeront par leur propre service (type='dish').
+                type: 'product',
             };
             console.log('[CategoriesService] Payload:', payload);
 
@@ -127,6 +254,8 @@ export class CategoriesService {
                 bar_id: barId,
                 global_category_id: globalCategoryId,
                 is_active: true,
+                // 🛡️ §3 — le catalogue global ne contient que des boissons.
+                type: 'product',
             };
 
             const { data: newCategory, error } = await supabase

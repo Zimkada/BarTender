@@ -292,4 +292,91 @@ describe('BarContext - Integration via BarProvider', () => {
       expect(result.current.isSimplifiedMode).toBe(true);
     });
   });
+
+  describe('hasRestaurant via real hook + provider (§3, §13.4)', () => {
+    /**
+     * Fabrique un bar de test — seuls `settings` varient d'un cas à l'autre.
+     */
+    const makeBar = (id: string, settings: Bar['settings']): Bar => ({
+      id,
+      name: `Bar ${id}`,
+      ownerId: 'owner-1',
+      closingHour: 6,
+      isActive: true,
+      createdAt: new Date(),
+      settings,
+    });
+
+    const renderWithBar = async (bar: Bar) => {
+      (BarsService.getMyBars as Mock).mockResolvedValue([bar]);
+      const { result } = renderHook(() => useBarContext(), { wrapper });
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+      return result;
+    };
+
+    it('⛔ bar PUR (drapeau absent) → hasRestaurant = false', async () => {
+      // ⭐ Le cas de 100% des bars en production. §3 : l'app doit leur rester
+      // STRICTEMENT identique — c'est la contrainte de plus haut niveau.
+      const result = await renderWithBar(
+        makeBar('bar-pur', { currency: 'XOF', currencySymbol: 'Fr' })
+      );
+
+      expect(result.current.hasRestaurant).toBe(false);
+    });
+
+    it('⛔ drapeau explicitement false → hasRestaurant = false', async () => {
+      const result = await renderWithBar(
+        makeBar('bar-sans', { currency: 'XOF', currencySymbol: 'Fr', hasRestaurant: false })
+      );
+
+      expect(result.current.hasRestaurant).toBe(false);
+    });
+
+    it('✅ drapeau true + mode complet → hasRestaurant = true', async () => {
+      const result = await renderWithBar(
+        makeBar('bar-resto', {
+          currency: 'XOF',
+          currencySymbol: 'Fr',
+          hasRestaurant: true,
+          operatingMode: 'full',
+        })
+      );
+
+      expect(result.current.hasRestaurant).toBe(true);
+    });
+
+    it('⛔ §13.4 — drapeau true MAIS mode simplifié → hasRestaurant = false', async () => {
+      // ⭐ La garde qui rend une incohérence de données inoffensive : un cuisinier
+      // a besoin d'un COMPTE pour faire avancer la production, ce que le mode
+      // simplifié exclut par définition (« le gérant fait tout »).
+      const result = await renderWithBar(
+        makeBar('bar-incoherent', {
+          currency: 'XOF',
+          currencySymbol: 'Fr',
+          hasRestaurant: true,
+          operatingMode: 'simplified',
+        })
+      );
+
+      expect(result.current.hasRestaurant).toBe(false);
+      expect(result.current.isSimplifiedMode).toBe(true);
+    });
+
+    it('⚠️ la chaîne "true" du JSONB n\'active PAS la cuisine', async () => {
+      // `settings` accepte des clés dynamiques (`[key: string]: unknown`) : une
+      // valeur mal typée venue du JSONB serait truthy. La comparaison stricte
+      // `=== true` empêche d'activer la cuisine sur un bar pur par accident.
+      const result = await renderWithBar(
+        makeBar('bar-jsonb', {
+          currency: 'XOF',
+          currencySymbol: 'Fr',
+          hasRestaurant: 'true' as unknown as boolean,
+        })
+      );
+
+      expect(result.current.hasRestaurant).toBe(false);
+    });
+  });
 });

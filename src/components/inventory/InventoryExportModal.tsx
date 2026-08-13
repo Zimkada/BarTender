@@ -30,7 +30,7 @@ export function InventoryExportModal({
     getStockInfo
 }: InventoryExportModalProps) {
     const { currentBar } = useBarContext();
-    const { currentSession } = useAuth(); // ✅ Get session for role check
+    const { hasPermission } = useAuth();
     const [mode, setMode] = useState<'current' | 'historical'>('current');
     const [targetDate, setTargetDate] = useState<string>(getCurrentBusinessDateString(currentBar?.closingHour));
     const [targetTime, setTargetTime] = useState<string>('06:00');
@@ -116,7 +116,10 @@ export function InventoryExportModal({
                     </button>
 
                     {/* ✅ Restricted to Promoters Only */}
-                    {['promoteur', 'super_admin'].includes(currentSession?.role || '') && (
+                    {/* 🛡️ Par permission, jamais par liste de rôles : canViewAccounting a
+                        exactement ce profil (super_admin + promoteur). L'export historique
+                        est une donnée de gestion, pas un simple état de stock. */}
+                    {hasPermission('canViewAccounting') && (
                         <button
                             onClick={() => setMode('historical')}
                             className={cn(

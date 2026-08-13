@@ -705,6 +705,7 @@ export type Database = {
           is_custom: boolean | null
           name: string | null
           order_index: number | null
+          type: string
           updated_at: string | null
         }
         Insert: {
@@ -720,6 +721,7 @@ export type Database = {
           is_custom?: boolean | null
           name?: string | null
           order_index?: number | null
+          type?: string
           updated_at?: string | null
         }
         Update: {
@@ -735,6 +737,7 @@ export type Database = {
           is_custom?: boolean | null
           name?: string | null
           order_index?: number | null
+          type?: string
           updated_at?: string | null
         }
         Relationships: [
@@ -1602,6 +1605,396 @@ export type Database = {
           },
         ]
       }
+      dish_ingredients: {
+        Row: {
+          bar_id: string
+          consumed_at_stage: string
+          created_at: string
+          dish_id: string
+          id: string
+          ingredient_id: string
+          is_optional: boolean
+          quantity: number
+          updated_at: string
+          yield_factor: number
+        }
+        Insert: {
+          bar_id: string
+          consumed_at_stage?: string
+          created_at?: string
+          dish_id: string
+          id?: string
+          ingredient_id: string
+          is_optional?: boolean
+          quantity: number
+          updated_at?: string
+          yield_factor?: number
+        }
+        Update: {
+          bar_id?: string
+          consumed_at_stage?: string
+          created_at?: string
+          dish_id?: string
+          id?: string
+          ingredient_id?: string
+          is_optional?: boolean
+          quantity?: number
+          updated_at?: string
+          yield_factor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_stock_consistency_violations"
+            referencedColumns: ["ingredient_id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dish_price_options: {
+        Row: {
+          bar_id: string
+          created_at: string
+          dish_id: string
+          id: string
+          is_active: boolean
+          label: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          dish_id: string
+          id?: string
+          is_active?: boolean
+          label: string
+          price: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          dish_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_price_options_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dish_recipe_components: {
+        Row: {
+          bar_id: string
+          base_dish_id: string
+          created_at: string
+          dish_id: string
+          id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          base_dish_id: string
+          created_at?: string
+          dish_id: string
+          id?: string
+          quantity: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          base_dish_id?: string
+          created_at?: string
+          dish_id?: string
+          id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_base_dish_id_fkey"
+            columns: ["base_dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_recipe_components_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dishes: {
+        Row: {
+          bar_id: string
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_available: boolean
+          is_batch_base: boolean
+          is_sellable: boolean
+          name: string
+          photo_url: string | null
+          portions_per_batch: number | null
+          preparation_time_min: number | null
+          price: number
+          production_mode: string
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_batch_base?: boolean
+          is_sellable?: boolean
+          name: string
+          photo_url?: string | null
+          portions_per_batch?: number | null
+          preparation_time_min?: number | null
+          price: number
+          production_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_available?: boolean
+          is_batch_base?: boolean
+          is_sellable?: boolean
+          name?: string
+          photo_url?: string | null
+          portions_per_batch?: number | null
+          preparation_time_min?: number | null
+          price?: number
+          production_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dishes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dishes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "dishes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "bar_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dishes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expense_categories_custom: {
         Row: {
           bar_id: string
@@ -2018,6 +2411,624 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_consumptions: {
+        Row: {
+          bar_id: string
+          business_date: string
+          computed_cost: number
+          consumed_at: string
+          created_by: string | null
+          id: string
+          ingredient_id: string
+          lot_breakdown: Json
+          qty_consumed: number
+          qty_from_debt: number
+          reference_key: string
+          reference_type: string
+        }
+        Insert: {
+          bar_id: string
+          business_date: string
+          computed_cost: number
+          consumed_at?: string
+          created_by?: string | null
+          id?: string
+          ingredient_id: string
+          lot_breakdown?: Json
+          qty_consumed: number
+          qty_from_debt?: number
+          reference_key: string
+          reference_type?: string
+        }
+        Update: {
+          bar_id?: string
+          business_date?: string
+          computed_cost?: number
+          consumed_at?: string
+          created_by?: string | null
+          id?: string
+          ingredient_id?: string
+          lot_breakdown?: Json
+          qty_consumed?: number
+          qty_from_debt?: number
+          reference_key?: string
+          reference_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_stock_consistency_violations"
+            referencedColumns: ["ingredient_id"]
+          },
+          {
+            foreignKeyName: "ingredient_consumptions_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_lot_counts: {
+        Row: {
+          bar_id: string
+          counted_qty: number
+          created_at: string
+          created_by: string | null
+          id: string
+          lot_id: string
+          size_id: string
+        }
+        Insert: {
+          bar_id: string
+          counted_qty: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_id: string
+          size_id: string
+        }
+        Update: {
+          bar_id?: string
+          counted_qty?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_id?: string
+          size_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lot_counts_size_id_fkey"
+            columns: ["size_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_lots: {
+        Row: {
+          bar_id: string
+          business_date: string
+          created_at: string
+          created_by: string | null
+          discarded_at: string | null
+          discarded_qty: number | null
+          expires_at: string | null
+          id: string
+          idempotency_key: string | null
+          ingredient_id: string
+          initial_qty: number
+          received_at: string
+          remaining_qty: number
+          status: string
+          unit_cost: number
+        }
+        Insert: {
+          bar_id: string
+          business_date: string
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_qty?: number | null
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          ingredient_id: string
+          initial_qty: number
+          received_at?: string
+          remaining_qty: number
+          status?: string
+          unit_cost: number
+        }
+        Update: {
+          bar_id?: string
+          business_date?: string
+          created_at?: string
+          created_by?: string | null
+          discarded_at?: string | null
+          discarded_qty?: number | null
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          ingredient_id?: string
+          initial_qty?: number
+          received_at?: string
+          remaining_qty?: number
+          status?: string
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_lots_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_stock_consistency_violations"
+            referencedColumns: ["ingredient_id"]
+          },
+          {
+            foreignKeyName: "ingredient_lots_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_sizes: {
+        Row: {
+          bar_id: string
+          created_at: string
+          id: string
+          ingredient_id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_stock_consistency_violations"
+            referencedColumns: ["ingredient_id"]
+          },
+          {
+            foreignKeyName: "ingredient_sizes_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredient_stock_debts: {
+        Row: {
+          bar_id: string
+          business_date: string
+          created_at: string
+          created_by: string | null
+          estimated_unit_cost: number
+          id: string
+          incurred_at: string
+          ingredient_id: string
+          price_variance: number | null
+          qty_owed: number
+          settled_at: string | null
+          settled_qty: number
+          status: string
+        }
+        Insert: {
+          bar_id: string
+          business_date: string
+          created_at?: string
+          created_by?: string | null
+          estimated_unit_cost: number
+          id?: string
+          incurred_at?: string
+          ingredient_id: string
+          price_variance?: number | null
+          qty_owed: number
+          settled_at?: string | null
+          settled_qty?: number
+          status?: string
+        }
+        Update: {
+          bar_id?: string
+          business_date?: string
+          created_at?: string
+          created_by?: string | null
+          estimated_unit_cost?: number
+          id?: string
+          incurred_at?: string
+          ingredient_id?: string
+          price_variance?: number | null
+          qty_owed?: number
+          settled_at?: string | null
+          settled_qty?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredient_stock_debts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_stock_consistency_violations"
+            referencedColumns: ["ingredient_id"]
+          },
+          {
+            foreignKeyName: "ingredient_stock_debts_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingredients: {
+        Row: {
+          bar_id: string
+          cost_mode: string
+          created_at: string
+          created_by: string | null
+          current_stock: number
+          flat_cost_per_dish: number | null
+          id: string
+          is_active: boolean
+          last_unit_cost: number | null
+          min_stock_alert: number | null
+          name: string
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          cost_mode?: string
+          created_at?: string
+          created_by?: string | null
+          current_stock?: number
+          flat_cost_per_dish?: number | null
+          id?: string
+          is_active?: boolean
+          last_unit_cost?: number | null
+          min_stock_alert?: number | null
+          name: string
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          cost_mode?: string
+          created_at?: string
+          created_by?: string | null
+          current_stock?: number
+          flat_cost_per_dish?: number | null
+          id?: string
+          is_active?: boolean
+          last_unit_cost?: number | null
+          min_stock_alert?: number | null
+          name?: string
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       initial_balances: {
         Row: {
           amount: number
@@ -2097,6 +3108,382 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_item_batch_consumptions: {
+        Row: {
+          bar_id: string
+          consumed_at: string
+          created_at: string
+          id: string
+          kitchen_order_item_id: string
+          production_batch_id: string
+          quantity: number
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          kitchen_order_item_id: string
+          production_batch_id: string
+          quantity: number
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          consumed_at?: string
+          created_at?: string
+          id?: string
+          kitchen_order_item_id?: string
+          production_batch_id?: string
+          quantity?: number
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_kitchen_order_item_id_fkey"
+            columns: ["kitchen_order_item_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_item_batch_consumptions_production_batch_id_fkey"
+            columns: ["production_batch_id"]
+            isOneToOne: false
+            referencedRelation: "production_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_order_items: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          bar_id: string
+          cancel_note: string | null
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          computed_cost: number | null
+          consumed_at: string | null
+          created_at: string
+          dish_id: string
+          forced_on_order: boolean
+          id: string
+          kitchen_order_id: string
+          last_reminder_at: string | null
+          modifiers: Json | null
+          price_option_id: string | null
+          quantity: number
+          ready_at: string | null
+          ready_by: string | null
+          reminder_count: number
+          sale_id: string | null
+          served_at: string | null
+          served_by: string | null
+          status: string
+          unit_price: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          bar_id: string
+          cancel_note?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          computed_cost?: number | null
+          consumed_at?: string | null
+          created_at?: string
+          dish_id: string
+          forced_on_order?: boolean
+          id?: string
+          kitchen_order_id: string
+          last_reminder_at?: string | null
+          modifiers?: Json | null
+          price_option_id?: string | null
+          quantity: number
+          ready_at?: string | null
+          ready_by?: string | null
+          reminder_count?: number
+          sale_id?: string | null
+          served_at?: string | null
+          served_by?: string | null
+          status?: string
+          unit_price: number
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          bar_id?: string
+          cancel_note?: string | null
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          computed_cost?: number | null
+          consumed_at?: string | null
+          created_at?: string
+          dish_id?: string
+          forced_on_order?: boolean
+          id?: string
+          kitchen_order_id?: string
+          last_reminder_at?: string | null
+          modifiers?: Json | null
+          price_option_id?: string | null
+          quantity?: number
+          ready_at?: string | null
+          ready_by?: string | null
+          reminder_count?: number
+          sale_id?: string | null
+          served_at?: string | null
+          served_by?: string | null
+          status?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_order_items_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_kitchen_order_id_fkey"
+            columns: ["kitchen_order_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_order_status"
+            referencedColumns: ["kitchen_order_id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_kitchen_order_id_fkey"
+            columns: ["kitchen_order_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_price_option_id_fkey"
+            columns: ["price_option_id"]
+            isOneToOne: false
+            referencedRelation: "dish_price_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_ready_by_fkey"
+            columns: ["ready_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_order_items_served_by_fkey"
+            columns: ["served_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_orders: {
+        Row: {
+          bar_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          priority: number
+          service_mode: string
+          ticket_id: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number
+          service_mode?: string
+          ticket_id: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          priority?: number
+          service_mode?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -2186,6 +3573,223 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_option_sizes: {
+        Row: {
+          bar_id: string
+          created_at: string
+          id: string
+          price_option_id: string
+          size_id: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          id?: string
+          price_option_id: string
+          size_id: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          id?: string
+          price_option_id?: string
+          size_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_price_option_id_fkey"
+            columns: ["price_option_id"]
+            isOneToOne: true
+            referencedRelation: "dish_price_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_option_sizes_size_id_fkey"
+            columns: ["size_id"]
+            isOneToOne: false
+            referencedRelation: "ingredient_sizes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_batches: {
+        Row: {
+          bar_id: string
+          business_date: string
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          discard_reason: string | null
+          discarded_at: string | null
+          discarded_qty: number | null
+          dish_id: string
+          expires_at: string | null
+          id: string
+          idempotency_key: string
+          notes: string | null
+          produced_at: string
+          produced_by: string | null
+          produced_qty: number
+          remaining_qty: number
+          source: string
+          status: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          bar_id: string
+          business_date: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_qty?: number | null
+          dish_id: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key: string
+          notes?: string | null
+          produced_at?: string
+          produced_by?: string | null
+          produced_qty: number
+          remaining_qty: number
+          source?: string
+          status?: string
+          unit_cost: number
+          updated_at?: string
+        }
+        Update: {
+          bar_id?: string
+          business_date?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          discard_reason?: string | null
+          discarded_at?: string | null
+          discarded_qty?: number | null
+          dish_id?: string
+          expires_at?: string | null
+          id?: string
+          idempotency_key?: string
+          notes?: string | null
+          produced_at?: string
+          produced_by?: string | null
+          produced_qty?: number
+          remaining_qty?: number
+          source?: string
+          status?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_batches_produced_by_fkey"
+            columns: ["produced_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3744,6 +5348,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_name: string | null
+          fulfillment_status: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
@@ -3760,6 +5365,7 @@ export type Database = {
           created_at?: string
           created_by: string
           customer_name?: string | null
+          fulfillment_status?: string | null
           id?: string
           idempotency_key?: string | null
           notes?: string | null
@@ -3776,6 +5382,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           customer_name?: string | null
+          fulfillment_status?: string | null
           id?: string
           idempotency_key?: string | null
           notes?: string | null
@@ -4654,6 +6261,123 @@ export type Database = {
           },
         ]
       }
+      ingredient_stock_consistency_violations: {
+        Row: {
+          bar_id: string | null
+          cached_stock: number | null
+          computed_stock: number | null
+          drift: number | null
+          ingredient_id: string | null
+          name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingredients_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kitchen_order_status: {
+        Row: {
+          bar_id: string | null
+          first_item_at: string | null
+          items_in_progress: number | null
+          items_ready: number | null
+          kitchen_order_id: string | null
+          status: string | null
+          ticket_id: string | null
+          total_items: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materialized_view_metrics: {
         Row: {
           avg_duration_ms: number | null
@@ -5137,6 +6861,10 @@ export type Database = {
         Args: { p_impersonating_user_id: string }
         Returns: string
       }
+      accept_kitchen_item: {
+        Args: { p_bar_id: string; p_item_id: string }
+        Returns: Json
+      }
       accept_legal_terms: { Args: { p_version?: number }; Returns: boolean }
       acknowledge_refresh_alert: {
         Args: { p_alert_id: string }
@@ -5367,6 +7095,20 @@ export type Database = {
       auth_user_id: { Args: never; Returns: string }
       auto_activate_scheduled_promotions: { Args: never; Returns: undefined }
       auto_expire_promotions: { Args: never; Returns: undefined }
+      calculate_all_dish_costs: { Args: { p_bar_id: string }; Returns: Json }
+      calculate_dish_cost: {
+        Args: { p_bar_id: string; p_dish_id: string }
+        Returns: Json
+      }
+      cancel_kitchen_item: {
+        Args: {
+          p_bar_id: string
+          p_item_id: string
+          p_note?: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       cancel_sale: {
         Args: { p_cancelled_by: string; p_reason: string; p_sale_id: string }
         Returns: Json
@@ -5419,6 +7161,15 @@ export type Database = {
       cleanup_old_refresh_alerts: { Args: never; Returns: number }
       cleanup_old_refresh_logs: { Args: never; Returns: number }
       cleanup_old_rls_violations: { Args: never; Returns: number }
+      close_batch: {
+        Args: {
+          p_bar_id: string
+          p_batch_id: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: Json
+      }
       close_partial_purchase_order: {
         Args: { p_order_id: string; p_reason?: string }
         Returns: Json
@@ -5439,6 +7190,16 @@ export type Database = {
           p_local_name: string
         }
         Returns: string
+      }
+      consume_ingredients_fefo: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_items: Json
+          p_reference_key: string
+          p_reference_type?: string
+        }
+        Returns: Json
       }
       convert_purchase_order_to_supplies: {
         Args: { p_order_id: string; p_received_items: Json; p_user_id: string }
@@ -5462,6 +7223,16 @@ export type Database = {
           p_sale_id: string
           p_server_id?: string
           p_total_amount?: number
+        }
+        Returns: Json
+      }
+      create_kitchen_order: {
+        Args: {
+          p_bar_id: string
+          p_items: Json
+          p_notes?: string
+          p_service_mode?: string
+          p_ticket_id: string
         }
         Returns: Json
       }
@@ -5580,6 +7351,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_name: string | null
+          fulfillment_status: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
@@ -5633,6 +7405,10 @@ export type Database = {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
       }
+      derive_dish_production_mode: {
+        Args: { p_bar_id: string; p_dish_id: string }
+        Returns: string
+      }
       detect_consecutive_refresh_failures: {
         Args: never
         Returns: {
@@ -5643,7 +7419,21 @@ export type Database = {
           view_name: string
         }[]
       }
+      discard_ingredient_lot: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_lot_id: string
+          p_notes?: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       extract_server_name_safe: { Args: { p_notes: string }; Returns: string }
+      force_item_on_order: {
+        Args: { p_bar_id: string; p_item_id: string }
+        Returns: Json
+      }
       force_refresh_view: { Args: { p_view_name: string }; Returns: string }
       forfeit_consignment: { Args: { p_consignment_id: string }; Returns: Json }
       get_active_devices_count: { Args: { p_bar_id?: string }; Returns: number }
@@ -5817,6 +7607,13 @@ export type Database = {
           validator_name: string
         }[]
       }
+      get_batch_losses: {
+        Args: { p_bar_id: string; p_end: string; p_start: string }
+        Returns: {
+          loss_cost: number
+          loss_qty: number
+        }[]
+      }
       get_consignments_paginated: {
         Args: { p_bar_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -5832,6 +7629,10 @@ export type Database = {
         }[]
       }
       get_current_business_date: { Args: { p_bar_id: string }; Returns: string }
+      get_daily_scope_totals: {
+        Args: { p_bar_id: string; p_business_date: string }
+        Returns: Json
+      }
       get_dashboard_stats: {
         Args: { p_bar_id?: string; p_end_date: string; p_start_date: string }
         Returns: {
@@ -5842,6 +7643,22 @@ export type Database = {
           sales_count: number
           total_revenue: number
         }[]
+      }
+      get_kitchen_losses: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: Json
+      }
+      get_kitchen_metrics: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: Json
+      }
+      get_kitchen_production: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: Json
+      }
+      get_kitchen_queue_shortfalls: {
+        Args: { p_bar_id: string }
+        Returns: Json
       }
       get_my_bars: {
         Args: never
@@ -5964,6 +7781,10 @@ export type Database = {
         }[]
       }
       get_plan_price: { Args: { p_plan: string }; Returns: number }
+      get_size_reconciliation: {
+        Args: { p_bar_id: string; p_end: string; p_start: string }
+        Returns: Json
+      }
       get_subscription_overview: {
         Args: {
           p_limit?: number
@@ -6159,6 +7980,10 @@ export type Database = {
         Args: { p_restocked_by: string; p_return_id: string }
         Returns: Json
       }
+      mark_kitchen_item_ready: {
+        Args: { p_bar_id: string; p_business_date?: string; p_item_id: string }
+        Returns: Json
+      }
       months_overdue: {
         Args: { p_due_date: string; p_now?: string }
         Returns: number
@@ -6174,6 +7999,7 @@ export type Database = {
           created_at: string
           created_by: string
           customer_name: string | null
+          fulfillment_status: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
@@ -6204,6 +8030,57 @@ export type Database = {
           months_overdue: number
           plan: string
         }[]
+      }
+      produce_batch: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_dish_id: string
+          p_expires_at?: string
+          p_idempotency_key: string
+          p_notes?: string
+          p_produced_qty: number
+          p_source?: string
+          p_total_cost?: number
+        }
+        Returns: Json
+      }
+      receive_ingredient_supply: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_expires_at?: string
+          p_idempotency_key: string
+          p_ingredient_id: string
+          p_notes?: string
+          p_qty: number
+          p_unit_cost: number
+        }
+        Returns: Json
+      }
+      record_batch_loss: {
+        Args: {
+          p_bar_id: string
+          p_batch_id: string
+          p_qty: number
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      record_ingredient_lot_loss: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_lot_id: string
+          p_notes?: string
+          p_qty: number
+          p_reason: string
+        }
+        Returns: Json
+      }
+      record_lot_counts: {
+        Args: { p_bar_id: string; p_counts: Json; p_lot_id: string }
+        Returns: Json
       }
       record_provider_subscription_payment: {
         Args: {
@@ -6289,6 +8166,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      recover_cancelled_dish: {
+        Args: { p_bar_id: string; p_item_id: string; p_note?: string }
+        Returns: Json
+      }
       refresh_all_materialized_views: {
         Args: { p_triggered_by?: string }
         Returns: {
@@ -6340,6 +8221,22 @@ export type Database = {
         }
         Returns: Json
       }
+      replace_dish_components: {
+        Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
+        Returns: Json
+      }
+      replace_dish_price_options: {
+        Args: { p_bar_id: string; p_dish_id: string; p_options: Json }
+        Returns: Json
+      }
+      replace_dish_recipe: {
+        Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
+        Returns: Json
+      }
+      replace_ingredient_sizes: {
+        Args: { p_bar_id: string; p_ingredient_id: string; p_sizes: Json }
+        Returns: Json
+      }
       reverse_supply: { Args: { p_supply_id: string }; Returns: Json }
       safe_refresh_materialized_view: {
         Args: {
@@ -6352,6 +8249,16 @@ export type Database = {
           error_message: string
           success: boolean
         }[]
+      }
+      serve_kitchen_item: {
+        Args: {
+          p_bar_id: string
+          p_business_date?: string
+          p_idempotency_key?: string
+          p_item_id: string
+          p_payment_method?: string
+        }
+        Returns: Json
       }
       set_bar_billing_exempt: {
         Args: { p_bar_id: string; p_exempt: boolean; p_reason?: string }
@@ -6381,6 +8288,22 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_dish_active: {
+        Args: { p_active: boolean; p_bar_id: string; p_dish_id: string }
+        Returns: Json
+      }
+      set_ingredient_active: {
+        Args: { p_active: boolean; p_bar_id: string; p_ingredient_id: string }
+        Returns: Json
+      }
+      set_price_option_size: {
+        Args: {
+          p_bar_id: string
+          p_price_option_id: string
+          p_size_id?: string
+        }
+        Returns: Json
       }
       setup_promoter_bar: {
         Args: {
@@ -6419,6 +8342,11 @@ export type Database = {
           p_supplier_phone?: string
           p_supply_id: string
         }
+        Returns: Json
+      }
+      upsert_dish: { Args: { p_bar_id: string; p_dish: Json }; Returns: Json }
+      upsert_ingredient: {
+        Args: { p_bar_id: string; p_ingredient: Json }
         Returns: Json
       }
       validate_sale: {

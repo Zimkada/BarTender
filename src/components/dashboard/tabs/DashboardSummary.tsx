@@ -5,6 +5,10 @@ import {
 } from 'lucide-react';
 import { DataFreshnessIndicatorCompact } from '../../DataFreshnessIndicator';
 import { AnimatedCounter } from '../../AnimatedCounter';
+import {
+    KitchenSummaryCards, KitchenVigilanceList, MixedScopeKitchenCards,
+} from '../KitchenSummaryCards';
+import type { ActivityScope } from '../../common/scopeHelpers';
 import { EnhancedButton } from '../../EnhancedButton';
 import { Bar, Product, ProductStockInfo } from '../../../types';
 import { StaleSalesCleanupBanner } from '../StaleSalesCleanupBanner';
@@ -23,6 +27,25 @@ interface DashboardSummaryProps {
     topProductsList: { name: string; qty: number }[];
     allProductsStockInfo: Record<string, ProductStockInfo>;
     isServerRole: boolean;
+    /**
+     * ⭐ Portee active. En RESTAU, trois cartes (Alertes, Retours, Consign.)
+     * sont remplacees par les indicateurs cuisine : elles portent sur les
+     * BOISSONS et n ont rien a dire d un plat (§13.1).
+     * ⚠️ OPTIONNELLE : omise, l ecran est rigoureusement celui d avant (§3).
+     */
+    scope?: ActivityScope;
+    /**
+     * ⛔ INDISPENSABLE POUR §3 — ne PAS deriver de `scope`.
+     *
+     * `scope === 'all'` est vrai dans DEUX situations opposees : un bar PUR
+     * (ou la portee est forcee a 'all') et un bar MIXTE ou l utilisateur a
+     * choisi « Tout ». Sans ce booleen, un bar pur afficherait les cartes
+     * cuisine — exactement la regression que §3 interdit.
+     * ⚠️ Defaut `false` : omise, la prop laisse l ecran d avant a l identique.
+     */
+    hasRestaurant?: boolean;
+    barId?: string;
+    businessDate?: string;
 
 
     // Helpers
@@ -46,6 +69,10 @@ export function DashboardSummary({
     topProductsList,
     allProductsStockInfo,
     isServerRole,
+    scope = 'all',
+    hasRestaurant = false,
+    barId,
+    businessDate,
     formatPrice,
     onRefresh,
     onExportWhatsApp,
@@ -91,7 +118,15 @@ export function DashboardSummary({
                         <span className="text-micro text-muted-foreground">Ventes</span>
                     </div>
                     <AnimatedCounter value={salesCount} className="text-h2 font-semibold text-foreground tabular-nums" />
-                    <p className="text-caption text-muted-foreground mt-1 tabular-nums">{pendingSalesCount} en attente</p>
+                    {/* ⚠️ En RESTAU, le compteur porte les tickets CONTENANT un
+                        plat (derive dans DailyDashboard) — d ou un libelle qui
+                        le precise. « X en attente » n aurait aucun sens : les
+                        ventes en attente de validation ne se ventilent pas. */}
+                    <p className="text-caption text-muted-foreground mt-1 tabular-nums">
+                        {scope === 'kitchen'
+                            ? 'commandes avec plat'
+                            : `${pendingSalesCount} en attente`}
+                    </p>
                 </div>
 
                 <div className="bg-card rounded-2xl p-4 shadow-sm border border-border hover:shadow-md transition-shadow">
@@ -105,18 +140,57 @@ export function DashboardSummary({
                     <p className="text-caption text-muted-foreground mt-1">Total vendus</p>
                 </div>
 
+                {/* ⭐⭐ TROIS CAS, ET LA GRILLE FAIT TOUJOURS 6 CARTES.
+                    `grid-cols-2 md:grid-cols-3 lg:grid-cols-6` : 6 est le seul
+                    total qui tombe juste aux trois paliers. Chaque branche en
+                    rend donc exactement 3, jamais 2 ni 4.
+
+                    · RESTAU — Alertes/Retours/Consign. portent sur les
+                      BOISSONS (§13.1) : remplacees par les 4 cartes cuisine.
+                    · TOUT sur bar MIXTE — Retours et Consignations cedent
+                      leur place a Ingredients et Pret. Sans cela, le mode
+                      cense tout montrer etait le seul a cacher la cuisine.
+                    · SINON (bar pur, ou portee Bar) — bloc d avant, a
+                      l identique (§3). */}
+                {scope === 'kitchen' ? (
+                    <KitchenSummaryCards barId={barId} businessDate={businessDate ?? ''} />
+                ) : (
+                <>
                 {/* Alertes — sémantique rouge préservée (signal universel), avec variantes dark */}
                 <div className="bg-card rounded-2xl p-4 shadow-sm border border-red-200 dark:border-red-900/40 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center">
                             <AlertTriangle size={18} />
                         </div>
-                        <span className="text-micro text-muted-foreground">Alertes</span>
+                        {/* ⚠️ En « Tout » sur bar mixte, cette carte cohabite avec
+                            « Ingredients » : sans etiquette, on croirait qu elle
+                            couvre AUSSI la cuisine, alors qu elle ne porte que
+                            `bar_products`. */}
+                        <div className="flex flex-col items-end gap-1 min-w-0">
+                            <span className="text-micro text-muted-foreground">Alertes</span>
+                            {hasRestaurant && scope === 'all' && (
+                                <span className="px-1.5 py-px rounded text-micro font-medium bg-muted text-muted-foreground border border-border leading-tight">
+                                    Bar
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="text-h2 font-semibold text-red-600 dark:text-red-400 tabular-nums">{lowStockProducts.length}</div>
                     <p className="text-caption text-muted-foreground mt-1">Stock critique</p>
                 </div>
 
+                {hasRestaurant && scope === 'all' ? (
+                    /* ⭐ Les DEUX cartes cuisine du mode Tout — le composant en
+                       rend toujours exactement 2, y compris pour le serveur
+                       (Ingredients y devient Retours). C est ce qui garantit
+                       le compte de 6. */
+                    <MixedScopeKitchenCards
+                        barId={barId}
+                        returnsCount={returnsCount}
+                        pendingReturnsCount={pendingReturnsCount}
+                    />
+                ) : (
+                <>
                 <div className="bg-card rounded-2xl p-4 shadow-sm border border-border hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-3">
                         <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
@@ -138,6 +212,10 @@ export function DashboardSummary({
                     <div className="text-h2 font-semibold text-foreground tabular-nums">{consignmentsCount}</div>
                     <p className="text-caption text-muted-foreground mt-1">Fiches actives</p>
                 </div>
+                </>
+                )}
+                </>
+                )}
             </div>
 
             {/* Insights — 2 panneaux compagnons (top produits + stock à surveiller) */}
@@ -177,9 +255,25 @@ export function DashboardSummary({
                         <div className="w-9 h-9 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center">
                             <AlertTriangle size={18} />
                         </div>
-                        <h3 className="text-h3 text-foreground">Points de vigilance stock</h3>
+                        {/* ⚠️ En « Tout » sur bar mixte, ce panneau ne liste que
+                            les BOISSONS alors qu une carte « Ingredients » est
+                            desormais juste au-dessus : sans « boissons » dans
+                            le titre, on croirait que la cuisine y figure aussi
+                            et qu elle n a rien a signaler. Le detail des
+                            ingredients reste en portee Restau. */}
+                        <h3 className="text-h3 text-foreground">
+                            {scope === 'kitchen'
+                                ? 'Vigilance ingrédients'
+                                : hasRestaurant && scope === 'all'
+                                    ? 'Points de vigilance boissons'
+                                    : 'Points de vigilance stock'}
+                        </h3>
                     </div>
-                    {lowStockProducts.length > 0 ? (
+                    {/* ⭐ En RESTAU, la liste porte sur les INGREDIENTS : les
+                        alertes de bar_products n ont rien a dire de la cuisine. */}
+                    {scope === 'kitchen' ? (
+                        <KitchenVigilanceList barId={barId} />
+                    ) : lowStockProducts.length > 0 ? (
                         <div className="space-y-2.5">
                             {lowStockProducts.slice(0, 5).map(p => (
                                 <div key={p.id} className="flex justify-between items-center py-1">

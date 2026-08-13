@@ -26,6 +26,11 @@ export function SubscriptionReminder() {
 
   // Réservé au promoteur/gérant : on ne déclenche l'appel réseau que pour eux
   // (un super_admin dans l'AdminLayout ne doit pas fetcher get_my_subscription_status).
+  // ⚠️ Test par rôle CONSERVÉ volontairement (MATRICE_RBAC_CUISINIER §5.1bis) : ce
+  // n'est pas une autorisation mais un ciblage d'appel réseau, et il EXCLUT
+  // super_admin — aucune permission n'a ce profil. Sûr à l'ajout d'un rôle : un
+  // cuisinier n'est pas dans la liste, donc pas de fetch, ce qui est le comportement
+  // voulu (il n'a pas à voir l'abonnement du bar).
   const role = currentSession?.role;
   const canSeeReminder = role === 'promoteur' || role === 'gerant';
   const { subscription } = useMySubscription(canSeeReminder ? currentBar?.id : undefined);

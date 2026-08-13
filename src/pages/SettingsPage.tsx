@@ -42,22 +42,24 @@ export default function SettingsPage() {
     const { currentBar, updateBar } = useBarContext();
     const { showNotification } = useNotifications();
     const { isMobile } = useViewport();
-    const { currentSession } = useAuth();
+    const { currentSession, hasPermission } = useAuth();
 
     // Guide ID for settings
     const settingsGuideId = 'manage-settings';
 
     // Rôles
-    const isPromoteur = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
+    // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §5.1bis).
+    // L'onglet 'bar' est réservé au propriétaire de l'établissement : canCreateBars
+    // a exactement ce profil (super_admin + promoteur), contrairement à
+    // canManageBarInfo que le gérant possède aussi.
+    const isPromoteur = hasPermission('canCreateBars');
 
     // Redirection automatique pour les non-promoteurs (qui n'ont pas accès à l'onglet par défaut 'bar')
-    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>(() => {
-        // Si employé (Gérant/Serveur), forcer 'operational' car 'bar' est masqué
-        if (currentSession?.role && ['gerant', 'serveur'].includes(currentSession.role)) {
-            return 'operational';
-        }
-        return 'bar';
-    });
+    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>(() =>
+        // Si l'onglet 'bar' est masqué (non-propriétaire), forcer 'operational'.
+        // ⚠️ Dérivé de la MÊME permission que isPromoteur : les deux ne peuvent plus diverger.
+        hasPermission('canCreateBars') ? 'bar' : 'operational'
+    );
 
     // États 2FA
     const [isMfaEnabled, setIsMfaEnabled] = useState(false);
@@ -321,8 +323,10 @@ export default function SettingsPage() {
         );
     }
 
-    // Sécurité : interdire l'accès aux serveurs même avec URL directe
-    if (currentSession.role === 'serveur') {
+    // Sécurité : interdire l'accès à qui ne gère pas les paramètres, même par URL directe
+    // 🛡️ Par permission, jamais par rôle brut (MATRICE_RBAC_CUISINIER §6) : un futur
+    // rôle sans canManageSettings est refusé par défaut, au lieu d'être autorisé.
+    if (!hasPermission('canManageSettings')) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
                 <div className="p-4 bg-red-50 dark:bg-red-950/30 rounded-full">

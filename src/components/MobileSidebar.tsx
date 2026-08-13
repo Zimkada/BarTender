@@ -26,11 +26,16 @@ import {
   ShoppingCart,
   Boxes,
   Wallet,
+  ChefHat,
+  UtensilsCrossed,
+  Carrot,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
 import { useNavigate } from 'react-router-dom';
 import { usePlan } from '../hooks/usePlan';
 import type { FeatureKey } from '../config/plans';
+import type { UserRole } from '../types';
 import { IconButton } from './ui/IconButton';
 import { networkManager } from '../services/NetworkManager';
 import { useNotifications } from './Notifications';
@@ -47,11 +52,23 @@ interface MenuItem {
   id: string;
   label: string;
   icon: React.ReactNode;
-  roles: ('super_admin' | 'promoteur' | 'gerant' | 'serveur')[];
+  /**
+   * ⭐ Aligné sur `UserRole` : un rôle absent d'un tableau `roles` ne voit pas
+   * l'entrée. Motif « liste blanche » — sûr par construction à l'ajout d'un rôle.
+   * Le cuisinier ne voit donc AUCUNE entrée tant qu'on ne l'y ajoute pas.
+   */
+  roles: UserRole[];
   action?: () => void;
   path?: string;
   /** Feature du plan requise pour afficher cet item */
   feature?: FeatureKey;
+  /**
+   * ⭐ Entrée du module restauration : masquée si le bar n'a pas la cuisine
+   * activée (§3). Sur un bar pur, l'entrée n'existe pas — pas un item grisé,
+   * pas un item vide : « un bar pur ne doit pas être PRESQUE inchangé, il doit
+   * être STRICTEMENT identique ».
+   */
+  requiresRestaurant?: boolean;
 }
 
 /** Groupe de menus repliable. Tous se comportent pareil : icône, libellé, chevron. */
@@ -80,6 +97,8 @@ export function MobileSidebar({
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
   const { hasFeature } = usePlan();
+  // ⭐ §3 — conditionne l'entrée Cuisine. Sur un bar pur, elle n'existe pas.
+  const { hasRestaurant } = useBarContext();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
   const prefersReducedMotion = useReducedMotion();
@@ -160,6 +179,26 @@ export function MobileSidebar({
     { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/dashboard' },
     { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/sales' },
     { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'gerant'], path: '/inventory' },
+    // ⭐ DÉCOUPAGE DU 03/08/2026 — « Cuisine » n'est plus UNE entrée mais un
+    // GROUPE (cf. §9 « Menu latéral », arbitrage). La page unique atteignait
+    // 3 onglets et en aurait eu 5 en phase 3, dont un à masquer au cuisinier.
+    // ⚠️ Le SERVEUR est absent de « Plats » et « Ingrédients » : « il ne gère
+    //    pas la cuisine, il vend des plats — lui ajouter un menu serait une
+    //    erreur » (§9).
+    // ⭐ MAIS IL EST PRÉSENT SUR « SERVICE » — et c'est volontaire. Le §6.1 lui
+    //    donne `canViewKitchenOrders` ET `canServeKitchenItem` : c'est LUI qui
+    //    retire les plats prêts, et le `serve` crée la vente. L'en exclure le
+    //    priverait de l'écran où il fait l'essentiel de son travail en salle.
+    { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true },
+    // ⭐ « PLATS » PORTE DEUX ONGLETS depuis le 08/08/2026 : `Menu` et
+    //    `Production`. Production n'a plus d'entrée propre — les deux écrans
+    //    chargeaient la même liste de plats, et un lot ne peut exister que si
+    //    la fiche du plat est cochée « préparé d'avance ».
+    // ⛔ Le SERVEUR en est absent, comme d'Ingrédients : produire un lot
+    //    CONSOMME du stock et fige un coût — ce n'est pas son métier. Il garde
+    //    « Service », le seul écran de ce groupe qui le concerne (§9).
+    { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
+    { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
     // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
     { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
     { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
@@ -173,7 +212,10 @@ export function MobileSidebar({
 
   const isVisible = (item: MenuItem) =>
     !!currentSession && item.roles.includes(currentSession.role)
-    && (!item.feature || hasFeature(item.feature));
+    && (!item.feature || hasFeature(item.feature))
+    // ⭐ §3 — sur un bar pur, l'entrée cuisine n'apparaît pas du tout.
+    //    `hasRestaurant` exige déjà le mode complet (§13.4).
+    && (!item.requiresRestaurant || hasRestaurant);
 
   const visibleMenus = menuItems.filter(isVisible);
   const byId = (id: string) => menuItems.find(m => m.id === id);
@@ -196,23 +238,47 @@ export function MobileSidebar({
     return items.length > 0 ? { id, label, icon, items } : null;
   };
 
-  const menuGroups: MenuGroup[] = isGrouped
+  /**
+   * Séquence du menu — l'ORDRE D'AFFICHAGE se lit ici et nulle part ailleurs.
+   *
+   * ⚠️ Concerne UNIQUEMENT la liste groupée (promoteur/gérant). Le cuisinier et
+   * le serveur ont une liste PLATE : `visibleMenus` contient déjà tous leurs
+   * items.
+   *
+   * ⭐ Le mécanisme d'entrée SOLO a été retiré le 03/08/2026 : « Cuisine » en
+   * était le seul usage, et elle est devenue un GROUPE. Le réintroduire pour
+   * un futur besoin est trivial ; le garder sans usage ne l'était pas.
+   */
+  const menuEntries: MenuGroup[] = isGrouped
     ? ([
         // ShoppingCart et non Zap : Zap identifie déjà « Vente rapide » dans ce groupe.
         buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'dailyDashboard', 'history']),
         // Icones d entete distinctes de celles des items qu ils contiennent :
         // Boxes vs Package (Inventaire), Wallet vs DollarSign (Comptabilite).
         buildGroup('stock', 'Produits et stock', <Boxes size={18} />, ['returns', 'consignments', 'inventory']),
+        // ⭐ Cuisine ENTRE stock et finances : elle garde le voisinage stock
+        //    (« même registre mental », §9) sans passer devant Vente, l'écran le
+        //    plus utilisé.
+        // ⚠️ C'est un GROUPE depuis le 03/08/2026, plus une entrée solo : il
+        //    accueillera Service et Appro en phase 3 sans redevenir illisible.
+        // ⭐ « Service » EN TÊTE : c'est l'écran ouvert pendant tout le service,
+        // alors que Plats et Ingrédients relèvent de la préparation en amont.
+        buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenDishes', 'kitchenIngredients']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),
       ].filter((g): g is MenuGroup => g !== null))
     : [];
 
+  /** Une entrée solo n'a pas d'`items` — c'est ce qui la distingue d'un groupe. */
+  const isGroup = (entry: MenuGroup | MenuItem): entry is MenuGroup => 'items' in entry;
+
   // Le groupe contenant l'écran courant s'ouvre de lui-même : sans ça, l'utilisateur
   // ne voit plus où il se trouve.
-  const activeGroupId = menuGroups.find(
-    g => g.items.some(item => item.id === currentMenu)
+  // ⚠️ Une entrée solo n'appartient à aucun groupe : `activeGroupId` est alors
+  // `undefined` et aucun tiroir ne s'ouvre — c'est le comportement voulu.
+  const activeGroupId = menuEntries.find(
+    (entry): entry is MenuGroup => isGroup(entry) && entry.items.some(item => item.id === currentMenu)
   )?.id;
 
   // ⭐ Uniquement à la transition fermée → ouverte : l'auto-ouverture ne doit jamais
@@ -311,7 +377,12 @@ export function MobileSidebar({
 
             <div className="flex-1 overflow-y-auto p-2">
               {isGrouped
-                ? menuGroups.map((group) => {
+                ? menuEntries.map((entry) => {
+                  // ⭐ Entrée solo : rendue telle quelle, à sa place dans la
+                  // séquence — pas de tiroir, donc visible sans aucun clic.
+                  if (!isGroup(entry)) return renderMenuItem(entry);
+
+                  const group = entry;
                   const isGroupOpen = openGroupIds.includes(group.id);
                   const hasActiveItem = group.items.some(item => item.id === currentMenu);
 

@@ -3,7 +3,12 @@
  * Modern, type-safe guide infrastructure for post-onboarding
  */
 
-export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
+/**
+ * ⚠️ DUPLICATION de `UserRole` (types/index.ts). Union inline structurellement
+ * indépendante : le compilateur ne signale PAS un oubli ici.
+ * Doit rester synchronisée à la main (MATRICE_RBAC_CUISINIER.md §10).
+ */
+export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur' | 'cuisinier';
 
 export type GuideDifficulty = 'beginner' | 'intermediate' | 'advanced';
 
@@ -69,6 +74,19 @@ export interface GuideTour {
 
   // Who sees this
   targetRoles: UserRole[];
+
+  /**
+   * ⭐ §3 — cette visite ne concerne-t-elle QUE les bars avec cuisine ?
+   *
+   * ⛔ SANS CE FILTRE, une visite « Monter votre carte » apparaîtrait dans la
+   * liste d'aide d'un bar qui ne vend que des boissons. C'est le §3 violé à
+   * l'endroit le PLUS visible : celui où l'utilisateur vient justement
+   * chercher de quoi comprendre son application.
+   *
+   * ⚠️ Absent = visible partout. Le défaut reste donc le comportement actuel
+   * pour les dix visites existantes, qui n'ont pas à être modifiées.
+   */
+  requiresRestaurant?: boolean;
 
   // Tour metadata
   estimatedDuration: number; // minutes
