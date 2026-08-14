@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, DollarSign, Clock, Building2, MapPin, Mail, Phone, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, MapPin, Mail, Phone, ShieldCheck, CheckCircle, AlertCircle, GitBranch, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js';
@@ -13,6 +13,8 @@ import { Select } from '../components/ui/Select';
 import { Card } from '../components/ui/Card';
 import { Alert } from '../components/ui/Alert';
 import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
+import { Checkbox } from '../components/ui/Checkbox';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { FEATURES } from '../config/features';
 import { useViewport } from '../hooks/useViewport';
@@ -180,6 +182,32 @@ export default function SettingsPage() {
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
     const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'full');
     const [tempCostDisplayMethod, setTempCostDisplayMethod] = useState<'cump' | 'last_cost'>(currentBar?.settings?.costDisplayMethod ?? 'cump');
+    /**
+     * ⭐ RESTAURATION (§3) — jusqu'ici le drapeau se posait UNIQUEMENT en base :
+     * il était lu partout (routes, menus, queries) et réglable nulle part.
+     *
+     * ⚠️ `=== true` et non un booléen laxiste : `undefined` doit valoir `false`.
+     * Tous les bars existants sont purs, et le §3 exige qu'ils le restent —
+     * l'application doit leur être STRICTEMENT identique.
+     */
+    const [tempHasRestaurant, setTempHasRestaurant] = useState(currentBar?.settings?.hasRestaurant === true);
+    // ⭐ Confirmation à la DÉSACTIVATION seulement : activer est sans risque,
+    //    désactiver fait disparaître trois écrans (§3).
+    const [showRestaurantOffConfirm, setShowRestaurantOffConfirm] = useState(false);
+    /**
+     * ⛔ TEMPORAIRE (§13.4) — la restauration n'est pas activable en mode simplifié.
+     *
+     * `BarContext.hasRestaurant` exige `operatingMode === 'full'` : cocher la case
+     * en mode simplifié n'ouvrirait AUCUN écran. Une case active et sans effet est
+     * pire qu'une case grisée qui explique pourquoi.
+     *
+     * ⚠️ Se base sur `tempOperatingMode` et NON sur la valeur enregistrée : le
+     * promoteur qui bascule en simplifié dans l'autre onglet voit la case se
+     * griser immédiatement, avant même d'enregistrer.
+     *
+     * ⭐ À RETIRER avec le lot 1 du mode simplifié restaurant, qui lève ce verrou.
+     */
+    const restaurantUnavailable = tempOperatingMode === 'simplified';
 
     // BUG #3 FIX (Ajusté) : Synchronisation UNIQUEMENT lors du changement de BarId
     // On évite de synchroniser operatingMode ici car cela écrase les choix de l'utilisateur lors de refreshBars()
@@ -194,6 +222,7 @@ export default function SettingsPage() {
             setTempSupplyFrequency(currentBar.settings?.supplyFrequency ?? 7);
             setTempOperatingMode(currentBar.settings?.operatingMode ?? 'full');
             setTempCostDisplayMethod(currentBar.settings?.costDisplayMethod ?? 'cump');
+            setTempHasRestaurant(currentBar.settings?.hasRestaurant === true);
         }
     }, [currentBar?.id]); // ⚡ Retiré currentBar?.settings?.operatingMode des dépendances pour éviter le revert permanent
 
@@ -291,9 +320,34 @@ export default function SettingsPage() {
         }
     };
 
+    /**
+     * ⛔⛔ L'ÉCHEC D'ENREGISTREMENT ÉTAIT SILENCIEUX — défaut trouvé à la revue
+     * du 14/08/2026, PRÉEXISTANT à la case « restauration ».
+     *
+     * `updateBar` RELANCE l'erreur en cas d'échec serveur (BarContext.tsx:502)
+     * après avoir correctement annulé sa mise à jour optimiste. Sans `try/catch`
+     * ici, la promesse rejetée partait dans le handler global
+     * `unhandledrejection` de `main.tsx` : ni notification de succès, ni
+     * notification d'erreur, pas de navigation. Du point de vue du promoteur :
+     * « j'ai cliqué Enregistrer et il ne s'est rien passé ».
+     *
+     * ⚠️ Le succès ne s'annonce plus qu'APRÈS l'écriture. Annoncer avant, c'est
+     * affirmer un fait qu'on ne connaît pas encore.
+     *
+     * ⭐ Hors ligne n'est PAS un échec : `updateBar` met l'opération en file
+     * (`UPDATE_BAR`) et retourne normalement. Ce chemin passe donc par la
+     * branche de succès, ce qui est correct — l'écriture aura bien lieu.
+     */
     const handleSave = async () => {
         updateSettings(tempSettings);
-        if (currentBar) {
+
+        if (!currentBar) {
+            showNotification('success', 'Paramètres enregistrés');
+            navigate(-1);
+            return;
+        }
+
+        try {
             // ⭐ FIX CRITIQUE: Attendre la fin de updateBar() avant de naviguer
             // Sinon les updates optimistes sont perdues lors du navigate()
             await updateBar(currentBar.id, {
@@ -307,12 +361,27 @@ export default function SettingsPage() {
                     supplyFrequency: tempSupplyFrequency,
                     operatingMode: tempOperatingMode,
                     costDisplayMethod: tempCostDisplayMethod,
+                    /**
+                     * ⚠️ ÉCRIT PAR LE PROMOTEUR SEUL. L'onglet « Infos Bar » qui porte
+                     * cette case n'est rendu que si `isPromoteur` — un gérant n'y accède
+                     * pas, donc `tempHasRestaurant` garde la valeur lue en base et la
+                     * réécrit à l'identique. Aucun écrasement possible.
+                     */
+                    hasRestaurant: tempHasRestaurant,
                 },
                 closingHour: tempCloseHour,
             });
+
+            showNotification('success', 'Paramètres enregistrés');
+            navigate(-1);
+        } catch (error) {
+            /**
+             * ⭐ ON RESTE SUR LA PAGE, volontairement : la saisie du promoteur est
+             * intacte dans les états `temp*`, il peut réessayer sans tout ressaisir.
+             * Naviguer en arrière lui ferait perdre ses modifications.
+             */
+            showNotification('error', `Enregistrement échoué : ${getErrorMessage(error)}`);
         }
-        showNotification('success', 'Paramètres enregistrés');
-        navigate(-1);
     };
 
     if (!currentBar || !currentSession) {
@@ -510,6 +579,80 @@ export default function SettingsPage() {
                                 leftIcon={<MapPin size={18} />}
                             />
 
+                            {/*
+                              * ⭐ RESTAURATION (§3) — la case qui MANQUAIT.
+                              *
+                              * Le drapeau `hasRestaurant` commande trois écrans (Service,
+                              * Plats, Ingrédients), le rôle cuisinier et toutes les requêtes
+                              * cuisine. Il était lu partout et réglable NULLE PART : un bar
+                              * ne pouvait devenir bar-resto que par une écriture en base.
+                              *
+                              * ⛔ Onglet « Infos Bar », donc PROMOTEUR seul : faire de la
+                              * restauration change la nature de l'établissement, au même
+                              * titre que son nom ou son adresse. Ce n'est pas un réglage
+                              * d'exploitation quotidienne.
+                              */}
+                            <div className="pt-2">
+                                <hr className="border-border mb-6" />
+                                <label className="block text-h3 text-foreground mb-4">Activité de l'établissement</label>
+                                <label
+                                    className={`flex gap-4 p-4 rounded-xl border transition-all ${restaurantUnavailable
+                                        ? 'bg-muted border-border opacity-60 cursor-not-allowed'
+                                        : tempHasRestaurant
+                                            ? 'bg-brand-subtle border-brand-primary shadow-sm cursor-pointer'
+                                            : 'bg-card border-border hover:border-brand-primary/40 hover:bg-brand-subtle cursor-pointer'
+                                        }`}
+                                >
+                                    <Checkbox
+                                        checked={tempHasRestaurant}
+                                        /**
+                                         * ⛔ TEMPORAIRE — §13.4 : `BarContext.hasRestaurant` exige
+                                         * ENCORE `operatingMode === 'full'`. Cocher la case en mode
+                                         * simplifié n'ouvrirait donc AUCUN écran : la case serait
+                                         * active et sans effet, ce qui est pire que désactivée.
+                                         *
+                                         * ⭐ À RETIRER avec le lot 1 du mode simplifié, qui lève ce
+                                         * verrou. Le libellé ci-dessous explique la marche à suivre —
+                                         * une case grisée sans raison est une impasse.
+                                         */
+                                        disabled={restaurantUnavailable}
+                                        onCheckedChange={(checked) => {
+                                            if (restaurantUnavailable) return;
+                                            // ⭐ Activer est immédiat ; DÉSACTIVER passe par une
+                                            //    confirmation — trois écrans disparaissent.
+                                            if (checked === true) {
+                                                setTempHasRestaurant(true);
+                                            } else {
+                                                setShowRestaurantOffConfirm(true);
+                                            }
+                                        }}
+                                        className="mt-1"
+                                    />
+                                    <div className="space-y-1">
+                                        <div className="text-body font-semibold text-foreground flex items-center gap-2">
+                                            <UtensilsCrossed size={16} className="text-brand-primary" />
+                                            Cet établissement fait aussi de la restauration
+                                        </div>
+                                        <p className="text-body-sm text-foreground/80">
+                                            Ajoute la carte des plats, les ingrédients et la file de production.
+                                            Un bar qui ne sert que des boissons n'a pas besoin de cette option.
+                                        </p>
+                                        {/*
+                                          * ⭐ DIRE OÙ AGIR, pas seulement que c'est indisponible.
+                                          * Le mode se règle dans l'onglet « Fonctionnement » — sans
+                                          * cette phrase, la case grisée est une impasse.
+                                          */}
+                                        {restaurantUnavailable && (
+                                            <p className="text-body-sm text-foreground/60 italic">
+                                                Indisponible en mode simplifié : la cuisine nécessite un compte
+                                                pour le cuisinier. Passez en mode complet dans l'onglet
+                                                « Fonctionnement » pour l'activer.
+                                            </p>
+                                        )}
+                                    </div>
+                                </label>
+                            </div>
+
                             {/* THEME SELECTOR SECTION (Feature Flagged) */}
                             {ENABLE_DYNAMIC_THEMING && (
                                 <motion.div
@@ -706,6 +849,31 @@ export default function SettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/*
+              * ⚠️ DÉSACTIVER NE SUPPRIME RIEN (§3) — et le message doit le dire.
+              *
+              * Un promoteur qui décoche cette case craint légitimement de perdre sa
+              * carte et ses ventes de plats. Le drapeau MASQUE les écrans, il n'efface
+              * ni les recettes, ni l'historique, ni la comptabilité. Le taire ferait
+              * renoncer à un réglage inoffensif — ou pire, désactiver sans le savoir.
+              */}
+            <ConfirmationModal
+                isOpen={showRestaurantOffConfirm}
+                onClose={() => setShowRestaurantOffConfirm(false)}
+                onConfirm={() => {
+                    setTempHasRestaurant(false);
+                    setShowRestaurantOffConfirm(false);
+                }}
+                title="Désactiver la restauration ?"
+                message={
+                    "Les écrans Service, Plats et Ingrédients disparaîtront du menu. " +
+                    "Vos plats, vos recettes et vos ventes déjà enregistrées sont CONSERVÉS : " +
+                    "ils restent visibles en comptabilité, et réactiver l'option les retrouvera intacts."
+                }
+                confirmLabel="Désactiver"
+                cancelLabel="Annuler"
+            />
         </div>
     );
 }
