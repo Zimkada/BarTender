@@ -1464,3 +1464,129 @@ describe('replace_ingredient_sizes — retirer sans perdre l\'historique', () =>
     expect(sql).not.toMatch(/v_size->>'id'/);
   });
 });
+
+/**
+ * ⭐⭐ §20 LOT 2 — L'IMPUTATION DU PLAT AU SERVEUR DU BON.
+ *
+ * ⛔ CE BLOC LIT LA MIGRATION, PAS `lastDefinitionOf`. La correction procède
+ * par SUBSTITUTION sur `pg_get_functiondef` (comme la garde de rôle du 11/08)
+ * : elle ne contient donc AUCUN `CREATE FUNCTION`, et le helper ne la verrait
+ * pas. Tester la définition d'origine validerait un état périmé — exactement
+ * le piège que ce fichier documente en tête.
+ *
+ * ⚠️ CE QUE CES TESTS PROTÈGENT : le montant à RECOUVRER chez chaque serveur.
+ * Le gérant n'encaisse pas lui-même — les serveurs sont au contact du client.
+ * Une imputation fausse, c'est de l'argent réclamé à la mauvaise personne, et
+ * rien à l'écran ne le signale.
+ */
+describe('§20 — un plat est imputé au serveur de son bon', () => {
+  const rawMigration = readFileSync(
+    join(MIGRATIONS_DIR, '20260817100000_serve_inherits_ticket_server.sql'),
+    'utf-8'
+  );
+
+  /**
+   * ⛔⛔ ON RETIRE LES COMMENTAIRES AVANT D'ASSERTER — défaut trouvé en
+   * CERTIFIANT ces tests par injection de régression le 17/08/2026.
+   *
+   * La première version cherchait les motifs dans le fichier ENTIER. Or
+   * l'en-tête et les post-vols CITENT le SQL qu'ils décrivent : casser la
+   * substitution réelle laissait les 165 tests VERTS, parce que l'assertion
+   * retombait sur un commentaire.
+   *
+   * ⚠️ Exactement le profil que ce fichier existe pour empêcher : un test qui
+   * ne peut pas échouer est pire qu'une absence de test — il donne une
+   * confiance que rien ne justifie.
+   */
+  const migration = rawMigration
+    .split('\n')
+    .filter((l) => !l.trimStart().startsWith('--') && !l.trimStart().startsWith('*'))
+    .join('\n');
+
+  it('⭐ lit le serveur sur le BON, jamais sur un paramètre client', () => {
+    // Le serveur vient d'une ligne en base rattachée par clé étrangère : aucune
+    // validation d'appartenance n'est requise, contrairement à un p_server_id.
+    expect(migration).toMatch(/COALESCE\(t\.server_id, v_actor\)/);
+    expect(migration).toMatch(/FROM public\.tickets t WHERE t\.id = v_item\.ticket_id/);
+  });
+
+  it('⛔ branche le 4e argument de create_sale_idempotent — `p_sold_by`', () => {
+    // C'est `sold_by` que lit « Mon équipe » (useTeamPerformance:59), donc lui
+    // qui porte le recouvrement.
+    expect(migration).toMatch(/p_payment_method, v_seller, v_key/);
+  });
+
+  it('⛔⛔ NE TOUCHE PAS `served_by` — fait matériel, pas imputation', () => {
+    /**
+     * En mode simplifié c'est bien le GÉRANT qui a appuyé sur le bouton. Y
+     * écrire le serveur consignerait un fait faux et perdrait la traçabilité.
+     * Une réaffectation de `v_actor` aurait changé les deux d'un coup : d'où
+     * une variable NOUVELLE (`v_seller`) plutôt qu'un écrasement.
+     */
+    expect(migration).toMatch(/v_seller {2}UUID;/);
+    expect(migration).not.toMatch(/served_by\s*=\s*v_seller/);
+  });
+
+  it('⭐ le MODE COMPLET reste inchangé, sans condition sur le mode', () => {
+    /**
+     * `Cart.tsx` ne peuple `serverId` qu'en mode simplifié : en complet le bon
+     * a `server_id = NULL` et le COALESCE retombe sur `v_actor`. La donnée
+     * porte la distinction — plus robuste qu'un `IF` qu'on peut « simplifier ».
+     */
+    expect(migration).not.toMatch(/operatingMode|operating_mode/);
+  });
+
+  it('⛔ un bon sans serveur ADOPTE l\'envoyeur, sans jamais écraser', () => {
+    // Le scénario réel du client : bascule complet → simplifié en cours de
+    // service, laissant des bons à `server_id = NULL`.
+    expect(migration).toMatch(/server_id = COALESCE\(server_id, auth\.uid\(\)\)/);
+  });
+
+  it('⛔ re-pose les GRANTS — `CREATE OR REPLACE` les perd', () => {
+    // Sans eux, servir un plat deviendrait impossible (leçon vagues 1-4).
+    expect(migration).toMatch(/GRANT EXECUTE ON FUNCTION public\.%I/);
+    expect(migration).toMatch(/REVOKE ALL ON FUNCTION public\.%I\(%s\) FROM anon/);
+  });
+
+  it('⛔⛔ re-pose `service_role` sur les DEUX fonctions — file offline', () => {
+    /**
+     * ⛔ DÉFAUT TROUVÉ À LA REVUE, et manqué deux fois avant elle.
+     *
+     * `serve_kitchen_item` ET `create_kitchen_order` portent un
+     * `GRANT ... TO service_role` depuis leur création (20260804130000:721,
+     * 724). Ne re-poser que `authenticated` le DÉTRUIT : la file offline ne
+     * pourrait plus ni envoyer en cuisine, ni servir un plat.
+     *
+     * ⚠️ L'échec serait DIFFÉRÉ — visible au retour en ligne seulement, très
+     * loin de la migration qui l'a causé. C'est le profil qu'on ne diagnostique
+     * jamais, d'où ce test.
+     */
+    const grants = migration.match(/GRANT EXECUTE ON FUNCTION public\.%I\(%s\) TO service_role/g) ?? [];
+    expect(
+      grants.length,
+      'Les DEUX blocs (serve_kitchen_item et create_kitchen_order) doivent re-poser service_role'
+    ).toBe(2);
+  });
+
+  it('⛔ garde de SURCHARGE sur les deux blocs, pas seulement le premier', () => {
+    /**
+     * `SELECT ... INTO` sur deux signatures homonymes en prendrait une
+     * ARBITRAIREMENT : la migration corrigerait peut-être la mauvaise, en
+     * silence. Le bloc B ne l'avait pas — asymétrie corrigée à la revue.
+     */
+    const guards = migration.match(/IF v_count > 1 THEN/g) ?? [];
+    expect(guards.length, 'Les deux blocs doivent refuser une fonction surchargée').toBe(2);
+  });
+
+  it('⭐ est IDEMPOTENTE — un rejeu ne double aucune substitution', () => {
+    expect(migration).toMatch(/position\('v_seller' IN v_def\) > 0/);
+    expect(migration).toMatch(/position\('server_id = COALESCE\(server_id, auth\.uid\(\)\)' IN v_def\) > 0/);
+  });
+
+  it('⛔ REFUSE si le motif a dérivé, plutôt que de passer en silence', () => {
+    // Une fonction qu'on croit corrigée et qui ne l'est pas est le pire des
+    // deux mondes : l'imputation resterait fausse sans aucun signal.
+    expect(migration).toMatch(/RAISE EXCEPTION 'Motif d''appel INTROUVABLE/);
+    expect(migration).toMatch(/RAISE EXCEPTION 'Motif UPDATE tickets INTROUVABLE/);
+  });
+});
