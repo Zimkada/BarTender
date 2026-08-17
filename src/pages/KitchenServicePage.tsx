@@ -282,25 +282,54 @@ export default function KitchenServicePage() {
       const item = allItems.find((i) => i.id === itemId);
       if (!item) return;
 
+      /**
+       * ⭐ L'ÉTAPE ATTEINTE, suivie au fil de la séquence. C'est elle qui rend
+       * le message d'échec exploitable : sans elle, on ne peut dire au gérant
+       * que « ça a raté », pas OÙ ni QUOI FAIRE.
+       */
+      let reached: 'accepted' | 'ready' | null =
+        item.status === 'preparing' || item.status === 'accepted'
+          ? 'accepted'
+          : item.status === 'ready'
+            ? 'ready'
+            : null;
+
       try {
         if (item.status === 'pending') {
           await acceptItem.mutateAsync(itemId);
+          reached = 'accepted';
         }
         if (item.status === 'pending' || item.status === 'accepted' || item.status === 'preparing') {
           await markReady.mutateAsync({ itemId });
+          reached = 'ready';
         }
         await serveItem.mutateAsync({ itemId });
         showNotification('success', 'Plat servi');
       } catch (error) {
         /**
-         * ⚠️ DIRE OÙ EN EST LE PLAT, pas seulement que ça a échoué.
+         * ⚠️⚠️ DIRE OÙ EN EST LE PLAT, pas seulement que ça a échoué.
          *
-         * Sans cette précision, le gérant croit devoir tout recommencer alors
-         * que la matière est peut-être déjà sortie. Le message nomme l'étape
-         * atteinte ; le bouton reste disponible pour reprendre là où on s'est
-         * arrêté.
+         * ⛔ Défaut trouvé à la revue du 17/08 : ce bloc n'affichait que
+         * `getErrorMessage(error)`, alors que le commentaire promettait de
+         * nommer l'étape. Un commentaire qui décrit une intention NON
+         * implémentée est pire qu'une absence : il rassure le prochain lecteur.
+         *
+         * Le cas réel : plat `batch_finish` à lot vide. `accept` passe,
+         * `mark_ready` échoue sur `BATCH_EMPTY`. Le gérant voyait « lot
+         * épuisé » sans savoir que le plat avait avancé, ni que « À la
+         * commande » — qui reste affiché sur `accepted` — est sa sortie.
+         *
+         * ⭐ On NE MASQUE PAS le message du serveur : il porte le motif métier
+         * (lot épuisé, dette d'ingrédient). On le PRÉFIXE de l'état atteint.
          */
-        showNotification('error', getErrorMessage(error));
+        const where =
+          reached === 'ready'
+            ? 'Plat prêt, reste à servir'
+            : reached === 'accepted'
+              ? 'Plat en préparation, pas encore prêt'
+              : 'Plat inchangé';
+
+        showNotification('error', `${where} - ${getErrorMessage(error)}`);
       }
     },
     [allItems, acceptItem, markReady, serveItem, showNotification]

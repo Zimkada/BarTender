@@ -216,6 +216,12 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
           * déjà prêt garde ainsi le même bouton, au même endroit. Deux
           * libellés selon l'étape obligeraient le gérant à lire avant
           * d'agir — exactement ce que ce mode cherche à éviter.
+          *
+          * ⚠️ `!== 'served'` est aujourd'hui TOUJOURS VRAI — relevé à la revue
+          * du 17/08. `useUnifiedKitchenQueue.columnOf` écarte les statuts hors
+          * pending/accepted/preparing/ready : un plat servi n'atteint jamais
+          * cette carte. Conservé comme garde de profondeur si la file
+          * s'élargit un jour ; à ne pas lire comme un cas réellement observé.
           */}
         {onServeInOneGo && canProduce && canServe && item.status !== 'served' ? (
           <Button size="sm" onClick={() => onServeInOneGo(item.id)} disabled={isPending}>

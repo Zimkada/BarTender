@@ -21,6 +21,8 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { KitchenItemCard } from '../../components/kitchen/KitchenItemCard';
 import type {
   KitchenQueueItem,
@@ -272,5 +274,68 @@ describe('§20 — bouton unique en cuisine simplifiée', () => {
 
     expect(screen.queryByRole('button', { name: /plat servi/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^servir$/i })).not.toBeNull();
+  });
+});
+
+/**
+ * ⭐⭐ §20 — LE MESSAGE D'ÉCHEC NOMME L'ÉTAPE ATTEINTE.
+ *
+ * ⛔ Défaut trouvé à la revue du 17/08 : le `catch` de `handleServeInOneGo`
+ * n'affichait que le message du serveur, alors que son commentaire promettait
+ * de dire où en est le plat.
+ *
+ * ⚠️ POURQUOI C'EST IMPORTANT : la séquence n'est pas atomique. Un plat
+ * `batch_finish` à lot vide passe `accept` puis échoue sur `mark_ready`. Sans
+ * cette précision, le gérant voit « lot épuisé » et croit devoir tout
+ * recommencer — alors que le plat a avancé et que « À la commande », toujours
+ * affiché sur `accepted`, est sa sortie.
+ *
+ * ⛔⛔ CE BLOC LIT LE FICHIER SOURCE, il ne réimplémente PAS la règle.
+ * Une première version dupliquait la dérivation dans le test : en injectant la
+ * régression (retour au message brut), les 19 tests restaient VERTS. Un test
+ * qui recopie le code qu'il prétend protéger ne protège rien — c'est le même
+ * défaut que celui trouvé sur les invariants RPC le 17/08.
+ */
+describe('§20 — message d\'échec du geste unique', () => {
+  const source = readFileSync(
+    join(process.cwd(), 'src', 'pages', 'KitchenServicePage.tsx'),
+    'utf-8'
+  );
+
+  it('⛔ le message d\'erreur PRÉFIXE l\'étape atteinte', () => {
+    // Le motif exact : `${where} - ${getErrorMessage(error)}`.
+    expect(
+      source,
+      'Le catch doit préfixer le message serveur par l\'état du plat'
+    ).toMatch(/\$\{where\}\s*-\s*\$\{getErrorMessage\(error\)\}/);
+  });
+
+  it('⭐ les trois états sont distingués, y compris « inchangé »', () => {
+    // Sans le cas `null`, un échec dès `accept` afficherait un état faux.
+    expect(source).toMatch(/Plat prêt, reste à servir/);
+    expect(source).toMatch(/Plat en préparation, pas encore prêt/);
+    expect(source).toMatch(/Plat inchangé/);
+  });
+
+  it('⛔ `reached` est mis à jour APRÈS chaque étape, jamais avant', () => {
+    /**
+     * L'ordre est la règle : marquer `ready` avant l'appel annoncerait une
+     * matière sortie alors que le RPC peut encore refuser (BATCH_EMPTY).
+     */
+    const iAccept = source.indexOf('await acceptItem.mutateAsync(itemId);');
+    const iReachedAccepted = source.indexOf("reached = 'accepted';", iAccept);
+    const iMarkReady = source.indexOf('await markReady.mutateAsync({ itemId });');
+    const iReachedReady = source.indexOf("reached = 'ready';", iMarkReady);
+
+    expect(iAccept).toBeGreaterThan(-1);
+    expect(iReachedAccepted).toBeGreaterThan(iAccept);
+    expect(iMarkReady).toBeGreaterThan(-1);
+    expect(iReachedReady).toBeGreaterThan(iMarkReady);
+  });
+
+  it('⭐ le message du SERVEUR est conservé, jamais remplacé', () => {
+    // Il porte le motif métier (lot épuisé, dette d'ingrédient) : le masquer
+    // priverait le gérant de la seule information actionnable.
+    expect(source).toMatch(/getErrorMessage\(error\)/);
   });
 });
