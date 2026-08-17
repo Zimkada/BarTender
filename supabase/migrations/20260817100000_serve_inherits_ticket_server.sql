@@ -380,16 +380,17 @@ NOTIFY pgrst, 'reload schema';
 --   --    précédents. C'est cette omission qui a laissé passer la perte du
 --   --    grant : le contrôle regardait `authenticated` et `anon`, donc il
 --   --    passait au vert alors que la file offline était coupée.
+--   -- ⛔ L'OID EN SECOND ARGUMENT, jamais une signature reconstruite.
+--   --    `pg_get_function_identity_arguments` renvoie les arguments AVEC leurs
+--   --    noms (« p_bar_id uuid ») : `has_function_privilege` n'accepte que les
+--   --    TYPES et échoue sur `invalid type name "p_bar_id uuid"`.
+--   -- ⚠️ Dans un GRANT/REVOKE la forme nommée est VALIDE — d'où son usage
+--   --    légitime dans le corps de cette migration. Seuls ces contrôles
+--   --    exigent l'OID.
 --   SELECT proname,
---          has_function_privilege('authenticated',
---            format('public.%I(%s)', proname,
---                   pg_get_function_identity_arguments(oid)), 'EXECUTE') AS auth_peut,
---          has_function_privilege('service_role',
---            format('public.%I(%s)', proname,
---                   pg_get_function_identity_arguments(oid)), 'EXECUTE') AS service_peut,
---          has_function_privilege('anon',
---            format('public.%I(%s)', proname,
---                   pg_get_function_identity_arguments(oid)), 'EXECUTE') AS anon_peut
+--          has_function_privilege('authenticated', oid, 'EXECUTE') AS auth_peut,
+--          has_function_privilege('service_role',  oid, 'EXECUTE') AS service_peut,
+--          has_function_privilege('anon',          oid, 'EXECUTE') AS anon_peut
 --   FROM pg_proc
 --   WHERE pronamespace = 'public'::regnamespace
 --     AND proname IN ('serve_kitchen_item','create_kitchen_order')
@@ -424,10 +425,13 @@ NOTIFY pgrst, 'reload schema';
 -- ⚠️ Elle est DÉJÀ APPLIQUÉE en production : ce contrôle n'est pas préventif,
 -- il MESURE un dégât possible. À passer INDÉPENDAMMENT de cette migration.
 --
+--   -- ⛔ OID en second argument (cf. post-vol n°3) — une signature
+--   --    reconstruite échouerait sur `invalid type name "p_bar_id uuid"`.
+--   -- ⭐ `auth_peut` sert de REPÈRE : s'il est true partout et `service_peut`
+--   --    false sur certaines lignes, le diagnostic est net.
 --   SELECT proname,
---          has_function_privilege('service_role',
---            format('public.%I(%s)', proname,
---                   pg_get_function_identity_arguments(oid)), 'EXECUTE') AS service_peut
+--          has_function_privilege('service_role',  oid, 'EXECUTE') AS service_peut,
+--          has_function_privilege('authenticated', oid, 'EXECUTE') AS auth_peut
 --   FROM pg_proc
 --   WHERE pronamespace = 'public'::regnamespace
 --     AND proname IN ('upsert_dish','produce_batch','close_batch',
