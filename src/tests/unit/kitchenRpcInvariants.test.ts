@@ -1627,11 +1627,65 @@ describe('§20 bis — le bon adopte le serveur transmis', () => {
     'utf-8'
   );
 
+  /**
+   * ⛔⛔ CE TEST A VALIDÉ UNE MIGRATION QUI A CASSÉ LA PRODUCTION.
+   *
+   * Sa première version vérifiait que le `replace()` était ÉCRIT — jamais
+   * qu'il TROUVAIT SA CIBLE. Or le motif visait la signature telle qu'écrite
+   * dans le fichier source, alors que `pg_get_functiondef` la NORMALISE :
+   * la substitution ne matchait rien, la fonction était recréée à l'identique,
+   * puis le `DROP` la supprimait.
+   *
+   * ⭐ La migration n'utilise PLUS de substitution : elle écrit la fonction
+   * intégralement. Ces assertions portent donc sur le SQL final, pas sur une
+   * mécanique de transformation.
+   */
   it('⛔⛔ comble avec `p_server_id`, JAMAIS avec `auth.uid()`', () => {
-    expect(fix).toMatch(/server_id = COALESCE\(server_id, p_server_id\)/);
-    // Le motif fautif ne doit subsister que dans le `replace` qui le REMPLACE.
-    const asWritten = fix.match(/'server_id = COALESCE\(server_id, auth\.uid\(\)\)'/g) ?? [];
-    expect(asWritten.length, 'auth.uid() ne doit apparaître que comme motif à remplacer').toBe(2);
+    // On isole le CORPS de la fonction : les commentaires d'en-tête citent
+    // légitimement `auth.uid()` pour expliquer le défaut corrigé.
+    const fnBody = fix.slice(
+      fix.indexOf('CREATE OR REPLACE FUNCTION public.create_kitchen_order'),
+      fix.indexOf('\n$$;')
+    );
+    const executable = fnBody.replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
+
+    expect(executable).toMatch(/server_id = COALESCE\(server_id, p_server_id\)/);
+    expect(
+      executable,
+      'Le comblement par l\'appelant est le défaut corrigé — il ne doit plus exister'
+    ).not.toMatch(/server_id = COALESCE\(server_id, auth\.uid\(\)\)/);
+  });
+
+  it('⛔⛔ N\'UTILISE AUCUNE SUBSTITUTION sur la fonction', () => {
+    /**
+     * ⭐ LA RÈGLE née de l'incident du 18/08 : le CORPS est restitué verbatim
+     * par `pg_get_functiondef`, mais la SIGNATURE est NORMALISÉE. Modifier une
+     * signature par `replace()` est donc structurellement non fiable.
+     *
+     * Ce test interdit le retour à cette mécanique sur cette migration.
+     */
+    expect(fix).not.toMatch(/EXECUTE v_def/);
+    expect(fix).not.toMatch(/pg_get_functiondef\(oid\) INTO/);
+    expect(fix).toMatch(/CREATE OR REPLACE FUNCTION public\.create_kitchen_order/);
+  });
+
+  it('⛔⛔ le DROP vient APRÈS le CREATE, dans la MÊME transaction', () => {
+    /**
+     * ⚠️ LE CORRECTIF CENTRAL. Dans la version qui a cassé la production, le
+     * CREATE échouait en silence et le DROP s'exécutait quand même — laissant
+     * ZÉRO fonction en base.
+     *
+     * ⭐ Ici, si le CREATE échoue, le BEGIN/COMMIT annule tout et la fonction
+     * à 5 arguments survit : le service ne peut pas tomber.
+     */
+    const iCreate = fix.indexOf('CREATE OR REPLACE FUNCTION public.create_kitchen_order');
+    const iDrop = fix.indexOf('DROP FUNCTION IF EXISTS');
+    const iBegin = fix.indexOf('\nBEGIN;');
+    const iCommit = fix.indexOf('\nCOMMIT;');
+
+    expect(iCreate).toBeGreaterThan(iBegin);
+    expect(iDrop).toBeGreaterThan(iCreate);
+    expect(iDrop).toBeLessThan(iCommit);
   });
 
   it('⛔ VALIDE l\'appartenance — le paramètre vient du client', () => {
@@ -1661,15 +1715,31 @@ describe('§20 bis — le bon adopte le serveur transmis', () => {
     expect(fix).toMatch(/DROP FUNCTION IF EXISTS public\.create_kitchen_order\(UUID, UUID, JSONB, TEXT, TEXT\)/);
   });
 
-  it('⛔ relit l\'OID APRÈS le remplacement — la signature a changé', () => {
+  it('⛔ GRANT et COMMENT visent la signature à SIX arguments', () => {
     /**
-     * Les GRANT et le COMMENT visent la NOUVELLE signature. Réutiliser l'OID
-     * relevé avant viserait une fonction qui n'existe plus.
+     * ⚠️ La fonction change de signature : viser celle à 5 arguments
+     * accorderait les droits à une fonction qui n'existe plus, et la nouvelle
+     * serait INAPPELABLE par `authenticated` — module cuisine mort.
+     *
+     * ⭐ Plus de relecture d'OID à faire : la signature étant écrite en toutes
+     * lettres, les GRANT la nomment directement.
      */
-    const iExecute = fix.indexOf('EXECUTE v_def;');
-    const iRelit = fix.indexOf('INTO v_oid, v_args', iExecute);
-    expect(iExecute).toBeGreaterThan(-1);
-    expect(iRelit).toBeGreaterThan(iExecute);
+    expect(fix).toMatch(/GRANT EXECUTE ON FUNCTION public\.create_kitchen_order\(UUID, UUID, JSONB, TEXT, TEXT, UUID\) TO authenticated/);
+    expect(fix).toMatch(/GRANT EXECUTE ON FUNCTION public\.create_kitchen_order\(UUID, UUID, JSONB, TEXT, TEXT, UUID\) TO service_role/);
+    expect(fix).toMatch(/COMMENT ON FUNCTION public\.create_kitchen_order\(UUID, UUID, JSONB, TEXT, TEXT, UUID\)/);
+  });
+
+  it('⛔ PRÉSERVE l\'UPDATE tickets du §13.7 — régression du 10/08', () => {
+    /**
+     * Réécrire une fonction en entier fait courir le risque de PERDRE un
+     * élément — c'est ce qui est arrivé le 10/08 sur `create_kitchen_order`,
+     * où l'`UPDATE tickets` avait disparu : un ticket devenait clôturable
+     * alors que ses plats cuisaient.
+     *
+     * ⭐ Ce test verrouille l'élément le plus coûteux à perdre.
+     */
+    expect(fix).toMatch(/UPDATE public\.tickets/);
+    expect(fix).toMatch(/fulfillment_status = 'pending'/);
   });
 
   it('⛔ re-pose `service_role` — leçon du 17/08', () => {
