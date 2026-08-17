@@ -70,7 +70,16 @@ interface Caps {
   canCancelAfterReady?: boolean;
 }
 
-const renderCard = (status: KitchenItemStatus, caps: Caps = {}) =>
+const renderCard = (
+  status: KitchenItemStatus,
+  caps: Caps = {},
+  /**
+   * ⭐ §20 — handler du bouton unique. `undefined` par défaut : TOUS les tests
+   * existants rendent donc la carte EXACTEMENT comme avant, sans modification.
+   * C'est l'invariance du mode complet, garantie par la signature.
+   */
+  onServeInOneGo?: () => void
+) =>
   render(
     <KitchenItemCard
       item={makeItem(status)}
@@ -86,6 +95,7 @@ const renderCard = (status: KitchenItemStatus, caps: Caps = {}) =>
       isBatchFinish={false}
       onMarkReady={vi.fn()}
       onServe={vi.fn()}
+      onServeInOneGo={onServeInOneGo}
       onCancel={vi.fn()}
       isPending={false}
     />
@@ -196,5 +206,71 @@ describe('KitchenItemCard — actions selon rôle et statut (§6.1)', () => {
       expect(screen.queryByRole('button', { name: /commencer/i })).toBeNull();
       expect(screen.queryByRole('button', { name: /^prêt$/i })).toBeNull();
     });
+  });
+});
+
+/**
+ * ⭐⭐ §20 LOT 4 — LE BOUTON UNIQUE QUAND LE GÉRANT OPÈRE SEUL.
+ *
+ * En mode simplifié il n'y a ni cuisinier ni serveur : le gérant prend la
+ * commande, cuisine et sert. « Plat servi » enchaîne accept → prêt → servir,
+ * c'est-à-dire les trois gestes qu'il vient RÉELLEMENT de faire.
+ *
+ * ⚠️ CE QUE CES TESTS PROTÈGENT EN PRIORITÉ : l'invariance du MODE COMPLET.
+ * La prop est optionnelle ; si elle fuit là où elle ne devrait pas, un
+ * cuisinier pourrait vendre et un serveur produire — les permissions
+ * disjointes du §6.1 tomberaient d'un coup.
+ */
+describe('§20 — bouton unique en cuisine simplifiée', () => {
+  const ONE_GO = () => {};
+
+  it('⭐ le GÉRANT voit « Plat servi » à la place des boutons d\'étape', () => {
+    renderCard('preparing', GERANT, ONE_GO);
+
+    expect(screen.queryByRole('button', { name: /plat servi/i })).not.toBeNull();
+    // ⛔ Les boutons d'étape DISPARAISSENT : deux chemins pour le même geste
+    //    obligeraient à choisir, alors que ce mode existe pour ne pas avoir à
+    //    le faire.
+    expect(screen.queryByRole('button', { name: /^prêt$/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^servir$/i })).toBeNull();
+  });
+
+  it('⭐ le bouton reste le MÊME sur un plat déjà prêt', () => {
+    /**
+     * Un libellé qui change selon l'étape obligerait le gérant à lire avant
+     * d'agir. Le bouton est au même endroit, avec le même texte, quel que
+     * soit l'avancement — les RPC idempotents ignorent ce qui est déjà fait.
+     */
+    renderCard('ready', GERANT, ONE_GO);
+    expect(screen.queryByRole('button', { name: /plat servi/i })).not.toBeNull();
+  });
+
+  it('⛔⛔ MODE COMPLET INTACT — sans la prop, les boutons d\'étape reviennent', () => {
+    // C'est le test d'invariance : aucun appelant qui ne passe pas la prop
+    // ne doit voir son écran changer.
+    renderCard('preparing', GERANT);
+
+    expect(screen.queryByRole('button', { name: /plat servi/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^prêt$/i })).not.toBeNull();
+  });
+
+  it('⛔ le CUISINIER ne l\'obtient PAS — il produit, il ne vend pas (§6.1)', () => {
+    /**
+     * ⚠️ Cas théorique en mode simplifié (le rôle y est absent), mais la carte
+     * ne doit pas dépendre de cette absence : le bouton fait le travail de
+     * `canProduce` ET `canServe`, il exige donc les deux.
+     */
+    renderCard('preparing', CUISINIER, ONE_GO);
+
+    expect(screen.queryByRole('button', { name: /plat servi/i })).toBeNull();
+    // ⭐ Il retombe sur son bouton d'étape légitime.
+    expect(screen.queryByRole('button', { name: /^prêt$/i })).not.toBeNull();
+  });
+
+  it('⛔ le SERVEUR ne l\'obtient PAS non plus — il ne produit pas', () => {
+    renderCard('ready', SERVEUR, ONE_GO);
+
+    expect(screen.queryByRole('button', { name: /plat servi/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^servir$/i })).not.toBeNull();
   });
 });

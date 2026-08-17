@@ -294,39 +294,39 @@ prend un champ `serverId?` optionnel, alimenté par le sélecteur existant.
 
 ---
 
-### Lot 3 — Protéger la métrique de temps
+### Lot 3 — Protéger la métrique de temps — ⛔ ABANDONNÉ le 17/08/2026
 
-⛔ **Ne pas différer ce lot** : c'est lui qui empêche le module d'afficher un chiffre
-faux d'apparence crédible. Il précède volontairement l'écran condensé (lot 4) — il coûte
-peu, n'a aucune dépendance, et si l'écran s'étire on ne veut pas qu'un bar tourne avec
-une métrique qui ment.
+> ⭐⭐ **CE LOT N'A PAS LIEU D'ÊTRE.** La vérification de l'écran, faite avant
+> implémentation, a montré que la métrique est **déjà correctement libellée** dans les
+> deux modes. Décision du fondateur : ne pas ajuster le libellé.
 
-**Le calcul réel**, vérifié dans
-[`20260807210000_metrics_include_batch_losses.sql:441`](../../supabase/migrations/20260807210000_metrics_include_batch_losses.sql#L441) :
+**Ce que le plan supposait** : que `avg_prep_min` afficherait « temps de préparation »
+alors qu'il mesurerait autre chose en mode simplifié.
 
-```sql
-ROUND(AVG(EXTRACT(EPOCH FROM (koi.ready_at - koi.created_at)) / 60)
-      FILTER (WHERE koi.ready_at IS NOT NULL)::NUMERIC, 1) AS avg_prep_min
-```
+**Ce que l'écran affiche réellement** ([`KitchenAnalyticsBlock.tsx:180`](../../src/components/kitchen/KitchenAnalyticsBlock.tsx#L180)
+et [`KitchenProductionPanel.tsx:209`](../../src/components/kitchen/KitchenProductionPanel.tsx#L209)) :
 
-⚠️ **Nuance importante** : la mesure part de `created_at` (envoi en cuisine), **pas** de
-`accepted_at`. En mode simplifié, l'écart mesuré reste donc le temps réel entre la
-commande et le geste du gérant — il n'est pas nul, contrairement à ce qu'un enchaînement
-instantané des trois transitions laisserait croire.
+| Élément | Valeur |
+|---|---|
+| Titre | « Préparation » |
+| Chiffre | `X min` |
+| **Sous-titre** | **« commande → prêt »** |
 
-⭐ **Mais il ne mesure plus la même chose** : en mode complet c'est une durée de
-préparation constatée par le cuisinier ; en mode simplifié, le délai avant que le gérant
-ne pense à valider. Deux grandeurs différentes sous le même libellé, dans le même écran.
+Et le calcul SQL est exactement `ready_at - created_at`, soit **commande → prêt**. Le
+sous-titre décrit donc précisément ce qui est mesuré, quel que soit le mode.
 
-**Décision à prendre** (à trancher avant implémentation) :
+⭐ **La mesure reste réelle en mode simplifié** : elle part de la COMMANDE, pas de
+l'acceptation. Un enchaînement instantané des trois transitions ne la met pas à zéro —
+elle continue de mesurer le délai entre la prise de commande et le plat prêt, ce que le
+gérant veut effectivement suivre.
 
-| Option | Coût | Précision |
-|---|---|---|
-| **A** — Afficher « non mesuré en mode simplifié » | Faible | Honnête, perd la donnée |
-| **B** — Libellé distinct (« délai de validation ») | Faible | Garde la donnée, dit ce qu'elle est |
-| **C** — Colonne `recorded_mode` sur `kitchen_order_items` | Élevé (schéma + RPC) | Permet de distinguer a posteriori |
+⚠️ **La seule nuance qui subsiste** : en mode simplifié ce délai dépend aussi de quand le
+gérant pense à valider, pas seulement de la cuisson. C'est une nuance d'INTERPRÉTATION,
+pas un chiffre faux — et alourdir l'écran d'une note l'obscurcirait plus qu'il ne
+l'éclairerait.
 
-**Recommandation : B**, puis C si le besoin d'analyse se confirme.
+⭐ **Si le terrain montre que le chiffre induit en erreur**, on ajustera le titre à ce
+moment-là, avec un cas réel plutôt qu'une hypothèse.
 
 ⭐ **Les trois autres métriques du §8 restent pleinement valides** : coût matière, marge
 et pertes dérivent du décrément FEFO réel, pas de l'horodatage.
@@ -391,12 +391,12 @@ déjà le travail — en mode simplifié seul le gérant est connecté. Vérifi�
 
 ## 4. Ordre d'implémentation
 
-| # | Lot | Dépendance | Réversibilité |
+| # | Lot | Dépendance | État |
 |---|---|---|---|
-| 1 | Lever le verrou + tests retournés + §13.4 révisé | — | 1 ligne |
-| 2 | `p_server_id` sur `serve_kitchen_item` | Aucune (parallélisable) | Migration |
-| 3 | Neutraliser / requalifier `avg_prep_min` | Aucune | Affichage |
-| 4 | Écran Service condensé | Lots 1 et 2 | UI |
+| 1 | Lever le verrou + tests retournés + §13.4 révisé | — | ✅ `0199aa6` |
+| 2 | Imputation au serveur du bon (`serve_kitchen_item`) | Aucune | ✅ `eba6c59`, migration appliquée + post-vol |
+| 3 | ~~Requalifier `avg_prep_min`~~ | — | ⛔ **ABANDONNÉ** — l'écran est déjà juste |
+| 4 | Écran Service condensé | Lots 1 et 2 | En cours |
 
 ⭐ **La numérotation du §3 SUIT cet ordre** — un document qui présente deux ordres
 différents invite l'erreur. Les lots se lisent et s'exécutent 1, 2, 3, 4.
@@ -507,7 +507,9 @@ serveur », pas entre « attribuer » et « ne pas attribuer ».
 - [ ] Un double-clic sur « Plat servi » ne consomme pas le stock deux fois
       (idempotence des trois RPC, §lot 4)
 - [ ] Le décrément FEFO et le coût matière sont identiques aux deux modes
-- [ ] `avg_prep_min` ne peut pas être lu comme une durée de préparation constatée
+- [x] ~~`avg_prep_min` ne peut pas être lu comme une durée de préparation constatée~~
+      — sans objet : le sous-titre « commande → prêt » décrit déjà exactement ce qui est
+      mesuré, dans les deux modes (vérifié le 17/08, lot 3 abandonné)
 - [ ] ⛔ **Invariance des bars purs intacte** : aucun écran, aucune requête, aucun octet
       d'egress supplémentaire pour un bar sans `hasRestaurant`
 - [ ] §13.4 du plan module révisé, pas effacé

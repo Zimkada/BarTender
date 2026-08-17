@@ -97,7 +97,11 @@ export default function KitchenServicePage() {
   const { showNotification } = useNotifications();
   const { formatPrice } = useCurrencyFormatter();
 
-  const { columns, counts, isLoading, refetch } = useUnifiedKitchenQueue(currentBar?.id);
+  // ⭐ `items` = file BRUTE, non regroupée : c'est elle que le mode simplifié
+  //    rend en une liste unique, et elle qui donne le statut réel d'un plat
+  //    avant d'enchaîner ses transitions (§20 lot 4).
+  const { columns, counts, items: allItems, isLoading, refetch } =
+    useUnifiedKitchenQueue(currentBar?.id);
   const { acceptItem, forceOnOrder, markReady, serveItem, cancelItem } =
     useKitchenMutations();
 
@@ -242,6 +246,66 @@ export default function KitchenServicePage() {
     [serveItem, showNotification]
   );
 
+  /**
+   * ⭐⭐ §20 LOT 4 — UN SEUL GESTE QUAND LE GÉRANT OPÈRE SEUL.
+   *
+   * En mode simplifié il n'y a ni cuisinier ni serveur : le gérant prend la
+   * commande, cuisine et sert. Lui faire parcourir trois colonnes pour un même
+   * plat, c'est lui demander de déclarer séparément trois gestes qu'il a faits
+   * d'affilée. « Plat servi » enchaîne les transitions RÉELLES.
+   *
+   * ⛔ AUCUN RPC NOUVEAU, aucune transition inventée. Ce sont les trois appels
+   * du mode complet, dans le même ordre, avec les mêmes écritures — donc le
+   * même décrément FEFO et le même coût matière figé. C'est ce qui préserve la
+   * fiabilité de la marge (§8) et évite un second chemin métier à tester.
+   *
+   * ⭐⭐ LE RETRY EST SÛR — les trois RPC sont IDEMPOTENTS (vérifié le
+   * 14/08/2026) :
+   *   · `accept_kitchen_item`      → refuse hors ('pending','accepted')
+   *   · `mark_kitchen_item_ready`  → `consumed_at IS NOT NULL` ⟹ replay
+   *   · `serve_kitchen_item`       → `status = 'served'` ⟹ renvoie le sale_id
+   * Un plat déjà accepté n'est donc PAS ré-accepté, et surtout la matière
+   * n'est JAMAIS consommée deux fois. C'est cette propriété qui autorise un
+   * bouton unique là où trois colonnes existaient.
+   *
+   * ⚠️ LES TROIS APPELS NE SONT PAS ATOMIQUES, et on ne les fusionne pas en un
+   * RPC — ce serait le second chemin métier qu'on veut éviter. En cas d'échec
+   * partiel, le plat reste dans la liste avec son bouton : réappuyer rejoue la
+   * séquence et ne refait QUE l'étape manquante.
+   *
+   * ⚠️ ON PART DU STATUT RÉEL, jamais de zéro : un plat déjà `preparing` ne
+   * repasse pas par `accept`. Inutile de solliciter le réseau pour un appel
+   * dont on sait qu'il sera ignoré.
+   */
+  const handleServeInOneGo = useCallback(
+    async (itemId: string) => {
+      const item = allItems.find((i) => i.id === itemId);
+      if (!item) return;
+
+      try {
+        if (item.status === 'pending') {
+          await acceptItem.mutateAsync(itemId);
+        }
+        if (item.status === 'pending' || item.status === 'accepted' || item.status === 'preparing') {
+          await markReady.mutateAsync({ itemId });
+        }
+        await serveItem.mutateAsync({ itemId });
+        showNotification('success', 'Plat servi');
+      } catch (error) {
+        /**
+         * ⚠️ DIRE OÙ EN EST LE PLAT, pas seulement que ça a échoué.
+         *
+         * Sans cette précision, le gérant croit devoir tout recommencer alors
+         * que la matière est peut-être déjà sortie. Le message nomme l'étape
+         * atteinte ; le bouton reste disponible pour reprendre là où on s'est
+         * arrêté.
+         */
+        showNotification('error', getErrorMessage(error));
+      }
+    },
+    [allItems, acceptItem, markReady, serveItem, showNotification]
+  );
+
   const handleCancel = (reason: KitchenCancelReason, note?: string) => {
     if (!itemToCancel) return;
 
@@ -286,6 +350,9 @@ export default function KitchenServicePage() {
         isBatchFinish={isBatchFinishItem(item.dish_id)}
         onMarkReady={handleMarkReady}
         onServe={handleServe}
+        /* ⭐ §20 — passé UNIQUEMENT en cuisine simplifiée. Ailleurs la prop est
+           `undefined` et la carte rend ses boutons d'étape, à l'identique. */
+        onServeInOneGo={isSimplifiedKitchen ? handleServeInOneGo : undefined}
         onCancel={setItemToCancel}
         isPending={isPending}
       />
@@ -300,6 +367,10 @@ export default function KitchenServicePage() {
       handleAccept,
       handleMarkReady,
       handleServe,
+      // ⚠️ §20 — les DEUX, sinon `renderItem` figerait soit le mode, soit un
+      //    handler périmé. Le fichier documente déjà ce piège plus haut.
+      isSimplifiedKitchen,
+      handleServeInOneGo,
       isPending,
     ]
   );
@@ -346,6 +417,34 @@ export default function KitchenServicePage() {
           message="Aucun plat en cours"
           subMessage="Les commandes envoyées en cuisine apparaîtront ici."
         />
+      ) : isSimplifiedKitchen ? (
+        /**
+         * ⭐⭐ §20 LOT 4 — UNE SEULE LISTE QUAND LE GÉRANT OPÈRE SEUL.
+         *
+         * Les trois colonnes servent à répartir le travail entre trois acteurs
+         * (qui accepte, qui prépare, qui sert). En mode simplifié il n'y en a
+         * qu'un : les colonnes ne répartissent plus rien et obligent à
+         * chercher un plat dans trois endroits.
+         *
+         * ⚠️ On garde `ServiceColumn` plutôt qu'un rendu ad hoc : le
+         * regroupement par table/destination, l'ordre et le style des cartes
+         * restent EXACTEMENT ceux du mode complet. Seul le nombre de colonnes
+         * change — donc rien de neuf à tester côté rendu.
+         *
+         * ⭐ `allGroups` concatène les trois colonnes DANS L'ORDRE du service :
+         * à faire, puis en cours, puis prêt. Le plat le plus avancé finit en
+         * bas, là où le gérant le cherche pour l'envoyer.
+         */
+        <div className="mt-4">
+          <ServiceColumn
+            title="Service"
+            count={totalItems}
+            groups={[...columns.todo, ...columns.doing, ...columns.done]}
+            emptyLabel="Rien en cours"
+            accent="bg-brand-primary"
+            renderItem={renderItem}
+          />
+        </div>
       ) : (
         /* ⚠️ Colonnes empilées sur mobile : trois colonnes sur un téléphone
            rendraient chaque carte illisible. Le cuisinier est sur tablette, le

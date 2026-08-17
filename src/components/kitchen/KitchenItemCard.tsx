@@ -59,6 +59,13 @@ interface Props {
   onMarkReady: (itemId: string) => void;
   onServe: (itemId: string) => void;
   onCancel: (item: KitchenQueueItem) => void;
+  /**
+   * ⭐ §20 — le gérant opère SEUL : un seul bouton remplace les trois étapes.
+   * ⚠️ Optionnel : sans lui, la carte se comporte EXACTEMENT comme avant
+   * (mode complet, bar pur). L'invariance tient à la signature, pas à une
+   * condition d'exécution.
+   */
+  onServeInOneGo?: (itemId: string) => void;
   /** Désactive les boutons pendant une transition en vol. */
   isPending: boolean;
 }
@@ -91,6 +98,7 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
   isBatchFinish,
   onMarkReady,
   onServe,
+  onServeInOneGo,
   onCancel,
   isPending,
 }) {
@@ -191,20 +199,47 @@ export const KitchenItemCard = memo<Props>(function KitchenItemCard({
             </Button>
           )}
 
-        {/* ⭐⭐ C'est ICI que la MATIÈRE sort du stock (§6), pas au service. */}
-        {canProduce && item.status === 'preparing' && (
-          <Button size="sm" onClick={() => onMarkReady(item.id)} disabled={isPending}>
-            <Check className="mr-1 h-4 w-4" />
-            Prêt
-          </Button>
-        )}
-
-        {/* ⭐ C'est ICI que naît le CA. Réservé à qui vend (§6.1). */}
-        {canServe && item.status === 'ready' && (
-          <Button size="sm" onClick={() => onServe(item.id)} disabled={isPending}>
+        {/**
+          * ⭐⭐ §20 — UN SEUL BOUTON QUAND LE GÉRANT OPÈRE SEUL.
+          *
+          * Il enchaîne accept → prêt → servir, c'est-à-dire les trois gestes
+          * qu'il vient RÉELLEMENT de faire. Les RPC sont idempotents : les
+          * étapes déjà franchies sont ignorées, la matière n'est jamais
+          * consommée deux fois.
+          *
+          * ⛔ EXIGE `canProduce` ET `canServe` : ce bouton fait le travail des
+          * deux, il ne doit donc pas contourner l'une des permissions. En
+          * mode simplifié le gérant a les deux — un rôle qui n'en aurait
+          * qu'une retombe sur les boutons d'étape ci-dessous.
+          *
+          * ⚠️ Visible sur TOUT statut non servi, `ready` compris : un plat
+          * déjà prêt garde ainsi le même bouton, au même endroit. Deux
+          * libellés selon l'étape obligeraient le gérant à lire avant
+          * d'agir — exactement ce que ce mode cherche à éviter.
+          */}
+        {onServeInOneGo && canProduce && canServe && item.status !== 'served' ? (
+          <Button size="sm" onClick={() => onServeInOneGo(item.id)} disabled={isPending}>
             <HandPlatter className="mr-1 h-4 w-4" />
-            Servir
+            Plat servi
           </Button>
+        ) : (
+          <>
+            {/* ⭐⭐ C'est ICI que la MATIÈRE sort du stock (§6), pas au service. */}
+            {canProduce && item.status === 'preparing' && (
+              <Button size="sm" onClick={() => onMarkReady(item.id)} disabled={isPending}>
+                <Check className="mr-1 h-4 w-4" />
+                Prêt
+              </Button>
+            )}
+
+            {/* ⭐ C'est ICI que naît le CA. Réservé à qui vend (§6.1). */}
+            {canServe && item.status === 'ready' && (
+              <Button size="sm" onClick={() => onServe(item.id)} disabled={isPending}>
+                <HandPlatter className="mr-1 h-4 w-4" />
+                Servir
+              </Button>
+            )}
+          </>
         )}
 
         {/* ⭐⭐ MIROIR EXACT de la garde de `cancel_kitchen_item` (§6.1) :
