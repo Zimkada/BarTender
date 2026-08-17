@@ -42,6 +42,12 @@ interface BarContextType {
    * sur un bar pur casse l'invariance réseau — le niveau le plus insidieux.
    */
   hasRestaurant: boolean;
+  /**
+   * ⭐ Cuisine opérée par le GÉRANT SEUL (§20) : `hasRestaurant` + mode simplifié.
+   * ⚠️ Ne conditionne AUCUNE requête — c'est `hasRestaurant` qui porte
+   * l'invariance réseau. Celui-ci ne pilote que la FORME des écrans cuisine.
+   */
+  isSimplifiedKitchen: boolean;
   switchBar: (barId: string) => Promise<void>;
 
   // Membres du bar
@@ -102,18 +108,40 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   /**
    * ⭐ Restauration active sur ce bar (§3).
    *
-   * ⚠️ DOUBLE condition volontaire : le drapeau ET le mode complet (§13.4).
-   * Un bar dont `hasRestaurant` serait `true` en base alors qu'il est repassé
-   * en mode simplifié ne doit PAS exposer la cuisine — un cuisinier a besoin
-   * d'un compte pour faire avancer la production, ce que le mode simplifié
-   * exclut. Cette garde rend l'incohérence inoffensive au lieu de la subir.
+   * ⭐⭐ LE MODE N'ENTRE PLUS DANS CE CALCUL — §13.4 RÉVISÉ le 16/08/2026.
+   *
+   * La version d'origine exigeait `operatingMode === 'full'`, au motif qu'« un
+   * cuisinier a besoin d'un compte pour faire avancer la production ». Ce
+   * raisonnement omettait un fait : le GÉRANT possède déjà la TOTALITÉ des
+   * permissions cuisine (`canUpdateKitchenOrderStatus`, `canServeKitchenItem`,
+   * `canManageRecipes`, `canManageIngredientStock`, `canCancelKitchenOrderItem`
+   * — types/index.ts), et `can_write_kitchen` l'inclut côté SQL. En mode
+   * simplifié il n'y a pas de cuisinier : c'est le gérant qui cuisine, donc les
+   * transitions ne sont pas inventées, elles sont constatées par la seule
+   * personne présente.
+   *
+   * ⚠️ Le verrou excluait 45 % du parc (5 bars sur 11 au 15/08/2026) d'un
+   * module déjà construit, et rendait la déclaration IMPOSSIBLE — donc le
+   * besoin inobservable. Voir PLAN_RESTAURATION_MODE_SIMPLIFIE.md.
    *
    * ⚠️ Absent ⟹ `false` : tous les bars existants sont purs, l'app leur reste
-   * strictement identique.
+   * strictement identique. C'est la contrainte de plus haut niveau (§3) et elle
+   * est INCHANGÉE — seul le mode a cessé d'être une condition.
    */
   const hasRestaurant = useMemo(() => {
-    return currentBar?.settings?.hasRestaurant === true && operatingMode === 'full';
-  }, [currentBar?.settings?.hasRestaurant, operatingMode]);
+    return currentBar?.settings?.hasRestaurant === true;
+  }, [currentBar?.settings?.hasRestaurant]);
+
+  /**
+   * ⭐ Cuisine en mode simplifié : le gérant enregistre TOUT lui-même.
+   *
+   * ⚠️ Distinct de `hasRestaurant` : celui-ci dit « ce bar fait de la cuisine »,
+   * celui-là « et personne d'autre que le gérant ne l'opère ». Les écrans
+   * cuisine s'adaptent au second (file condensée, un seul geste par plat).
+   */
+  const isSimplifiedKitchen = useMemo(() => {
+    return hasRestaurant && operatingMode === 'simplified';
+  }, [hasRestaurant, operatingMode]);
 
   // Fonction pour charger les bars depuis Supabase
   const refreshBars = useCallback(async () => {
@@ -716,6 +744,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     operatingMode,
     isSimplifiedMode,
     hasRestaurant,
+    isSimplifiedKitchen,
     switchBar,
     barMembers,
     getBarMembers,

@@ -194,20 +194,6 @@ export default function SettingsPage() {
     // ⭐ Confirmation à la DÉSACTIVATION seulement : activer est sans risque,
     //    désactiver fait disparaître trois écrans (§3).
     const [showRestaurantOffConfirm, setShowRestaurantOffConfirm] = useState(false);
-    /**
-     * ⛔ TEMPORAIRE (§13.4) — la restauration n'est pas activable en mode simplifié.
-     *
-     * `BarContext.hasRestaurant` exige `operatingMode === 'full'` : cocher la case
-     * en mode simplifié n'ouvrirait AUCUN écran. Une case active et sans effet est
-     * pire qu'une case grisée qui explique pourquoi.
-     *
-     * ⚠️ Se base sur `tempOperatingMode` et NON sur la valeur enregistrée : le
-     * promoteur qui bascule en simplifié dans l'autre onglet voit la case se
-     * griser immédiatement, avant même d'enregistrer.
-     *
-     * ⭐ À RETIRER avec le lot 1 du mode simplifié restaurant, qui lève ce verrou.
-     */
-    const restaurantUnavailable = tempOperatingMode === 'simplified';
 
     // BUG #3 FIX (Ajusté) : Synchronisation UNIQUEMENT lors du changement de BarId
     // On évite de synchroniser operatingMode ici car cela écrase les choix de l'utilisateur lors de refreshBars()
@@ -596,28 +582,14 @@ export default function SettingsPage() {
                                 <hr className="border-border mb-6" />
                                 <label className="block text-h3 text-foreground mb-4">Activité de l'établissement</label>
                                 <label
-                                    className={`flex gap-4 p-4 rounded-xl border transition-all ${restaurantUnavailable
-                                        ? 'bg-muted border-border opacity-60 cursor-not-allowed'
-                                        : tempHasRestaurant
-                                            ? 'bg-brand-subtle border-brand-primary shadow-sm cursor-pointer'
-                                            : 'bg-card border-border hover:border-brand-primary/40 hover:bg-brand-subtle cursor-pointer'
+                                    className={`flex gap-4 p-4 rounded-xl cursor-pointer border transition-all ${tempHasRestaurant
+                                        ? 'bg-brand-subtle border-brand-primary shadow-sm'
+                                        : 'bg-card border-border hover:border-brand-primary/40 hover:bg-brand-subtle'
                                         }`}
                                 >
                                     <Checkbox
                                         checked={tempHasRestaurant}
-                                        /**
-                                         * ⛔ TEMPORAIRE — §13.4 : `BarContext.hasRestaurant` exige
-                                         * ENCORE `operatingMode === 'full'`. Cocher la case en mode
-                                         * simplifié n'ouvrirait donc AUCUN écran : la case serait
-                                         * active et sans effet, ce qui est pire que désactivée.
-                                         *
-                                         * ⭐ À RETIRER avec le lot 1 du mode simplifié, qui lève ce
-                                         * verrou. Le libellé ci-dessous explique la marche à suivre —
-                                         * une case grisée sans raison est une impasse.
-                                         */
-                                        disabled={restaurantUnavailable}
                                         onCheckedChange={(checked) => {
-                                            if (restaurantUnavailable) return;
                                             // ⭐ Activer est immédiat ; DÉSACTIVER passe par une
                                             //    confirmation — trois écrans disparaissent.
                                             if (checked === true) {
@@ -638,17 +610,16 @@ export default function SettingsPage() {
                                             Un bar qui ne sert que des boissons n'a pas besoin de cette option.
                                         </p>
                                         {/*
-                                          * ⭐ DIRE OÙ AGIR, pas seulement que c'est indisponible.
-                                          * Le mode se règle dans l'onglet « Fonctionnement » — sans
-                                          * cette phrase, la case grisée est une impasse.
+                                          * ⭐ RASSURER SUR LA BASCULE (§20, terrain du 16/08/2026).
+                                          * Un bar-restau alterne : certains soirs le gérant tient seul
+                                          * le téléphone, d'autres les serveurs ont leur compte. La
+                                          * restauration suit les DEUX modes — le dire évite de croire
+                                          * qu'on s'enferme dans l'un d'eux en cochant.
                                           */}
-                                        {restaurantUnavailable && (
-                                            <p className="text-body-sm text-foreground/60 italic">
-                                                Indisponible en mode simplifié : la cuisine nécessite un compte
-                                                pour le cuisinier. Passez en mode complet dans l'onglet
-                                                « Fonctionnement » pour l'activer.
-                                            </p>
-                                        )}
+                                        <p className="text-body-sm text-foreground/60 italic">
+                                            Fonctionne dans les deux modes : en mode simplifié, le gérant
+                                            enregistre lui-même les plats.
+                                        </p>
                                     </div>
                                 </label>
                             </div>

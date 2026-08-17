@@ -347,12 +347,25 @@ describe('BarContext - Integration via BarProvider', () => {
       expect(result.current.hasRestaurant).toBe(true);
     });
 
-    it('⛔ §13.4 — drapeau true MAIS mode simplifié → hasRestaurant = false', async () => {
-      // ⭐ La garde qui rend une incohérence de données inoffensive : un cuisinier
-      // a besoin d'un COMPTE pour faire avancer la production, ce que le mode
-      // simplifié exclut par définition (« le gérant fait tout »).
+    /**
+     * ⭐⭐ TEST RETOURNÉ le 16/08/2026 — §13.4 RÉVISÉ (§20, lot 1).
+     *
+     * Il affirmait l'inverse : « drapeau true MAIS mode simplifié →
+     * hasRestaurant = false ». Ce verrou excluait 45 % du parc (5 bars sur 11)
+     * d'un module déjà construit.
+     *
+     * ⚠️ RETOURNÉ, PAS SUPPRIMÉ : la trace du changement de décision compte
+     * autant que la décision. Le gérant possède déjà TOUTES les permissions
+     * cuisine — en mode simplifié il n'y a pas de cuisinier, c'est lui qui
+     * cuisine, donc les transitions sont constatées et non inventées.
+     *
+     * ⭐ TERRAIN (16/08/2026) : un bar-restau réel alterne entre les deux modes
+     * selon les soirs — parfois seul le gérant tient le téléphone. La cuisine
+     * doit suivre les deux, et la bascule doit rester possible à tout moment.
+     */
+    it('✅ §20 — drapeau true + mode SIMPLIFIÉ → hasRestaurant = true', async () => {
       const result = await renderWithBar(
-        makeBar('bar-incoherent', {
+        makeBar('bar-simplifie', {
           currency: 'XOF',
           currencySymbol: 'Fr',
           hasRestaurant: true,
@@ -360,8 +373,45 @@ describe('BarContext - Integration via BarProvider', () => {
         })
       );
 
-      expect(result.current.hasRestaurant).toBe(false);
+      // ⭐ La cuisine est EXPOSÉE : le mode ne conditionne plus le drapeau.
+      expect(result.current.hasRestaurant).toBe(true);
       expect(result.current.isSimplifiedMode).toBe(true);
+      // ⭐ ...et l'UI sait qu'elle doit se condenser.
+      expect(result.current.isSimplifiedKitchen).toBe(true);
+    });
+
+    it('⭐ mode COMPLET → isSimplifiedKitchen = false, la cuisine reste exposée', async () => {
+      // ⚠️ Le pendant du test précédent : `isSimplifiedKitchen` distingue les
+      // deux régimes d'UI SANS jamais masquer la cuisine.
+      const result = await renderWithBar(
+        makeBar('bar-complet', {
+          currency: 'XOF',
+          currencySymbol: 'Fr',
+          hasRestaurant: true,
+          operatingMode: 'full',
+        })
+      );
+
+      expect(result.current.hasRestaurant).toBe(true);
+      expect(result.current.isSimplifiedKitchen).toBe(false);
+    });
+
+    it('⛔ §3 — un bar PUR en simplifié n\'expose RIEN, mode ou pas', async () => {
+      /**
+       * ⚠️ LE TEST QUI PROTÈGE LA CONTRAINTE DE PLUS HAUT NIVEAU. Lever le
+       * verrou du mode ne doit RIEN changer pour les bars sans restauration :
+       * c'est le drapeau, et lui seul, qui ouvre la cuisine.
+       */
+      const result = await renderWithBar(
+        makeBar('bar-pur-simplifie', {
+          currency: 'XOF',
+          currencySymbol: 'Fr',
+          operatingMode: 'simplified',
+        })
+      );
+
+      expect(result.current.hasRestaurant).toBe(false);
+      expect(result.current.isSimplifiedKitchen).toBe(false);
     });
 
     it('⚠️ la chaîne "true" du JSONB n\'active PAS la cuisine', async () => {

@@ -67,12 +67,26 @@ import { MobileNavigation } from '../../components/MobileNavigation';
  *
  * Le cuisinier, lui, a une liste PLATE (isGrouped = false).
  */
-const renderSidebar = (role: UserRole, hasRestaurant: boolean, currentMenu = 'kitchenIngredients') => {
+const renderSidebar = (
+  role: UserRole,
+  hasRestaurant: boolean,
+  currentMenu = 'kitchenIngredients',
+  isSimplifiedKitchen = false
+) => {
   mockUseAuth.mockReturnValue({
     currentSession: { userId: 'u-1', role, userName: 'Test' },
     logout: vi.fn(),
+    /**
+     * ⚠️ `canValidateSales` DÉRIVÉ DU RÔLE, jamais figé : c'est la permission
+     * qui distingue le serveur du gérant dans la garde §20. La coder en dur
+     * rendrait le test aveugle au cas qu'il vise.
+     */
+    hasPermission: (p: string) =>
+      p === 'canValidateSales'
+        ? ['super_admin', 'promoteur', 'gerant'].includes(role)
+        : true,
   });
-  mockUseBarContext.mockReturnValue({ hasRestaurant });
+  mockUseBarContext.mockReturnValue({ hasRestaurant, isSimplifiedKitchen });
 
   return render(
     <MemoryRouter>
@@ -220,6 +234,46 @@ describe('Entrée de menu « Cuisine » (§3, §9)', () => {
     it('mais garde ses entrées habituelles', () => {
       renderSidebar('serveur', true);
       expect(screen.queryByText('Retours')).not.toBeNull();
+    });
+  });
+
+  /**
+   * ⛔⛔ §20 — L'ÉCRAN « SERVICE » EN CUISINE SIMPLIFIÉE.
+   *
+   * Le serveur a `canServeKitchenItem` et voit « Service » en mode COMPLET :
+   * c'est lui qui retire les plats prêts (§6.1). Mais `serve_kitchen_item`
+   * appelle `create_sale_idempotent`, qui LÈVE UNE EXCEPTION pour un serveur
+   * en mode simplifié (whitelist_create_sale_roles:216).
+   *
+   * ⚠️ CE CHEMIN ÉTAIT INJOIGNABLE avant le 16/08/2026 : `hasRestaurant`
+   * exigeait le mode complet. Lever ce verrou l'a OUVERT — d'où cette garde,
+   * et ces tests qui la verrouillent.
+   */
+  describe('⛔ §20 — « Service » masqué au serveur en cuisine simplifiée', () => {
+    it('le serveur ne voit PAS « Service » quand le gérant opère seul', () => {
+      renderSidebar('serveur', true, 'kitchenService', true);
+      expect(
+        screen.queryByText('Service'),
+        'Un écran dont le bouton échouerait côté SQL ne doit pas être proposé'
+      ).toBeNull();
+    });
+
+    it('⭐ mais il le voit en mode COMPLET — la garde ne déborde pas', () => {
+      renderSidebar('serveur', true, 'kitchenService', false);
+      expect(
+        screen.queryByText('Service'),
+        'En mode complet, retirer les plats prêts est son travail (§6.1)'
+      ).not.toBeNull();
+    });
+
+    it('⭐ le GÉRANT garde « Service » en cuisine simplifiée — c\'est lui qui opère', () => {
+      renderSidebar('gerant', true, 'kitchenService', true);
+      expect(screen.queryByText('Service')).not.toBeNull();
+    });
+
+    it('⭐ le PROMOTEUR aussi', () => {
+      renderSidebar('promoteur', true, 'kitchenService', true);
+      expect(screen.queryByText('Service')).not.toBeNull();
     });
   });
 });

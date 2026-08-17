@@ -69,6 +69,12 @@ interface MenuItem {
    * être STRICTEMENT identique ».
    */
   requiresRestaurant?: boolean;
+  /**
+   * ⛔ Masqué au SERVEUR quand la cuisine est opérée par le gérant seul (§20).
+   * Réservé aux entrées dont l'action échouerait côté SQL dans ce cas — voir
+   * « Service » et `create_sale_idempotent`.
+   */
+  hidesFromServerInSimplified?: boolean;
 }
 
 /** Groupe de menus repliable. Tous se comportent pareil : icône, libellé, chevron. */
@@ -95,10 +101,10 @@ export function MobileSidebar({
   currentMenu,
   onShowQuickSale,
 }: MobileSidebarProps) {
-  const { currentSession, logout } = useAuth();
+  const { currentSession, logout, hasPermission } = useAuth();
   const { hasFeature } = usePlan();
   // ⭐ §3 — conditionne l'entrée Cuisine. Sur un bar pur, elle n'existe pas.
-  const { hasRestaurant } = useBarContext();
+  const { hasRestaurant, isSimplifiedKitchen } = useBarContext();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
   const prefersReducedMotion = useReducedMotion();
@@ -189,7 +195,15 @@ export function MobileSidebar({
     //    donne `canViewKitchenOrders` ET `canServeKitchenItem` : c'est LUI qui
     //    retire les plats prêts, et le `serve` crée la vente. L'en exclure le
     //    priverait de l'écran où il fait l'essentiel de son travail en salle.
-    { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true },
+    // ⛔⛔ ...MAIS PAS EN CUISINE SIMPLIFIÉE — `hidesFromServerInSimplified`.
+    //    Le §20 (16/08/2026) a levé le verrou qui rendait ce chemin injoignable :
+    //    `hasRestaurant` n'exige plus le mode complet. Or `serve_kitchen_item`
+    //    appelle `create_sale_idempotent`, qui LÈVE UNE EXCEPTION pour un
+    //    serveur en mode simplifié (whitelist_create_sale_roles:216).
+    //    Sans cette garde, le serveur verrait « Service », appuierait sur
+    //    « Servir » et l'appel échouerait — un écran qui ment sur ce qu'il
+    //    autorise. Le panier applique déjà exactement ce filtre (Cart.tsx:301).
+    { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true, hidesFromServerInSimplified: true },
     // ⭐ « PLATS » PORTE DEUX ONGLETS depuis le 08/08/2026 : `Menu` et
     //    `Production`. Production n'a plus d'entrée propre — les deux écrans
     //    chargeaient la même liste de plats, et un lot ne peut exister que si
@@ -210,12 +224,24 @@ export function MobileSidebar({
     { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting', feature: 'accounting' }
   ];
 
+  /**
+   * ⛔ §20 — le serveur n'a rien à faire en cuisine quand le gérant opère seul.
+   *
+   * ⚠️ `canValidateSales` et NON le rôle brut, en miroir de `Cart.tsx:301` et
+   * `AppProvider.tsx:226` : gérant et promoteur le possèdent, le serveur non.
+   * Un futur rôle sans cette permission est masqué par défaut.
+   */
+  const isServerInSimplifiedKitchen =
+    isSimplifiedKitchen && !!currentSession && !hasPermission('canValidateSales');
+
   const isVisible = (item: MenuItem) =>
     !!currentSession && item.roles.includes(currentSession.role)
     && (!item.feature || hasFeature(item.feature))
     // ⭐ §3 — sur un bar pur, l'entrée cuisine n'apparaît pas du tout.
-    //    `hasRestaurant` exige déjà le mode complet (§13.4).
-    && (!item.requiresRestaurant || hasRestaurant);
+    //    ⚠️ Depuis le §20, `hasRestaurant` ne teste QUE le drapeau : le mode
+    //    n'entre plus dans ce calcul, il est traité par la ligne suivante.
+    && (!item.requiresRestaurant || hasRestaurant)
+    && (!item.hidesFromServerInSimplified || !isServerInSimplifiedKitchen);
 
   const visibleMenus = menuItems.filter(isVisible);
   const byId = (id: string) => menuItems.find(m => m.id === id);

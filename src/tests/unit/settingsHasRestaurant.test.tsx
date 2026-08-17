@@ -61,16 +61,16 @@ function initHasRestaurant(settings: Partial<BarSettings> | undefined): boolean 
 }
 
 /**
- * Reproduit la garde temporaire `restaurantUnavailable` de `SettingsPage`.
+ * ⭐ La garde `restaurantUnavailable` a été RETIRÉE le 16/08/2026 (§20, lot 1).
  *
- * ⛔ TEMPORAIRE (§13.4) : tant que `BarContext.hasRestaurant` exige
- * `operatingMode === 'full'`, cocher la case en mode simplifié n'ouvrirait
- * AUCUN écran. Ces tests DOIVENT être retournés avec le lot 1 du mode
- * simplifié restaurant — ils sont le rappel que la garde existe.
+ * Elle grisait la case en mode simplifié tant que `BarContext.hasRestaurant`
+ * exigeait `operatingMode === 'full'`. Ce verrou est levé : la case est
+ * désormais cochable dans les DEUX modes, et l'helper qui la reproduisait ici
+ * n'a plus d'objet.
+ *
+ * ⚠️ L'invariance des deux modes est désormais testée dans `BarContext.test.ts`,
+ * au niveau de la DÉRIVATION — là où la règle vit réellement.
  */
-function isRestaurantUnavailable(tempOperatingMode: 'full' | 'simplified'): boolean {
-  return tempOperatingMode === 'simplified';
-}
 
 describe('Réglage « restauration » — initialisation depuis la base', () => {
   it('vaut false quand le champ est ABSENT (tous les bars existants)', () => {
@@ -152,48 +152,53 @@ describe('Réglage « restauration » — enregistrement', () => {
     expect(payload.hasRestaurant).toBe(true);
   });
 
-  it('⛔ TEMPORAIRE §13.4 — la case est indisponible en mode simplifié', () => {
-    /**
-     * ⚠️ CE TEST DOIT ÊTRE RETOURNÉ avec le lot 1 du mode simplifié restaurant.
-     * Il n'affirme pas que la restauration est INCOMPATIBLE avec le mode
-     * simplifié — seulement qu'AUJOURD'HUI le verrou de `BarContext` la rend
-     * sans effet, et que l'UI ne doit donc pas la proposer.
-     */
-    expect(isRestaurantUnavailable('simplified')).toBe(true);
-    expect(isRestaurantUnavailable('full')).toBe(false);
-  });
-
-  it('⭐ la garde suit le mode EN COURS DE SAISIE, pas celui enregistré', () => {
-    /**
-     * Le promoteur qui bascule en simplifié dans l'onglet « Fonctionnement »
-     * voit la case se griser AVANT d'enregistrer. Se baser sur la valeur en
-     * base laisserait une case active et sans effet jusqu'au rechargement.
-     */
-    const savedMode: 'full' | 'simplified' = 'full';
-    const tempMode: 'full' | 'simplified' = 'simplified'; // saisie en cours
-
-    expect(isRestaurantUnavailable(savedMode)).toBe(false);
-    expect(isRestaurantUnavailable(tempMode)).toBe(true);
-  });
-
-  it('⚠️ un bar-resto REPASSÉ en simplifié conserve son drapeau en base', () => {
-    /**
-     * ⛔ La garde grise la case, elle ne REMET PAS le drapeau à false. Le §3 est
-     * clair : désactiver ne supprime rien. Un bar-resto qui passe en simplifié
-     * garde ses plats et ses recettes ; repasser en complet les retrouve.
-     * `BarContext` rend l'incohérence inoffensive en masquant les écrans.
-     */
-    const existing: Partial<BarSettings> = { hasRestaurant: true, operatingMode: 'full' };
-    const temp = initHasRestaurant(existing); // true, inchangé
+  /**
+   * ⭐⭐ TESTS RETOURNÉS le 16/08/2026 (§20, lot 1).
+   *
+   * Ils affirmaient que la case devait être INDISPONIBLE en mode simplifié.
+   * Le verrou est levé : la restauration s'active dans les deux modes.
+   *
+   * ⭐ TERRAIN : un bar-restau réel alterne selon les soirs — parfois seul le
+   * gérant tient le téléphone. Le réglage doit donc SURVIVRE aux bascules,
+   * dans les deux sens, sans jamais se perdre.
+   */
+  it('✅ §20 — le drapeau s\'enregistre AUSSI en mode simplifié', () => {
+    const existing: Partial<BarSettings> = { operatingMode: 'simplified' };
 
     const payload = buildSettingsPayload(existing, {
-      operatingMode: 'simplified', // bascule
+      operatingMode: 'simplified',
       costDisplayMethod: 'cump',
-      hasRestaurant: temp,
+      hasRestaurant: true, // ⭐ ce que la garde interdisait
     });
 
     expect(payload.hasRestaurant).toBe(true);
     expect(payload.operatingMode).toBe('simplified');
+  });
+
+  it('⭐ BASCULE — le drapeau survit à un aller-retour entre les deux modes', () => {
+    /**
+     * ⚠️ LE CAS TERRAIN DU 16/08/2026, et il doit être protégé : le bar passe
+     * en simplifié le soir, revient en complet le lendemain. La restauration ne
+     * doit ni s'éteindre, ni redemander d'être cochée.
+     */
+    let settings: Partial<BarSettings> = { hasRestaurant: true, operatingMode: 'full' };
+
+    // Soir : bascule en simplifié
+    settings = buildSettingsPayload(settings, {
+      operatingMode: 'simplified',
+      costDisplayMethod: 'cump',
+      hasRestaurant: initHasRestaurant(settings),
+    });
+    expect(settings.hasRestaurant).toBe(true);
+
+    // Lendemain : retour en complet
+    settings = buildSettingsPayload(settings, {
+      operatingMode: 'full',
+      costDisplayMethod: 'cump',
+      hasRestaurant: initHasRestaurant(settings),
+    });
+    expect(settings.hasRestaurant).toBe(true);
+    expect(settings.operatingMode).toBe('full');
   });
 
   it('désactive le drapeau sans toucher au mode de fonctionnement', () => {

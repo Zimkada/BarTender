@@ -92,7 +92,7 @@ function ServiceColumn({ title, count, groups, emptyLabel, accent, renderItem }:
 }
 
 export default function KitchenServicePage() {
-  const { currentBar } = useBarContext();
+  const { currentBar, isSimplifiedKitchen } = useBarContext();
   const { hasPermission, currentSession } = useAuth();
   const { showNotification } = useNotifications();
   const { formatPrice } = useCurrencyFormatter();
@@ -134,7 +134,22 @@ export default function KitchenServicePage() {
   const [itemToCancel, setItemToCancel] = useState<KitchenQueueItem | null>(null);
 
   const canProduce = hasPermission('canUpdateKitchenOrderStatus');
-  const canServe = hasPermission('canServeKitchenItem');
+  /**
+   * ⛔⛔ `serve` CRÉE LA VENTE — et `create_sale_idempotent` REFUSE un serveur
+   * en mode simplifié (whitelist_create_sale_roles:216).
+   *
+   * Le menu masque déjà cette page au serveur dans ce cas (MobileSidebar), mais
+   * la ROUTE ne le fait pas : elle garde `canViewKitchenOrders`, que le serveur
+   * possède. Une URL directe l'amènerait donc ici avec un bouton « Servir » qui
+   * échouerait côté SQL.
+   *
+   * ⚠️ `canValidateSales` en miroir de `Cart.tsx:301` : gérant et promoteur
+   * l'ont, le serveur non. On masque le GESTE, pas l'écran — voir la file
+   * reste légitime (§6.1).
+   */
+  const canServe =
+    hasPermission('canServeKitchenItem') &&
+    (!isSimplifiedKitchen || hasPermission('canValidateSales'));
   const canCancel = hasPermission('canCancelKitchenOrderItem');
 
   /**

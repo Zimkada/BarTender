@@ -1577,9 +1577,29 @@ status  -- 'active' | 'depleted' | 'expired' | 'discarded' | 'closed'
 Sans ce champ, `remaining_qty = 0` ne distingue pas « épuisé par les ventes » de « jeté » ni de
 « périmé » — trois situations aux conséquences comptables différentes (§8).
 
-### 13.4 Restauration ⟹ mode complet obligatoire
+### 13.4 Restauration ⟹ mode complet obligatoire — ⛔ DÉCISION RÉVISÉE le 16/08/2026
 
-**Décision ferme** (§15.7 signalait l'incohérence sans trancher) : un bar en **mode simplifié** ne peut
+> ⭐⭐ **CETTE SECTION NE DÉCRIT PLUS LE COMPORTEMENT DU CODE.** Elle est conservée pour la
+> trace du raisonnement ; la décision en vigueur est dans
+> [`PLAN_RESTAURATION_MODE_SIMPLIFIE.md`](PLAN_RESTAURATION_MODE_SIMPLIFIE.md) (§20).
+>
+> **Ce qui a changé** : la décision ci-dessous reposait sur « un cuisinier a besoin d'un
+> compte ». Elle omettait que le **gérant possède déjà la totalité des permissions
+> cuisine** (`canUpdateKitchenOrderStatus`, `canServeKitchenItem`, `canManageRecipes`,
+> `canManageIngredientStock`, `canCancelKitchenOrderItem`), et que `can_write_kitchen`
+> l'inclut côté SQL. En mode simplifié il n'y a pas de cuisinier : **c'est le gérant qui
+> cuisine**, donc les transitions sont constatées, pas inventées.
+>
+> **Ce qui l'a déclenché** : le signal terrain que la sous-section « Question rouverte »
+> ci-dessous exigeait. Relevé du 15/08/2026 — 45 % du parc (5 bars sur 11) en mode
+> simplifié, tous exclus d'un module déjà construit. Puis confirmation d'un client
+> bar-restau qui **alterne entre les deux modes** selon les soirs.
+>
+> **État du code au 16/08/2026** : `BarContext.hasRestaurant` ne teste plus que le
+> drapeau. `isSimplifiedKitchen` (drapeau + mode simplifié) pilote la FORME des écrans,
+> jamais leur existence. L'invariance des bars purs (§3) est inchangée et testée.
+
+**Décision d'origine** (§15.7 signalait l'incohérence sans trancher) : un bar en **mode simplifié** ne peut
 pas activer la restauration.
 
 **Raison** : un cuisinier a besoin d'un **compte** pour faire avancer les statuts de production. Le
@@ -1593,6 +1613,11 @@ contradictoires.
 `settings.hasRestaurant === true` **ET** `operatingMode === 'full'`. Un bar dont le drapeau serait
 `true` en base alors qu'il est repassé en simplifié n'expose donc pas la cuisine — l'incohérence est
 rendue inoffensive au lieu d'être subie. Couvert par `BarContext.test.ts`.
+
+> ⛔ **CADUC depuis le 16/08/2026.** `hasRestaurant` ne teste plus que le drapeau. Le test
+> `BarContext.test.ts` qui affirmait « drapeau true MAIS mode simplifié → false » a été
+> **retourné** — il vérifie désormais l'inverse, et deux tests d'invariance l'accompagnent
+> (bar pur en simplifié, bascule aller-retour entre les modes).
 
 #### ⏸ Question rouverte : une « cuisine simplifiée » est-elle possible ? — POST-V1
 
