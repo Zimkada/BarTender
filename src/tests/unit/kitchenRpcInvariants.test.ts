@@ -1536,9 +1536,25 @@ describe('§20 — un plat est imputé au serveur de son bon', () => {
     expect(migration).not.toMatch(/operatingMode|operating_mode/);
   });
 
-  it('⛔ un bon sans serveur ADOPTE l\'envoyeur, sans jamais écraser', () => {
-    // Le scénario réel du client : bascule complet → simplifié en cours de
-    // service, laissant des bons à `server_id = NULL`.
+  /**
+   * ⛔⛔ CETTE ASSERTION VERROUILLAIT UNE MAUVAISE HYPOTHÈSE — corrigée le
+   * 18/08/2026 après audit externe.
+   *
+   * Elle exigeait `COALESCE(server_id, auth.uid())`, c'est-à-dire le
+   * comblement par l'APPELANT. En mode simplifié, l'appelant est le GÉRANT et
+   * non le serveur choisi : le test protégeait donc le défaut au lieu du
+   * correctif.
+   *
+   * ⚠️ Le motif reste légitimement présent dans la migration du 17/08 — on ne
+   * réécrit pas l'histoire. C'est la migration SUIVANTE (20260818090000) qui
+   * le remplace, et c'est elle qu'il faut vérifier.
+   *
+   * ⭐ LEÇON : un test qui assert sur la migration d'un correctif ne prouve
+   * rien si le correctif lui-même repose sur une hypothèse fausse. Il fige
+   * l'erreur au lieu de la révéler.
+   */
+  it('⛔ le comblement du 17/08 utilisait l\'APPELANT — hypothèse corrigée depuis', () => {
+    // On constate l'état historique, sans le valider comme souhaitable.
     expect(migration).toMatch(/server_id = COALESCE\(server_id, auth\.uid\(\)\)/);
   });
 
@@ -1588,5 +1604,97 @@ describe('§20 — un plat est imputé au serveur de son bon', () => {
     // deux mondes : l'imputation resterait fausse sans aucun signal.
     expect(migration).toMatch(/RAISE EXCEPTION 'Motif d''appel INTROUVABLE/);
     expect(migration).toMatch(/RAISE EXCEPTION 'Motif UPDATE tickets INTROUVABLE/);
+  });
+});
+
+/**
+ * ⭐⭐ §20 LOT 2 BIS — LE BON ADOPTE LE SERVEUR CHOISI, PAS L'APPELANT.
+ *
+ * ⛔ Défaut trouvé à l'audit externe du 18/08/2026, et manqué par ma propre
+ * revue de la veille. La migration du 17/08 comblait un bon sans serveur avec
+ * `auth.uid()` — le GÉRANT en mode simplifié. Sur un bon EXISTANT à
+ * `server_id = NULL`, la boisson partait sur Paul et le plat sur le gérant :
+ * une commande, deux imputations.
+ *
+ * ⚠️ Le comblement n'aggravait pas l'ATTRIBUTION (sans lui,
+ * `serve_kitchen_item` imputait déjà au gérant via `v_actor`), mais il figeait
+ * le bon : `CartDrawer:130` filtre par serveur, donc le bon quittait la liste
+ * de Paul et ses boissons suivantes devenaient impossibles à lui rattacher.
+ */
+describe('§20 bis — le bon adopte le serveur transmis', () => {
+  const fix = readFileSync(
+    join(MIGRATIONS_DIR, '20260818090000_kitchen_order_server_param.sql'),
+    'utf-8'
+  );
+
+  it('⛔⛔ comble avec `p_server_id`, JAMAIS avec `auth.uid()`', () => {
+    expect(fix).toMatch(/server_id = COALESCE\(server_id, p_server_id\)/);
+    // Le motif fautif ne doit subsister que dans le `replace` qui le REMPLACE.
+    const asWritten = fix.match(/'server_id = COALESCE\(server_id, auth\.uid\(\)\)'/g) ?? [];
+    expect(asWritten.length, 'auth.uid() ne doit apparaître que comme motif à remplacer').toBe(2);
+  });
+
+  it('⛔ VALIDE l\'appartenance — le paramètre vient du client', () => {
+    /**
+     * `create_kitchen_order` ne porte QUE `is_bar_member` : ni garde de rôle,
+     * ni `can_write_kitchen` (vérifié le 18/08). Sans ce contrôle, le CA d'un
+     * serveur serait falsifiable depuis la console.
+     */
+    expect(fix).toMatch(/FROM public\.bar_members/);
+    expect(fix).toMatch(/is_active = TRUE/);
+    expect(fix).toMatch(/Serveur inconnu dans ce bar/);
+  });
+
+  it('⭐ n\'écrase JAMAIS un serveur déjà posé', () => {
+    // Le bon appartient à son serveur d'origine ; le réattribuer fausserait le
+    // recouvrement dans l'autre sens.
+    expect(fix).toMatch(/COALESCE\(server_id,/);
+    expect(fix).not.toMatch(/SET\s+server_id = p_server_id\b/);
+  });
+
+  it('⛔⛔ SUPPRIME l\'ancienne signature à 5 arguments', () => {
+    /**
+     * `CREATE OR REPLACE` avec un paramètre EN PLUS ne remplace pas : il CRÉE
+     * une seconde fonction. Les deux coexisteraient et PostgreSQL lèverait
+     * `function is not unique` sur les appels du client non déployé.
+     */
+    expect(fix).toMatch(/DROP FUNCTION IF EXISTS public\.create_kitchen_order\(UUID, UUID, JSONB, TEXT, TEXT\)/);
+  });
+
+  it('⛔ relit l\'OID APRÈS le remplacement — la signature a changé', () => {
+    /**
+     * Les GRANT et le COMMENT visent la NOUVELLE signature. Réutiliser l'OID
+     * relevé avant viserait une fonction qui n'existe plus.
+     */
+    const iExecute = fix.indexOf('EXECUTE v_def;');
+    const iRelit = fix.indexOf('INTO v_oid, v_args', iExecute);
+    expect(iExecute).toBeGreaterThan(-1);
+    expect(iRelit).toBeGreaterThan(iExecute);
+  });
+
+  it('⛔ re-pose `service_role` — leçon du 17/08', () => {
+    expect(fix).toMatch(/TO service_role/);
+  });
+
+  it('⛔⛔ documente l\'ordre de déploiement comme CONTRAINT', () => {
+    /**
+     * ⚠️ `CREATE OR REPLACE` + un paramètre = DEUX fonctions, d'où le DROP de
+     * l'ancienne signature. Conséquence : un client déployé AVANT la migration
+     * envoie `p_server_id` à une fonction qui ne l'accepte pas encore →
+     * `PGRST202`, et l'envoi en cuisine échoue INTÉGRALEMENT.
+     *
+     * ⭐ Risque circonscrit au mode simplifié (`undefined` est retiré du JSON,
+     * donc le mode complet n'envoie jamais la clé) — mais c'est le mode que ce
+     * chantier sert.
+     *
+     * Ce test empêche qu'on requalifie l'ordre en simple recommandation.
+     */
+    expect(fix).toMatch(/MIGRATION D'ABORD, CLIENT ENSUITE/);
+    expect(fix).toMatch(/PGRST202/);
+  });
+
+  it('⭐ `serve_kitchen_item` n\'est PAS touchée — elle lit toujours le bon', () => {
+    // La partie du 17/08 qui tenait : aucun paramètre client de ce côté.
+    expect(fix).not.toMatch(/CREATE OR REPLACE FUNCTION public\.serve_kitchen_item/);
   });
 });

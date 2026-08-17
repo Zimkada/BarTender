@@ -655,7 +655,19 @@ export const KitchenService = {
     ticketId: string,
     items: KitchenOrderLineInput[],
     serviceMode: ServiceMode = 'dine_in',
-    notes?: string
+    notes?: string,
+    /**
+     * ⭐ §20 — le serveur CHOISI au panier, en mode simplifié.
+     *
+     * ⚠️ Transmis même sur un bon EXISTANT : c'est le cas que la migration du
+     * 17/08 avait manqué. Un bon legacy à `server_id = NULL` repris par le
+     * gérant adoptait `auth.uid()` — donc le GÉRANT — pendant que la boisson
+     * de la même commande partait sur le serveur choisi.
+     *
+     * ⭐ Le RPC n'écrase JAMAIS un serveur déjà posé (`COALESCE`), et laisse
+     * le bon à NULL si ce paramètre est absent.
+     */
+    serverId?: string
   ): Promise<CreateOrderResult> {
     assertNetworkAvailable('envoyer une commande en cuisine');
 
@@ -668,6 +680,8 @@ export const KitchenService = {
         p_items: items as unknown as Json,
         p_service_mode: serviceMode,
         p_notes: notes ?? undefined,
+        // ⚠️ `undefined` et non `null` : le RPC applique son DEFAULT NULL.
+        p_server_id: serverId ?? undefined,
       });
 
       if (error) throw error;

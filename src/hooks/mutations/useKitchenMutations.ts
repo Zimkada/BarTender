@@ -119,6 +119,8 @@ export function useKitchenMutations() {
       items: KitchenOrderLineInput[];
       serviceMode?: ServiceMode;
       notes?: string;
+      /** ⭐ §20 — serveur choisi au panier (mode simplifié). Voir KitchenService. */
+      serverId?: string;
     }) => {
       if (!barId) throw new Error('Aucun bar sélectionné');
       return KitchenService.createOrder(
@@ -126,7 +128,8 @@ export function useKitchenMutations() {
         input.ticketId,
         input.items,
         input.serviceMode ?? 'dine_in',
-        input.notes
+        input.notes,
+        input.serverId
       );
     },
     /**

@@ -410,7 +410,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const result = await salesMutations.createSale.mutateAsync(newSaleData);
 
         return result;
-    }, [hasPermission, currentBar, currentSession, salesMutations, clearCart]);
+    // ⚠️ `isSimplifiedMode` explicite bien qu'il DÉRIVE de `currentBar` (déjà
+    //    présent) : `updateBar` recrée l'objet bar à la bascule, donc le
+    //    callback était déjà invalidé. Hygiène de dépendances, pas correctif —
+    //    s'appuyer sur une dérivation implicite invite la prochaine erreur.
+    }, [hasPermission, currentBar, currentSession, salesMutations, clearCart, isSimplifiedMode]);
 
     const validateSale = useCallback((saleId: string, validatorId: string) => {
         if (!hasPermission('canManageInventory')) return;

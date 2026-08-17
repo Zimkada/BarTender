@@ -170,11 +170,26 @@ export const KITCHEN_SERVICE_GUIDE: GuideTour = {
       id: 'service-1',
       emoji: '📋',
       title: 'Votre file de commandes',
+      /**
+       * ⛔ TEXTE VALABLE DANS LES DEUX MODES — défaut trouvé à l'audit du
+       * 18/08/2026.
+       *
+       * Cette étape enseignait « trois gestes : Commencer, puis Prêt ». En
+       * MODE SIMPLIFIÉ (§20) ces boutons N'EXISTENT PAS : la file est une
+       * liste unique avec un seul bouton « Plat servi ». Le gérant qui suivait
+       * la visite cherchait des boutons absents.
+       *
+       * ⚠️ `visibleFor` ne filtre que par RÔLE, pas par mode — et le gérant est
+       * le même rôle dans les deux. Un filtrage par mode demanderait d'étendre
+       * le type `GuideStep` pour un seul cas : le texte porte donc les deux
+       * régimes, ce qui reste vrai quoi qu'il arrive.
+       */
       description:
-        'Menu **Service**. Chaque plat commandé apparaît ici, du plus ancien au plus récent. Vous le faites avancer en trois gestes : **Commencer**, puis **Prêt**.',
+        'Menu **Service**. Chaque plat commandé apparaît ici, du plus ancien au plus récent. Vous le faites avancer jusqu\'à ce qu\'il parte en salle.',
       tips: [
         '⏱️ L\'ordre d\'arrivée est respecté : les premières tables ne sont pas oubliées',
-        '🔔 Un plat prêt attend qu\'un serveur vienne le prendre',
+        '👥 Si votre équipe a des comptes : **Commencer**, puis **Prêt**, et le serveur retire le plat',
+        '👤 Si vous gérez seul : un seul bouton **Plat servi** fait tout d\'un coup',
       ],
     },
     {

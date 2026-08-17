@@ -209,6 +209,23 @@ export function Cart({
         // ÉTAPE 2 — LES PLATS PARTENT EN CUISINE.
         await createKitchenOrder.mutateAsync({
           ticketId: effectiveTicketId,
+          /**
+           * ⭐⭐ §20 — LE SERVEUR CHOISI SUIT LE PLAT, MÊME SUR UN BON EXISTANT.
+           *
+           * ⛔ Défaut trouvé à l'audit du 18/08 : `serverId` n'était transmis
+           * qu'à la CRÉATION du bon (ligne ~198). Sur un bon EXISTANT à
+           * `server_id = NULL` — ceux d'avant ce chantier, ou créés en mode
+           * complet puis repris après bascule — `handleCreateBon` n'est jamais
+           * appelé, et le RPC comblait avec `auth.uid()` : le GÉRANT.
+           *
+           * ⚠️ La boisson de la MÊME commande partait, elle, sur le serveur
+           * choisi (`addSale` reçoit `serverId`). Une commande, deux
+           * imputations — et « Mon équipe » réclamait au mauvais serveur.
+           *
+           * ⭐ Le RPC n'écrase jamais un serveur déjà posé, et VALIDE
+           * l'appartenance au bar : ce paramètre vient du client.
+           */
+          serverId,
           items: kitchenItems.map(i => ({
             dish_id: i.dish.id,
             quantity: i.quantity,
