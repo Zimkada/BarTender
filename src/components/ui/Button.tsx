@@ -12,7 +12,18 @@ const buttonVariants = cva(
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         outline: 'border border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        /**
+         * ⚠️ `text-foreground` AU REPOS — défaut vu en test terrain le
+         * 18/08/2026 : « À la commande » s'affichait en NOIR sur fond sombre.
+         *
+         * ⛔ La variante ne définissait QUE l'état survolé. Au repos, le texte
+         * héritait de la couleur par défaut du navigateur — invisible en thème
+         * sombre. Un bouton fantôme doit être discret, pas illisible.
+         *
+         * ⭐ Corrigé ici et non sur un bouton isolé : 72 usages dans l'app
+         * portaient le même défaut.
+         */
+        ghost: 'text-foreground hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
         info: 'bg-gradient-to-br from-blue-500 to-blue-700 text-white border border-white/40 shadow-lg shadow-blue-500/40 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 backdrop-blur-sm',
         glass: 'glass-action-button-2026',

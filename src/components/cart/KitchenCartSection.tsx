@@ -112,7 +112,11 @@ export function KitchenCartSection({
               >
                 <Minus size={12} />
               </button>
-              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums">
+              {/* ⚠️ `text-foreground` EXPLICITE — sans lui la quantité hérite de
+                  la couleur par défaut du navigateur (noir) et devient
+                  illisible en thème sombre. Défaut vu en test terrain le
+                  18/08/2026. */}
+              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums text-foreground">
                 {item.quantity}
               </span>
               <button
@@ -140,7 +144,10 @@ export function KitchenCartSection({
       <div className="mt-3 space-y-1 border-t border-border pt-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium text-muted-foreground">Sous-total cuisine</span>
-          <span className="font-bold tabular-nums">{formatPrice(subtotal)}</span>
+          {/* ⚠️ `text-foreground` EXPLICITE, comme la quantité ci-dessus : un
+              montant illisible en thème sombre est le pire des défauts
+              d'affichage sur un écran de vente. */}
+          <span className="font-bold tabular-nums text-foreground">{formatPrice(subtotal)}</span>
         </div>
         {/* ⭐⭐ LE PAIEMENT DIFFÉRÉ EST DIT EXPLICITEMENT (demande du
             04/08/2026). Le moyen de paiement choisi plus bas ne vaut que pour

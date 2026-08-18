@@ -128,7 +128,7 @@ export function KitchenAnalyticsBlock({
             {marginIsLow ? <TrendingDown size={12} /> : <TrendingUp size={12} />}
             Marge matière
           </h5>
-          <p className="text-h2 font-semibold tabular-nums">
+          <p className="text-h2 font-semibold tabular-nums text-foreground">
             {/* ⚠️ « — » et JAMAIS 0 % : un taux sur un CA nul n'a pas de sens
                 mathématique. Même règle que calculate_dish_cost. */}
             {data.margin_rate != null ? `${data.margin_rate} %` : '—'}
@@ -152,7 +152,7 @@ export function KitchenAnalyticsBlock({
             <AlertTriangle size={12} />
             Pertes cuisine
           </h5>
-          <p className="text-h2 font-semibold tabular-nums">{data.loss_count}</p>
+          <p className="text-h2 font-semibold tabular-nums text-foreground">{data.loss_count}</p>
           <p className="mt-1 text-caption text-muted-foreground tabular-nums">
             {formatPrice(data.loss_cost)} de matière perdue
           </p>
@@ -178,7 +178,7 @@ export function KitchenAnalyticsBlock({
             <Clock size={12} />
             Préparation
           </h5>
-          <p className="text-h2 font-semibold tabular-nums">
+          <p className="text-h2 font-semibold tabular-nums text-foreground">
             {data.avg_prep_min != null ? `${data.avg_prep_min} min` : '—'}
           </p>
           <p className="mt-1 text-caption text-muted-foreground">

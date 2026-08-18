@@ -86,7 +86,7 @@ function Stat({
         {icon}
         {label}
       </h5>
-      <p className="text-h2 font-semibold tabular-nums">{value}</p>
+      <p className="text-h2 font-semibold tabular-nums text-foreground">{value}</p>
       <p className="mt-0.5 text-caption text-muted-foreground">{hint}</p>
     </div>
   );
