@@ -7100,6 +7100,7 @@ export type Database = {
         Args: { p_bar_id: string; p_dish_id: string }
         Returns: Json
       }
+      can_write_kitchen: { Args: { bar_id_param: string }; Returns: boolean }
       cancel_kitchen_item: {
         Args: {
           p_bar_id: string
@@ -7231,6 +7232,7 @@ export type Database = {
           p_bar_id: string
           p_items: Json
           p_notes?: string
+          p_server_id?: string
           p_service_mode?: string
           p_ticket_id: string
         }
