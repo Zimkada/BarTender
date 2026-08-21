@@ -84,7 +84,7 @@ BEGIN
   WHERE conrelid = 'public.wa_conversations'::regclass
     AND contype = 'u'
     AND (
-      SELECT array_agg(attname ORDER BY attnum)
+      SELECT array_agg(attname::text ORDER BY attnum)
       FROM pg_attribute
       WHERE attrelid = 'public.wa_conversations'::regclass
         AND attnum = ANY(conkey)
@@ -129,7 +129,7 @@ BEGIN
     WHERE conrelid = 'public.wa_conversations'::regclass
       AND contype = 'u'
       AND (
-        SELECT array_agg(attname ORDER BY attnum)
+        SELECT array_agg(attname::text ORDER BY attnum)
         FROM pg_attribute
         WHERE attrelid = 'public.wa_conversations'::regclass
           AND attnum = ANY(conkey)
