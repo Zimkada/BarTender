@@ -227,7 +227,10 @@ export default defineConfig({
         // 🛡️ Supprime les .map de dist/ apres l'upload Sentry.
         // 'hidden' retire seulement le lien sourceMappingURL : sans ceci les
         // .map partent sur Vercel et exposent le code source en clair.
-        // Le plugin de suppression tourne meme sans SENTRY_AUTH_TOKEN.
+        // La suppression tourne meme sans SENTRY_AUTH_TOKEN (le plugin de
+        // suppression est enregistre hors de la condition d'upload) : la
+        // securite prime, un build sans token perd la symbolisation de sa
+        // release. Le script de build previent explicitement dans ce cas.
         filesToDeleteAfterUpload: ['./dist/**/*.map'],
       },
       release: {

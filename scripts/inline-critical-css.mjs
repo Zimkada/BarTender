@@ -9,29 +9,40 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Supprime recursivement tous les fichiers .map du dossier de build.
- * Les source maps exposent le code source original en clair si elles
- * sont servies publiquement.
+ * Supprime du dossier de build les artefacts qui divulguent le code source :
+ * - les .map (code source original en clair via sourcesContent)
+ * - stats.html (rapport rollup-plugin-visualizer : arborescence complete)
+ *
+ * Echoue le build si le dossier est introuvable : un outDir modifie rendrait
+ * ce nettoyage silencieusement inoperant et re-exposerait les sources.
  */
-function removeSourceMaps(dir) {
-  let removed = 0;
+function removeSourceDisclosingFiles(dir) {
+  if (!fs.existsSync(dir)) {
+    console.error(`❌ Dossier de build introuvable : ${dir}`);
+    console.error('   Nettoyage des source maps impossible - build interrompu.');
+    process.exit(1);
+  }
+
+  const removed = [];
 
   const walk = (current) => {
-    if (!fs.existsSync(current)) return;
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       const full = path.join(current, entry.name);
       if (entry.isDirectory()) {
         walk(full);
-      } else if (entry.name.endsWith('.map')) {
+      } else if (entry.name.endsWith('.map') || entry.name === 'stats.html') {
         fs.rmSync(full, { force: true });
-        removed++;
+        removed.push(path.relative(dir, full));
       }
     }
   };
 
   walk(dir);
-  console.log(`🛡️ Source maps supprimees du build : ${removed}`);
-  return removed;
+  console.log(`🛡️ Artefacts de divulgation supprimes : ${removed.length}`);
+  if (removed.length > 0) {
+    console.log(`   ${removed.join(', ')}`);
+  }
+  return removed.length;
 }
 
 async function inlineCriticalCss() {
@@ -40,12 +51,21 @@ async function inlineCriticalCss() {
   execSync('vite build', { stdio: 'inherit' });
   console.log('✅ Vite build completed.');
 
-  // 🛡️ Filet de securite source maps.
+  // 🛡️ Filet de securite : artefacts divulguant le code source.
   // Le plugin Sentry (filesToDeleteAfterUpload) nettoie les .map des assets,
   // mais le service worker est build APRES son hook writeBundle : sa map
   // survit. Sans ce nettoyage, dist/sw.js.map expose src/sw.ts en clair.
+  // Couvre aussi stats.html (arborescence complete du projet).
   // Place avant tout return conditionnel pour s'executer aussi sur Vercel.
-  removeSourceMaps(path.resolve(__dirname, '../dist'));
+  removeSourceDisclosingFiles(path.resolve(__dirname, '../dist'));
+
+  // Un build sans token Sentry supprime quand meme les .map (la securite
+  // prime) : la release ne sera pas symbolisable dans Sentry. Avertir, car
+  // le plugin se contente d'un warning noye dans les logs.
+  if (!process.env.SENTRY_AUTH_TOKEN) {
+    console.warn('⚠️ SENTRY_AUTH_TOKEN absent : source maps supprimees sans upload.');
+    console.warn('   Les erreurs de cette release ne seront pas symbolisables dans Sentry.');
+  }
 
   // Skip critical CSS inlining on Vercel (doesn't have chromium system dependencies)
   if (process.env.VERCEL === '1') {
