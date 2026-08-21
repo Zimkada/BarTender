@@ -223,6 +223,13 @@ export default defineConfig({
       authToken: process.env.SENTRY_AUTH_TOKEN,
       telemetry: false,
       debug: false,
+      sourcemaps: {
+        // 🛡️ Supprime les .map de dist/ apres l'upload Sentry.
+        // 'hidden' retire seulement le lien sourceMappingURL : sans ceci les
+        // .map partent sur Vercel et exposent le code source en clair.
+        // Le plugin de suppression tourne meme sans SENTRY_AUTH_TOKEN.
+        filesToDeleteAfterUpload: ['./dist/**/*.map'],
+      },
       release: {
         name: `bartender@${new Date().toISOString().split('T')[0]}`,
       }

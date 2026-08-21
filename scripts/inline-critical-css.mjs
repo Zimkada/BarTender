@@ -8,11 +8,44 @@ import * as critical from 'critical';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * Supprime recursivement tous les fichiers .map du dossier de build.
+ * Les source maps exposent le code source original en clair si elles
+ * sont servies publiquement.
+ */
+function removeSourceMaps(dir) {
+  let removed = 0;
+
+  const walk = (current) => {
+    if (!fs.existsSync(current)) return;
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        walk(full);
+      } else if (entry.name.endsWith('.map')) {
+        fs.rmSync(full, { force: true });
+        removed++;
+      }
+    }
+  };
+
+  walk(dir);
+  console.log(`🛡️ Source maps supprimees du build : ${removed}`);
+  return removed;
+}
+
 async function inlineCriticalCss() {
   console.log('📦 Building Vite application...');
   // 1. Perform a standard Vite build
   execSync('vite build', { stdio: 'inherit' });
   console.log('✅ Vite build completed.');
+
+  // 🛡️ Filet de securite source maps.
+  // Le plugin Sentry (filesToDeleteAfterUpload) nettoie les .map des assets,
+  // mais le service worker est build APRES son hook writeBundle : sa map
+  // survit. Sans ce nettoyage, dist/sw.js.map expose src/sw.ts en clair.
+  // Place avant tout return conditionnel pour s'executer aussi sur Vercel.
+  removeSourceMaps(path.resolve(__dirname, '../dist'));
 
   // Skip critical CSS inlining on Vercel (doesn't have chromium system dependencies)
   if (process.env.VERCEL === '1') {
