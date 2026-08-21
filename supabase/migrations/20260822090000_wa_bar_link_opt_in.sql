@@ -135,10 +135,27 @@ BEGIN
   FROM public.bar_members
   WHERE user_id = v_caller_id AND bar_id = p_bar_id AND is_active = true;
 
-  -- Coherent avec l'allowlist de resolve_wa_bar_link (20260821110000) :
-  -- ne pas creer un lien pour un role qui ne sera de toute facon jamais
-  -- resolu - premiere ligne de defense, resolve_wa_bar_link reste la
-  -- deuxieme, independante de celle-ci.
+  -- Coherent avec l'allowlist de resolve_wa_bar_link (20260822090001,
+  -- version harmonisee sans super_admin) : ne pas creer un lien pour un
+  -- role qui ne sera de toute facon jamais resolu - premiere ligne de
+  -- defense, resolve_wa_bar_link reste la deuxieme, independante de
+  -- celle-ci.
+  --
+  -- CORRECTIF (code review multi-angle, 22/08/2026) : 'super_admin' a ete
+  -- retire de cette allowlist. Il figurait dans l'allowlist de
+  -- resolve_wa_bar_link (20260821110000) car "sans effet pratique tant
+  -- qu'un super_admin n'a pas de ligne bar_members" - mais ICI, si un
+  -- super_admin a reellement une ligne bar_members (role='super_admin',
+  -- is_active=true), v_role vaudrait 'super_admin' et l'INSERT plus bas
+  -- tenterait role_snapshot='super_admin', qui VIOLE le CHECK constraint
+  -- de role_snapshot (CHECK IN ('promoteur','gerant','serveur') -
+  -- 20260821090000:56, jamais mis a jour pour super_admin). Bug reel
+  -- trouve en code review, pas seulement theorique : contrairement a
+  -- resolve_wa_bar_link (lecture seule, jamais d'ecriture), cette
+  -- fonction ECRIT role_snapshot - le CHECK constraint aurait leve une
+  -- erreur brute au lieu d'un refus propre, exactement le meme mode
+  -- d'echec que le bug v_role NULL deja corrige ci-dessus mais pour une
+  -- autre valeur.
   --
   -- v_role IS NULL traite explicitement (pas seulement via NOT IN) :
   -- "x NOT IN (liste)" avec x NULL evalue a NULL, pas TRUE - un IF sur
@@ -146,17 +163,57 @@ BEGIN
   -- une race rare (is_bar_member() vrai un instant, puis plus de ligne
   -- bar_members correspondante avant ce SELECT) avec v_role NULL inserre
   -- dans role_snapshot (CHECK NOT NULL) - erreur confuse plutot qu'un
-  -- refus propre. Trouve en relisant la fonction avant commit.
-  IF v_role IS NULL OR v_role NOT IN ('super_admin', 'promoteur', 'gerant') THEN
+  -- refus propre.
+  IF v_role IS NULL OR v_role NOT IN ('promoteur', 'gerant') THEN
     RETURN QUERY SELECT 'role_non_eligible'::TEXT;
+    RETURN;
+  END IF;
+
+  -- Verrou consultatif AVANT toute lecture/ecriture sur ce numero - meme
+  -- cle que le trigger d'auto-activation et change_active_wa_bar_link
+  -- (20260821100000), pour serialiser TOUS les chemins qui touchent
+  -- wa_bar_links pour un phone_wa_id donne. Corrige une race trouvee en
+  -- code review : sans lui, 2 appels concurrents pour le meme
+  -- (phone, bar) pouvaient lire le meme etat, passer tous les deux le
+  -- rate-limit, et ecrire chacun un code different - celui qui commite
+  -- en dernier gagne silencieusement, l'autre appelant montre un code
+  -- au promoteur qui ne correspond plus a celui stocke en base.
+  PERFORM pg_advisory_xact_lock(hashtext('wa_bar_links:' || p_phone_wa_id));
+
+  -- CORRECTIF (code review multi-angle, 22/08/2026) : verification
+  -- EXPLICITE d'une demande en attente sur un AUTRE bar, avant l'INSERT -
+  -- ne pas compter sur ON CONFLICT pour ce cas. ON CONFLICT (phone_wa_id,
+  -- bar_id) ne cible QUE la contrainte UNIQUE(phone_wa_id, bar_id) - il
+  -- ne protege PAS contre une violation de idx_wa_bar_links_one_pending_per_phone
+  -- (predicat different : phone_wa_id seul, WHERE verified_at IS NULL).
+  -- Un promoteur multi-bar (§4bis, cas explicitement supporte par ce
+  -- schema) qui a deja une demande en attente pour phone X + bar A, puis
+  -- demande un lien pour phone X + bar B (bar_id different, donc PAS un
+  -- conflit sur (phone_wa_id, bar_id)) aurait fait lever une
+  -- unique_violation brute et non geree sur l'autre index. Bug reel
+  -- trouve en code review, confirme par relecture directe des 2 index.
+  IF EXISTS (
+    SELECT 1 FROM public.wa_bar_links
+    WHERE phone_wa_id = p_phone_wa_id AND bar_id != p_bar_id AND verified_at IS NULL
+  ) THEN
+    RETURN QUERY SELECT 'demande_en_attente_autre_bar'::TEXT;
     RETURN;
   END IF;
 
   SELECT * INTO v_existing
   FROM public.wa_bar_links
-  WHERE phone_wa_id = p_phone_wa_id AND bar_id = p_bar_id;
+  WHERE phone_wa_id = p_phone_wa_id AND bar_id = p_bar_id
+  FOR UPDATE;
 
-  IF FOUND AND v_existing.verified_at IS NOT NULL THEN
+  -- CORRECTIF (code review multi-angle, 22/08/2026) : ajout de
+  -- "AND v_existing.revoked_at IS NULL". Sans cette condition, un lien
+  -- REVOQUE (revoked_at NOT NULL) mais dont verified_at n'a jamais ete
+  -- efface (aucune revocation ne le fait - §8 : "sans perdre l'historique
+  -- du lien") etait a tort signale 'deja_verifie', bloquant
+  -- DEFINITIVEMENT toute re-demande legitime pour ce (phone, bar) apres
+  -- une seule revocation (depart d'un employe, changement de numero -
+  -- des cas que le schema est explicitement concu pour supporter, §8).
+  IF FOUND AND v_existing.verified_at IS NOT NULL AND v_existing.revoked_at IS NULL THEN
     RETURN QUERY SELECT 'deja_verifie'::TEXT;
     RETURN;
   END IF;
@@ -173,6 +230,12 @@ BEGIN
 
   v_new_code := lpad(floor(random() * 900000 + 100000)::TEXT, 6, '0');
 
+  -- CORRECTIF (code review multi-angle, 22/08/2026) : re-demande sur un
+  -- lien revoque doit reinitialiser TOUTES les colonnes d'identite
+  -- (user_id, role_snapshot, created_by, revoked_at), pas seulement les
+  -- 3 colonnes ephemeres - sinon un lien re-demande par un autre
+  -- utilisateur que celui qui l'avait cree initialement garderait
+  -- silencieusement l'ancienne identite en cas de conflit.
   INSERT INTO public.wa_bar_links (
     phone_wa_id, user_id, bar_id, role_snapshot,
     verification_code, code_expires_at, attempts_remaining, created_by
@@ -182,9 +245,14 @@ BEGIN
     v_new_code, now() + INTERVAL '10 minutes', 5, v_caller_id
   )
   ON CONFLICT (phone_wa_id, bar_id) DO UPDATE SET
+    user_id = v_caller_id,
+    role_snapshot = v_role,
     verification_code = v_new_code,
     code_expires_at = now() + INTERVAL '10 minutes',
-    attempts_remaining = 5;
+    attempts_remaining = 5,
+    created_by = v_caller_id,
+    verified_at = NULL,
+    revoked_at = NULL;
 
   RETURN QUERY SELECT 'code_genere:' || v_new_code;
 END;
@@ -194,11 +262,14 @@ COMMENT ON FUNCTION public.request_wa_bar_link(UUID, TEXT) IS
 'Cree ou renouvelle une demande de verification de numero WhatsApp pour un bar. Appelee par la '
 'future Edge Function request-wa-bar-link SOUS LA SESSION DU PROMOTEUR APPELANT (jamais '
 'service_role) - auth.uid() garanti par le contexte, jamais transmis en parametre. Verifie '
-'is_bar_member(p_bar_id) explicitement (pas seulement le role general). Retourne un statut : '
-'non_authentifie, non_membre_du_bar, role_non_eligible, deja_verifie, trop_tot, ou '
-'code_genere:<le code a envoyer sur WhatsApp>. Le code n''est jamais retourne en clair sauf dans '
-'ce dernier cas - a la charge de l''appelant de l''envoyer immediatement sur WhatsApp et de ne '
-'jamais le logger.';
+'is_bar_member(p_bar_id) explicitement (pas seulement le role general). Allowlist '
+'(promoteur, gerant) - PAS super_admin : ecrire role_snapshot=''super_admin'' violerait son '
+'CHECK constraint (promoteur/gerant/serveur uniquement). Coherent avec resolve_wa_bar_link '
+'(20260822090001), qui exclut aussi super_admin de sa propre allowlist pour la meme raison. '
+'Retourne un statut : non_authentifie, non_membre_du_bar, role_non_eligible, '
+'demande_en_attente_autre_bar, deja_verifie, trop_tot, ou code_genere:<le code a envoyer sur '
+'WhatsApp>. Le code n''est jamais retourne en clair sauf dans ce dernier cas - a la charge de '
+'l''appelant de l''envoyer immediatement sur WhatsApp et de ne jamais le logger.';
 
 REVOKE ALL ON FUNCTION public.request_wa_bar_link(UUID, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.request_wa_bar_link(UUID, TEXT) FROM anon;
@@ -246,7 +317,14 @@ BEGIN
     RETURN;
   END IF;
 
-  IF v_link.verification_code != p_code THEN
+  -- CORRECTIF (code review multi-angle, 22/08/2026) : p_code normalise
+  -- (trim + retrait des espaces internes eventuels) avant comparaison.
+  -- Un code recu en texte libre sur WhatsApp peut arriver avec un espace
+  -- de tete/fin (autocorrect, retour a la ligne du client WhatsApp) -
+  -- sans normalisation, un code par ailleurs correct est refuse et brule
+  -- une tentative sur seulement 5 disponibles, pour une simple difference
+  -- de formatage sans rapport avec la validite du code.
+  IF v_link.verification_code != regexp_replace(trim(p_code), '\s+', '', 'g') THEN
     UPDATE public.wa_bar_links
     SET attempts_remaining = attempts_remaining - 1
     WHERE id = v_link.id;
@@ -254,32 +332,37 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Succes : marque verifie, nettoie les colonnes ephemeres. Le trigger
-  -- trg_wa_bar_links_auto_activate_first (20260821100000) ne se
-  -- declenche que sur INSERT, pas UPDATE - il ne s'applique donc pas ici.
-  -- L'activation du premier lien verifie doit etre geree explicitement.
+  -- Meme logique d'auto-activation que le trigger d'INSERT (20260821100000) :
+  -- si aucun autre lien n'est deja actif pour ce numero, celui-ci le
+  -- devient. Meme verrou consultatif partage (meme cle, meme convention)
+  -- pour se serialiser avec change_active_wa_bar_link et le trigger.
+  --
+  -- CORRECTIF (code review multi-angle, 22/08/2026) : le verrou
+  -- consultatif est desormais acquis AVANT l'UPDATE qui marque
+  -- verified_at, pas apres - la version precedente ecrivait verified_at
+  -- (visible aux autres transactions apres commit) puis acquerrait
+  -- seulement ensuite le verrou consultatif, laissant une fenetre ou
+  -- change_active_wa_bar_link aurait pu evaluer is_active_link sur un
+  -- etat "verifie mais pas encore evalue pour auto-activation". Les 2
+  -- UPDATE (verified_at+cleanup, puis is_active_link) sont aussi
+  -- fusionnes en une seule instruction - reduit le temps total sous le
+  -- verrou de ligne FOR UPDATE deja tenu depuis le debut de la fonction.
+  PERFORM pg_advisory_xact_lock(hashtext('wa_bar_links:' || p_phone_wa_id));
+
   UPDATE public.wa_bar_links
   SET
     verified_at = now(),
     verification_code = NULL,
     code_expires_at = NULL,
-    attempts_remaining = NULL
+    attempts_remaining = NULL,
+    is_active_link = CASE
+      WHEN NOT EXISTS (
+        SELECT 1 FROM public.wa_bar_links
+        WHERE phone_wa_id = p_phone_wa_id AND is_active_link = true
+      ) THEN true
+      ELSE is_active_link
+    END
   WHERE id = v_link.id;
-
-  -- Meme logique d'auto-activation que le trigger d'INSERT (20260821100000) :
-  -- si aucun autre lien n'est deja actif pour ce numero, celui-ci le
-  -- devient. Meme verrou consultatif partage (meme cle, meme convention)
-  -- pour se serialiser avec change_active_wa_bar_link et le trigger.
-  PERFORM pg_advisory_xact_lock(hashtext('wa_bar_links:' || p_phone_wa_id));
-
-  IF NOT EXISTS (
-    SELECT 1 FROM public.wa_bar_links
-    WHERE phone_wa_id = p_phone_wa_id AND is_active_link = true
-  ) THEN
-    UPDATE public.wa_bar_links
-    SET is_active_link = true
-    WHERE id = v_link.id;
-  END IF;
 
   RETURN QUERY SELECT 'verifie'::TEXT;
 END;
