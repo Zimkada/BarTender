@@ -40,6 +40,19 @@ CREATE TABLE public.wa_bar_links (
   -- Le controle d'acces reel au moment de chaque message doit TOUJOURS
   -- revalider bar_members.is_active + role en direct (voir §8 : "que se
   -- passe-t-il si le lien est revoque ?" - jamais se fier a ce role figé).
+  --
+  -- ATTENTION (trouve en code review, assume pour l'instant) : cette colonne
+  -- vit dans la meme table que resolve_wa_bar_link() - rien de structurel
+  -- n'empeche un futur code de la lire directement au lieu de toujours
+  -- passer par la fonction (qui, elle, revalide bar_members en direct).
+  -- resolve_wa_bar_link() ne la lit jamais - seul un contournement direct de
+  -- la table y aurait acces, et wa_bar_links est deja verrouillee a
+  -- service_role uniquement (REVOKE anon/authenticated ci-dessous), donc le
+  -- risque residuel est une question de discipline de code cote service_role,
+  -- pas un acces externe possible. A revisiter si cette table grossit
+  -- (ex: extraire role_snapshot vers une table d'audit separee) plutot que
+  -- de la retirer maintenant, avant que le flux d'ecriture reel (opt-in,
+  -- §9) ne soit conçu.
   role_snapshot TEXT NOT NULL CHECK (role_snapshot IN ('promoteur', 'gerant', 'serveur')),
 
   -- Preuve de possession du numero (§4 point 2) : le code de verification

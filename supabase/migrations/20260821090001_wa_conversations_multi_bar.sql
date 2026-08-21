@@ -25,6 +25,17 @@
 --   UNIQUE(phone) globale). Aucune regression possible sur le bot
 --   commercial tant que le code n'est pas modifie pour lire/ecrire bar_id.
 --
+-- NOTE LOCK (trouvee en code review, decision assumee) : les 2 CREATE
+--   UNIQUE INDEX + 1 CREATE INDEX tournent dans cette transaction sans
+--   CONCURRENTLY (impossible autrement - Postgres l'interdit a l'interieur
+--   d'un bloc BEGIN/COMMIT), donc bloquent les ecritures de wa-webhook
+--   pendant la duree du build. Juge acceptable au vu du volume reel
+--   (~1 mois de trafic Aicha, tres probablement sous la seconde) - executer
+--   hors heures de pointe par precaution plutot que de scinder la migration
+--   en etapes CONCURRENTLY separees.
+--   Ne PAS reproduire cette decision sans revalider le volume si cette
+--   migration sert de modele sur une table nettement plus grosse.
+--
 -- SOLUTION : bar_id UUID REFERENCES bars(id), NULLABLE (NULL = conversation
 --   commerciale actuelle, non-NULL = conversation analyste liee a un bar).
 --   Remplacer l'UNIQUE(phone) global par deux index uniques partiels :
@@ -142,6 +153,12 @@ BEGIN
   -- est vide, le SELECT source ne produit aucune ligne : l'INSERT n'insere
   -- rien et ne leve rien - dans ce cas precis le test est juste sans objet
   -- (pas de conversation existante pour fabriquer un doublon), pas un echec.
+  --
+  -- Le WHEN se limite volontairement a unique_violation : toute AUTRE erreur
+  -- levee par cet INSERT (ex: un futur trigger/CHECK non lie a cet index,
+  -- ajoute par une migration ulterieure sur wa_conversations) doit continuer
+  -- de faire echouer la migration au lieu d'etre confondue avec le succes de
+  -- ce test precis (trouve en code review, corrige avant premiere execution).
   IF v_count_after > 0 THEN
     BEGIN
       INSERT INTO public.wa_conversations (phone, wa_name)
