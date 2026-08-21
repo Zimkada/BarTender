@@ -337,7 +337,13 @@ Liste de vérification des questions qui, si elles restent sans réponse, devien
 
 ## 9. Ce que cette étude ne tranche pas encore (à spécifier avant code)
 
-- Le flux exact de l'opt-in (option A, §4) côté application : où dans l'UI, quel écran, quel mécanisme précis de génération/vérification du code.
+- ~~Le flux exact de l'opt-in (option A, §4) côté application~~ — **conçu le 21/08/2026, implémentation en cours.** Décisions prises (avant écriture du code) :
+  - **Stockage** : réutilise `wa_bar_links` elle-même (ligne `verified_at IS NULL` = demande en attente), pas de table dédiée — 3 colonnes ajoutées (`verification_code`, `code_expires_at`, `attempts_remaining`).
+  - **Déclencheur d'envoi** : une nouvelle Edge Function dédiée (`request-wa-bar-link`, sur le modèle de `create-bar-member` — auth du promoteur appelant, RPC, envoi WhatsApp), pas une détection passive au premier message du promoteur.
+  - **Format du code** : 6 chiffres, 10 minutes de validité, 5 tentatives max avant invalidation de la demande (à relancer depuis l'app).
+  - **Isolation stricte du canal commercial** : le webhook intercepte un message de 6 chiffres **avant** de charger `wa_conversations` — si une demande en attente correspond, il la traite entièrement et retourne, sans jamais créer ni modifier une ligne de conversation commerciale pour ce numéro.
+  - **Emplacement UI** : nouvelle section dans `SettingsPage` (pas de route dédiée), cohérent avec le reste des réglages du bar, gardé par `canManageSettings`.
+  - **Confirmation** : uniquement via une réponse WhatsApp au code reçu — jamais un champ de ressaisie côté app, qui viderait la preuve de possession du numéro de sa valeur (l'app affiche juste l'état "en attente" / "confirmé", sans jamais revalider le code elle-même).
 - La table de lien numéro→bar : schéma exact, migration, RLS (avec la contrainte composite `(phone, bar_id)` du §4bis).
 - **La migration de `wa_conversations` pour supporter une conversation par couple (numéro, bar)** (§4bis) — schéma exact de l'index composite, impact sur le code de chargement du webhook, plan de non-régression pour le bot commercial existant.
 - ~~Le mécanisme d'appel sécurisé des RPC n'est pas encore démontré~~ — **tranché le 21/08/2026** : la piste Session (§6) est démontrée par un test isolé et devient la voie retenue. Reste à spécifier : où et comment ce token est généré dans `wa-webhook` (fonction dédiée, isolée du chemin d'impersonation existant), sa durée de vie en usage réel, et la stratégie de révocation en fin d'échange (le test a démontré `signOut` fonctionnel, à intégrer dans le flux normal, pas seulement en test).
