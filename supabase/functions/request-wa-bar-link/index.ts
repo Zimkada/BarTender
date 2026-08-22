@@ -52,15 +52,17 @@ const STATUS_MESSAGES: Record<string, string> = {
 /**
  * Normalise un numero WhatsApp saisi en formulaire vers le format transmis
  * par l'API Meta dans `wa_id` (ex: "22955282525" - sans "+", sans "0"
- * national initial). Retire tout caractere non numerique, puis retire un
- * "0" initial (format national beninois) si le numero resultant est plus
- * court que 11 chiffres, puis prefixe l'indicatif Bénin (229) si absent.
- * Retourne null si la saisie ne contient pas assez de chiffres pour
- * former un numero plausible (trouve en code review : sans cette garde,
+ * national initial). Retire tout caractere non numerique. Si le numero ne
+ * commence PAS deja par l'indicatif Benin (229), retire un eventuel "0"
+ * initial (format national beninois) puis prefixe "229". Un numero qui
+ * commence deja par "229" n'est jamais re-prefixe, meme s'il est trop
+ * court (evite de le corrompre - voir le garde de longueur final).
+ * Retourne null si le resultat final fait moins de 11 chiffres (numero
+ * beninois complet minimum) - trouve en code review : sans cette garde,
  * une saisie du type "   " ou "abc" passe le test `!rawPhone` cote
- * appelant - une chaine non vide est toujours truthy - puis se normalise
+ * appelant (une chaine non vide est toujours truthy) puis se normalisait
  * silencieusement en "229" seul, un numero de 3 chiffres invalide
- * transmis tel quel a la RPC puis a l'API Meta).
+ * transmis tel quel a la RPC puis a l'API Meta.
  *
  * Le bug de troncature du "01" beninois documente dans
  * GUIDE_MISE_EN_PLACE.md (Obstacle 2) affectait des formulaires de
@@ -78,18 +80,47 @@ function normalizePhoneToMetaFormat(raw: string): string | null {
     digits = digits.slice(2)
   }
 
-  // Deja au format complet avec indicatif (ex: 229 + 8 ou 9 chiffres)
-  if (!(digits.startsWith('229') && digits.length >= 11)) {
-    // Format national beninois : "0" initial suivi du numero local
+  // CORRECTIF (2e passe de code review, 22/08/2026) : bug reel trouve,
+  // confirme preexistant AVANT toute correction de cette meme session -
+  // la version precedente testait `startsWith('229') && length >= 11`
+  // pour decider "deja au format complet", mais un numero qui COMMENCE
+  // par '229' sans etre complet (ex: '229552825', 9 chiffres - saisie
+  // tronquee ou faute de frappe) echouait ce test (length < 11), tombait
+  // dans la branche de normalisation, et se voyait RE-PREFIXER '229' par
+  // dessus lui-meme -> '229229552825' (12 chiffres, un numero corrompu
+  // qui passe malgre tout le garde final >= 11). Le test doit distinguer
+  // "commence par 229" (fait, ne JAMAIS re-prefixer dans ce cas, complet
+  // ou non) de "national avec 0 initial" (seul cas ou un prefixage est
+  // legitime) - un numero qui commence par 229 mais est trop court doit
+  // etre rejete tel quel par le garde de longueur final, jamais corrige
+  // en lui collant un second indicatif.
+  if (!digits.startsWith('229')) {
+    // Format national beninois : "0" initial suivi du numero local -
+    // seul cas ou l'indicatif doit etre ajoute.
     if (digits.startsWith('0')) {
       digits = digits.slice(1)
     }
     digits = `229${digits}`
   }
+  // LIMITE ASSUMEE (trouvee en code review, 22/08/2026) : un numero deja
+  // prefixe '229' mais contenant un '0' parasite juste apres (double
+  // saisie de l'indicatif ET du prefixe national, ex. '+229 0 90112233')
+  // n'est PAS nettoye ici - ce '0' pourrait aussi etre un chiffre
+  // legitime du numero local dans un plan de numerotation different
+  // (numero etranger, si l'app venait a s'ouvrir hors Benin). Une regle
+  // basee sur la longueur totale ("229 + 0 + 9 chiffres = trop long donc
+  // 0 parasite") serait specifique au plan beninois (229 + 8 chiffres)
+  // et casserait silencieusement un numero etranger legitime avec un
+  // format different - decision assumee de ne PAS ecrire cette
+  // heuristique tant que l'app cible uniquement le Benin. A revisiter
+  // explicitement (avec une regle par indicatif, pas une heuristique de
+  // longueur globale) le jour ou l'internationalisation est engagee.
 
   // Un numero beninois complet (229 + numero local) fait au moins 11
   // chiffres (229 + 8 chiffres locaux minimum). En dessous, la saisie
-  // ne contenait pas assez de chiffres pour etre un numero plausible.
+  // ne contenait pas assez de chiffres pour etre un numero plausible -
+  // qu'elle commence deja par 229 (tronquee) ou non (trop courte apres
+  // normalisation).
   if (digits.length < 11) {
     return null
   }
@@ -211,15 +242,25 @@ serve(async (req) => {
 
     // data?.[0] absent est inattendu : request_wa_bar_link() retourne
     // toujours exactement une ligne (chaque branche fait RETURN QUERY
-    // SELECT avant RETURN, verifie ligne par ligne dans la migration) -
-    // si ce cas se produit quand meme, il merite un log distinctif de
-    // l'erreur RPC classique, pas un simple fallback silencieux vers ''
-    // (trouve en code review : le fallback masquait ce cas sans aucune
-    // trace, contrairement a l'erreur RPC explicite ci-dessus).
+    // SELECT avant RETURN, verifie ligne par ligne dans la migration).
+    //
+    // CORRECTIF (2e passe de code review, 22/08/2026) : la premiere
+    // version se contentait de logger puis continuait vers
+    // `status = ''`, qui tombe dans la branche generique plus bas et
+    // renvoie HTTP 200 { success:false, message:"Une erreur est
+    // survenue" } - indiscernable cote client d'un refus metier normal,
+    // alors que c'est une anomalie serveur reelle. Incoherent avec le
+    // traitement symetrique de `error` juste au-dessus (HTTP 500
+    // explicite). Fix : court-circuiter vers la meme reponse 500 que le
+    // cas d'erreur RPC, au lieu de laisser le flux continuer.
     if (!data || data.length === 0) {
       console.error('[request-wa-bar-link] Reponse RPC vide et inattendue pour request_wa_bar_link')
+      return new Response(JSON.stringify({ error: 'Erreur serveur, veuillez reessayer.' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+      })
     }
-    const status: string = data?.[0]?.status ?? ''
+    const status: string = data[0].status ?? ''
 
     // Seul le statut succes porte le code, sous la forme "code_genere:<code>".
     // Ce prefixe et ce format doivent rester synchronises avec
