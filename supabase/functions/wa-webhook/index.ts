@@ -469,6 +469,15 @@ serve(async (req) => {
         // exactement comme si aucune interception n'avait eu lieu.
         console.error('[wa-webhook] verify_wa_bar_link_code failed:', verifyError.message)
       } else {
+        // verifyData?.[0] absent est inattendu : verify_wa_bar_link_code()
+        // retourne toujours exactement une ligne (7 branches, chacune fait
+        // RETURN QUERY SELECT avant RETURN — vérifié ligne par ligne). Un
+        // log distinctif ici (cohérent avec request-wa-bar-link/index.ts,
+        // qui applique la même discipline) plutôt qu'un fallback silencieux
+        // vers '' — ce cas ne doit jamais passer inaperçu s'il survient.
+        if (!verifyData || verifyData.length === 0) {
+          console.error('[wa-webhook] verify_wa_bar_link_code a retourné une réponse vide et inattendue pour', phone)
+        }
         const verifyStatus: string = verifyData?.[0]?.status ?? ''
 
         // aucune_demande_en_attente : ce numéro n'a jamais rien demandé (ou
@@ -492,10 +501,20 @@ serve(async (req) => {
             verifie: 'Votre numéro WhatsApp est désormais vérifié ✅',
           }
           const verifyReply = verifyReplies[verifyStatus]
+          let verifyDelivered = true
           if (verifyReply) {
-            await sendWhatsApp(phone, verifyReply)
+            // Contrairement au flux commercial (delivered:false persisté dans
+            // wa_conversations), ce chemin ne touche jamais cette table par
+            // principe (isolation stricte) — un échec d'envoi ici n'a donc
+            // aucune trace persistée. Log explicite trouvé nécessaire en code
+            // review (cohérent avec sendWhatsApp qui logue déjà ses propres
+            // échecs, mais sans contexte "vérification WhatsApp" précis).
+            verifyDelivered = await sendWhatsApp(phone, verifyReply)
+            if (!verifyDelivered) {
+              console.error('[wa-webhook] Échec envoi réponse de vérification WhatsApp analyste pour', phone, '- statut:', verifyStatus)
+            }
           }
-          return new Response(JSON.stringify({ received: true, waBarLinkVerification: verifyStatus }), { status: 200 })
+          return new Response(JSON.stringify({ received: true, waBarLinkVerification: verifyStatus, delivered: verifyDelivered }), { status: 200 })
         }
       }
     }
