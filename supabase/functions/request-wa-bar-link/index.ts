@@ -55,6 +55,12 @@ const STATUS_MESSAGES: Record<string, string> = {
  * national initial). Retire tout caractere non numerique, puis retire un
  * "0" initial (format national beninois) si le numero resultant est plus
  * court que 11 chiffres, puis prefixe l'indicatif Bénin (229) si absent.
+ * Retourne null si la saisie ne contient pas assez de chiffres pour
+ * former un numero plausible (trouve en code review : sans cette garde,
+ * une saisie du type "   " ou "abc" passe le test `!rawPhone` cote
+ * appelant - une chaine non vide est toujours truthy - puis se normalise
+ * silencieusement en "229" seul, un numero de 3 chiffres invalide
+ * transmis tel quel a la RPC puis a l'API Meta).
  *
  * Le bug de troncature du "01" beninois documente dans
  * GUIDE_MISE_EN_PLACE.md (Obstacle 2) affectait des formulaires de
@@ -64,7 +70,7 @@ const STATUS_MESSAGES: Record<string, string> = {
  * normalise simplement une saisie utilisateur libre vers le format que
  * Meta enverra reellement dans wa_id pour ce numero.
  */
-function normalizePhoneToMetaFormat(raw: string): string {
+function normalizePhoneToMetaFormat(raw: string): string | null {
   let digits = raw.replace(/\D/g, '')
 
   // "00229..." (prefixe international explicite) -> retirer les "00"
@@ -73,16 +79,22 @@ function normalizePhoneToMetaFormat(raw: string): string {
   }
 
   // Deja au format complet avec indicatif (ex: 229 + 8 ou 9 chiffres)
-  if (digits.startsWith('229') && digits.length >= 11) {
-    return digits
+  if (!(digits.startsWith('229') && digits.length >= 11)) {
+    // Format national beninois : "0" initial suivi du numero local
+    if (digits.startsWith('0')) {
+      digits = digits.slice(1)
+    }
+    digits = `229${digits}`
   }
 
-  // Format national beninois : "0" initial suivi du numero local
-  if (digits.startsWith('0')) {
-    digits = digits.slice(1)
+  // Un numero beninois complet (229 + numero local) fait au moins 11
+  // chiffres (229 + 8 chiffres locaux minimum). En dessous, la saisie
+  // ne contenait pas assez de chiffres pour etre un numero plausible.
+  if (digits.length < 11) {
+    return null
   }
 
-  return `229${digits}`
+  return digits
 }
 
 async function sendWhatsAppCode(to: string, code: string): Promise<boolean> {
@@ -140,7 +152,19 @@ serve(async (req) => {
       })
     }
 
-    const { barId, phoneWaId: rawPhone } = await req.json()
+    // Parsing JSON isole (trouve en code review) : un corps malforme ne
+    // doit pas tomber dans le catch global (qui renverrait 500, une
+    // erreur serveur) - c'est une erreur du client, donc 400.
+    let body: { barId?: unknown; phoneWaId?: unknown }
+    try {
+      body = await req.json()
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
+    const { barId, phoneWaId: rawPhone } = body
 
     if (!barId || typeof barId !== 'string') {
       return new Response(JSON.stringify({ error: 'Missing or invalid barId' }), {
@@ -156,6 +180,12 @@ serve(async (req) => {
     }
 
     const phoneWaId = normalizePhoneToMetaFormat(rawPhone)
+    if (!phoneWaId) {
+      return new Response(JSON.stringify({ error: 'Numero WhatsApp invalide' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      })
+    }
 
     // Client construit avec le token du promoteur appelant - PAS de client
     // service_role/admin dans cette fonction (voir commentaire d'en-tete).
@@ -179,6 +209,16 @@ serve(async (req) => {
       })
     }
 
+    // data?.[0] absent est inattendu : request_wa_bar_link() retourne
+    // toujours exactement une ligne (chaque branche fait RETURN QUERY
+    // SELECT avant RETURN, verifie ligne par ligne dans la migration) -
+    // si ce cas se produit quand meme, il merite un log distinctif de
+    // l'erreur RPC classique, pas un simple fallback silencieux vers ''
+    // (trouve en code review : le fallback masquait ce cas sans aucune
+    // trace, contrairement a l'erreur RPC explicite ci-dessus).
+    if (!data || data.length === 0) {
+      console.error('[request-wa-bar-link] Reponse RPC vide et inattendue pour request_wa_bar_link')
+    }
     const status: string = data?.[0]?.status ?? ''
 
     // Seul le statut succes porte le code, sous la forme "code_genere:<code>".
