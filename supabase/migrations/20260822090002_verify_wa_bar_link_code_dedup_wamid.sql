@@ -114,31 +114,68 @@ BEGIN
   WHERE phone_wa_id = p_phone_wa_id AND verified_at IS NULL
   FOR UPDATE;
 
+  -- CORRECTIF CRITIQUE (2e passe de code review multi-angle, 22/08/2026,
+  -- bug confirme independamment par plusieurs angles) : le premier
+  -- SELECT (verified_at IS NULL) ne retrouve plus la ligne une fois
+  -- qu'elle a ete marquee 'verifie' - un retry Meta du meme wamid apres
+  -- un succes tombait alors sur NOT FOUND -> 'aucune_demande_en_attente',
+  -- ce que wa-webhook traite comme "pas une verification, laisser
+  -- continuer vers Claude" - exactement l'inverse de l'objectif de
+  -- cette migration. Repli : si la 1ere recherche echoue ET qu'un wamid
+  -- est fourni, chercher une ligne (n'importe quel etat de verified_at)
+  -- dont le last_processed_wamid correspond deja - c'est alors un pur
+  -- retry d'un message deja traite avec succes (ou deja rejete par la
+  -- dedup ci-dessous), a rejouer a l'identique.
   IF NOT FOUND THEN
+    IF p_wamid IS NOT NULL THEN
+      SELECT * INTO v_link
+      FROM public.wa_bar_links
+      WHERE phone_wa_id = p_phone_wa_id AND last_processed_wamid = p_wamid
+      FOR UPDATE;
+      IF FOUND THEN
+        RETURN QUERY SELECT v_link.last_processed_status;
+        RETURN;
+      END IF;
+    END IF;
     RETURN QUERY SELECT 'aucune_demande_en_attente'::TEXT;
     RETURN;
   END IF;
 
-  -- CORRECTIF (trouve en concevant l'extension du webhook, 22/08/2026) :
-  -- si ce wamid a deja ete traite pour cette meme ligne (retry Meta sur
+  -- Si ce wamid a deja ete traite pour cette meme ligne (retry Meta sur
   -- le meme message), rejouer le statut deja retourne SANS reappliquer
-  -- d'effet de bord (decrement de tentative, marquage verified_at,
-  -- suppression de ligne). p_wamid IS NULL desactive ce filet (aucune
-  -- dedup possible sans identifiant) - comportement identique a avant
-  -- cette migration dans ce cas.
+  -- d'effet de bord (decrement de tentative, marquage verified_at).
+  -- p_wamid IS NULL desactive ce filet (aucune dedup possible sans
+  -- identifiant) - comportement identique a avant cette migration.
   IF p_wamid IS NOT NULL AND v_link.last_processed_wamid = p_wamid THEN
     RETURN QUERY SELECT v_link.last_processed_status;
     RETURN;
   END IF;
 
+  -- CORRECTIF CRITIQUE (meme passe de code review) : ces 2 branches
+  -- faisaient un DELETE de la ligne AVANT d'avoir jamais pu memoriser
+  -- last_processed_wamid/last_processed_status - un retry Meta sur ce
+  -- meme message tombait alors sur une ligne inexistante (NOT FOUND),
+  -- retournait 'aucune_demande_en_attente', et wa-webhook laissait le
+  -- message continuer vers Claude au lieu de rejouer le rejet. Fix :
+  -- ne plus supprimer la ligne ici - la marquer inerte via
+  -- last_processed_wamid/status (verification_code reste NULL apres
+  -- expiration naturelle du filtre code_expires_at < now(), donc aucun
+  -- code_incorrect ne peut plus se declencher dessus par erreur). Le
+  -- nettoyage reel se fait naturellement au prochain request_wa_bar_link
+  -- (ON CONFLICT reinitialise toutes les colonnes ephemeres) ou reste
+  -- visible pour rejouer un retry tardif - jamais perdu silencieusement.
   IF v_link.code_expires_at < now() THEN
-    DELETE FROM public.wa_bar_links WHERE id = v_link.id;
+    UPDATE public.wa_bar_links
+    SET last_processed_wamid = p_wamid, last_processed_status = 'code_expire'
+    WHERE id = v_link.id;
     RETURN QUERY SELECT 'code_expire'::TEXT;
     RETURN;
   END IF;
 
   IF v_link.attempts_remaining <= 0 THEN
-    DELETE FROM public.wa_bar_links WHERE id = v_link.id;
+    UPDATE public.wa_bar_links
+    SET last_processed_wamid = p_wamid, last_processed_status = 'trop_de_tentatives'
+    WHERE id = v_link.id;
     RETURN QUERY SELECT 'trop_de_tentatives'::TEXT;
     RETURN;
   END IF;
@@ -191,10 +228,14 @@ COMMENT ON FUNCTION public.verify_wa_bar_link_code(TEXT, TEXT, TEXT) IS
 'Verifie un code de 6 chiffres recu sur WhatsApp contre une demande en attente. Appelee depuis '
 'wa-webhook (service_role) uniquement. p_wamid (optionnel, DEFAULT NULL) permet de rejouer le '
 'meme statut sans effet de bord si Meta retente le webhook sur le meme message (dedup - '
-'20260822090002). Decremente attempts_remaining a chaque echec reel, supprime la demande a '
-'expiration ou apres 5 tentatives (le promoteur doit relancer depuis l''app). Succes : marque '
-'verified_at, nettoie les colonnes ephemeres, active le lien si aucun autre n''est deja actif '
-'pour ce numero.';
+'20260822090002), y compris pour les issues terminales code_expire/trop_de_tentatives/verifie : '
+'la ligne n''est PLUS supprimee sur expiration/epuisement (contrairement a la version '
+'precedente - bug corrige, une ligne supprimee ne pouvait jamais rejouer son dernier statut), '
+'elle est marquee inerte et reste visible jusqu''a la prochaine demande via request_wa_bar_link '
+'(ON CONFLICT reinitialise tout, voir 20260822090003 pour la consequence traitee sur '
+'demande_en_attente_autre_bar). Decremente attempts_remaining a chaque echec reel. Succes : '
+'marque verified_at, nettoie les colonnes ephemeres, active le lien si aucun autre n''est deja '
+'actif pour ce numero.';
 
 -- CORRECTIF (meme relecture que le DROP ci-dessus) : le DROP FUNCTION
 -- explicite signifie que cette fonction est un NOUVEL OBJET (nouvel OID),
