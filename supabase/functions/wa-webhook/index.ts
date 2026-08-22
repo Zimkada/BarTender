@@ -436,6 +436,70 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SERVICE_ROLE_KEY') ?? ''
     )
 
+    // --- 3bis. Interception d'un code de vérification WhatsApp analyste ---
+    // (whatsapp-agent/ETUDE_AGENT_ANALYSTE.md §4/§9 : "le webhook intercepte
+    // un message de 6 chiffres AVANT de charger wa_conversations — si une
+    // demande en attente correspond, il la traite entièrement et retourne,
+    // sans jamais créer ni modifier une ligne de conversation commerciale
+    // pour ce numéro"). Volontairement placée avant l'étape 4 : ni lecture
+    // ni écriture sur wa_conversations tant que ce cas n'est pas écarté.
+    //
+    // Ne matche QUE si le texte entier (trim) fait exactement 6 chiffres —
+    // pas une simple recherche de 6 chiffres n'importe où dans le message.
+    // Un vrai code de vérification est tapé seul par l'utilisateur en
+    // réponse au message reçu ; une phrase commerciale contenant
+    // incidemment 6 chiffres consécutifs (ex. "j'ai vendu pour 123456
+    // francs") ne doit jamais être interceptée à tort (décision validée
+    // avant écriture).
+    if (msg.type === 'text' && /^\d{6}$/.test(String(msg.text?.body ?? '').trim())) {
+      const candidateCode = String(msg.text.body).trim()
+      // p_wamid transmis pour dedup (20260822090002) : un retry Meta sur
+      // ce meme message rejoue le meme statut sans decrementer une
+      // seconde fois les tentatives restantes.
+      const { data: verifyData, error: verifyError } = await db.rpc('verify_wa_bar_link_code', {
+        p_phone_wa_id: phone,
+        p_code: candidateCode,
+        p_wamid: wamid,
+      })
+
+      if (verifyError) {
+        // Anomalie serveur réelle (RPC en échec) : on ne bloque jamais un
+        // vrai échange commercial pour une erreur technique sur un canal
+        // parallèle — on logue et on laisse le flux normal continuer,
+        // exactement comme si aucune interception n'avait eu lieu.
+        console.error('[wa-webhook] verify_wa_bar_link_code failed:', verifyError.message)
+      } else {
+        const verifyStatus: string = verifyData?.[0]?.status ?? ''
+
+        // aucune_demande_en_attente : ce numéro n'a jamais rien demandé (ou
+        // plus rien en attente) — le message "123456" n'est alors qu'un
+        // message ordinaire, on le laisse continuer normalement vers
+        // Claude, sans jamais répondre ni bloquer (décision validée avant
+        // écriture : ne jamais dégrader l'expérience d'un client qui n'a
+        // rien demandé).
+        if (verifyStatus && verifyStatus !== 'aucune_demande_en_attente') {
+          // Les 4 statuts restants (code_expire, trop_de_tentatives,
+          // code_incorrect, verifie) prouvent qu'une vraie demande de
+          // vérification existait pour ce numéro : une réponse dédiée est
+          // alors légitime et attendue, on répond puis on ARRÊTE le
+          // traitement de ce message ici — jamais de conversation
+          // commerciale créée/modifiée, jamais d'appel Claude pour ce
+          // message précis.
+          const verifyReplies: Record<string, string> = {
+            code_expire: "Ce code a expiré. Veuillez relancer une demande de vérification depuis l'application.",
+            trop_de_tentatives: "Trop de tentatives incorrectes. Veuillez relancer une demande de vérification depuis l'application.",
+            code_incorrect: 'Code incorrect, veuillez réessayer.',
+            verifie: 'Votre numéro WhatsApp est désormais vérifié ✅',
+          }
+          const verifyReply = verifyReplies[verifyStatus]
+          if (verifyReply) {
+            await sendWhatsApp(phone, verifyReply)
+          }
+          return new Response(JSON.stringify({ received: true, waBarLinkVerification: verifyStatus }), { status: 200 })
+        }
+      }
+    }
+
     // --- 4. Charger ou créer la conversation ---
     const { data: existing, error: loadError } = await db
       .from('wa_conversations')
