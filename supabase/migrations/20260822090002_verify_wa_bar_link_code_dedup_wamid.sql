@@ -126,6 +126,19 @@ BEGIN
   -- dont le last_processed_wamid correspond deja - c'est alors un pur
   -- retry d'un message deja traite avec succes (ou deja rejete par la
   -- dedup ci-dessous), a rejouer a l'identique.
+  -- LIMITE ASSUMEE (trouvee en code review multi-angle, 22/08/2026) :
+  -- contrairement au 1er SELECT ci-dessus (garanti au plus une ligne par
+  -- idx_wa_bar_links_one_pending_per_phone), ce repli sur
+  -- (phone_wa_id, last_processed_wamid) n'a AUCUNE contrainte d'unicite
+  -- en base - si 2 lignes de ce numero (2 bars differents, ou avant/apres
+  -- reinitialisation par un nouveau cycle) partageaient un jour le meme
+  -- last_processed_wamid, SELECT INTO prendrait silencieusement la
+  -- premiere trouvee plutot que de signaler une ambiguite. Repose donc
+  -- entierement sur la garantie Meta d'unicite globale des wamid - jamais
+  -- verifiee cote base par une contrainte. Un index UNIQUE sur
+  -- (phone_wa_id, last_processed_wamid) serait disproportionne pour ce
+  -- risque (colonne texte libre, deja tres improbable) - assume tel quel,
+  -- documente explicitement plutot que suppose.
   IF NOT FOUND THEN
     IF p_wamid IS NOT NULL THEN
       SELECT * INTO v_link

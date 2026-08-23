@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
 import { Checkbox } from '../components/ui/Checkbox';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { WaBarLinkSection } from '../components/WaBarLinkSection';
 import { FEATURES } from '../config/features';
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -794,6 +795,16 @@ export default function SettingsPage() {
                                     />
                                 </div>
                             )}
+
+                            <hr className="border-border" />
+
+                            {/*
+                              * ⭐ WHATSAPP ANALYSTE (whatsapp-agent/ETUDE_AGENT_ANALYSTE.md §4/§9)
+                              * Visible en Fonctionnement, pas Sécurité/Infos Bar : request_wa_bar_link
+                              * autorise promoteur ET gérant à parts égales (contrairement à isPromoteur
+                              * seul), donc cette section suit la visibilité du tab qui l'héberge.
+                              */}
+                            <WaBarLinkSection barId={currentBar.id} />
                         </div>
                     )}
                 </Card>

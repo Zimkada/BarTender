@@ -11,7 +11,9 @@
 //   attente) : le message entrant est archivé mais aucune réponse n'est envoyée.
 //
 // 💰 Coûts :
-// - System prompt (~7k tokens) avec cache_control ephemeral → cache read ~0.1x.
+// - System prompt commercial (~10k tokens) avec cache_control ephemeral → cache
+//   read ~0.1x. Mode analyste : prompt SÉPARÉ (~1,6k tokens), son propre
+//   breakpoint de cache - jamais mélangé (whatsapp-agent/ETUDE_AGENT_ANALYSTE.md §7).
 // - max_tokens 300 (réponses WhatsApp courtes par design).
 // - Médias non pris en charge → réponse standard SANS appel Claude (coût zéro).
 // - Historique envoyé à Claude borné à HISTORY_LIMIT messages (la DB garde tout).
@@ -22,13 +24,18 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SYSTEM_PROMPT } from './prompt.ts'
+import { SYSTEM_PROMPT, SYSTEM_PROMPT_ANALYST } from './prompt.ts'
 
 // =====================================================
 // Configuration
 // =====================================================
 
 const ANTHROPIC_MODEL = Deno.env.get('ANTHROPIC_MODEL') ?? 'claude-sonnet-5'
+// Mode analyste (whatsapp-agent/ETUDE_AGENT_ANALYSTE.md §7) : Sonnet, jamais
+// Haiku - nuance de raisonnement sur des chiffres réels, faible volume par
+// construction (seuls les promoteurs/gérants liés - §4). Secret dédié séparé
+// de ANTHROPIC_MODEL (mode commercial) pour pouvoir changer l'un sans l'autre.
+const ANTHROPIC_MODEL_ANALYST = Deno.env.get('ANTHROPIC_MODEL_ANALYST') ?? 'claude-sonnet-5'
 const MAX_TOKENS = 300
 const HISTORY_LIMIT = 24 // messages envoyés à Claude (le JSONB en DB garde tout)
 const MAX_TOOL_ROUNDS = 4
@@ -39,7 +46,17 @@ const FALLBACK_ESCALADE = 'Je transmets votre demande à notre équipe, vous ser
 const FALLBACK_MEDIA = 'Je ne peux pas encore écouter les notes vocales ni ouvrir les fichiers 🙏 Pouvez-vous écrire votre question en texte ?'
 
 // Schémas des tools — garder alignés avec whatsapp-agent/README.md
-const TOOLS = [
+//
+// ⚠️ DEUX ensembles DISTINCTS, jamais fusionnés (§4ter de l'étude) : la
+// résolution d'identité détermine quels tools sont exposés à Claude
+// (autorisation), pas un aiguillage de conversation entière. Un numéro
+// résolu en mode analyste n'a pas besoin des tools commerciaux
+// (enregistrer_lead n'a aucun sens pour un promoteur déjà client), et
+// inversement un prospect ordinaire ne doit jamais voir apparaître
+// obtenir_stats_bar dans son contexte - même schéma de tool jamais envoyé
+// à un appelant qui n'y a pas droit, par défense en profondeur (en plus de
+// la vérification is_bar_member côté RPC).
+const COMMERCIAL_TOOLS = [
   {
     name: 'enregistrer_lead',
     description:
@@ -97,6 +114,28 @@ const TOOLS = [
   },
 ]
 
+// ⭐ ÉTAPE 3 DU BRANCHEMENT MODE ANALYSTE (23/08/2026, §10) : premier et
+// unique tool de données réelles, roulé en interne avant tout accès
+// promoteur (§10 étape 3). AUCUN paramètre bar_id/user_id exposé - le bar
+// est déjà résolu par le code (3ter du handler) avant même que Claude ne
+// voie ce tool, jamais transporté par le modèle (§3, principe central de
+// l'étude). Un tool sans paramètre inutile, conforme à l'optimisation §7bis
+// n°2 (chaque paramètre en plus grossit le prompt envoyé à chaque appel).
+const ANALYST_TOOLS = [
+  {
+    name: 'obtenir_stats_bar',
+    description:
+      "Récupère les statistiques réelles du bar de l'interlocuteur : nombre de produits actifs, " +
+      "nombre de ventes validées, chiffre d'affaires total (ventes validées), nombre de ventes " +
+      "en attente de validation. Aucun paramètre : porte toujours sur le bar déjà résolu pour " +
+      "ce numéro WhatsApp, jamais un autre bar.",
+    input_schema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+]
+
 // =====================================================
 // Types internes
 // =====================================================
@@ -117,6 +156,14 @@ interface Conversation {
   messages: StoredMessage[]
   escalade: Record<string, unknown> | null
   updated_at: string
+}
+
+// Résultat de resolve_wa_bar_link() (20260821090000_create_wa_bar_links.sql) -
+// présence de cet objet = identité résolue en mode analyste pour ce message.
+interface AnalystLink {
+  bar_id: string
+  user_id: string
+  role: string
 }
 
 const CONV_COLS = 'id, phone, wa_name, profil, mode, messages, escalade, updated_at'
@@ -223,6 +270,120 @@ async function sendWhatsApp(to: string, body: string): Promise<boolean> {
 }
 
 // =====================================================
+// Session applicative pour le mode analyste (piste Session,
+// whatsapp-agent/ETUDE_AGENT_ANALYSTE.md §6/§10 étape 3)
+//
+// ⚠️ ISOLATION DÉLIBÉRÉE : cette fonction ne doit JAMAIS être fusionnée ou
+// partager du code avec le mécanisme d'impersonation admin existant
+// (is_impersonating(), 20251213_enable_rls_bypass_for_impersonation.sql,
+// qui contourne 15+ policies RLS via user_metadata.impersonation='true').
+// Le test isolé du 21/08/2026 a confirmé qu'un token généré par
+// generateLink+verifyOtp n'en porte pas la trace - mais cette garantie ne
+// tient QUE si ce chemin reste dédié et jamais réutilisé/étendu depuis un
+// code qui manipule ce claim. Aucun fichier de src/ (impersonation admin,
+// tous côté React/RLS) n'est importé ici - contextes Deno et front
+// totalement séparés, confirmé avant d'écrire cette fonction.
+//
+// Mécanisme exact démontré le 21/08/2026 :
+//   adminClient.auth.admin.generateLink({ type: 'magiclink', email })
+//     -> hashed_token (service_role, n'envoie AUCUN email - confirmé)
+//   anonClient.auth.verifyOtp({ type: 'magiclink', token_hash })
+//     -> vraie session (access_token/refresh_token, expires_in: 3600,
+//        aud/role: authenticated, sans claim impersonation)
+//
+// L'email requis par generateLink est résolu via adminClient.auth.admin.
+// getUserById(userId) - PAS depuis public.users (aucune colonne email,
+// auth par username, 004_custom_auth_complete.sql) ni via un nouveau RPC
+// dédié (pas de nouvelle surface d'exposition pour une donnée qui n'a
+// besoin de sortir de auth.users qu'en mémoire de fonction). Un compte
+// créé par username seul (cas nominal pour un serveur/gérant, pas une
+// exception - TeamManagementPage.tsx) porte un email placeholder généré
+// `username@bartender.app`, déjà connu et géré ailleurs dans ce repo
+// (admin_send_password_reset) - sans conséquence ici, generateLink ne
+// dépend jamais du domaine de l'email, seulement de son existence.
+// =====================================================
+
+interface AnalystSession {
+  accessToken: string
+  refreshToken: string
+}
+
+/**
+ * Génère une session applicative réelle pour l'utilisateur promoteur/gérant
+ * résolu par resolve_wa_bar_link(), afin d'appeler les RPC de données SOUS
+ * cette session (RLS/is_bar_member s'applique tel quel, RPC non modifiés) -
+ * jamais sous service_role brut pour les tools de données réelles.
+ *
+ * Retourne null en cas d'échec (email introuvable, generateLink/verifyOtp
+ * en erreur) - l'appelant doit alors refuser l'accès au mode analyste pour
+ * ce message plutôt que de retomber sur service_role par défaut.
+ */
+async function createAnalystSession(adminDb: SupabaseClient, userId: string): Promise<AnalystSession | null> {
+  const { data: userData, error: userError } = await adminDb.auth.admin.getUserById(userId)
+  if (userError || !userData?.user?.email) {
+    console.error('[wa-webhook] createAnalystSession: email introuvable pour', userId, userError?.message)
+    return null
+  }
+
+  const { data: linkData, error: linkError } = await adminDb.auth.admin.generateLink({
+    type: 'magiclink',
+    email: userData.user.email,
+  })
+  if (linkError || !linkData?.properties?.hashed_token) {
+    console.error('[wa-webhook] createAnalystSession: generateLink a échoué:', linkError?.message)
+    return null
+  }
+
+  // Client anon dédié pour l'échange OTP - jamais le client service_role
+  // (adminDb) : verifyOtp doit s'exécuter comme le ferait un vrai client,
+  // pour produire une session authenticated normale, pas une opération admin.
+  const anonClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+  )
+  const { data: otpData, error: otpError } = await anonClient.auth.verifyOtp({
+    type: 'magiclink',
+    token_hash: linkData.properties.hashed_token,
+  })
+  if (otpError || !otpData?.session) {
+    console.error('[wa-webhook] createAnalystSession: verifyOtp a échoué:', otpError?.message)
+    return null
+  }
+
+  return {
+    accessToken: otpData.session.access_token,
+    refreshToken: otpData.session.refresh_token,
+  }
+}
+
+/**
+ * Révoque la session applicative générée par createAnalystSession(), en fin
+ * d'échange normal (pas seulement en cas d'erreur) - une session analyste ne
+ * doit jamais rester valide au-delà du message qui l'a nécessitée. Best-effort
+ * : un échec de révocation est loggé mais ne doit jamais faire échouer la
+ * réponse déjà envoyée au promoteur.
+ */
+async function revokeAnalystSession(adminDb: SupabaseClient, accessToken: string): Promise<void> {
+  try {
+    // CORRECTIF CRITIQUE (code review multi-angle, 23/08/2026, confirmé par
+    // de nombreux angles convergents) : 'global' revoque TOUTES les sessions
+    // de cet utilisateur (toutes ses connexions app web/mobile en cours),
+    // pas seulement la session ephemere generee par createAnalystSession.
+    // Un promoteur en train de vendre sur sa tablette aurait ete deconnecte
+    // en plein service a chaque simple question posee au bot analyste.
+    // 'local' revoque uniquement la session identifiee par CE token precis -
+    // exactement le comportement voulu par ce mecanisme (une session par
+    // message, jamais plus, jamais moins).
+    const { error } = await adminDb.auth.admin.signOut(accessToken, 'local')
+    if (error) {
+      console.error('[wa-webhook] revokeAnalystSession a échoué (non-bloquant):', error.message)
+    }
+  } catch (e) {
+    console.error('[wa-webhook] revokeAnalystSession a levé une exception (non-bloquant):', e)
+  }
+}
+
+// =====================================================
 // Exécution des tools (écritures DB immédiates)
 // =====================================================
 
@@ -231,8 +392,73 @@ async function executeTool(
   conv: Conversation,
   name: string,
   input: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string }> {
+  // Résolution d'identité mode analyste - requis pour obtenir_stats_bar
+  // (createAnalystSession a besoin du user_id résolu), absent/null pour tous
+  // les tools commerciaux existants (aucun changement de comportement pour eux).
+  analystLink: AnalystLink | null = null,
+): Promise<{ ok: boolean; error?: string; data?: unknown }> {
   try {
+    // ⭐ ÉTAPE 3 DU BRANCHEMENT MODE ANALYSTE (23/08/2026, §6/§10 étape 3) :
+    // premier tool de données réelles. db ici est le client service_role du
+    // handler (voir handler principal) - utilisé UNIQUEMENT pour générer la
+    // session applicative (createAnalystSession), JAMAIS pour appeler
+    // get_bar_admin_stats directement : le RPC est appelé SOUS LA SESSION DU
+    // PROMOTEUR RÉSOLU (piste Session, §6), pour que son guard is_bar_member
+    // existant s'applique tel quel, sans aucune modification du RPC partagé
+    // avec l'app web (interdiction ferme du §6, jamais d'exemption
+    // service_role sur un RPC partagé).
+    if (name === 'obtenir_stats_bar') {
+      if (!analystLink) {
+        // Ne devrait jamais arriver : ce tool n'est exposé à Claude que si
+        // analystLink est résolu (activeTools dans runClaude) - garde de
+        // défense en profondeur si jamais appelé hors de ce contexte.
+        return { ok: false, error: 'obtenir_stats_bar appelé sans identité analyste résolue.' }
+      }
+
+      const session = await createAnalystSession(db, analystLink.user_id)
+      if (!session) {
+        return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
+      }
+
+      try {
+        const sessionClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
+        )
+        const { data, error } = await sessionClient.rpc('get_bar_admin_stats', {
+          p_bar_id: analystLink.bar_id,
+        })
+        if (error) throw error
+
+        const row = data?.[0]
+        if (!row) {
+          return { ok: false, error: 'get_bar_admin_stats a retourné une réponse vide et inattendue.' }
+        }
+
+        // total_products = bar_products uniquement (boissons), n'inclut PAS
+        // les plats du module restauration (limite documentée §10 de
+        // l'étude, non corrigée sur ce RPC partagé avec l'app web - jamais
+        // modifié pour ce nouveau cas d'usage, §6 interdiction ferme). Le
+        // signaler explicitement dans la donnée retournée à Claude plutôt
+        // que de laisser le modèle présenter ce chiffre comme exhaustif.
+        return {
+          ok: true,
+          data: {
+            total_produits_boissons: row.total_products,
+            note_produits: "Ce total ne compte que les boissons, pas les plats si le bar fait aussi de la restauration.",
+            total_ventes_validees: row.total_sales,
+            chiffre_affaires_total: row.total_revenue,
+            ventes_en_attente_validation: row.pending_sales,
+          },
+        }
+      } finally {
+        // Révocation TOUJOURS tentée, succès ou échec du RPC ci-dessus - une
+        // session analyste ne doit jamais rester valide au-delà de cet appel.
+        await revokeAnalystSession(db, session.accessToken)
+      }
+    }
+
     if (name === 'enregistrer_lead') {
       // Upsert par phone : les champs absents du payload restent inchangés en DB.
       const lead: Record<string, unknown> = { phone: conv.phone, conversation_id: conv.id }
@@ -295,9 +521,16 @@ async function runClaude(
   db: SupabaseClient,
   conv: Conversation,
   history: StoredMessage[],
+  // Résolution d'identité mode analyste (3ter du handler, whatsapp-agent/
+  // ETUDE_AGENT_ANALYSTE.md §4ter/§10) - détermine le modèle, le system
+  // prompt, l'ensemble de tools exposés, ET (§10 étape 3) le bar_id passé à
+  // createAnalystSession pour l'exécution du tool obtenir_stats_bar.
+  analystLink: AnalystLink | null = null,
 ): Promise<{ text: string; escaladed: boolean }> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured')
+  const isAnalystResolved = analystLink !== null
+  const model = isAnalystResolved ? ANTHROPIC_MODEL_ANALYST : ANTHROPIC_MODEL
 
   // Historique borné, reconstruit en texte pur (les tool_use ne sont pas persistés).
   // ⭐ L'API Anthropic exige l'alternance stricte user/assistant : on fusionne les
@@ -320,6 +553,19 @@ async function runClaude(
   let finalText = ''
   let escaladed = false
 
+  // Prompt SÉPARÉ (§7), jamais mélangé au prompt commercial - son propre
+  // breakpoint de cache ephemeral. Mélanger les deux ferait payer le cache du
+  // volet commercial (gros volume, faible valeur) à chaque question
+  // analytique, et inversement gonflerait le prompt commercial avec des
+  // instructions qu'un prospect ne déclenchera jamais.
+  const systemPrompt = isAnalystResolved ? SYSTEM_PROMPT_ANALYST : SYSTEM_PROMPT
+  // ⭐ ÉTAPE 3 DU BRANCHEMENT MODE ANALYSTE (23/08/2026, §4ter) : ensemble de
+  // tools distinct selon le mode - jamais les deux à la fois (défense en
+  // profondeur, en plus de is_bar_member côté RPC : un tool dont le schéma
+  // n'est même pas envoyé à Claude ne peut pas être appelé par erreur ni par
+  // injection de prompt réussie).
+  const activeTools = isAnalystResolved ? ANALYST_TOOLS : COMMERCIAL_TOOLS
+
   // On autorise MAX_TOOL_ROUNDS tours AVEC tools, plus un dernier appel SANS tools
   // pour forcer une réponse en langage naturel (évite qu'une conversation qui sature
   // la boucle de tools reparte sans réponse finale — cf certification bug #1).
@@ -333,14 +579,16 @@ async function runClaude(
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
+        model,
         max_tokens: MAX_TOKENS,
         system: [
-          // Prefix stable → prompt caching (~0.1x sur ~7k tokens dès le 2e appel)
-          { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+          // Prefix stable → prompt caching (cache read ~0.1x dès le 2e appel).
+          // Breakpoint propre à chaque prompt (commercial vs analyste) - jamais
+          // partagé, voir commentaire sur systemPrompt ci-dessus.
+          { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
         ],
         // Au dernier tour, on retire les tools : Claude DOIT produire du texte.
-        ...(lastRound ? {} : { tools: TOOLS }),
+        ...(lastRound ? {} : { tools: activeTools }),
         messages,
       }),
     })
@@ -363,7 +611,7 @@ async function runClaude(
     // Exécuter chaque tool, renvoyer les résultats, reboucler
     const results: Array<Record<string, unknown>> = []
     for (const tu of toolUses) {
-      const result = await executeTool(db, conv, String(tu.name), (tu.input ?? {}) as Record<string, unknown>)
+      const result = await executeTool(db, conv, String(tu.name), (tu.input ?? {}) as Record<string, unknown>, analystLink)
       if (tu.name === 'escalader_humain' && result.ok) escaladed = true
       results.push({ type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(result) })
     }
@@ -519,6 +767,40 @@ serve(async (req) => {
       }
     }
 
+    // --- 3ter. Résolution d'identité mode analyste (étape 3 du séquencement,
+    // whatsapp-agent/ETUDE_AGENT_ANALYSTE.md §4ter/§10) ---
+    // ⚠️ Volontairement APRÈS le bloc 3bis (jamais avant : un message de
+    // vérification à 6 chiffres n'a pas besoin de résolution analyste, il est
+    // déjà entièrement traité et on est déjà `return`) mais AVANT le chargement
+    // de wa_conversations - la résolution ne modifie ni ne lit cette table.
+    //
+    // §4ter (précision de conception déjà actée) : ce lien n'est PAS un
+    // aiguillage de mode par conversation - un promoteur lié continue de poser
+    // des questions de support ordinaire autant que des questions sur ses
+    // données réelles. La résolution détermine seulement quels tools seront
+    // exposés à Claude (autorisation) - le choix d'appeler un tool reste au
+    // modèle (intention). Le routage Sonnet/Haiku (§7) suit cette résolution,
+    // pas un aiguillage de conversation entière.
+    //
+    // ⭐ ÉTAPE 1 DU BRANCHEMENT (23/08/2026) : résolution + routage modèle
+    // SEULEMENT. Pas encore de génération de session (createAnalystSession),
+    // pas encore de tool de données, pas encore de prompt analyste séparé -
+    // ces briques suivent dans des étapes validées séparément, pour tester le
+    // handler par petits incréments plutôt qu'en un seul bloc.
+    const { data: analystLinkData, error: analystLinkError } = await db.rpc('resolve_wa_bar_link', {
+      p_phone_wa_id: phone,
+    })
+    if (analystLinkError) {
+      // Non-bloquant : une erreur de résolution ne doit jamais empêcher le
+      // flux commercial de continuer normalement - dégrade vers "pas de mode
+      // analyste pour ce message", jamais vers une erreur visible du client.
+      console.error('[wa-webhook] resolve_wa_bar_link a échoué (non-bloquant):', analystLinkError.message)
+    }
+    const analystLink = analystLinkData?.[0] ?? null
+    if (analystLink) {
+      console.log('[wa-webhook] Résolution analyste OK pour', phone, '- bar_id:', analystLink.bar_id, 'role:', analystLink.role)
+    }
+
     // --- 4. Charger ou créer la conversation ---
     const { data: existing, error: loadError } = await db
       .from('wa_conversations')
@@ -586,7 +868,7 @@ serve(async (req) => {
     // --- 9. Appel Claude (boucle tools) avec fallback en cas d'échec ---
     let reply: string
     try {
-      const result = await runClaude(db, conv, history)
+      const result = await runClaude(db, conv, history, analystLink)
       reply = result.text
     } catch (e) {
       console.error('[wa-webhook] Claude call failed:', e)
