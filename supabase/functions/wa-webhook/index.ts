@@ -136,6 +136,38 @@ const ANALYST_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: 'obtenir_top_produits',
+    description:
+      "Récupère les produits/plats les plus vendus du bar de l'interlocuteur sur une période " +
+      "récente (7 derniers jours par défaut, ajustable). Retourne pour chaque article : nom, " +
+      "quantité vendue, chiffre d'affaires généré, marge réelle (déjà correcte pour les plats " +
+      "de restauration, coût matière inclus - jamais un simple CUMP boisson appliqué à tort). " +
+      "Trié par quantité vendue par défaut. Jamais de bar_id/user_id : porte toujours sur le " +
+      "bar déjà résolu pour ce numéro WhatsApp.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre_jours: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 90,
+          description: "Fenêtre glissante en jours avant aujourd'hui (défaut 7 si omis). Ex: 30 si le promoteur demande explicitement le mois.",
+        },
+        limite: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 20,
+          description: 'Nombre de produits à retourner (défaut 5 si omis, jamais plus de 20).',
+        },
+        trier_par: {
+          type: 'string',
+          enum: ['quantity', 'revenue', 'profit'],
+          description: "Critère de tri : quantité vendue (défaut), chiffre d'affaires, ou marge.",
+        },
+      },
+    },
+  },
 ]
 
 // =====================================================
@@ -552,6 +584,132 @@ async function executeTool(
       }
     }
 
+    // ⭐ 2e TOOL DE DONNÉES RÉELLES (§10 étape 4, 23/08/2026) : mêmes
+    // principes que obtenir_stats_bar - piste Session, aucun bar_id/user_id
+    // exposé au modèle, get_top_products_aggregated (RPC partagé avec l'app
+    // web) jamais modifié. Contrairement au 1er tool, celui-ci VALIDE les
+    // paramètres fournis par Claude (nombre_jours/limite/trier_par) avant de
+    // les transmettre - le modèle ne doit jamais transporter une valeur non
+    // bornée vers un RPC, même quand cette valeur n'est pas un identifiant
+    // d'autorisation (§3 vise bar_id/user_id en premier lieu, mais la même
+    // prudence s'applique à toute entrée modèle qui devient un paramètre SQL).
+    //
+    // ⚠️ DUPLICATION ASSUMÉE (code review multi-angle, 23/08/2026) : ce bloc
+    // recopie ~50 lignes de cérémonie déjà présentes pour obtenir_stats_bar
+    // (garde analystLink, createAnalystSession, construction sessionClient,
+    // lecture/validation closing_hour, try/finally revoke). Pas de wrapper
+    // withAnalystSession() extrait maintenant - 2 occurrences seulement,
+    // extraire une abstraction sur si peu de répétitions serait prématuré
+    // (principe du projet : "3 lignes similaires valent mieux qu'une
+    // abstraction prématurée"). Décision explicite : si un 3e tool de
+    // données répète encore cette cérémonie, extraire alors un helper
+    // partagé - ne pas attendre plus longtemps que ça.
+    if (name === 'obtenir_top_produits') {
+      if (!analystLink) {
+        return { ok: false, error: 'obtenir_top_produits appelé sans identité analyste résolue.' }
+      }
+
+      // CORRECTIF (code review multi-angle, 23/08/2026) : nombreJours/limite
+      // faisaient un rejet-vers-defaut (une valeur hors plage retombait sur
+      // le petit defaut, 5 ou 7) plutot qu'un clamp-vers-maximum - une
+      // demande legitime "top 30" tombait silencieusement a 5 resultats au
+      // lieu du maximum documente (20), sans aucun signal a Claude que la
+      // demande avait ete reduite plutot que satisfaite au maximum permis.
+      // Desormais : une valeur numerique hors plage est ramenee a la borne
+      // la plus proche (clamp), seule une valeur non numerique/absente
+      // retombe sur le defaut. Le clamp reel applique est toujours renvoye
+      // dans la reponse (voir plus bas) pour que Claude ne presente jamais
+      // un resultat partiel comme s'il satisfaisait la demande initiale.
+      const rawDays = input.nombre_jours
+      const nombreJours = typeof rawDays === 'number' && Number.isInteger(rawDays)
+        ? Math.min(Math.max(rawDays, 1), 90)
+        : 7
+      const rawLimit = input.limite
+      const limite = typeof rawLimit === 'number' && Number.isInteger(rawLimit)
+        ? Math.min(Math.max(rawLimit, 1), 20)
+        : 5
+      const rawSort = input.trier_par
+      const trierPar = (rawSort === 'revenue' || rawSort === 'profit') ? rawSort : 'quantity'
+
+      const session = await createAnalystSession(db, analystLink.user_id)
+      if (!session) {
+        return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
+      }
+
+      try {
+        const sessionClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
+        )
+
+        const { data: barRow, error: barError } = await sessionClient
+          .from('bars')
+          .select('closing_hour')
+          .eq('id', analystLink.bar_id)
+          .maybeSingle()
+        if (barError) throw barError
+        const rawClosingHour = barRow?.closing_hour
+        const closingHour = (
+          typeof rawClosingHour === 'number' && Number.isInteger(rawClosingHour) &&
+          rawClosingHour >= 0 && rawClosingHour <= 23
+        ) ? rawClosingHour : 6
+        const endDate = getCurrentBusinessDateString(closingHour)
+        // Fenêtre glissante en JOURS CALENDAIRES simples (pas de notion
+        // d'heure de clôture pour le point de départ - contrairement au jour
+        // courant, "il y a N jours" n'a pas d'ambiguïté liée à la clôture).
+        const startDate = new Date(`${endDate}T00:00:00Z`)
+        startDate.setUTCDate(startDate.getUTCDate() - (nombreJours - 1))
+        const startDateStr = startDate.toISOString().slice(0, 10)
+
+        const { data, error } = await sessionClient.rpc('get_top_products_aggregated', {
+          p_bar_id: analystLink.bar_id,
+          p_start_date: startDateStr,
+          p_end_date: endDate,
+          p_limit: limite,
+          p_sort_by: trierPar,
+        })
+        if (error) throw error
+
+        // CORRECTIF (code review multi-angle, 23/08/2026) : trierPar et
+        // limite (potentiellement clampes vers une borne) sont desormais
+        // renvoyes tels quels a Claude, comme journee_du/periode l'etaient
+        // deja pour obtenir_stats_bar - sans cet echo, un tri clampe ou
+        // retombe sur son defaut restait invisible, risquant que le modele
+        // presente un resultat "quantite" comme s'il repondait a une
+        // demande "marge". nom garde un repli explicite : un product_name
+        // NULL cote SQL (items JSONB malformes/legacy) ne doit jamais
+        // remonter tel quel au modele.
+        return {
+          ok: true,
+          data: {
+            periode: { du: startDateStr, au: endDate, nombre_jours: nombreJours },
+            trie_par: trierPar,
+            limite_appliquee: limite,
+            // LIMITE ASSUMEE (code review multi-angle, 23/08/2026) : une
+            // boisson jamais reapprovisionnee avec un cout enregistre
+            // (bar_products.current_average_cost = 0, deja observe en prod
+            // sur le bar de test de la migration 20260805100000) affiche une
+            // marge = CA (100%) - donnee manquante, pas une vraie
+            // performance. Pas de champ dedie ici (contrairement a
+            // note_produits sur obtenir_stats_bar) : la note generale sur
+            // trie_par=profit couvre le cas sans complexifier chaque ligne.
+            note_marge: trierPar === 'profit'
+              ? "Une marge affichant exactement 100% signale souvent une boisson jamais reapprovisionnee avec un cout enregistre, pas une vraie performance - a signaler avec prudence."
+              : undefined,
+            produits: (data ?? []).map((p: Record<string, unknown>) => ({
+              nom: p.product_name ?? 'Article sans nom',
+              quantite_vendue: p.total_quantity,
+              chiffre_affaires: p.total_revenue,
+              marge: p.profit,
+            })),
+          },
+        }
+      } finally {
+        await revokeAnalystSession(db, session.accessToken)
+      }
+    }
+
     if (name === 'enregistrer_lead') {
       // Upsert par phone : les champs absents du payload restent inchangés en DB.
       const lead: Record<string, unknown> = { phone: conv.phone, conversation_id: conv.id }
@@ -600,9 +758,17 @@ async function executeTool(
 
     return { ok: false, error: `Unknown tool: ${name}` }
   } catch (e) {
+    // CORRECTIF (code review multi-angle, 23/08/2026, convergence forte sur
+    // les deux tools analystes) : String(e) pouvait contenir le texte brut
+    // d'une erreur Postgres/PostgREST (noms de colonnes, fragments de
+    // requête, codes internes) - ce texte partait tel quel dans le
+    // tool_result envoyé a Claude, avec pour seule protection une
+    // instruction de prompt ("dis-le simplement"), jamais une garantie
+    // cote code. Le message d'erreur precis reste dans les logs serveur
+    // (console.error ci-dessous) pour le debug - jamais dans la reponse
+    // renvoyee au modele, qui ne doit voir qu'un message generique.
     console.error('[wa-webhook] Tool %s failed:', name, e)
-    // On renvoie l'échec à Claude (il formulera sa réponse sans bloquer l'utilisateur)
-    return { ok: false, error: String(e) }
+    return { ok: false, error: 'Une erreur technique est survenue lors de la récupération de cette donnée.' }
   }
 }
 
