@@ -203,6 +203,26 @@ const ANALYST_TOOLS = [
       },
     },
   },
+  {
+    name: 'obtenir_stats_promotions',
+    description:
+      "Récupère l'impact des promotions du bar de l'interlocuteur sur une période récente " +
+      "(7 derniers jours par défaut, ajustable) : vue d'ensemble (chiffre d'affaires généré, " +
+      "remises accordées, marge, ROI) puis détail par promotion active/passée sur la période. " +
+      "Une promotion sans aucune application sur la période n'apparaît pas dans le détail. " +
+      "Jamais de bar_id/user_id : porte toujours sur le bar déjà résolu pour ce numéro WhatsApp.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre_jours: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 90,
+          description: "Fenêtre glissante en jours avant aujourd'hui (défaut 7 si omis). Ex: 30 si le promoteur demande explicitement le mois.",
+        },
+      },
+    },
+  },
 ]
 
 // =====================================================
@@ -872,6 +892,153 @@ async function executeTool(
               nombre_ventes: s.total_sales,
               chiffre_affaires: s.total_revenue,
               articles_vendus: s.total_items,
+            })),
+          },
+        }
+      })
+    }
+
+    // ⭐ 5e TOOL DE DONNÉES RÉELLES (§10 étape 4, 23/08/2026) : impact des
+    // promotions. Deux RPC déjà en prod (aucun nouveau RPC nécessaire,
+    // contrairement aux tools 1/4) : get_bar_global_promotion_stats_with_profit
+    // (résumé) et get_bar_promotion_stats_with_profit (détail par promo) -
+    // tous deux acceptent déjà p_start_date/p_end_date en TEXT (pas DATE),
+    // filtrant sur applied_at (TIMESTAMPTZ). Pas de resolveBusinessDate ici
+    // : une simple fenêtre calendaire UTC suffit, applied_at n'a pas la
+    // même sémantique que business_date (date d'application de la promo,
+    // pas la journée commerciale de la vente).
+    //
+    // Les deux RPC ont déjà un GRANT service_role explicite (hérité de
+    // 20260105, avant le durcissement du 23/06) - jamais utilisé ici :
+    // appelés sous la session du promoteur résolu comme tous les autres
+    // tools (§6 interdiction ferme), le grant service_role résiduel sur
+    // ces deux RPC est une question indépendante de ce chantier.
+    if (name === 'obtenir_stats_promotions') {
+      if (!analystLink) {
+        return { ok: false, error: 'obtenir_stats_promotions appelé sans identité analyste résolue.' }
+      }
+
+      // ⚠️ DUPLICATION SIGNALÉE (code review multi-angle, 24/08/2026) : ce
+      // clamp nombre_jours est désormais recopié 3 fois (obtenir_top_produits,
+      // obtenir_performance_serveurs, ici). Non extrait dans ce commit -
+      // pas mélanger un correctif de bug critique (troncature de date ci-
+      // dessous) avec un 2e refactoring dans le même changement. À faire
+      // dans une passe dédiée, avec l'arithmétique de fenêtre glissante
+      // (2 variantes existent déjà : template-string ancrée sur
+      // resolveBusinessDate, et celle-ci basée sur new Date() + ms).
+      const rawDays = input.nombre_jours
+      const nombreJours = typeof rawDays === 'number' && Number.isInteger(rawDays)
+        ? Math.min(Math.max(rawDays, 1), 90)
+        : 7
+
+      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+        // CORRECTIF (code review multi-angle, 24/08/2026, confirmé par
+        // lecture directe du corps SQL des 2 RPC) : applied_at est un
+        // TIMESTAMPTZ, comparé via `<= p_end_date::TIMESTAMP` - une date nue
+        // ('2026-08-24') caste à minuit (00:00:00) de ce jour, excluant
+        // silencieusement quasiment toute la journée en cours de chaque
+        // requête. Le reste de l'app évite déjà ce piège explicitement
+        // (src/utils/dateRangeCalculator.ts:137, endDate.setHours(23,59,59,999)
+        // avant sérialisation) - même correctif appliqué ici.
+        const endDate = new Date()
+        endDate.setUTCHours(23, 59, 59, 999)
+        const startDate = new Date(endDate.getTime() - (nombreJours - 1) * 24 * 60 * 60 * 1000)
+        startDate.setUTCHours(0, 0, 0, 0)
+        const startDateStr = startDate.toISOString()
+        const endDateStr = endDate.toISOString()
+        // Affichée à Claude sous forme de simples dates (pas d'heure) - la
+        // borne réelle envoyée aux RPC couvre bien la journée entière.
+        const periodeAffichee = { du: startDateStr.slice(0, 10), au: endDateStr.slice(0, 10), nombre_jours: nombreJours }
+
+        // Les deux RPC sont indépendants (aucune dépendance de données
+        // entre eux) - appelés en parallèle plutôt qu'en série, contrairement
+        // aux tools précédents où chaque appel dépendait du précédent
+        // (closing_hour puis RPC).
+        const [globalResult, detailResult] = await Promise.all([
+          sessionClient.rpc('get_bar_global_promotion_stats_with_profit', {
+            p_bar_id: analystLink.bar_id,
+            p_start_date: startDateStr,
+            p_end_date: endDateStr,
+          }),
+          sessionClient.rpc('get_bar_promotion_stats_with_profit', {
+            p_bar_id: analystLink.bar_id,
+            p_start_date: startDateStr,
+            p_end_date: endDateStr,
+          }),
+        ])
+        if (globalResult.error) throw globalResult.error
+        if (detailResult.error) throw detailResult.error
+
+        // CORRECTIF (code review multi-angle, 24/08/2026) : get_bar_global_...
+        // est un pur agrégat (COUNT/SUM sans GROUP BY) sur promotion_applications
+        // - retourne TOUJOURS exactement une ligne (COALESCE à zéro si aucune
+        // application), jamais un tableau vide. L'ancien code traitait ce cas
+        // comme un null normal (résumé absent = null silencieux), masquant
+        // une vraie anomalie RPC si elle survenait un jour - même discipline
+        // que obtenir_stats_bar sur un agrégat équivalent.
+        const globalRow = globalResult.data?.[0]
+        if (!globalRow) {
+          return { ok: false, error: 'get_bar_global_promotion_stats_with_profit a retourné une réponse vide et inattendue.' }
+        }
+
+        // CORRECTIF (code review multi-angle, 24/08/2026) : total_applications
+        // est un BIGINT Postgres - peut arriver sérialisé en string via
+        // PostgREST (le service front l'attend déjà ainsi : promotions.service.ts
+        // utilise z.coerce.number() sur ce même champ). L'ancien filtre
+        // typeof === 'number' aurait silencieusement vidé toute la liste si
+        // jamais reçu en string. Coercition explicite avant comparaison.
+        //
+        // Par ailleurs (confirmé par lecture directe du corps SQL) : le filtre
+        // JS "ne garder que total_applications > 0" est un filet de sécurité
+        // sans effet réel sur ce chemin d'appel précis - le WHERE du RPC
+        // (pa.applied_at >= ... AND pa.applied_at <= ...) transforme déjà le
+        // LEFT JOIN en JOIN de fait dès que les deux dates sont fournies
+        // (NULL >= x est NULL, jamais TRUE), donc aucune promotion à 0
+        // application ne peut atteindre ce code avec ce tool. Gardé quand
+        // même par prudence si le RPC évolue un jour.
+        const detailRowsAll = detailResult.data ?? []
+        const detailRows = detailRowsAll.filter((p: Record<string, unknown>) => {
+          const n = typeof p.total_applications === 'number' ? p.total_applications : Number(p.total_applications)
+          return Number.isFinite(n) && n > 0
+        })
+
+        // CORRECTIF (code review multi-angle, 24/08/2026) : aucune borne sur
+        // la liste, contrairement à obtenir_alertes_stock/obtenir_top_produits
+        // - un bar avec beaucoup de promotions actives sur 90 jours pourrait
+        // envoyer une liste non bornée dans le tour d'outil.
+        const PROMOTIONS_MAX = 20
+        const detailRowsAffiches = detailRows.slice(0, PROMOTIONS_MAX)
+
+        return {
+          ok: true,
+          data: {
+            periode: periodeAffichee,
+            // CORRECTIF (code review multi-angle, 24/08/2026) : aucun des 3
+            // tools datés précédents ne laissait la divergence de sémantique
+            // de date implicite - seulement documentée en commentaire ici
+            // avant ce correctif. applied_at (horodatage d'application de la
+            // promo) n'est PAS ancré sur la journée commerciale du bar
+            // (business_date/closing_hour), contrairement aux autres tools -
+            // une promotion appliquée juste après minuit peut donc être
+            // comptée dans un jour différent de celui des ventes/CA du même
+            // moment vus par les autres tools.
+            note: "Les dates ici suivent le fuseau calendaire standard (UTC), pas la journée commerciale du bar (contrairement aux autres statistiques) - un léger écart est possible autour de minuit.",
+            resume: {
+              nombre_applications: globalRow.total_applications,
+              chiffre_affaires_genere: globalRow.total_revenue,
+              total_remises_accordees: globalRow.total_discount,
+              marge_pourcent: globalRow.margin_percentage,
+              roi_pourcent: globalRow.roi_percentage,
+            },
+            nombre_promotions_avec_activite: detailRows.length,
+            promotions_affichees: detailRowsAffiches.length,
+            promotions: detailRowsAffiches.map((p: Record<string, unknown>) => ({
+              nom: p.promotion_name || 'Promotion sans nom',
+              nombre_applications: p.total_applications,
+              chiffre_affaires_genere: p.total_revenue,
+              remises_accordees: p.total_discount,
+              marge_pourcent: p.margin_percentage,
+              roi_pourcent: p.roi_percentage,
             })),
           },
         }
