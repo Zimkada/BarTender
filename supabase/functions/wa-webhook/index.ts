@@ -182,6 +182,27 @@ const ANALYST_TOOLS = [
       properties: {},
     },
   },
+  {
+    name: 'obtenir_performance_serveurs',
+    description:
+      "Récupère le classement des serveurs du bar de l'interlocuteur par chiffre d'affaires, " +
+      "sur une période récente (7 derniers jours par défaut, ajustable). Retourne pour chaque " +
+      "serveur : nom, rôle, nombre de ventes, chiffre d'affaires, articles vendus. Trié du " +
+      "meilleur au moins bon. Un serveur sans aucune vente validée sur la période n'apparaît " +
+      "pas dans la liste. Jamais de bar_id/user_id : porte toujours sur le bar déjà résolu " +
+      "pour ce numéro WhatsApp.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre_jours: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 90,
+          description: "Fenêtre glissante en jours avant aujourd'hui (défaut 7 si omis). Ex: 30 si le promoteur demande explicitement le mois.",
+        },
+      },
+    },
+  },
 ]
 
 // =====================================================
@@ -470,6 +491,68 @@ async function revokeAnalystSession(adminDb: SupabaseClient, accessToken: string
   }
 }
 
+// ⭐ HELPER EXTRAIT (23/08/2026, 4e tool de données réelles) : le seuil
+// documenté au 2e tool ("si un 3e tool répète encore cette cérémonie,
+// extraire un helper") a été franchi une 3e fois (obtenir_alertes_stock)
+// puis une 4e (obtenir_performance_serveurs) sans être traité. Extraction
+// faite maintenant, en une passe dédiée avant de certifier le 4e tool -
+// pas mêlée à l'ajout de la fonctionnalité elle-même dans le même commit,
+// conformément à la règle du projet sur les refactorings non demandés.
+//
+// Centralise création de session + client scopé + révocation garantie
+// (finally) autour d'un appel qui a besoin de la session du promoteur
+// résolu. Le bug déjà trouvé une fois sur ce mécanisme (signOut 'global'
+// au lieu de 'local') n'existe plus qu'à un seul endroit désormais, pas
+// dans chaque tool qui pourrait le recopier avec une variation.
+async function withAnalystSession(
+  db: SupabaseClient,
+  userId: string,
+  // fn retourne directement la forme finale attendue par executeTool -
+  // le helper ne fait que fournir sessionClient et garantir la révocation,
+  // il ne transforme jamais la réponse d'un tool.
+  fn: (sessionClient: SupabaseClient) => Promise<{ ok: boolean; error?: string; data?: unknown }>,
+): Promise<{ ok: boolean; error?: string; data?: unknown }> {
+  const session = await createAnalystSession(db, userId)
+  if (!session) {
+    return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
+  }
+  try {
+    const sessionClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
+    )
+    return await fn(sessionClient)
+  } finally {
+    // Révocation TOUJOURS tentée, succès ou échec de fn() - une session
+    // analyste ne doit jamais rester valide au-delà de cet appel.
+    await revokeAnalystSession(db, session.accessToken)
+  }
+}
+
+// ⭐ HELPER EXTRAIT (23/08/2026, même passe) : lecture + validation de
+// closing_hour, recopiées 3 fois à l'identique (obtenir_stats_bar,
+// obtenir_top_produits, et maintenant obtenir_performance_serveurs) -
+// obtenir_alertes_stock n'en a délibérément pas besoin (le stock est un
+// état actuel, pas une mesure datée). Centralise le repli documenté
+// (aucune contrainte CHECK en base sur closing_hour) au même endroit que
+// le calcul du jour courant, pour qu'une correction future des deux ne
+// se fasse jamais qu'à un seul endroit.
+async function resolveBusinessDate(sessionClient: SupabaseClient, barId: string): Promise<string> {
+  const { data: barRow, error: barError } = await sessionClient
+    .from('bars')
+    .select('closing_hour')
+    .eq('id', barId)
+    .maybeSingle()
+  if (barError) throw barError
+  const rawClosingHour = barRow?.closing_hour
+  const closingHour = (
+    typeof rawClosingHour === 'number' && Number.isInteger(rawClosingHour) &&
+    rawClosingHour >= 0 && rawClosingHour <= 23
+  ) ? rawClosingHour : 6
+  return getCurrentBusinessDateString(closingHour)
+}
+
 // =====================================================
 // Exécution des tools (écritures DB immédiates)
 // =====================================================
@@ -510,43 +593,9 @@ async function executeTool(
       // pas a la question posee - inacceptable pour la regle absolue du
       // prompt analyste ("jamais de chiffre qui induit en erreur").
       // Remplace par get_bar_daily_stats (20260823100000), filtre par
-      // business_date. closing_hour lu sous la session deja generee
-      // (RLS bars deja ouverte a authenticated pour son propre bar - pas
-      // besoin de db/service_role pour cette lecture).
-      const session = await createAnalystSession(db, analystLink.user_id)
-      if (!session) {
-        return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
-      }
-
-      try {
-        const sessionClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
-        )
-
-        const { data: barRow, error: barError } = await sessionClient
-          .from('bars')
-          .select('closing_hour')
-          .eq('id', analystLink.bar_id)
-          .maybeSingle()
-        if (barError) throw barError
-        // closing_hour nullable en base (DEFAULT 6, mais pas NOT NULL) -
-        // même repli que côté client (BUSINESS_DAY_CLOSE_HOUR).
-        //
-        // CORRECTIF (code review multi-angle, 23/08/2026) : bars.closing_hour
-        // n'a AUCUNE contrainte CHECK en base (colonne INT libre). Sans
-        // validation ici, une valeur hors 0-23 ferait rouler silencieusement
-        // setUTCHours sur le mauvais jour (getCurrentBusinessDateString) -
-        // exactement la classe de bug "chiffre qui induit en erreur" que ce
-        // correctif visait a eliminer, une couche plus bas. Repli explicite
-        // sur le defaut documente si la valeur est absente OU hors plage.
-        const rawClosingHour = barRow?.closing_hour
-        const closingHour = (
-          typeof rawClosingHour === 'number' && Number.isInteger(rawClosingHour) &&
-          rawClosingHour >= 0 && rawClosingHour <= 23
-        ) ? rawClosingHour : 6
-        const businessDate = getCurrentBusinessDateString(closingHour)
+      // business_date.
+      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+        const businessDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
 
         const { data, error } = await sessionClient.rpc('get_bar_daily_stats', {
           p_bar_id: analystLink.bar_id,
@@ -591,11 +640,7 @@ async function executeTool(
             },
           },
         }
-      } finally {
-        // Révocation TOUJOURS tentée, succès ou échec du RPC ci-dessus - une
-        // session analyste ne doit jamais rester valide au-delà de cet appel.
-        await revokeAnalystSession(db, session.accessToken)
-      }
+      })
     }
 
     // ⭐ 2e TOOL DE DONNÉES RÉELLES (§10 étape 4, 23/08/2026) : mêmes
@@ -608,16 +653,6 @@ async function executeTool(
     // d'autorisation (§3 vise bar_id/user_id en premier lieu, mais la même
     // prudence s'applique à toute entrée modèle qui devient un paramètre SQL).
     //
-    // ⚠️ DUPLICATION ASSUMÉE (code review multi-angle, 23/08/2026) : ce bloc
-    // recopie ~50 lignes de cérémonie déjà présentes pour obtenir_stats_bar
-    // (garde analystLink, createAnalystSession, construction sessionClient,
-    // lecture/validation closing_hour, try/finally revoke). Pas de wrapper
-    // withAnalystSession() extrait maintenant - 2 occurrences seulement,
-    // extraire une abstraction sur si peu de répétitions serait prématuré
-    // (principe du projet : "3 lignes similaires valent mieux qu'une
-    // abstraction prématurée"). Décision explicite : si un 3e tool de
-    // données répète encore cette cérémonie, extraire alors un helper
-    // partagé - ne pas attendre plus longtemps que ça.
     if (name === 'obtenir_top_produits') {
       if (!analystLink) {
         return { ok: false, error: 'obtenir_top_produits appelé sans identité analyste résolue.' }
@@ -645,30 +680,8 @@ async function executeTool(
       const rawSort = input.trier_par
       const trierPar = (rawSort === 'revenue' || rawSort === 'profit') ? rawSort : 'quantity'
 
-      const session = await createAnalystSession(db, analystLink.user_id)
-      if (!session) {
-        return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
-      }
-
-      try {
-        const sessionClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
-        )
-
-        const { data: barRow, error: barError } = await sessionClient
-          .from('bars')
-          .select('closing_hour')
-          .eq('id', analystLink.bar_id)
-          .maybeSingle()
-        if (barError) throw barError
-        const rawClosingHour = barRow?.closing_hour
-        const closingHour = (
-          typeof rawClosingHour === 'number' && Number.isInteger(rawClosingHour) &&
-          rawClosingHour >= 0 && rawClosingHour <= 23
-        ) ? rawClosingHour : 6
-        const endDate = getCurrentBusinessDateString(closingHour)
+      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+        const endDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
         // Fenêtre glissante en JOURS CALENDAIRES simples (pas de notion
         // d'heure de clôture pour le point de départ - contrairement au jour
         // courant, "il y a N jours" n'a pas d'ambiguïté liée à la clôture).
@@ -719,9 +732,7 @@ async function executeTool(
             })),
           },
         }
-      } finally {
-        await revokeAnalystSession(db, session.accessToken)
-      }
+      })
     }
 
     // ⭐ 3e TOOL DE DONNÉES RÉELLES (§10 étape 4, 23/08/2026) : mêmes
@@ -752,30 +763,12 @@ async function executeTool(
     // pour que Claude puisse l'expliquer si le promoteur compare aux deux
     // chiffres.
     //
-    // ⚠️ DUPLICATION ASSUMÉE, DÉCISION TENUE (23/08/2026) : ceci est le 3e
-    // tool qui recopie la cérémonie session/client - le seuil documenté
-    // au 2e tool ("si un 3e tool répète encore cette cérémonie, extraire
-    // un helper") est maintenant atteint. Non extrait immédiatement pour
-    // ne pas mélanger une refactorisation avec l'ajout d'une fonctionnalité
-    // dans le même changement - à faire dans une passe dédiée, séparée,
-    // avant un 4e tool.
     if (name === 'obtenir_alertes_stock') {
       if (!analystLink) {
         return { ok: false, error: 'obtenir_alertes_stock appelé sans identité analyste résolue.' }
       }
 
-      const session = await createAnalystSession(db, analystLink.user_id)
-      if (!session) {
-        return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
-      }
-
-      try {
-        const sessionClient = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-          { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
-        )
-
+      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
         // Comparaison stock <= alert_threshold NON supportée nativement par
         // PostgREST (comparaison colonne-à-colonne) - même limite déjà
         // documentée côté client (products.service.ts) : filtre en mémoire
@@ -829,9 +822,60 @@ async function executeTool(
             produits: produitsEnAlerte,
           },
         }
-      } finally {
-        await revokeAnalystSession(db, session.accessToken)
+      })
+    }
+
+    // ⭐ 4e TOOL DE DONNÉES RÉELLES (§10 étape 4, 23/08/2026) : classement
+    // des serveurs par CA. Aucun RPC existant ne fait cette agrégation -
+    // get_top_products_by_server (déjà en prod) classe des PRODUITS filtrés
+    // par un serveur donné, pas des serveurs entre eux ; useTeamPerformance.ts
+    // (seul calcul équivalent) tourne côté client sur des ventes déjà
+    // chargées, inutilisable ici. Nouveau RPC dédié get_bar_server_performance
+    // (20260823110000), jamais de modification d'un RPC partagé (§6).
+    //
+    // Restriction canViewAnalytics (mentionnée §5 de l'étude comme
+    // condition d'accès à ce tool) déjà garantie PAR CONSTRUCTION : seuls
+    // promoteur/gérant atteignent ce code (allowlist de resolve_wa_bar_link,
+    // 20260822090001), et ces deux rôles ont canViewAnalytics=true tandis
+    // que serveur l'a à false (src/types/index.ts) - aucun filtre de rôle
+    // supplémentaire nécessaire ici, ni dans le RPC.
+    if (name === 'obtenir_performance_serveurs') {
+      if (!analystLink) {
+        return { ok: false, error: 'obtenir_performance_serveurs appelé sans identité analyste résolue.' }
       }
+
+      const rawDays = input.nombre_jours
+      const nombreJours = typeof rawDays === 'number' && Number.isInteger(rawDays)
+        ? Math.min(Math.max(rawDays, 1), 90)
+        : 7
+
+      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+        const endDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
+        const startDate = new Date(`${endDate}T00:00:00Z`)
+        startDate.setUTCDate(startDate.getUTCDate() - (nombreJours - 1))
+        const startDateStr = startDate.toISOString().slice(0, 10)
+
+        const { data, error } = await sessionClient.rpc('get_bar_server_performance', {
+          p_bar_id: analystLink.bar_id,
+          p_start_date: startDateStr,
+          p_end_date: endDate,
+        })
+        if (error) throw error
+
+        return {
+          ok: true,
+          data: {
+            periode: { du: startDateStr, au: endDate, nombre_jours: nombreJours },
+            serveurs: (data ?? []).map((s: Record<string, unknown>) => ({
+              nom: s.server_name,
+              role: s.role,
+              nombre_ventes: s.total_sales,
+              chiffre_affaires: s.total_revenue,
+              articles_vendus: s.total_items,
+            })),
+          },
+        }
+      })
     }
 
     if (name === 'enregistrer_lead') {
