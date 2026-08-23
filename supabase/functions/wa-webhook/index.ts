@@ -125,10 +125,12 @@ const ANALYST_TOOLS = [
   {
     name: 'obtenir_stats_bar',
     description:
-      "Récupère les statistiques réelles du bar de l'interlocuteur : nombre de produits actifs, " +
-      "nombre de ventes validées, chiffre d'affaires total (ventes validées), nombre de ventes " +
-      "en attente de validation. Aucun paramètre : porte toujours sur le bar déjà résolu pour " +
-      "ce numéro WhatsApp, jamais un autre bar.",
+      "Récupère les statistiques réelles du bar de l'interlocuteur POUR LA JOURNÉE COMMERCIALE " +
+      "EN COURS UNIQUEMENT (jamais un cumul depuis toujours) : nombre de ventes validées ce jour, " +
+      "chiffre d'affaires de ce jour, nombre de ventes en attente de validation ce jour. Le nombre " +
+      "de produits actifs est une exception, non daté : c'est un état actuel (catalogue), pas une " +
+      "mesure du jour. Aucun paramètre : porte toujours sur le bar déjà résolu pour ce numéro " +
+      "WhatsApp, jamais un autre bar.",
     input_schema: {
       type: 'object',
       properties: {},
@@ -233,6 +235,45 @@ async function verifyMetaSignature(rawBody: string, header: string, appSecret: s
     .join('')
 
   return timingSafeEqual(expected, received)
+}
+
+// =====================================================
+// Journée commerciale (mode analyste - §10 étape 3)
+// =====================================================
+
+// Bénin (Africa/Porto-Novo) = UTC+1, pas de changement d'heure saisonnier -
+// décalage fixe, jamais recalculé dynamiquement (src/config/constants.ts
+// APP_TIMEZONE le documente comme fixe pour ce pays).
+const BENIN_UTC_OFFSET_HOURS = 1
+
+/**
+ * Réplique de calculateBusinessDate/getCurrentBusinessDateString
+ * (src/utils/businessDateHelpers.ts) - LOGIQUE CRITIQUE devant produire le
+ * même jour que le trigger SQL qui calcule sales.business_date à la
+ * création de chaque vente (067_add_business_date.sql). Un bar ferme
+ * souvent après minuit : une vente à 2h appartient à la veille. Jamais de
+ * repli codé en dur sur l'heure de clôture (ex: CURRENT_DATE - 6h) -
+ * propre à chaque bar (bars.closing_hour), lue avant cet appel.
+ *
+ * ⚠️ DIVERGENCE ASSUMÉE avec la version client : celle-ci utilise `new
+ * Date()` sans ajustement car elle tourne dans le navigateur du promoteur,
+ * déjà à l'heure béninoise. Cette Edge Function tourne sur un serveur cloud
+ * en UTC - sans ce décalage explicite, le calcul serait faux d'1h près de
+ * minuit ou de l'heure de clôture, risquant de faire basculer une vente
+ * dans le mauvais jour commercial.
+ */
+function getCurrentBusinessDateString(closingHour: number): string {
+  const nowUtc = new Date()
+  const nowBenin = new Date(nowUtc.getTime() + BENIN_UTC_OFFSET_HOURS * 60 * 60 * 1000)
+
+  const businessDate = new Date(nowBenin)
+  businessDate.setUTCHours(businessDate.getUTCHours() - closingHour)
+  businessDate.setUTCHours(0, 0, 0, 0)
+
+  const year = businessDate.getUTCFullYear()
+  const month = String(businessDate.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(businessDate.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 // =====================================================
@@ -415,6 +456,17 @@ async function executeTool(
         return { ok: false, error: 'obtenir_stats_bar appelé sans identité analyste résolue.' }
       }
 
+      // CORRECTIF (test terrain reel, 23/08/2026) : get_bar_admin_stats
+      // cumule TOUT l'historique du bar (aucun filtre de date) - un
+      // promoteur demandant "aujourd'hui" recevait un total depuis
+      // toujours (113 ventes / 166 300 F) alors que le Dashboard du jour
+      // affichait 0 partout. Chiffre pas faux en soi, mais ne repondait
+      // pas a la question posee - inacceptable pour la regle absolue du
+      // prompt analyste ("jamais de chiffre qui induit en erreur").
+      // Remplace par get_bar_daily_stats (20260823100000), filtre par
+      // business_date. closing_hour lu sous la session deja generee
+      // (RLS bars deja ouverte a authenticated pour son propre bar - pas
+      // besoin de db/service_role pour cette lecture).
       const session = await createAnalystSession(db, analystLink.user_id)
       if (!session) {
         return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
@@ -426,14 +478,39 @@ async function executeTool(
           Deno.env.get('SUPABASE_ANON_KEY') ?? '',
           { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
         )
-        const { data, error } = await sessionClient.rpc('get_bar_admin_stats', {
+
+        const { data: barRow, error: barError } = await sessionClient
+          .from('bars')
+          .select('closing_hour')
+          .eq('id', analystLink.bar_id)
+          .maybeSingle()
+        if (barError) throw barError
+        // closing_hour nullable en base (DEFAULT 6, mais pas NOT NULL) -
+        // même repli que côté client (BUSINESS_DAY_CLOSE_HOUR).
+        //
+        // CORRECTIF (code review multi-angle, 23/08/2026) : bars.closing_hour
+        // n'a AUCUNE contrainte CHECK en base (colonne INT libre). Sans
+        // validation ici, une valeur hors 0-23 ferait rouler silencieusement
+        // setUTCHours sur le mauvais jour (getCurrentBusinessDateString) -
+        // exactement la classe de bug "chiffre qui induit en erreur" que ce
+        // correctif visait a eliminer, une couche plus bas. Repli explicite
+        // sur le defaut documente si la valeur est absente OU hors plage.
+        const rawClosingHour = barRow?.closing_hour
+        const closingHour = (
+          typeof rawClosingHour === 'number' && Number.isInteger(rawClosingHour) &&
+          rawClosingHour >= 0 && rawClosingHour <= 23
+        ) ? rawClosingHour : 6
+        const businessDate = getCurrentBusinessDateString(closingHour)
+
+        const { data, error } = await sessionClient.rpc('get_bar_daily_stats', {
           p_bar_id: analystLink.bar_id,
+          p_business_date: businessDate,
         })
         if (error) throw error
 
         const row = data?.[0]
         if (!row) {
-          return { ok: false, error: 'get_bar_admin_stats a retourné une réponse vide et inattendue.' }
+          return { ok: false, error: 'get_bar_daily_stats a retourné une réponse vide et inattendue.' }
         }
 
         // total_products = bar_products uniquement (boissons), n'inclut PAS
@@ -442,14 +519,30 @@ async function executeTool(
         // modifié pour ce nouveau cas d'usage, §6 interdiction ferme). Le
         // signaler explicitement dans la donnée retournée à Claude plutôt
         // que de laisser le modèle présenter ce chiffre comme exhaustif.
+        //
+        // CORRECTIF (code review multi-angle, 23/08/2026, confirmé par
+        // plusieurs angles convergents) : total_products n'a AUCUN rapport
+        // avec businessDate (catalogue actuel, pas une mesure du jour), mais
+        // la 1ère version le plaçait au même niveau que journee_du et les 3
+        // champs "_ce_jour" - une seule clé de prose (note_produits) portait
+        // toute la charge de la distinction, fragile en cas de compression
+        // de contexte sur une longue conversation. Restructuré en 2
+        // sous-objets distincts : la structure elle-même porte la
+        // distinction datée/non-datée, pas seulement la prose.
         return {
           ok: true,
           data: {
-            total_produits_boissons: row.total_products,
-            note_produits: "Ce total ne compte que les boissons, pas les plats si le bar fait aussi de la restauration.",
-            total_ventes_validees: row.total_sales,
-            chiffre_affaires_total: row.total_revenue,
-            ventes_en_attente_validation: row.pending_sales,
+            ventes_du_jour: {
+              journee_du: businessDate,
+              total_ventes_validees: row.total_sales,
+              chiffre_affaires: row.total_revenue,
+              ventes_en_attente_validation: row.pending_sales,
+            },
+            catalogue_actuel: {
+              note: "Etat actuel du catalogue, pas une mesure de la journee - ne jamais presenter ce chiffre comme datant d'aujourd'hui.",
+              total_produits_boissons_actifs: row.total_products,
+              note_produits: "Ne compte que les boissons, pas les plats si le bar fait aussi de la restauration.",
+            },
           },
         }
       } finally {

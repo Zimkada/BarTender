@@ -5588,8 +5588,120 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_bar_links: {
+        Row: {
+          attempts_remaining: number | null
+          bar_id: string
+          code_expires_at: string | null
+          created_at: string
+          created_by: string
+          id: string
+          is_active_link: boolean
+          last_processed_status: string | null
+          last_processed_wamid: string | null
+          phone_wa_id: string
+          revoked_at: string | null
+          role_snapshot: string
+          user_id: string
+          verification_code: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempts_remaining?: number | null
+          bar_id: string
+          code_expires_at?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active_link?: boolean
+          last_processed_status?: string | null
+          last_processed_wamid?: string | null
+          phone_wa_id: string
+          revoked_at?: string | null
+          role_snapshot: string
+          user_id: string
+          verification_code?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempts_remaining?: number | null
+          bar_id?: string
+          code_expires_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active_link?: boolean
+          last_processed_status?: string | null
+          last_processed_wamid?: string | null
+          phone_wa_id?: string
+          revoked_at?: string | null
+          role_snapshot?: string
+          user_id?: string
+          verification_code?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_bar_links_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_bar_links_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversations: {
         Row: {
+          bar_id: string | null
           created_at: string
           escalade: Json | null
           id: string
@@ -5602,6 +5714,7 @@ export type Database = {
           wa_name: string | null
         }
         Insert: {
+          bar_id?: string | null
           created_at?: string
           escalade?: Json | null
           id?: string
@@ -5614,6 +5727,7 @@ export type Database = {
           wa_name?: string | null
         }
         Update: {
+          bar_id?: string | null
           created_at?: string
           escalade?: Json | null
           id?: string
@@ -5625,7 +5739,50 @@ export type Database = {
           updated_at?: string
           wa_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wa_leads: {
         Row: {
@@ -7114,6 +7271,10 @@ export type Database = {
         Args: { p_cancelled_by: string; p_reason: string; p_sale_id: string }
         Returns: Json
       }
+      change_active_wa_bar_link: {
+        Args: { p_bar_id: string; p_phone_wa_id: string }
+        Returns: boolean
+      }
       check_bar_has_feature: {
         Args: { p_bar_id: string; p_feature: string }
         Returns: boolean
@@ -7463,6 +7624,15 @@ export type Database = {
       }
       get_bar_admin_stats: {
         Args: { p_bar_id: string }
+        Returns: {
+          pending_sales: number
+          total_products: number
+          total_revenue: number
+          total_sales: number
+        }[]
+      }
+      get_bar_daily_stats: {
+        Args: { p_bar_id: string; p_business_date: string }
         Returns: {
           pending_sales: number
           total_products: number
@@ -7890,6 +8060,15 @@ export type Database = {
           view_name: string
         }[]
       }
+      get_wa_bar_link_status: {
+        Args: { p_bar_id: string }
+        Returns: {
+          created_at: string
+          is_active_link: boolean
+          phone_wa_id: string
+          verified: boolean
+        }[]
+      }
       grant_free_months: {
         Args: { p_bar_id: string; p_months: number; p_reason: string }
         Returns: {
@@ -8239,6 +8418,20 @@ export type Database = {
         Args: { p_bar_id: string; p_ingredient_id: string; p_sizes: Json }
         Returns: Json
       }
+      request_wa_bar_link: {
+        Args: { p_bar_id: string; p_phone_wa_id: string }
+        Returns: {
+          status: string
+        }[]
+      }
+      resolve_wa_bar_link: {
+        Args: { p_phone_wa_id: string }
+        Returns: {
+          bar_id: string
+          role: string
+          user_id: string
+        }[]
+      }
       reverse_supply: { Args: { p_supply_id: string }; Returns: Json }
       safe_refresh_materialized_view: {
         Args: {
@@ -8354,6 +8547,12 @@ export type Database = {
       validate_sale: {
         Args: { p_sale_id: string; p_validated_by: string }
         Returns: undefined
+      }
+      verify_wa_bar_link_code: {
+        Args: { p_code: string; p_phone_wa_id: string; p_wamid?: string }
+        Returns: {
+          status: string
+        }[]
       }
     }
     Enums: {
