@@ -168,6 +168,20 @@ const ANALYST_TOOLS = [
       },
     },
   },
+  {
+    name: 'obtenir_alertes_stock',
+    description:
+      "Récupère la liste des produits (boissons) du bar de l'interlocuteur dont le stock est " +
+      "descendu au niveau ou en dessous du seuil d'alerte configuré. Retourne pour chaque " +
+      "produit : nom, stock actuel, seuil d'alerte. Liste vide = aucun produit en alerte, " +
+      "jamais une erreur. Ne concerne que les boissons, pas les plats/ingrédients du module " +
+      "restauration. Aucun paramètre : porte toujours sur le bar déjà résolu pour ce numéro " +
+      "WhatsApp.",
+    input_schema: {
+      type: 'object',
+      properties: {},
+    },
+  },
 ]
 
 // =====================================================
@@ -703,6 +717,116 @@ async function executeTool(
               chiffre_affaires: p.total_revenue,
               marge: p.profit,
             })),
+          },
+        }
+      } finally {
+        await revokeAnalystSession(db, session.accessToken)
+      }
+    }
+
+    // ⭐ 3e TOOL DE DONNÉES RÉELLES (§10 étape 4, 23/08/2026) : mêmes
+    // principes que les 2 précédents. Plus léger : pas de fenêtre de temps
+    // ni de closing_hour à résoudre (le stock est un état ACTUEL, pas une
+    // mesure datée - aucune notion de "stock d'hier" n'a de sens ici,
+    // contrairement au CA ou aux ventes).
+    //
+    // CORRECTIF (code review multi-angle, 23/08/2026, confirmé par
+    // verification directe) : ce bloc N'APPELLE PAS get_bar_live_alerts
+    // (RPC utilisé par BarStatsModal.tsx sur le Dashboard web) - il
+    // interroge bar_products directement, avec un filtre is_active=true
+    // ABSENT du RPC. Un commentaire precedent presentait a tort ce RPC
+    // comme le mecanisme en jeu ("sa seule protection... deja active sous
+    // cette session"), laissant croire a une reutilisation qui n'existe
+    // pas. Impossible d'appeler get_bar_live_alerts ici de toute facon :
+    // il ne retourne qu'un COUNT(*), jamais le detail nom/stock/seuil
+    // dont ce tool a besoin - la reimplementation etait necessaire, pas
+    // une duplication evitable.
+    //
+    // ⚠️ DIVERGENCE ASSUMEE ET DESORMAIS SIGNALEE : is_active=true exclut
+    // les produits desactives, alors que get_bar_live_alerts (Dashboard)
+    // ne filtre PAS dessus - un produit desactive mais jamais reapprovisionne
+    // est compte sur le Dashboard, exclu ici. Choix produit deliberement
+    // fait ("un produit desactive n'a pas sa place dans une alerte de
+    // reapprovisionnement"), jamais propage au RPC partage (interdiction
+    // ferme §6), et desormais explicite dans la reponse (note ci-dessous)
+    // pour que Claude puisse l'expliquer si le promoteur compare aux deux
+    // chiffres.
+    //
+    // ⚠️ DUPLICATION ASSUMÉE, DÉCISION TENUE (23/08/2026) : ceci est le 3e
+    // tool qui recopie la cérémonie session/client - le seuil documenté
+    // au 2e tool ("si un 3e tool répète encore cette cérémonie, extraire
+    // un helper") est maintenant atteint. Non extrait immédiatement pour
+    // ne pas mélanger une refactorisation avec l'ajout d'une fonctionnalité
+    // dans le même changement - à faire dans une passe dédiée, séparée,
+    // avant un 4e tool.
+    if (name === 'obtenir_alertes_stock') {
+      if (!analystLink) {
+        return { ok: false, error: 'obtenir_alertes_stock appelé sans identité analyste résolue.' }
+      }
+
+      const session = await createAnalystSession(db, analystLink.user_id)
+      if (!session) {
+        return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
+      }
+
+      try {
+        const sessionClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+          { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
+        )
+
+        // Comparaison stock <= alert_threshold NON supportée nativement par
+        // PostgREST (comparaison colonne-à-colonne) - même limite déjà
+        // documentée côté client (products.service.ts) : filtre en mémoire
+        // après lecture, pas de solution serveur plus fine sans nouveau RPC.
+        const { data, error } = await sessionClient
+          .from('bar_products')
+          .select('local_name, stock, alert_threshold, global_products(name)')
+          .eq('bar_id', analystLink.bar_id)
+          .eq('is_active', true)
+          .not('alert_threshold', 'is', null)
+          .gt('alert_threshold', 0)
+        if (error) throw error
+
+        // CORRECTIF (code review multi-angle, 23/08/2026) : aucune borne
+        // n'existait, contrairement à obtenir_top_produits (limite 1-20).
+        // Un bar en rupture generalisee ou avec un catalogue large pouvait
+        // envoyer des dizaines/centaines de lignes dans le tour d'outil.
+        // Plafond fixe (pas de parametre modele - la liste sert a montrer
+        // des exemples concrets, pas un inventaire exhaustif) : les plus
+        // critiques d'abord (stock le plus bas relativement a son seuil).
+        const ALERTES_STOCK_MAX = 20
+        const toutesLesAlertes = (data ?? [])
+          .filter((p: Record<string, unknown>) => {
+            const stock = typeof p.stock === 'number' ? p.stock : 0
+            const seuil = typeof p.alert_threshold === 'number' ? p.alert_threshold : 0
+            return stock <= seuil
+          })
+
+        const produitsEnAlerte = toutesLesAlertes
+          .sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+            const ratioA = (typeof a.stock === 'number' ? a.stock : 0) / (typeof a.alert_threshold === 'number' ? a.alert_threshold : 1)
+            const ratioB = (typeof b.stock === 'number' ? b.stock : 0) / (typeof b.alert_threshold === 'number' ? b.alert_threshold : 1)
+            return ratioA - ratioB
+          })
+          .slice(0, ALERTES_STOCK_MAX)
+          .map((p: Record<string, unknown>) => {
+            const globalProduct = p.global_products as { name?: string } | null
+            return {
+              nom: p.local_name || globalProduct?.name || 'Produit sans nom',
+              stock_actuel: p.stock,
+              seuil_alerte: p.alert_threshold,
+            }
+          })
+
+        return {
+          ok: true,
+          data: {
+            nombre_produits_en_alerte: toutesLesAlertes.length,
+            produits_affiches: produitsEnAlerte.length,
+            note: "Ne concerne que les boissons actives (un produit désactivé n'est jamais compté ici, contrairement au tableau de bord de l'application) - un bar avec module restauration peut aussi avoir des ingrédients bas, non couverts ici. Si plus de 20 produits sont en alerte, seuls les 20 plus critiques sont listés (nombre_produits_en_alerte donne le total réel).",
+            produits: produitsEnAlerte,
           },
         }
       } finally {
