@@ -95,23 +95,38 @@ function normalizePhoneToMetaFormat(raw: string): string | null {
   // etre rejete tel quel par le garde de longueur final, jamais corrige
   // en lui collant un second indicatif.
   if (!digits.startsWith('229')) {
-    // Format national beninois : "0" initial suivi du numero local -
-    // seul cas ou l'indicatif doit etre ajoute.
-    if (digits.startsWith('0')) {
+    // CORRECTIF (bug reel constate en test terrain, 23/08/2026, capture
+    // d'ecran a l'appui) : le plan de numerotation beninois 2021 a
+    // prefixe TOUS les numeros existants (fixe et mobile) par "01" -
+    // l'ancien numero a 8 chiffres (ex: '97548310') est devenu un numero
+    // national a 10 chiffres ('0197548310'). Le wa_id reel envoye par
+    // Meta pour ce meme abonne reste '229' + les 8 chiffres d'origine
+    // (confirme en base sur wa_conversations.phone, 5 echantillons reels
+    // deja en prod, tous a 11 chiffres, aucun ne contient '01' apres
+    // '229') - Meta n'a jamais adopte le prefixe '01' dans son propre
+    // format, seul le plan national l'a fait. Retirer '0' seul (ancien
+    // comportement) laissait le '1' du prefixe present dans le resultat,
+    // produisant un numero corrompu a 12 chiffres au lieu de 11 (constate:
+    // saisie '0197548310' -> '229197548310' au lieu de '22997548310').
+    // Retirer '01' entier (2 caracteres) est donc la regle correcte pour
+    // TOUT numero national beninois moderne, pas une exception.
+    if (digits.startsWith('01')) {
+      digits = digits.slice(2)
+    } else if (digits.startsWith('0')) {
+      // Ancien format national encore possible en saisie (numero deja
+      // sans le prefixe 01, jamais mis a jour par son detenteur) - retirer
+      // uniquement le "0" de mise en forme, comme avant ce correctif.
       digits = digits.slice(1)
     }
     digits = `229${digits}`
   }
-  // LIMITE ASSUMEE (trouvee en code review, 22/08/2026) : un numero deja
-  // prefixe '229' mais contenant un '0' parasite juste apres (double
-  // saisie de l'indicatif ET du prefixe national, ex. '+229 0 90112233')
-  // n'est PAS nettoye ici - ce '0' pourrait aussi etre un chiffre
-  // legitime du numero local dans un plan de numerotation different
-  // (numero etranger, si l'app venait a s'ouvrir hors Benin). Une regle
-  // basee sur la longueur totale ("229 + 0 + 9 chiffres = trop long donc
-  // 0 parasite") serait specifique au plan beninois (229 + 8 chiffres)
-  // et casserait silencieusement un numero etranger legitime avec un
-  // format different - decision assumee de ne PAS ecrire cette
+  // LIMITE ASSUMEE (trouvee en code review, 22/08/2026, toujours valable
+  // apres le correctif ci-dessus) : un numero deja prefixe '229' mais
+  // contenant un '01' parasite juste apres (double saisie de l'indicatif
+  // ET du prefixe national, ex. '+229 01 97548310') n'est PAS nettoye ici
+  // - ce '01' pourrait aussi etre un debut legitime de numero local dans
+  // un plan de numerotation different (numero etranger, si l'app venait a
+  // s'ouvrir hors Benin). Decision assumee de ne PAS ecrire cette
   // heuristique tant que l'app cible uniquement le Benin. A revisiter
   // explicitement (avec une regle par indicatif, pas une heuristique de
   // longueur globale) le jour ou l'internationalisation est engagee.
