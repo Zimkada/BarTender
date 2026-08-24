@@ -524,6 +524,37 @@ async function revokeAnalystSession(adminDb: SupabaseClient, accessToken: string
 // résolu. Le bug déjà trouvé une fois sur ce mécanisme (signOut 'global'
 // au lieu de 'local') n'existe plus qu'à un seul endroit désormais, pas
 // dans chaque tool qui pourrait le recopier avec une variation.
+// Durée du travail réel (requêtes Postgres) du dernier withAnalystSession,
+// hors cérémonie de session Auth. Renseignée par withAnalystSession, lue
+// immédiatement après par la journalisation d'audit.
+//
+// ⚠️ CORRECTIF (code review, 24/08/2026) : la première version journalisait
+// la durée mesurée autour de tout executeTool, qui englobe la création ET la
+// révocation de session (allers-retours Auth) en plus des requêtes Postgres.
+// Le §7bis veut suivre le coût RPC réel - "un bar à fort volume ne coûte pas
+// la même chose qu'un bar test à 3 lignes" - or un chiffre confondu rend un
+// bar lent indiscernable d'une session Auth lente, ce qui prive la colonne de
+// sa raison d'être. Les deux durées sont désormais journalisées séparément.
+//
+// Variable de module plutôt qu'un changement de signature : withAnalystSession
+// est le SEUL endroit qui connaît la frontière entre cérémonie et travail
+// réel, et faire remonter la mesure par la valeur de retour obligerait à
+// modifier les 5 tools pour la transporter.
+//
+// Deux invariants distincts la rendent sûre - ne pas les confondre :
+//  1. PAS D'ENTRELACEMENT. Les tools s'exécutent en série (boucle for/await
+//     dans runClaude), donc jamais deux withAnalystSession concurrents. Entre
+//     requêtes HTTP simultanées, chaque isolate Deno a sa propre mémoire -
+//     une requête ne peut pas lire la valeur d'une autre.
+//  2. PAS DE VALEUR PÉRIMÉE (l'invariant réellement fragile, celui qui a
+//     produit un défaut en code review). Le reset au début de
+//     withAnalystSession ne suffit PAS : un tool qui sort avant d'ouvrir une
+//     session n'y entre jamais et laisserait donc la valeur du tool
+//     précédent. C'est le site d'appel qui garantit cet invariant, en
+//     consommant ET effaçant la valeur à chaque tool - voir le commentaire
+//     là-bas. Toute future lecture de cette variable doit faire de même.
+let lastAnalystWorkMs: number | null = null
+
 async function withAnalystSession(
   db: SupabaseClient,
   userId: string,
@@ -532,6 +563,7 @@ async function withAnalystSession(
   // il ne transforme jamais la réponse d'un tool.
   fn: (sessionClient: SupabaseClient) => Promise<{ ok: boolean; error?: string; data?: unknown }>,
 ): Promise<{ ok: boolean; error?: string; data?: unknown }> {
+  lastAnalystWorkMs = null
   const session = await createAnalystSession(db, userId)
   if (!session) {
     return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
@@ -542,7 +574,14 @@ async function withAnalystSession(
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
     )
-    return await fn(sessionClient)
+    const workStartedAt = Date.now()
+    try {
+      return await fn(sessionClient)
+    } finally {
+      // Mesurée même si fn() a échoué : une requête lente qui finit en erreur
+      // est exactement le genre de signal qu'on veut voir dans le journal.
+      lastAnalystWorkMs = Date.now() - workStartedAt
+    }
   } finally {
     // Révocation TOUJOURS tentée, succès ou échec de fn() - une session
     // analyste ne doit jamais rester valide au-delà de cet appel.
@@ -626,6 +665,97 @@ function rollingCalendarDateTimeRange(
   const startDateStr = startDate.toISOString()
   const endDateStr = endDate.toISOString()
   return { startDateStr, endDateStr, du: startDateStr.slice(0, 10), au: endDateStr.slice(0, 10) }
+}
+
+// =====================================================
+// Journalisation d'audit du mode analyste (§7, §10 étape 5)
+// =====================================================
+
+// Bornes de taille : l'input vient du modèle Claude, l'erreur peut venir de
+// Postgres (message potentiellement très long). Un journal ne doit jamais
+// pouvoir être gonflé par une valeur aberrante - on tronque plutôt que de
+// rejeter, pour ne jamais perdre la trace elle-même.
+const AUDIT_INPUT_MAX_CHARS = 2000
+const AUDIT_ERROR_MAX_CHARS = 500
+
+/**
+ * Journalise UN appel de tool du mode analyste (§7 : quel bar, quel tool,
+ * quels paramètres, horodatage ; §7bis : durée d'exécution comme tableau de
+ * bord du coût RPC réel).
+ *
+ * ⚠️ NON-BLOQUANT PAR CONSTRUCTION : un échec d'écriture du journal ne doit
+ * JAMAIS empêcher le promoteur d'obtenir sa réponse. Le journal est un filet
+ * de détection a posteriori, pas un maillon du chemin de réponse - le faire
+ * bloquer transformerait un incident de journalisation en panne du service.
+ * Toute erreur est donc avalée ici, après trace console (visible dans les
+ * logs de la fonction, qui restent le filet de dernier recours).
+ *
+ * Seuls les tools ANALYSTES sont journalisés. Les tools commerciaux (Aïcha)
+ * ne le sont pas : aucune donnée sensible en jeu, et les journaliser
+ * mélangerait deux canaux que tout le reste du design maintient séparés.
+ */
+async function logAnalystToolCall(
+  db: SupabaseClient,
+  analystLink: AnalystLink,
+  phone: string,
+  toolName: string,
+  input: Record<string, unknown>,
+  result: { ok: boolean; error?: string },
+  // Latence totale subie par le promoteur pour ce tool (cérémonie de session
+  // Auth comprise).
+  durationMs: number,
+  // Travail Postgres seul, hors cérémonie - null si le tool n'a ouvert aucune
+  // session ou si la création de session a échoué avant toute requête.
+  workMs: number | null,
+): Promise<void> {
+  try {
+    // JSON.stringify peut lever (référence circulaire) sur un input inattendu :
+    // on ne laisse pas ça faire échouer la journalisation entière.
+    let inputJson: unknown = null
+    try {
+      const serialized = JSON.stringify(input ?? {})
+      if (serialized.length > AUDIT_INPUT_MAX_CHARS) {
+        // ⚠️ CORRECTIF (code review, 24/08/2026) : la première version
+        // stockait `serialized.slice(0, MAX)`, soit un JSON coupé au milieu -
+        // du texte inexploitable par la requête d'audit à laquelle cette
+        // colonne sert justement (détecter un paramètre inattendu, ex. un
+        // bar_id qui n'aurait jamais dû s'y trouver). On conserve désormais
+        // la LISTE DES CLÉS, qui reste interrogeable et suffit à repérer une
+        // clé anormale, plus la taille pour savoir qu'on a écarté du contenu.
+        inputJson = {
+          _tronque: true,
+          _taille_originale: serialized.length,
+          _cles: Object.keys(input ?? {}).slice(0, 50),
+        }
+      } else {
+        inputJson = input
+      }
+    } catch {
+      // Input non sérialisable (référence circulaire) : on garde au moins la
+      // trace de l'anomalie plutôt que de perdre la ligne entière.
+      inputJson = { _non_serialisable: true }
+    }
+
+    const { error } = await db.from('wa_analyst_tool_audit').insert({
+      bar_id: analystLink.bar_id,
+      user_id: analystLink.user_id,
+      phone_wa_id: phone,
+      // Rôle revalidé en direct à CET appel par resolve_wa_bar_link, jamais
+      // le role_snapshot figé de wa_bar_links.
+      role: analystLink.role,
+      tool_name: toolName,
+      tool_input: inputJson,
+      success: result.ok,
+      error_message: result.ok ? null : (result.error ?? '').slice(0, AUDIT_ERROR_MAX_CHARS) || null,
+      duration_ms: durationMs,
+      work_ms: workMs,
+    })
+    if (error) {
+      console.error('[wa-webhook] Journalisation audit analyste échouée (non-bloquant):', error.message)
+    }
+  } catch (e) {
+    console.error('[wa-webhook] Journalisation audit analyste a levé une exception (non-bloquant):', e)
+  }
 }
 
 // =====================================================
@@ -1222,7 +1352,42 @@ async function runClaude(
     // Exécuter chaque tool, renvoyer les résultats, reboucler
     const results: Array<Record<string, unknown>> = []
     for (const tu of toolUses) {
-      const result = await executeTool(db, conv, String(tu.name), (tu.input ?? {}) as Record<string, unknown>, analystLink)
+      const toolName = String(tu.name)
+      const toolInput = (tu.input ?? {}) as Record<string, unknown>
+      const startedAt = Date.now()
+      const result = await executeTool(db, conv, toolName, toolInput, analystLink)
+
+      // ⭐ JOURNALISATION D'AUDIT (§7, §10 étape 5) : uniquement le mode
+      // analyste. Le test porte sur analystLink plutôt que sur une liste de
+      // noms de tools : activeTools vaut ANALYST_TOOLS si et seulement si
+      // analystLink est résolu (voir plus haut) - les deux jeux sont
+      // mutuellement exclusifs, donc tout tool exécuté ici avec un
+      // analystLink est analyste par construction. Aucune liste parallèle à
+      // maintenir : un futur 6e tool analyste est journalisé d'office, sans
+      // qu'on ait à s'en souvenir.
+      //
+      // await volontaire (et non fire-and-forget) : sur Deno Deploy, une
+      // promesse non attendue peut être coupée à la fin de l'invocation -
+      // un journal écrit une fois sur deux serait pire qu'informatif. Le
+      // coût est un INSERT local, et logAnalystToolCall n'échoue jamais
+      // (toute erreur y est avalée après trace console).
+      if (analystLink) {
+        // Renseignée par withAnalystSession pendant l'exécution ci-dessus.
+        // CONSOMMÉE ET REMISE À null immédiatement : un tool qui sort avant
+        // d'ouvrir une session (garde !analystLink, tool inconnu) ne passe
+        // jamais par withAnalystSession, donc n'écrase pas la variable - sans
+        // cet effacement il journaliserait le work_ms du tool PRÉCÉDENT
+        // (défaut trouvé en code review, 24/08/2026), alors que la colonne
+        // promet NULL dans ce cas. Lire un chiffre faux dans un journal
+        // d'audit est pire que lire une absence de chiffre.
+        const workMs = lastAnalystWorkMs
+        lastAnalystWorkMs = null
+        await logAnalystToolCall(
+          db, analystLink, conv.phone, toolName, toolInput, result,
+          Date.now() - startedAt, workMs,
+        )
+      }
+
       if (tu.name === 'escalader_humain' && result.ok) escaladed = true
       results.push({ type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(result) })
     }
