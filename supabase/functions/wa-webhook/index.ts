@@ -128,29 +128,48 @@ const ANALYST_TOOLS = [
       "Récupère les statistiques réelles du bar de l'interlocuteur sur une journée commerciale ou " +
       "une période (jamais un cumul depuis toujours) : nombre de ventes validées, chiffre d'affaires, " +
       "nombre de ventes en attente de validation. Sans paramètre, porte sur la JOURNÉE EN COURS. " +
-      "Utiliser nombre_jours et decalage_jours pour interroger le passé : hier = decalage_jours 1, " +
-      "les 7 derniers jours = nombre_jours 7, la semaine précédente = nombre_jours 7 avec " +
-      "decalage_jours 7. Le nombre de produits actifs est une exception, non daté : c'est un état " +
-      "actuel (catalogue), pas une mesure de la période. Le bar est toujours celui déjà résolu pour " +
-      "ce numéro WhatsApp, jamais un autre.",
+      "Deux façons d'interroger le passé : (1) DATE PRÉCISE ou période calendaire, avec date_debut " +
+      "et date_fin - à privilégier dès que la question mentionne une date, un mois ou un jour de " +
+      "semaine identifiable (le 15 août, en juillet, lundi dernier) ; (2) période RELATIVE, avec " +
+      "nombre_jours et decalage_jours - pour hier (decalage_jours 1), les 7 derniers jours " +
+      "(nombre_jours 7), la semaine précédente (nombre_jours 7 et decalage_jours 7). Si les deux " +
+      "sont fournis, les dates précises l'emportent. Le nombre de produits actifs est une exception, " +
+      "non daté : c'est un état actuel (catalogue), pas une mesure de la période. Le bar est " +
+      "toujours celui déjà résolu pour ce numéro WhatsApp, jamais un autre.",
     input_schema: {
       type: 'object',
       properties: {
+        date_debut: {
+          type: 'string',
+          description:
+            "Premier jour de la période, au format AAAA-MM-JJ (ex: 2026-08-15). Pour une journée " +
+            "unique, fournir seulement date_debut OU date_fin. La date du jour est rappelée dans " +
+            "la réponse de ce tool (champ aujourdhui) - s'y référer pour situer une question " +
+            "relative plutôt que de deviner. Doit être dans le passé, au plus un an en arrière.",
+        },
+        date_fin: {
+          type: 'string',
+          description:
+            "Dernier jour de la période, inclus, au format AAAA-MM-JJ. Période limitée à 90 jours : " +
+            "au-delà, seuls les 90 derniers jours avant date_fin sont comptés et la réponse le signale.",
+        },
         nombre_jours: {
           type: 'integer',
           minimum: 1,
           maximum: 90,
           description:
-            "Nombre de journées commerciales à agréger, en remontant depuis la fin de période. " +
-            "1 (défaut) = une seule journée. 7 = une semaine. Maximum 90.",
+            "Période relative : nombre de journées commerciales à agréger, en remontant depuis la " +
+            "fin de période. 1 (défaut) = une seule journée. 7 = une semaine. Ignoré si date_debut " +
+            "ou date_fin est fourni.",
         },
         decalage_jours: {
           type: 'integer',
           minimum: 0,
           maximum: 365,
           description:
-            "Décalage en jours vers le passé pour la FIN de la période. 0 (défaut) = jusqu'à " +
-            "aujourd'hui. 1 = jusqu'à hier. Maximum 365.",
+            "Période relative : décalage en jours vers le passé pour la FIN de la période. " +
+            "0 (défaut) = jusqu'à aujourd'hui. 1 = jusqu'à hier. Ignoré si date_debut ou date_fin " +
+            "est fourni.",
         },
       },
     },
@@ -743,6 +762,71 @@ function clampNombreJours(raw: unknown, fallback = 7): number {
     : fallback
 }
 
+/**
+ * Valide une date absolue fournie par le modèle Claude (⭐ 24/08/2026).
+ *
+ * POURQUOI DES DATES ABSOLUES : les paramètres relatifs (nombre_jours /
+ * decalage_jours) couvrent "hier" ou "les 7 derniers jours", mais obligent
+ * Claude à CALCULER un décalage pour "le 15 août" ou "le mois de juillet".
+ * Un calcul de calendrier sur plusieurs semaines de recul est exactement le
+ * genre d'opération où un modèle se trompe silencieusement - et une erreur
+ * de 2 jours produirait un chiffre d'affaires réel mais portant sur la
+ * mauvaise période, sans qu'aucune erreur ne remonte. Laisser Claude
+ * exprimer directement la date qu'il a lue dans la question supprime ce
+ * calcul intermédiaire.
+ *
+ * CE QUE ÇA NE CHANGE PAS : une date n'est PAS une autorisation. bar_id et
+ * user_id restent résolus par le code et absents du schéma (§3) - le modèle
+ * décrit toujours QUOI regarder, jamais À QUOI il a droit.
+ *
+ * Retourne null si la valeur est absente, malformée, inexistante au
+ * calendrier (31 février), ou hors de la plage plausible - jamais de
+ * correction silencieuse vers une date voisine, qui produirait le défaut
+ * même qu'on cherche à éviter.
+ */
+function parseDateAbsolue(raw: unknown, today: string): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null
+
+  // Re-sérialisation : rejette les dates syntaxiquement valides mais
+  // inexistantes (2026-02-31 deviendrait 2026-03-03 par débordement).
+  const parsed = new Date(`${trimmed}T00:00:00Z`)
+  if (Number.isNaN(parsed.getTime())) return null
+  if (parsed.toISOString().slice(0, 10) !== trimmed) return null
+
+  // ⚠️ CORRECTIF (code review, 24/08/2026, avant déploiement) : la borne
+  // haute était `today`, la date COMMERCIALE. Or Claude fournit une date
+  // CALENDAIRE (celle que le promoteur a dite). Pour un bar fermant à 6h,
+  // entre minuit et 6h la date commerciale est la VEILLE de la date
+  // calendaire : une question posée à 2h du matin sur "aujourd'hui" au sens
+  // calendaire était rejetée comme future, puis repliait silencieusement sur
+  // les paramètres relatifs - un chiffre réel étiqueté d'une autre période.
+  // C'est justement l'heure où un promoteur de bar consulte ses chiffres.
+  //
+  // La borne haute est donc la date calendaire du jour au Bénin (UTC+1), pas
+  // la date commerciale. Une date entre les deux ne renverra simplement
+  // aucune vente - ce qui est correct, la journée commerciale n'est pas
+  // encore ouverte, et l'écho de période dira exactement ce qui a été
+  // interrogé.
+  const nowBenin = new Date(Date.now() + BENIN_UTC_OFFSET_HOURS * 60 * 60 * 1000)
+  const todayCalendaire = nowBenin.toISOString().slice(0, 10)
+  // La plus tardive des deux : la date commerciale peut dépasser la
+  // calendaire dans l'autre sens (bar à closing_hour = 0), donc on ne peut
+  // pas présumer laquelle est en avance.
+  const borneHaute = todayCalendaire > today ? todayCalendaire : today
+  if (trimmed > borneHaute) return null
+
+  // Borne basse alignée sur decalage_jours (365 jours) - au-delà, la
+  // question relève de l'analyse historique, pas d'une conversation
+  // WhatsApp, et la fenêtre resterait bornée à 90 jours de toute façon.
+  const borneBasse = new Date(`${today}T00:00:00Z`)
+  borneBasse.setUTCDate(borneBasse.getUTCDate() - 365)
+  if (trimmed < borneBasse.toISOString().slice(0, 10)) return null
+
+  return trimmed
+}
+
 // Fenêtre glissante en DATE pure (YYYY-MM-DD, pas d'heure), ancrée sur
 // resolveBusinessDate - utilisée par les tools dont la période a un sens
 // par rapport à la journée commerciale du bar (ventes, articles vendus).
@@ -932,8 +1016,17 @@ async function executeTool(
       // journee en cours, le rendant incapable de repondre a "quel CA
       // hier ?" ou "combien cette semaine ?". Le comportement etait correct
       // (Claude refuse d'inventer un chiffre) mais la capacite manquait.
-      // Deux parametres facultatifs ajoutes, memes bornes et meme discipline
-      // de clamp que les 3 autres tools qui en ont deja.
+      // Parametres relatifs ajoutes (nombre_jours/decalage_jours), memes
+      // bornes et meme discipline de clamp que les 3 autres tools.
+      //
+      // ⭐ PUIS DATES ABSOLUES (24/08/2026, meme journee) : les parametres
+      // relatifs obligeaient Claude a calculer un decalage pour "le 15 aout"
+      // ou "en juillet" - un calcul de calendrier sur plusieurs semaines de
+      // recul, ou un modele se trompe silencieusement. Une erreur de 2 jours
+      // aurait produit un chiffre REEL sur la MAUVAISE periode, sans qu'aucune
+      // erreur ne remonte : le prompt interdit d'inventer un chiffre, mais ici
+      // le chiffre existe, c'est la periode qui est fausse. date_debut/date_fin
+      // suppriment ce calcul intermediaire (voir parseDateAbsolue).
       const nombreJours = clampNombreJours(input.nombre_jours, 1)
       const rawDecalage = input.decalage_jours
       // Decalage borne a 365 jours : au-dela, la question releve de
@@ -943,26 +1036,111 @@ async function executeTool(
         : 0
 
       return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
-        // Jour commercial courant - toujours le point d'ancrage, jamais une
-        // date fournie par le modele (§3 : le modele decrit une intention
-        // relative, le code resout les dates absolues).
+        // Jour commercial courant - toujours le point d'ancrage des
+        // parametres relatifs, et la borne haute de validation des dates
+        // absolues. Jamais fourni par le modele.
         const today = await resolveBusinessDate(sessionClient, analystLink.bar_id)
+
+        // ⭐ DATES ABSOLUES (24/08/2026) : quand Claude fournit une date
+        // exploitable, elle PRIME sur les parametres relatifs - il a lu une
+        // date dans la question ("le 15 aout", "en juillet"), inutile de lui
+        // faire refaire un calcul de decalage qu'il pourrait rater.
+        const dateDebutBrute = parseDateAbsolue(input.date_debut, today)
+        const dateFinBrute = parseDateAbsolue(input.date_fin, today)
+
+        // ⚠️ CORRECTIF (code review, 24/08/2026, avant deploiement) : la
+        // premiere version faisait `dateDebut ?? dateFin` des deux cotes, ce
+        // qui confondait deux intentions opposees. Si Claude fournissait
+        // date_debut='2026-02-01' ET date_fin='2026-02-31' (date inexistante,
+        // erreur plausible), la borne invalide retombait silencieusement sur
+        // la valide : le bot repondait le CA d'UNE SEULE JOURNEE a une
+        // question sur tout fevrier, avec un echo parfaitement coherent et
+        // aucun signal d'erreur. C'est precisement la classe de defaut que
+        // ces parametres existent pour eliminer (un chiffre reel sur la
+        // mauvaise periode).
+        //
+        // Distinction faite sur ce que le modele a FOURNI, pas sur ce qui a
+        // ete validé : une borne presente mais rejetee doit faire echouer la
+        // demande, jamais la retrecir en silence.
+        const debutFourni = input.date_debut !== undefined && input.date_debut !== null
+        const finFournie = input.date_fin !== undefined && input.date_fin !== null
+
+        if ((debutFourni && dateDebutBrute === null) || (finFournie && dateFinBrute === null)) {
+          // Echec explicite plutot que repli silencieux : Claude reformulera
+          // avec une date valide, ou dira au promoteur qu'il n'a pas compris
+          // la periode - jamais un chiffre sur une periode qu'il n'a pas
+          // demandee. Le message dit QUOI corriger, sinon le modele risque de
+          // reessayer a l'identique.
+          return {
+            ok: false,
+            error:
+              "Période invalide. Les dates doivent être au format AAAA-MM-JJ, exister au calendrier, "
+              + `être dans le passé (aujourd'hui = ${today}) et remonter à moins d'un an. `
+              + "Corriger la date ou utiliser nombre_jours/decalage_jours à la place.",
+          }
+        }
+
+        // Une seule borne FOURNIE = journee unique (cas "le 15 aout").
+        let dateDebut = dateDebutBrute ?? dateFinBrute
+        let dateFin = dateFinBrute ?? dateDebutBrute
+
+        // Bornes inversees : corrigees par echange plutot que rejetees - le
+        // RPC leverait de toute facon, et l'intention ("entre ces deux
+        // dates") ne fait aucun doute. L'echo de periode montrera l'ordre
+        // reellement applique.
+        if (dateDebut && dateFin && dateDebut > dateFin) {
+          const tmp = dateDebut
+          dateDebut = dateFin
+          dateFin = tmp
+        }
+
+        // Plage bornee a 90 jours, comme nombre_jours - une fenetre plus
+        // large n'a pas de sens dans une reponse WhatsApp de 2-4 phrases.
+        // On tronque le DEBUT (on garde la fin demandee, la plus recente) et
+        // l'echo de periode le signalera.
+        let plageTronquee = false
+        if (dateDebut && dateFin) {
+          const ecartJours = Math.round(
+            (new Date(`${dateFin}T00:00:00Z`).getTime() - new Date(`${dateDebut}T00:00:00Z`).getTime())
+            / (24 * 60 * 60 * 1000),
+          )
+          if (ecartJours > 89) {
+            const nouveauDebut = new Date(`${dateFin}T00:00:00Z`)
+            nouveauDebut.setUTCDate(nouveauDebut.getUTCDate() - 89)
+            dateDebut = nouveauDebut.toISOString().slice(0, 10)
+            plageTronquee = true
+          }
+        }
+
+        const utiliseDatesAbsolues = dateDebut !== null && dateFin !== null
 
         // Fin de periode = aujourd'hui - decalage_jours. Debut = fin -
         // (nombre_jours - 1). Une periode d'un jour a donc debut = fin.
         const endDateObj = new Date(`${today}T00:00:00Z`)
         endDateObj.setUTCDate(endDateObj.getUTCDate() - decalageJours)
-        const endDate = endDateObj.toISOString().slice(0, 10)
+        const endDate = utiliseDatesAbsolues ? dateFin! : endDateObj.toISOString().slice(0, 10)
 
         const startDateObj = new Date(endDateObj)
         startDateObj.setUTCDate(startDateObj.getUTCDate() - (nombreJours - 1))
-        const startDate = startDateObj.toISOString().slice(0, 10)
+        const startDate = utiliseDatesAbsolues ? dateDebut! : startDateObj.toISOString().slice(0, 10)
+
+        // Nombre de jours reellement couvert - recalcule depuis les bornes
+        // effectives, jamais repris de l'entree du modele : c'est ce chiffre
+        // qui est echoe, il doit decrire la periode REELLEMENT analysee.
+        const joursCouverts = utiliseDatesAbsolues
+          ? Math.round(
+            (new Date(`${endDate}T00:00:00Z`).getTime() - new Date(`${startDate}T00:00:00Z`).getTime())
+            / (24 * 60 * 60 * 1000),
+          ) + 1
+          : nombreJours
 
         // Journee en cours seule (le cas de loin le plus frequent) : on
         // garde get_bar_daily_stats, deja en prod et certifie. Sinon
         // get_bar_period_stats, dont le corps est repris a l'identique -
         // les memes questions donnent les memes chiffres.
-        const estJourneeEnCours = nombreJours === 1 && decalageJours === 0
+        const estJourneeEnCours = utiliseDatesAbsolues
+          ? (startDate === today && endDate === today)
+          : (nombreJours === 1 && decalageJours === 0)
         const { data, error } = estJourneeEnCours
           ? await sessionClient.rpc('get_bar_daily_stats', {
             p_bar_id: analystLink.bar_id,
@@ -1021,14 +1199,25 @@ async function executeTool(
               note: "Repère pour convertir une question relative (hier, lundi dernier, ce week-end) en decalage_jours - rappeler ce tool avec les bons paramètres si la période demandée ne correspond pas à celle analysée ci-dessous.",
             },
             ventes_periode: {
+              // Toujours calculé depuis les bornes EFFECTIVES (startDate /
+              // endDate / joursCouverts), jamais depuis ce que le modèle a
+              // demandé - si sa demande a été bornée, corrigée ou ignorée,
+              // c'est la période réelle qui doit apparaître ici.
               periode_analysee: estJourneeEnCours
                 ? `journée en cours (${today})`
-                : (nombreJours === 1
+                : (joursCouverts === 1
                   ? `journée du ${endDate}`
-                  : `du ${startDate} au ${endDate} inclus (${nombreJours} jours)`),
+                  : `du ${startDate} au ${endDate} inclus (${joursCouverts} jours)`),
               du: startDate,
               au: endDate,
-              nombre_jours: nombreJours,
+              nombre_jours: joursCouverts,
+              // Signalé seulement quand c'est arrivé, pour ne pas encombrer
+              // la réponse dans le cas normal.
+              ...(plageTronquee
+                ? {
+                  avertissement_plage: `La période demandée dépassait 90 jours : seuls les 90 derniers jours (à partir du ${startDate}) sont comptés. Le dire explicitement au promoteur, ne jamais présenter ce total comme couvrant toute la période qu'il a demandée.`,
+                }
+                : {}),
               total_ventes_validees: row.total_sales,
               chiffre_affaires: row.total_revenue,
               ventes_en_attente_validation: row.pending_sales,
