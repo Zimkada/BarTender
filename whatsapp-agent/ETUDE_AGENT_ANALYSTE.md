@@ -336,7 +336,7 @@ Liste de vérification des questions qui, si elles restent sans réponse, devien
 | Traçabilité en cas d'incident ? | **Résolu le 24/08/2026** : table `wa_analyst_tool_audit` en production (§7, §9, §10 étape 5). Chaque appel de tool analyste journalisé (bar, numéro, rôle revalidé, tool, paramètres, succès/erreur, latence totale et travail Postgres), verrouillée `service_role` en append-only. Détection cross-bar via l'index `(phone_wa_id, created_at)` |
 | Un même numéro WhatsApp lié à deux bars différents (promoteur multi-bar légitime) ? | Le lien (§4) doit permettre plusieurs entrées pour le même numéro **et** `wa_conversations` doit être revue pour porter un historique par couple (numéro, bar), pas un seul par numéro — voir §4bis, correction du 19/08/2026 suite à une contradiction relevée par une revue externe. L'ambiguïté de départ ("quel bar ?") se résout par une clarification explicite dans la conversation, jamais par un choix silencieux du premier trouvé |
 | `get_bar_live_alerts` est-elle sûre en l'état, indépendamment de cette étude ? | Non — trouvé en contre-certification, **corrigé et appliqué en prod le 18/08/2026** (migration `20260818090000_close_anon_execute_get_bar_live_alerts.sql`) : ACL était `PUBLIC`/`NULL`, jamais couverte par les vagues de durcissement existantes (§2.2) |
-| Les tools de stats reflètent-ils correctement un bar qui vend aussi des plats ? | Non pour 2 des 5 RPC candidats — trouvé en révision du 18/08/2026 après vérification directe du code (le module restauration est déjà en production, contrairement à ce qu'affirmait une mémoire de session périmée). Détail exact en §5bis, à corriger avant implémentation des tools concernés |
+| Les tools de stats reflètent-ils correctement un bar qui vend aussi des plats ? | Non pour 2 des 5 RPC candidats — trouvé en révision du 18/08/2026 après vérification directe du code (le module restauration est déjà en production, contrairement à ce qu'affirmait une mémoire de session périmée). Détail exact en §5bis. **Statut au 24/08/2026** : l'écart de comptage sur `get_bar_admin_stats` est devenu sans objet (ce RPC n'est plus utilisé par aucun tool — remplacé par `get_bar_daily_stats`/`get_bar_period_stats`). Le résidu de marge faussée sur `get_top_products_aggregated` subsiste : le tool porte une note explicite prévenant Claude, donc aucun chiffre trompeur n'est communiqué, mais la donnée reste incomplète pour un bar servant à manger — limite assumée, voir §11 |
 | Le JWT applicatif de la piste Session (§6) peut-il hériter du mécanisme d'impersonation existant ? | Vérifié absent sur le token généré par le test isolé du 21/08/2026 (`generateLink`/`verifyOtp`) — mais reste un risque si le code de génération est un jour partagé avec le chemin d'impersonation existant : à générer dans une fonction dédiée et isolée, jamais réutiliser ce chemin (§6) |
 
 ---
@@ -354,8 +354,8 @@ Liste de vérification des questions qui, si elles restent sans réponse, devien
   **Deux défauts trouvés en certifiant ces décisions (21/08/2026), avant d'écrire le moindre code d'implémentation :**
   1. `resolve_wa_bar_link()` (déjà en prod) ne filtrait pas sur `bar_members.role` — contredisait explicitement le §5 ("le filtrage doit se faire au moment de la résolution d'identité, pas en espérant que le prompt refuse poliment"). **Corrigé** : migration `20260821110000_resolve_wa_bar_link_role_filter.sql`. **Révisée le 21/08/2026 après code review multi-angle** : la première version (`AND bm.role != 'serveur'`, un denylist) laissait passer silencieusement `cuisinier` — 5ᵉ rôle légal sur `bar_members.role` depuis le 02/08/2026, avec exactement le même statut non-analyste que `serveur` (`canViewAnalytics`/`canViewForecasting` à `false`). Remplacée par un allowlist (`AND bm.role IN ('super_admin', 'promoteur', 'gerant')`), qui échoue fermé sur tout rôle non listé — y compris tout rôle futur, sans avoir à s'en souvenir explicitement. Migration jamais exécutée en production avant ce correctif.
   2. Le précédent `create-bar-member` (modèle explicitement cité pour `request-wa-bar-link`) vérifie le rôle général de l'appelant (`promoteur`/`super_admin`) mais **jamais** son appartenance au bar précis ciblé par l'opération (`is_bar_member(bar_id)`) — un défaut à ne pas reproduire. `request-wa-bar-link` doit vérifier explicitement `is_bar_member(bar_id)` (fonction existante, `auth.uid()`-based, `024_fix_all_permissions.sql:10`) avec le client authentifié au token de l'appelant, pas seulement son rôle en général. Sinon un promoteur du Bar A pourrait en théorie lier son numéro au Bar B en changeant juste le `bar_id` du payload envoyé à l'Edge Function.
-- La table de lien numéro→bar : schéma exact, migration, RLS (avec la contrainte composite `(phone, bar_id)` du §4bis).
-- **La migration de `wa_conversations` pour supporter une conversation par couple (numéro, bar)** (§4bis) — schéma exact de l'index composite, impact sur le code de chargement du webhook, plan de non-régression pour le bot commercial existant.
+- ~~La table de lien numéro→bar : schéma exact, migration, RLS~~ — **exécutée en production le 21/08/2026** (`20260821090000_create_wa_bar_links.sql`) : `wa_bar_links` avec `UNIQUE(phone_wa_id, bar_id)` (contrainte composite du §4bis, jamais `phone_wa_id` seul), RLS active sans policy + `REVOKE` anon/authenticated + `GRANT ALL TO service_role`, et `resolve_wa_bar_link()` revalidant `bar_members.is_active` et le rôle à CHAQUE appel.
+- ~~La migration de `wa_conversations` pour supporter une conversation par couple (numéro, bar)~~ (§4bis) — **exécutée en production le 21/08/2026** (`20260821090001_wa_conversations_multi_bar.sql`) : colonne `bar_id` nullable + 2 index uniques partiels (`phone` seul `WHERE bar_id IS NULL` pour le canal commercial, `(phone, bar_id)` `WHERE bar_id IS NOT NULL` pour l'analyste), ancienne contrainte `UNIQUE(phone)` supprimée. Post-vol : 8/8 conversations réelles préservées, 0 migrée par erreur, non-régression du bot commercial confirmée.
 - ~~Le mécanisme d'appel sécurisé des RPC n'est pas encore démontré~~ — **tranché le 21/08/2026** : la piste Session (§6) est démontrée par un test isolé et devient la voie retenue. Reste à spécifier : où et comment ce token est généré dans `wa-webhook` (fonction dédiée, isolée du chemin d'impersonation existant), sa durée de vie en usage réel, et la stratégie de révocation en fin d'échange (le test a démontré `signOut` fonctionnel, à intégrer dans le flux normal, pas seulement en test).
 - ~~La gestion précise du cas multi-bar dans le prompt et le flux conversationnel~~ — **mécanisme de résolution tranché et implémenté le 21/08/2026** (bar actif unique, bascule explicite, §8). Reste ouvert : la formulation exacte côté prompt (quelle phrase du promoteur déclenche `change_active_wa_bar_link`), un détail d'UX conversationnelle à spécifier à l'étape 3.
 - ~~Le format exact de journalisation d'audit (§7)~~ — **tranché, exécuté en prod et déployé le 24/08/2026** (migration `20260824090000_create_wa_analyst_tool_audit.sql`, post-vol certifié sur 11 points). Table dédiée `wa_analyst_tool_audit` : `bar_id`, `user_id`, `phone_wa_id`, `role` (revalidé à cet appel, jamais le `role_snapshot` figé), `tool_name`, `tool_input` (JSONB), `success`, `error_message`, `duration_ms`, `work_ms`, `created_at`. Décisions et leurs raisons :
@@ -389,7 +389,59 @@ Ordre de travail recommandé, chaque étape validée avant la suivante (mis à j
 3. Construire le mode analyste dans `wa-webhook` avec ce seul tool, roulé en interne (super_admin, sur son propre bar de test) avant tout accès promoteur réel.
 4. Étendre aux autres tools un par un, chacun avec sa propre vérification de non-fuite cross-bar (et pour `obtenir_resume_ventes`/`obtenir_top_produits`, la vérification de l'écart module restauration du §5bis).
 5. ~~Journalisation d'audit en place avant toute ouverture à un vrai client~~ — **faite le 24/08/2026** : table `wa_analyst_tool_audit` exécutée et vérifiée en prod (post-vol certifié sur 11 points), webhook déployé avec l'écriture branchée. Format, décisions et défauts trouvés en revue : voir §9. Le prérequis à l'ouverture client est donc levé.
-6. Ouverture progressive, en commençant par un unique bar pilote consentant.
+6. **SEULE ÉTAPE OUVERTE** — Ouverture progressive, en commençant par un unique bar pilote consentant. C'est une décision produit, pas une tâche technique : tous les prérequis posés par cette étude sont levés au 24/08/2026.
+
+---
+
+## 11. État au 24/08/2026 — fin de la construction, début de l'observation
+
+Le séquencement du §10 est parcouru : étapes 1 à 5 en production, seule l'étape 6 (décision produit) reste ouverte. Ce document a joué son rôle de cadrage pré-code et n'est plus le pilote du chantier — il devient sa mémoire.
+
+**Ce qui est en production** : schéma du lien numéro→bar, flux d'opt-in complet (UI + Edge Functions + 5 migrations), mécanisme de session sécurisé (piste Session, §6), 5 tools analystes, journalisation d'audit (`wa_analyst_tool_audit`).
+
+**Les 5 tools** : `obtenir_stats_bar` (journée en cours, période relative ou dates précises), `obtenir_top_produits`, `obtenir_alertes_stock`, `obtenir_performance_serveurs`, `obtenir_stats_promotions`.
+
+### La réserve qui compte le plus
+
+**Le mode analyste n'a été utilisé que par le fondateur, sur son bar de test. Aucun promoteur réel ne l'a encore employé.**
+
+Ce n'est pas une formalité. Sur ce chantier, les trois défauts les plus sérieux sont **tous** venus du terrain, aucun de la revue de code — alors que chacun avait traversé plusieurs passes de certification multi-angle :
+
+| Défaut | Trouvé par |
+|---|---|
+| Préfixe `01` du plan de numérotation béninois | Premier test réel (capture d'écran) |
+| `get_bar_admin_stats` cumulant tout l'historique | Comparaison avec le Dashboard |
+| Incapacité à répondre sur les jours passés | Usage courant |
+
+La revue de code reste indispensable — elle a intercepté le `GRANT service_role` manquant, le `COALESCE` inversé, la troncature TIMESTAMPTZ, et deux défauts de période sur les dates absolues, tous avant exécution. Mais elle ne remplace pas le contact avec un utilisateur réel, et l'inverse est également vrai.
+
+### Vérification restant à faire avant l'étape 6
+
+Le dernier test terrain (24/08, question sur le 23 août) a confirmé que Claude traduit correctement une date en paramètres, et que le tool interroge la bonne période. **La correspondance du montant annoncé avec celui du Dashboard n'a pas encore été confirmée** — c'est le contrôle qui avait révélé le défaut des statistiques cumulées, il mérite d'être refait sur une date passée avant toute ouverture à un client.
+
+### Limites connues, documentées, non bloquantes
+
+1. **Marge des plats faussée** dans `get_top_products_aggregated` (§5bis) — le vrai coût est dans `kitchen_order_items.computed_cost`. Le tool porte déjà une note prévenant Claude, donc aucun chiffre trompeur n'est communiqué, mais la donnée est incomplète pour un bar servant à manger.
+2. **Périodes calendaires exactes** ("depuis lundi", "la semaine du 10") — les fenêtres sont glissantes. Le tool fournit désormais la date du jour et son jour de semaine, donc Claude *peut* calculer un décalage correct, mais rien ne l'y oblige. À reprendre par un paramètre de période calendaire explicite si l'usage montre que l'imprécision gêne.
+3. **Formulation déclenchant `change_active_wa_bar_link`** (bascule de bar actif) — sans effet tant qu'un seul bar est lié, nécessaire dès qu'un promoteur multi-bar utilise le mode analyste.
+
+### Le journal d'audit comme instrument de la suite
+
+`wa_analyst_tool_audit` a payé son coût de construction le jour même de son déploiement : il a chiffré la cérémonie de session à 60% du temps d'un tool (819 ms contre 557 ms de travail utile), permis de décider la mutualisation sur une mesure plutôt qu'une intuition, puis confirmé son effet (écart nul sur les tools suivants d'un même message).
+
+C'est lui qui doit piloter la suite plutôt qu'un plan écrit à l'avance :
+
+```sql
+-- Quels tools servent vraiment ? Un tool jamais appelé coûte des tokens
+-- de schéma à chaque message et mérite d'être retiré, pas amélioré.
+SELECT tool_name, COUNT(*) AS appels, SUM((NOT success)::int) AS echecs,
+       ROUND(AVG(work_ms)) AS work_moyen_ms
+FROM wa_analyst_tool_audit GROUP BY tool_name ORDER BY appels DESC;
+
+-- Fuite cross-bar : la raison d'être première du journal. Zéro ligne attendu.
+SELECT phone_wa_id, COUNT(DISTINCT bar_id) AS nb_bars
+FROM wa_analyst_tool_audit GROUP BY phone_wa_id HAVING COUNT(DISTINCT bar_id) > 1;
+```
 
 Ne jamais sauter l'étape 1 pour aller plus vite sur les tools — c'est l'inverse de la priorité réelle de ce projet. Le mécanisme RPC est démontré, mais rien n'a encore été codé dans `wa-webhook` ni dans une migration — ce document reste un cadrage pré-code jusqu'à l'étape 3.
 
