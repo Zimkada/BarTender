@@ -125,15 +125,34 @@ const ANALYST_TOOLS = [
   {
     name: 'obtenir_stats_bar',
     description:
-      "Récupère les statistiques réelles du bar de l'interlocuteur POUR LA JOURNÉE COMMERCIALE " +
-      "EN COURS UNIQUEMENT (jamais un cumul depuis toujours) : nombre de ventes validées ce jour, " +
-      "chiffre d'affaires de ce jour, nombre de ventes en attente de validation ce jour. Le nombre " +
-      "de produits actifs est une exception, non daté : c'est un état actuel (catalogue), pas une " +
-      "mesure du jour. Aucun paramètre : porte toujours sur le bar déjà résolu pour ce numéro " +
-      "WhatsApp, jamais un autre bar.",
+      "Récupère les statistiques réelles du bar de l'interlocuteur sur une journée commerciale ou " +
+      "une période (jamais un cumul depuis toujours) : nombre de ventes validées, chiffre d'affaires, " +
+      "nombre de ventes en attente de validation. Sans paramètre, porte sur la JOURNÉE EN COURS. " +
+      "Utiliser nombre_jours et decalage_jours pour interroger le passé : hier = decalage_jours 1, " +
+      "les 7 derniers jours = nombre_jours 7, la semaine précédente = nombre_jours 7 avec " +
+      "decalage_jours 7. Le nombre de produits actifs est une exception, non daté : c'est un état " +
+      "actuel (catalogue), pas une mesure de la période. Le bar est toujours celui déjà résolu pour " +
+      "ce numéro WhatsApp, jamais un autre.",
     input_schema: {
       type: 'object',
-      properties: {},
+      properties: {
+        nombre_jours: {
+          type: 'integer',
+          minimum: 1,
+          maximum: 90,
+          description:
+            "Nombre de journées commerciales à agréger, en remontant depuis la fin de période. " +
+            "1 (défaut) = une seule journée. 7 = une semaine. Maximum 90.",
+        },
+        decalage_jours: {
+          type: 'integer',
+          minimum: 0,
+          maximum: 365,
+          description:
+            "Décalage en jours vers le passé pour la FIN de la période. 0 (défaut) = jusqu'à " +
+            "aujourd'hui. 1 = jusqu'à hier. Maximum 365.",
+        },
+      },
     },
   },
   {
@@ -228,6 +247,13 @@ const ANALYST_TOOLS = [
 // Noms des tools analystes, dérivés de ANALYST_TOOLS lui-même - jamais une
 // liste recopiée qui pourrait diverger en ajoutant un 6e tool.
 const ANALYST_TOOL_NAMES = new Set(ANALYST_TOOLS.map((t) => t.name))
+
+// Index = getUTCDay() (0 = dimanche). Table explicite plutôt que
+// toLocaleDateString('fr-FR') : la locale française n'est pas garantie
+// présente dans le runtime Deno Deploy, et un repli silencieux en anglais
+// dans une donnée lue par Claude produirait une réponse en français
+// mentionnant "Monday".
+const JOURS_SEMAINE = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
 
 // =====================================================
 // Types internes
@@ -900,18 +926,58 @@ async function executeTool(
       // prompt analyste ("jamais de chiffre qui induit en erreur").
       // Remplace par get_bar_daily_stats (20260823100000), filtre par
       // business_date.
-      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
-        const businessDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
+      //
+      // ⭐ EXTENSION AUX PERIODES PASSEES (24/08/2026, constate en usage
+      // reel) : le correctif ci-dessus avait fige ce tool sur la SEULE
+      // journee en cours, le rendant incapable de repondre a "quel CA
+      // hier ?" ou "combien cette semaine ?". Le comportement etait correct
+      // (Claude refuse d'inventer un chiffre) mais la capacite manquait.
+      // Deux parametres facultatifs ajoutes, memes bornes et meme discipline
+      // de clamp que les 3 autres tools qui en ont deja.
+      const nombreJours = clampNombreJours(input.nombre_jours, 1)
+      const rawDecalage = input.decalage_jours
+      // Decalage borne a 365 jours : au-dela, la question releve de
+      // l'analyse historique, pas d'une conversation WhatsApp.
+      const decalageJours = typeof rawDecalage === 'number' && Number.isInteger(rawDecalage)
+        ? Math.min(Math.max(rawDecalage, 0), 365)
+        : 0
 
-        const { data, error } = await sessionClient.rpc('get_bar_daily_stats', {
-          p_bar_id: analystLink.bar_id,
-          p_business_date: businessDate,
-        })
+      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
+        // Jour commercial courant - toujours le point d'ancrage, jamais une
+        // date fournie par le modele (§3 : le modele decrit une intention
+        // relative, le code resout les dates absolues).
+        const today = await resolveBusinessDate(sessionClient, analystLink.bar_id)
+
+        // Fin de periode = aujourd'hui - decalage_jours. Debut = fin -
+        // (nombre_jours - 1). Une periode d'un jour a donc debut = fin.
+        const endDateObj = new Date(`${today}T00:00:00Z`)
+        endDateObj.setUTCDate(endDateObj.getUTCDate() - decalageJours)
+        const endDate = endDateObj.toISOString().slice(0, 10)
+
+        const startDateObj = new Date(endDateObj)
+        startDateObj.setUTCDate(startDateObj.getUTCDate() - (nombreJours - 1))
+        const startDate = startDateObj.toISOString().slice(0, 10)
+
+        // Journee en cours seule (le cas de loin le plus frequent) : on
+        // garde get_bar_daily_stats, deja en prod et certifie. Sinon
+        // get_bar_period_stats, dont le corps est repris a l'identique -
+        // les memes questions donnent les memes chiffres.
+        const estJourneeEnCours = nombreJours === 1 && decalageJours === 0
+        const { data, error } = estJourneeEnCours
+          ? await sessionClient.rpc('get_bar_daily_stats', {
+            p_bar_id: analystLink.bar_id,
+            p_business_date: today,
+          })
+          : await sessionClient.rpc('get_bar_period_stats', {
+            p_bar_id: analystLink.bar_id,
+            p_start_date: startDate,
+            p_end_date: endDate,
+          })
         if (error) throw error
 
         const row = data?.[0]
         if (!row) {
-          return { ok: false, error: 'get_bar_daily_stats a retourné une réponse vide et inattendue.' }
+          return { ok: false, error: 'Le calcul des statistiques a retourné une réponse vide et inattendue.' }
         }
 
         // total_products = bar_products uniquement (boissons), n'inclut PAS
@@ -923,21 +989,59 @@ async function executeTool(
         //
         // CORRECTIF (code review multi-angle, 23/08/2026, confirmé par
         // plusieurs angles convergents) : total_products n'a AUCUN rapport
-        // avec businessDate (catalogue actuel, pas une mesure du jour), mais
+        // avec la période analysée (catalogue actuel, pas une mesure datée), mais
         // la 1ère version le plaçait au même niveau que journee_du et les 3
         // champs "_ce_jour" - une seule clé de prose (note_produits) portait
         // toute la charge de la distinction, fragile en cas de compression
         // de contexte sur une longue conversation. Restructuré en 2
         // sous-objets distincts : la structure elle-même porte la
         // distinction datée/non-datée, pas seulement la prose.
+        // La periode effectivement calculee est TOUJOURS echoee, y compris
+        // quand Claude n'a rien demande de particulier - il ne doit jamais
+        // pouvoir presenter le chiffre d'une semaine comme celui d'une
+        // journee, ni l'inverse. Les cles elles-memes portent la distinction
+        // (periode_analysee, pas ventes_du_jour), pas seulement la prose :
+        // meme raisonnement que la restructuration du 23/08 sur
+        // catalogue_actuel, une cle de prose isolee est fragile en cas de
+        // compression de contexte sur une longue conversation.
         return {
           ok: true,
           data: {
-            ventes_du_jour: {
-              journee_du: businessDate,
+            // Repère temporel fourni dans les DONNÉES, jamais dans le system
+            // prompt : celui-ci est mis en cache et doit rester identique
+            // d'un appel à l'autre (§7bis, optimisation 1 - "tout ce qui
+            // varie par conversation doit rester dans les messages"). Y
+            // injecter la date casserait le cache à chaque changement de
+            // jour. Sans ce repère, Claude ne peut pas traduire "lundi
+            // dernier" ou "ce week-end" en decalage_jours - il devrait
+            // deviner, ce que le prompt lui interdit.
+            aujourdhui: {
+              journee_commerciale: today,
+              jour_semaine: JOURS_SEMAINE[new Date(`${today}T00:00:00Z`).getUTCDay()],
+              note: "Repère pour convertir une question relative (hier, lundi dernier, ce week-end) en decalage_jours - rappeler ce tool avec les bons paramètres si la période demandée ne correspond pas à celle analysée ci-dessous.",
+            },
+            ventes_periode: {
+              periode_analysee: estJourneeEnCours
+                ? `journée en cours (${today})`
+                : (nombreJours === 1
+                  ? `journée du ${endDate}`
+                  : `du ${startDate} au ${endDate} inclus (${nombreJours} jours)`),
+              du: startDate,
+              au: endDate,
+              nombre_jours: nombreJours,
               total_ventes_validees: row.total_sales,
               chiffre_affaires: row.total_revenue,
               ventes_en_attente_validation: row.pending_sales,
+              // pending_sales ne veut pas dire la même chose selon la période
+              // (trouvé en code review, 24/08/2026) : sur la journée en cours
+              // c'est une file d'attente vivante, que le gérant va traiter ;
+              // sur une période passée c'est un reliquat jamais validé, donc
+              // une anomalie à signaler, pas une tâche en cours. Sans cette
+              // note, Claude dirait "vous avez 3 ventes à valider" pour des
+              // ventes vieilles de trois semaines.
+              note_ventes_en_attente: estJourneeEnCours
+                ? "File d'attente du jour : ventes enregistrées par les serveurs, pas encore validées."
+                : "Période passée : ces ventes n'ont JAMAIS été validées, ce n'est pas une file d'attente en cours mais un reliquat - le signaler comme une anomalie si le nombre est notable.",
             },
             catalogue_actuel: {
               note: "Etat actuel du catalogue, pas une mesure de la journee - ne jamais presenter ce chiffre comme datant d'aujourd'hui.",
