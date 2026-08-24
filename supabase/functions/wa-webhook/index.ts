@@ -573,6 +573,61 @@ async function resolveBusinessDate(sessionClient: SupabaseClient, barId: string)
   return getCurrentBusinessDateString(closingHour)
 }
 
+// ⭐ HELPERS EXTRAITS (24/08/2026, passe de factorisation dédiée) : le
+// clamp nombre_jours était recopié 3 fois (obtenir_top_produits,
+// obtenir_performance_serveurs, obtenir_stats_promotions), l'arithmétique
+// de fenêtre glissante en 2 variantes non partagées. Extraction faite
+// séparément du dernier correctif de bug (ce dernier mélangeait déjà un
+// correctif critique avec cette dette, jugé plus sûr de ne pas cumuler
+// les deux dans le même commit).
+//
+// Validation identique à ce qui existait déjà à chaque site d'appel :
+// une valeur hors 1-90 est clampée (pas rejetée), seule une valeur non
+// numérique/absente retombe sur le défaut - jamais de changement de
+// comportement, uniquement une centralisation.
+function clampNombreJours(raw: unknown, fallback = 7): number {
+  return typeof raw === 'number' && Number.isInteger(raw)
+    ? Math.min(Math.max(raw, 1), 90)
+    : fallback
+}
+
+// Fenêtre glissante en DATE pure (YYYY-MM-DD, pas d'heure), ancrée sur
+// resolveBusinessDate - utilisée par les tools dont la période a un sens
+// par rapport à la journée commerciale du bar (ventes, articles vendus).
+// ⚠️ NE PAS fusionner avec rollingCalendarDateTimeRange ci-dessous : les
+// deux existent séparément à dessein, la distinction sémantique est
+// réelle (voir son propre commentaire), pas seulement stylistique.
+async function rollingBusinessDateRange(
+  sessionClient: SupabaseClient,
+  barId: string,
+  nombreJours: number,
+): Promise<{ startDateStr: string; endDate: string }> {
+  const endDate = await resolveBusinessDate(sessionClient, barId)
+  const startDate = new Date(`${endDate}T00:00:00Z`)
+  startDate.setUTCDate(startDate.getUTCDate() - (nombreJours - 1))
+  return { startDateStr: startDate.toISOString().slice(0, 10), endDate }
+}
+
+// Fenêtre glissante en TIMESTAMPTZ complet (avec heure de fin de journée),
+// ancrée sur l'instant UTC courant - utilisée par les tools qui comparent
+// à un TIMESTAMPTZ côté SQL (ex: applied_at) plutôt qu'à une DATE/
+// business_date. CORRECTIF déjà appliqué une fois (24/08/2026, bug réel
+// trouvé en code review) : sans l'heure de fin de journée explicite
+// (23:59:59.999), une date nue cast à minuit côté SQL exclut silencieusement
+// la journée en cours - même piège déjà connu ailleurs dans ce projet
+// (src/utils/dateRangeCalculator.ts:137).
+function rollingCalendarDateTimeRange(
+  nombreJours: number,
+): { startDateStr: string; endDateStr: string; du: string; au: string } {
+  const endDate = new Date()
+  endDate.setUTCHours(23, 59, 59, 999)
+  const startDate = new Date(endDate.getTime() - (nombreJours - 1) * 24 * 60 * 60 * 1000)
+  startDate.setUTCHours(0, 0, 0, 0)
+  const startDateStr = startDate.toISOString()
+  const endDateStr = endDate.toISOString()
+  return { startDateStr, endDateStr, du: startDateStr.slice(0, 10), au: endDateStr.slice(0, 10) }
+}
+
 // =====================================================
 // Exécution des tools (écritures DB immédiates)
 // =====================================================
@@ -678,21 +733,21 @@ async function executeTool(
         return { ok: false, error: 'obtenir_top_produits appelé sans identité analyste résolue.' }
       }
 
-      // CORRECTIF (code review multi-angle, 23/08/2026) : nombreJours/limite
-      // faisaient un rejet-vers-defaut (une valeur hors plage retombait sur
-      // le petit defaut, 5 ou 7) plutot qu'un clamp-vers-maximum - une
-      // demande legitime "top 30" tombait silencieusement a 5 resultats au
-      // lieu du maximum documente (20), sans aucun signal a Claude que la
-      // demande avait ete reduite plutot que satisfaite au maximum permis.
-      // Desormais : une valeur numerique hors plage est ramenee a la borne
-      // la plus proche (clamp), seule une valeur non numerique/absente
-      // retombe sur le defaut. Le clamp reel applique est toujours renvoye
-      // dans la reponse (voir plus bas) pour que Claude ne presente jamais
-      // un resultat partiel comme s'il satisfaisait la demande initiale.
-      const rawDays = input.nombre_jours
-      const nombreJours = typeof rawDays === 'number' && Number.isInteger(rawDays)
-        ? Math.min(Math.max(rawDays, 1), 90)
-        : 7
+      const nombreJours = clampNombreJours(input.nombre_jours)
+
+      // CORRECTIF (code review multi-angle, 23/08/2026) : limite faisait un
+      // rejet-vers-defaut (une valeur hors plage retombait sur le petit
+      // defaut, 5) plutot qu'un clamp-vers-maximum - une demande legitime
+      // "top 30" tombait silencieusement a 5 resultats au lieu du maximum
+      // documente (20), sans aucun signal a Claude que la demande avait ete
+      // reduite plutot que satisfaite au maximum permis. Desormais : une
+      // valeur numerique hors plage est ramenee a la borne la plus proche
+      // (clamp), seule une valeur non numerique/absente retombe sur le
+      // defaut. Le clamp reel applique est toujours renvoye dans la reponse
+      // (voir plus bas) pour que Claude ne presente jamais un resultat
+      // partiel comme s'il satisfaisait la demande initiale. Meme garantie
+      // pour nombre_jours, desormais portee par clampNombreJours (ci-dessus)
+      // et echoee dans periode.nombre_jours.
       const rawLimit = input.limite
       const limite = typeof rawLimit === 'number' && Number.isInteger(rawLimit)
         ? Math.min(Math.max(rawLimit, 1), 20)
@@ -701,13 +756,7 @@ async function executeTool(
       const trierPar = (rawSort === 'revenue' || rawSort === 'profit') ? rawSort : 'quantity'
 
       return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
-        const endDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
-        // Fenêtre glissante en JOURS CALENDAIRES simples (pas de notion
-        // d'heure de clôture pour le point de départ - contrairement au jour
-        // courant, "il y a N jours" n'a pas d'ambiguïté liée à la clôture).
-        const startDate = new Date(`${endDate}T00:00:00Z`)
-        startDate.setUTCDate(startDate.getUTCDate() - (nombreJours - 1))
-        const startDateStr = startDate.toISOString().slice(0, 10)
+        const { startDateStr, endDate } = await rollingBusinessDateRange(sessionClient, analystLink.bar_id, nombreJours)
 
         const { data, error } = await sessionClient.rpc('get_top_products_aggregated', {
           p_bar_id: analystLink.bar_id,
@@ -864,16 +913,10 @@ async function executeTool(
         return { ok: false, error: 'obtenir_performance_serveurs appelé sans identité analyste résolue.' }
       }
 
-      const rawDays = input.nombre_jours
-      const nombreJours = typeof rawDays === 'number' && Number.isInteger(rawDays)
-        ? Math.min(Math.max(rawDays, 1), 90)
-        : 7
+      const nombreJours = clampNombreJours(input.nombre_jours)
 
       return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
-        const endDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
-        const startDate = new Date(`${endDate}T00:00:00Z`)
-        startDate.setUTCDate(startDate.getUTCDate() - (nombreJours - 1))
-        const startDateStr = startDate.toISOString().slice(0, 10)
+        const { startDateStr, endDate } = await rollingBusinessDateRange(sessionClient, analystLink.bar_id, nombreJours)
 
         const { data, error } = await sessionClient.rpc('get_bar_server_performance', {
           p_bar_id: analystLink.bar_id,
@@ -918,37 +961,11 @@ async function executeTool(
         return { ok: false, error: 'obtenir_stats_promotions appelé sans identité analyste résolue.' }
       }
 
-      // ⚠️ DUPLICATION SIGNALÉE (code review multi-angle, 24/08/2026) : ce
-      // clamp nombre_jours est désormais recopié 3 fois (obtenir_top_produits,
-      // obtenir_performance_serveurs, ici). Non extrait dans ce commit -
-      // pas mélanger un correctif de bug critique (troncature de date ci-
-      // dessous) avec un 2e refactoring dans le même changement. À faire
-      // dans une passe dédiée, avec l'arithmétique de fenêtre glissante
-      // (2 variantes existent déjà : template-string ancrée sur
-      // resolveBusinessDate, et celle-ci basée sur new Date() + ms).
-      const rawDays = input.nombre_jours
-      const nombreJours = typeof rawDays === 'number' && Number.isInteger(rawDays)
-        ? Math.min(Math.max(rawDays, 1), 90)
-        : 7
+      const nombreJours = clampNombreJours(input.nombre_jours)
 
       return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
-        // CORRECTIF (code review multi-angle, 24/08/2026, confirmé par
-        // lecture directe du corps SQL des 2 RPC) : applied_at est un
-        // TIMESTAMPTZ, comparé via `<= p_end_date::TIMESTAMP` - une date nue
-        // ('2026-08-24') caste à minuit (00:00:00) de ce jour, excluant
-        // silencieusement quasiment toute la journée en cours de chaque
-        // requête. Le reste de l'app évite déjà ce piège explicitement
-        // (src/utils/dateRangeCalculator.ts:137, endDate.setHours(23,59,59,999)
-        // avant sérialisation) - même correctif appliqué ici.
-        const endDate = new Date()
-        endDate.setUTCHours(23, 59, 59, 999)
-        const startDate = new Date(endDate.getTime() - (nombreJours - 1) * 24 * 60 * 60 * 1000)
-        startDate.setUTCHours(0, 0, 0, 0)
-        const startDateStr = startDate.toISOString()
-        const endDateStr = endDate.toISOString()
-        // Affichée à Claude sous forme de simples dates (pas d'heure) - la
-        // borne réelle envoyée aux RPC couvre bien la journée entière.
-        const periodeAffichee = { du: startDateStr.slice(0, 10), au: endDateStr.slice(0, 10), nombre_jours: nombreJours }
+        const { startDateStr, endDateStr, du, au } = rollingCalendarDateTimeRange(nombreJours)
+        const periodeAffichee = { du, au, nombre_jours: nombreJours }
 
         // Les deux RPC sont indépendants (aucune dépendance de données
         // entre eux) - appelés en parallèle plutôt qu'en série, contrairement
