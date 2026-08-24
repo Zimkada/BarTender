@@ -225,6 +225,10 @@ const ANALYST_TOOLS = [
   },
 ]
 
+// Noms des tools analystes, dérivés de ANALYST_TOOLS lui-même - jamais une
+// liste recopiée qui pourrait diverger en ajoutant un 6e tool.
+const ANALYST_TOOL_NAMES = new Set(ANALYST_TOOLS.map((t) => t.name))
+
 // =====================================================
 // Types internes
 // =====================================================
@@ -519,11 +523,16 @@ async function revokeAnalystSession(adminDb: SupabaseClient, accessToken: string
 // pas mêlée à l'ajout de la fonctionnalité elle-même dans le même commit,
 // conformément à la règle du projet sur les refactorings non demandés.
 //
-// Centralise création de session + client scopé + révocation garantie
-// (finally) autour d'un appel qui a besoin de la session du promoteur
-// résolu. Le bug déjà trouvé une fois sur ce mécanisme (signOut 'global'
-// au lieu de 'local') n'existe plus qu'à un seul endroit désormais, pas
-// dans chaque tool qui pourrait le recopier avec une variation.
+// Centralise l'obtention du client scopé à la session du promoteur résolu.
+// Le bug déjà trouvé une fois sur ce mécanisme (signOut 'global' au lieu de
+// 'local') n'existe plus qu'à un seul endroit désormais, pas dans chaque
+// tool qui pourrait le recopier avec une variation.
+//
+// ⭐ MISE À JOUR (24/08/2026) : ce helper ne crée et ne révoque plus une
+// session PAR APPEL - il consomme un scope mutualisé sur le message (voir
+// AnalystSessionScope). La révocation a lieu une seule fois, en fin de
+// message, dans runClaude.
+
 // Durée du travail réel (requêtes Postgres) du dernier withAnalystSession,
 // hors cérémonie de session Auth. Renseignée par withAnalystSession, lue
 // immédiatement après par la journalisation d'audit.
@@ -555,8 +564,70 @@ async function revokeAnalystSession(adminDb: SupabaseClient, accessToken: string
 //     là-bas. Toute future lecture de cette variable doit faire de même.
 let lastAnalystWorkMs: number | null = null
 
+/**
+ * Session analyste mutualisée sur la durée d'UN message (⭐ 24/08/2026).
+ *
+ * Créée paresseusement au premier tool qui en a besoin, réutilisée par les
+ * tools suivants du même message, révoquée une seule fois en fin de message
+ * par closeAnalystSessionScope().
+ *
+ * POURQUOI : la première version créait ET révoquait une session par tool,
+ * soit 4 allers-retours Auth (getUserById, generateLink, verifyOtp, signOut)
+ * à chaque fois. Première mesure réelle en production (journal d'audit,
+ * 24/08/2026) : 819 ms de cérémonie pour 557 ms de travail Postgres utile -
+ * 60% du temps passé à ouvrir/fermer une session pour une identité qui ne
+ * change pas pendant le message. Une question enchaînant 3 tools payait
+ * 12 allers-retours Auth au lieu de 4.
+ *
+ * CE QUE ÇA CHANGE POUR LA SÉCURITÉ : la session vit le temps du message
+ * (quelques secondes) au lieu du tool. Elle reste éphémère, révoquée
+ * systématiquement (finally au niveau du message), jamais exposée hors de
+ * l'Edge Function. La garantie qui compte est strictement inchangée : les
+ * RPC sont toujours appelés SOUS LA SESSION DU PROMOTEUR RÉSOLU, leur guard
+ * is_bar_member s'applique tel quel, aucun RPC partagé n'est modifié et on
+ * ne retombe jamais sur service_role pour lire des données (§6).
+ *
+ * PORTÉE : un scope par appel de runClaude(), qui traite exactement un
+ * message. Le userId est figé à la création - si un futur code devait
+ * résoudre une autre identité dans le même message, il faudrait un nouveau
+ * scope, jamais réutiliser celui-ci (garde explicite ci-dessous).
+ */
+interface AnalystSessionScope {
+  userId: string
+  session: AnalystSession | null
+  client: SupabaseClient | null
+  // Mémorise un échec de création pour ne pas le retenter à chaque tool du
+  // même message : si generateLink échoue une fois, il échouera pareil 200 ms
+  // plus tard, et réessayer ne ferait qu'ajouter de la latence à un message
+  // déjà en échec.
+  failed: boolean
+}
+
+function createAnalystSessionScope(userId: string): AnalystSessionScope {
+  return { userId, session: null, client: null, failed: false }
+}
+
+/**
+ * Révoque la session du scope si une a été créée. À appeler exactement une
+ * fois, en fin de message, dans un finally - une session analyste ne doit
+ * jamais survivre au message qui l'a nécessitée.
+ */
+async function closeAnalystSessionScope(db: SupabaseClient, scope: AnalystSessionScope): Promise<void> {
+  if (!scope.session) return
+  const token = scope.session.accessToken
+  // Neutralisé AVANT la révocation : si closeAnalystSessionScope était appelé
+  // deux fois (ou si un tool tentait de réutiliser le scope après fermeture),
+  // on ne révoque pas deux fois le même token et on ne rend pas un client
+  // pointant sur une session morte.
+  scope.session = null
+  scope.client = null
+  scope.failed = true
+  await revokeAnalystSession(db, token)
+}
+
 async function withAnalystSession(
   db: SupabaseClient,
+  scope: AnalystSessionScope,
   userId: string,
   // fn retourne directement la forme finale attendue par executeTool -
   // le helper ne fait que fournir sessionClient et garantir la révocation,
@@ -564,28 +635,44 @@ async function withAnalystSession(
   fn: (sessionClient: SupabaseClient) => Promise<{ ok: boolean; error?: string; data?: unknown }>,
 ): Promise<{ ok: boolean; error?: string; data?: unknown }> {
   lastAnalystWorkMs = null
-  const session = await createAnalystSession(db, userId)
-  if (!session) {
+
+  // Garde de cohérence : le scope est lié à UNE identité résolue. Réutiliser
+  // un scope créé pour un autre utilisateur ferait lire les données sous la
+  // mauvaise session - exactement le type de fuite que tout ce mécanisme
+  // existe pour empêcher. Échec fermé, jamais de repli silencieux.
+  if (scope.userId !== userId) {
+    console.error('[wa-webhook] withAnalystSession: scope userId incohérent - refus.')
+    return { ok: false, error: "Impossible de consulter les données du bar (incohérence de session)." }
+  }
+
+  if (!scope.client && !scope.failed) {
+    const session = await createAnalystSession(db, userId)
+    if (session) {
+      scope.session = session
+      scope.client = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
+      )
+    } else {
+      scope.failed = true
+    }
+  }
+
+  if (!scope.client) {
     return { ok: false, error: "Impossible de générer une session pour consulter les données du bar." }
   }
+
+  const workStartedAt = Date.now()
   try {
-    const sessionClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: `Bearer ${session.accessToken}` } } },
-    )
-    const workStartedAt = Date.now()
-    try {
-      return await fn(sessionClient)
-    } finally {
-      // Mesurée même si fn() a échoué : une requête lente qui finit en erreur
-      // est exactement le genre de signal qu'on veut voir dans le journal.
-      lastAnalystWorkMs = Date.now() - workStartedAt
-    }
+    return await fn(scope.client)
   } finally {
-    // Révocation TOUJOURS tentée, succès ou échec de fn() - une session
-    // analyste ne doit jamais rester valide au-delà de cet appel.
-    await revokeAnalystSession(db, session.accessToken)
+    // Mesurée même si fn() a échoué : une requête lente qui finit en erreur
+    // est exactement le genre de signal qu'on veut voir dans le journal.
+    // Note : pour le 2e tool et les suivants d'un même message, work_ms et
+    // duration_ms sont désormais proches - la cérémonie n'est plus payée
+    // qu'une fois, sur le premier tool.
+    lastAnalystWorkMs = Date.now() - workStartedAt
   }
 }
 
@@ -771,8 +858,22 @@ async function executeTool(
   // (createAnalystSession a besoin du user_id résolu), absent/null pour tous
   // les tools commerciaux existants (aucun changement de comportement pour eux).
   analystLink: AnalystLink | null = null,
+  // Session mutualisée sur le message (⭐ 24/08/2026) - null pour les tools
+  // commerciaux, qui n'ouvrent jamais de session.
+  sessionScope: AnalystSessionScope | null = null,
 ): Promise<{ ok: boolean; error?: string; data?: unknown }> {
   try {
+    // Garde unique pour TOUS les tools analystes (⭐ 24/08/2026, mutualisation
+    // de session) : un tool de données ne peut rien faire sans un scope de
+    // session. Posée ici plutôt que recopiée dans les 5 gardes individuelles -
+    // un futur 6e tool est couvert d'office, sans qu'on ait à y penser. La
+    // liste vient de ANALYST_TOOLS lui-même, jamais d'une liste parallèle qui
+    // pourrait diverger.
+    if (!sessionScope && ANALYST_TOOL_NAMES.has(name)) {
+      console.error('[wa-webhook] executeTool: tool analyste appelé sans scope de session:', name)
+      return { ok: false, error: 'Impossible de consulter les données du bar (session indisponible).' }
+    }
+
     // ⭐ ÉTAPE 3 DU BRANCHEMENT MODE ANALYSTE (23/08/2026, §6/§10 étape 3) :
     // premier tool de données réelles. db ici est le client service_role du
     // handler (voir handler principal) - utilisé UNIQUEMENT pour générer la
@@ -799,7 +900,7 @@ async function executeTool(
       // prompt analyste ("jamais de chiffre qui induit en erreur").
       // Remplace par get_bar_daily_stats (20260823100000), filtre par
       // business_date.
-      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
         const businessDate = await resolveBusinessDate(sessionClient, analystLink.bar_id)
 
         const { data, error } = await sessionClient.rpc('get_bar_daily_stats', {
@@ -885,7 +986,7 @@ async function executeTool(
       const rawSort = input.trier_par
       const trierPar = (rawSort === 'revenue' || rawSort === 'profit') ? rawSort : 'quantity'
 
-      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
         const { startDateStr, endDate } = await rollingBusinessDateRange(sessionClient, analystLink.bar_id, nombreJours)
 
         const { data, error } = await sessionClient.rpc('get_top_products_aggregated', {
@@ -967,7 +1068,7 @@ async function executeTool(
         return { ok: false, error: 'obtenir_alertes_stock appelé sans identité analyste résolue.' }
       }
 
-      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
         // Comparaison stock <= alert_threshold NON supportée nativement par
         // PostgREST (comparaison colonne-à-colonne) - même limite déjà
         // documentée côté client (products.service.ts) : filtre en mémoire
@@ -1045,7 +1146,7 @@ async function executeTool(
 
       const nombreJours = clampNombreJours(input.nombre_jours)
 
-      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
         const { startDateStr, endDate } = await rollingBusinessDateRange(sessionClient, analystLink.bar_id, nombreJours)
 
         const { data, error } = await sessionClient.rpc('get_bar_server_performance', {
@@ -1093,7 +1194,7 @@ async function executeTool(
 
       const nombreJours = clampNombreJours(input.nombre_jours)
 
-      return await withAnalystSession(db, analystLink.user_id, async (sessionClient) => {
+      return await withAnalystSession(db, sessionScope!, analystLink.user_id, async (sessionClient) => {
         const { startDateStr, endDateStr, du, au } = rollingCalendarDateTimeRange(nombreJours)
         const periodeAffichee = { du, au, nombre_jours: nombreJours }
 
@@ -1268,6 +1369,29 @@ async function runClaude(
   // createAnalystSession pour l'exécution du tool obtenir_stats_bar.
   analystLink: AnalystLink | null = null,
 ): Promise<{ text: string; escaladed: boolean }> {
+  // ⭐ MUTUALISATION DE SESSION (24/08/2026) : un seul scope pour tout le
+  // message. runClaude traite exactement un message, c'est donc la bonne
+  // portée. La session est créée paresseusement par le premier tool qui en a
+  // besoin (aucune session ouverte si le message ne déclenche aucun tool de
+  // données - cas fréquent, §4ter : un promoteur lié pose aussi des questions
+  // de support ordinaire) et révoquée ici, une seule fois, quoi qu'il arrive.
+  const sessionScope = analystLink ? createAnalystSessionScope(analystLink.user_id) : null
+  try {
+    return await runClaudeInner(db, conv, history, analystLink, sessionScope)
+  } finally {
+    // finally : la session ne doit JAMAIS survivre au message, même si la
+    // boucle Claude lève (réseau, API en erreur, réponse malformée).
+    if (sessionScope) await closeAnalystSessionScope(db, sessionScope)
+  }
+}
+
+async function runClaudeInner(
+  db: SupabaseClient,
+  conv: Conversation,
+  history: StoredMessage[],
+  analystLink: AnalystLink | null,
+  sessionScope: AnalystSessionScope | null,
+): Promise<{ text: string; escaladed: boolean }> {
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured')
   const isAnalystResolved = analystLink !== null
@@ -1355,7 +1479,7 @@ async function runClaude(
       const toolName = String(tu.name)
       const toolInput = (tu.input ?? {}) as Record<string, unknown>
       const startedAt = Date.now()
-      const result = await executeTool(db, conv, toolName, toolInput, analystLink)
+      const result = await executeTool(db, conv, toolName, toolInput, analystLink, sessionScope)
 
       // ⭐ JOURNALISATION D'AUDIT (§7, §10 étape 5) : uniquement le mode
       // analyste. Le test porte sur analystLink plutôt que sur une liste de
@@ -1380,6 +1504,13 @@ async function runClaude(
         // (défaut trouvé en code review, 24/08/2026), alors que la colonne
         // promet NULL dans ce cas. Lire un chiffre faux dans un journal
         // d'audit est pire que lire une absence de chiffre.
+        //
+        // Depuis la mutualisation de session (24/08/2026), l'écart
+        // duration_ms - work_ms n'est plus le coût de cérémonie de CHAQUE
+        // tool : il porte la création de session sur le PREMIER tool du
+        // message seulement, et est proche de zéro sur les suivants. La
+        // révocation, elle, n'est plus imputée à aucun tool (elle a lieu
+        // après la boucle) - c'est voulu : elle ne retarde plus la réponse.
         const workMs = lastAnalystWorkMs
         lastAnalystWorkMs = null
         await logAnalystToolCall(

@@ -95,11 +95,22 @@ CREATE TABLE public.wa_analyst_tool_audit (
   -- Message d'erreur si echec, tronque cote code. NULL si succes.
   error_message TEXT,
 
-  -- Duree TOTALE du tool en millisecondes, ceremonie de session Auth
-  -- comprise (creation + revocation) - c'est la latence reellement subie par
+  -- Duree TOTALE du tool en millisecondes - la latence reellement subie par
   -- le promoteur pour ce tool, celle qui compte pour l'experience (§7bis :
   -- "un message WhatsApp qui met 8-10 secondes a repondre commence a sembler
   -- casse").
+  --
+  -- ⚠️ CE QU'ELLE INCLUT A CHANGE LE 24/08/2026 (mutualisation de session,
+  -- voir wa-webhook/index.ts) : la version initiale creait et revoquait une
+  -- session Auth par tool, donc duration_ms les incluait toutes les deux a
+  -- chaque ligne. Depuis, la session est mutualisee sur le message : la
+  -- CREATION n'est payee que par le PREMIER tool du message (les suivants
+  -- l'ont proche de work_ms), et la REVOCATION n'est imputee a aucun tool
+  -- (elle a lieu apres la boucle, elle ne retarde plus la reponse).
+  -- Consequence pour l'analyse : ne pas comparer des lignes d'avant et
+  -- d'apres cette date sur ce critere, et ne pas lire duration_ms - work_ms
+  -- comme "le cout de ceremonie de ce tool" - c'est le cout de creation, et
+  -- seulement sur le premier tool de chaque message.
   duration_ms INTEGER NOT NULL,
 
   -- Duree du travail Postgres SEUL, hors ceremonie de session (§7bis :
@@ -108,8 +119,11 @@ CREATE TABLE public.wa_analyst_tool_audit (
   --
   -- Separee de duration_ms parce qu'un chiffre unique les confondrait : un
   -- bar lent et une session Auth lente produiraient la meme valeur, ce qui
-  -- priverait la mesure de sa raison d'etre. L'ecart entre les deux colonnes
-  -- donne directement le cout de la ceremonie de session.
+  -- priverait la mesure de sa raison d'etre. C'est precisement cette
+  -- separation qui a permis, des la premiere mesure reelle (24/08/2026 :
+  -- 819 ms de ceremonie pour 557 ms de travail utile), de voir que 60% du
+  -- temps partait en ouverture/fermeture de session - et de decider la
+  -- mutualisation decrite ci-dessus.
   --
   -- NULL possible : les tools qui n'ouvrent pas de session (aucun aujourd'hui,
   -- mais rien ne l'interdit) et le cas ou la creation de session echoue avant
