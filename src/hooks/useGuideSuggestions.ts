@@ -12,22 +12,13 @@ import { OWNER_GUIDES } from '@/data/guides/owner-guides';
 import { SERVEUR_GUIDES } from '@/data/guides/serveur-guides'; // Contains all 5 serveur guides
 import { KITCHEN_GUIDES } from '@/data/guides/kitchen-guides';
 import { GuideTour, UserRole } from '@/types/guide';
-
 /**
- * Filter guide steps by role-based visibility
- * Removes steps that don't have the current role in visibleFor
+ * ⭐ SOURCE UNIQUE du filtrage d'étapes — partagée avec `useGuideTrigger`.
+ * ⛔ La version locale (`filterStepsByRole`) ne vivait QUE dans ce hook : le
+ * bouton « Guide » d'une page ne filtrait donc rien. Deux chemins, deux
+ * comportements — le motif de divergence que ce projet a déjà payé.
  */
-const filterStepsByRole = (guide: GuideTour, role: UserRole): GuideTour => {
-  return {
-    ...guide,
-    steps: guide.steps.filter(step => {
-      // If visibleFor not specified, visible to all roles
-      if (!step.visibleFor) return true;
-      // Otherwise, visible only if role is in visibleFor list
-      return step.visibleFor.includes(role);
-    }),
-  };
-};
+import { filterGuideSteps } from '@/utils/guideStepFilter';
 
 /**
  * Registry of all guides by role
@@ -79,7 +70,8 @@ export interface GuideSuggestion {
 export const useGuideSuggestions = (): GuideSuggestion[] => {
   const { currentSession } = useAuth();
   const { hasCompletedGuide } = useGuide();
-  const { hasRestaurant } = useBarContext();
+  // ⭐ §20 — `isSimplifiedKitchen` pilote les étapes propres au geste unique.
+  const { hasRestaurant, isSimplifiedKitchen } = useBarContext();
 
   const userRole = (currentSession?.role || 'serveur') as UserRole;
 
@@ -100,8 +92,11 @@ export const useGuideSuggestions = (): GuideSuggestion[] => {
     );
 
     return guides.map(guide => {
-      // Filter steps by role visibility
-      const filteredGuide = filterStepsByRole(guide, userRole);
+      // Filtrage rôle + mode, par la même fonction que le bouton de page.
+      const filteredGuide = filterGuideSteps(guide, {
+        role: userRole,
+        isSimplifiedKitchen,
+      });
 
       return {
         id: filteredGuide.id,
@@ -113,7 +108,7 @@ export const useGuideSuggestions = (): GuideSuggestion[] => {
         guide: filteredGuide, // Include filtered guide object
       };
     });
-  }, [userRole, hasCompletedGuide, hasRestaurant]);
+  }, [userRole, hasCompletedGuide, hasRestaurant, isSimplifiedKitchen]);
 };
 
 /**

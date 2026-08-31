@@ -6,6 +6,9 @@
 
 import { useEffect } from 'react';
 import { useGuide } from '../context/GuideContext';
+import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
+import { filterGuideSteps } from '../utils/guideStepFilter';
 import {
   DASHBOARD_OVERVIEW_GUIDE,
   MANAGE_INVENTORY_GUIDE,
@@ -25,7 +28,7 @@ import {
   KITCHEN_SERVICE_GUIDE,
   KITCHEN_ORDER_GUIDE,
 } from '../data/guides/kitchen-guides';
-import { GuideTour, GuideTrigger } from '../types/guide';
+import { GuideTour, UserRole } from '../types/guide';
 
 /**
  * Map of all available guides
@@ -58,7 +61,15 @@ const GUIDES_REGISTRY: Record<string, GuideTour> = {
 };
 
 export const useGuideTrigger = (guideId: string) => {
-  const { activeTour, startTour, hasCompletedGuide } = useGuide();
+  const { activeTour, startTour } = useGuide();
+  const { currentSession } = useAuth();
+  /**
+   * ⭐ §20 — le MODE du bar entre dans le choix des étapes, pas seulement le
+   * rôle. `isSimplifiedKitchen` est déjà dérivé par `BarContext` : on le
+   * consomme, on ne le recalcule pas.
+   */
+  const { isSimplifiedKitchen } = useBarContext();
+  const role = (currentSession?.role || 'serveur') as UserRole;
 
   /**
    * Start a guide by ID
@@ -70,12 +81,49 @@ export const useGuideTrigger = (guideId: string) => {
       return;
     }
 
-    // Don't trigger if already completed (if showOnce = true)
-    const shouldShow = guide.triggers.some((t: GuideTrigger) => !t.showOnce || !hasCompletedGuide(guideId));
+    /**
+     * ⛔⛔ UN CLIC EXPLICITE N'EST PAS UN DÉCLENCHEMENT AUTOMATIQUE.
+     *
+     * Cette fonction consultait `guide.triggers` avant d'ouvrir la visite :
+     *
+     *     const shouldShow = guide.triggers.some(t => !t.showOnce || ...);
+     *
+     * ⚠️ `[].some(...)` vaut TOUJOURS `false`. Les trois guides du module
+     * Restauration (`kitchen-setup`, `kitchen-service`, `kitchen-order`) sont
+     * les SEULS du projet déclarés `triggers: []` : leur bouton « Guide » ne
+     * faisait donc RIEN. Aucune erreur, aucun avertissement — le guide était
+     * bien trouvé dans le registre, il ne démarrait simplement jamais.
+     *
+     * ⭐ `triggers` décrit quand une visite s'ouvre TOUTE SEULE (`useAutoGuide`).
+     * Quand l'utilisateur APPUIE sur le bouton, la question ne se pose plus :
+     * il vient de la poser lui-même. `showOnce` non plus n'a pas de sens ici,
+     * il refuserait de rouvrir un guide déjà terminé — exactement ce qu'on
+     * demande en rappuyant sur « Guide ».
+     */
+    /**
+     * ⛔⛔ FILTRER AVANT D'OUVRIR — second défaut du même constat terrain.
+     *
+     * Ce chemin servait le guide BRUT du registre : `visibleFor` n'était
+     * appliqué que par `useGuideSuggestions` (la liste « Tous les guides »).
+     * Un gérant ouvrant « Votre service en cuisine » depuis l'écran Service
+     * voyait donc `service-6`, réservée au cuisinier.
+     *
+     * ⭐ Le filtre porte AUSSI le mode (§20) : en cuisine simplifiée, les
+     * étapes qui enseignent « Commencer » / « Prêt » décrivent des boutons
+     * que l'écran n'affiche pas.
+     */
+    const visible = filterGuideSteps(guide, { role, isSimplifiedKitchen });
 
-    if (shouldShow) {
-      startTour(guideId, guide); // ✅ Pass guide object
+    /**
+     * ⚠️ UNE VISITE SANS ÉTAPE N'EST PAS UNE VISITE. Ouvrir la modale
+     * afficherait un cadre vide avec une barre de progression à NaN.
+     */
+    if (visible.steps.length === 0) {
+      console.warn(`Guide "${guideId}" n'a aucune étape visible dans ce contexte`);
+      return;
     }
+
+    startTour(guideId, visible);
   };
 
   return {

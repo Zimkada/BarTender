@@ -41,6 +41,31 @@ export interface GuideStep {
 
   // Role-based visibility: defaults to all roles if not specified
   visibleFor?: UserRole[]; // e.g., ['promoteur', 'gerant'] or ['promoteur'] only
+
+  /**
+   * ⭐ §20 — ÉTAPE MASQUÉE QUAND LE GÉRANT OPÈRE SEUL (cuisine simplifiée).
+   *
+   * ⛔ LE BESOIN. L'écran Service condense ses trois colonnes en une liste et
+   * remplace « Commencer » + « Prêt » + « Servir » par un bouton unique
+   * « Plat servi ». Une visite qui enseigne les trois gestes envoie donc le
+   * gérant chercher des boutons qui n'existent pas sur son écran.
+   *
+   * ⚠️ DISTINCT de `visibleFor`, qui filtre par RÔLE. Ici c'est le MODE du bar
+   * qui décide : le même gérant, sur le même écran, doit voir l'étape en mode
+   * complet et pas en mode simplifié. Aucun rôle ne peut exprimer cela.
+   *
+   * ⚠️ Absent = visible partout : les visites existantes ne changent pas.
+   */
+  hiddenInSimplifiedKitchen?: boolean;
+
+  /**
+   * ⭐ §20 — ÉTAPE RÉSERVÉE À LA CUISINE SIMPLIFIÉE.
+   *
+   * Le pendant du précédent : décrire le geste unique « Plat servi » n'a de
+   * sens QUE dans ce mode. Affichée en mode complet, l'étape annoncerait un
+   * bouton absent — le défaut symétrique de celui qu'on corrige.
+   */
+  onlyInSimplifiedKitchen?: boolean;
 }
 
 /**

@@ -192,6 +192,19 @@ export const KITCHEN_SERVICE_GUIDE: GuideTour = {
         '👤 Si vous gérez seul : un seul bouton **Plat servi** fait tout d\'un coup',
       ],
     },
+    /**
+     * ⛔ DEUX VARIANTES D'UNE MÊME RÈGLE — audit du 18/08/2026.
+     *
+     * Le FAIT est identique dans les deux modes : le stock sort au passage en
+     * « prêt », jamais à la vente. Seul le GESTE qui le déclenche change de
+     * nom. Une étape unique intitulée « Quand vous marquez Prêt » nommait donc
+     * un bouton absent de l'écran du gérant en mode simplifié (§20).
+     *
+     * ⚠️ Le découpage est préféré à un texte « valable partout » parce que ce
+     * point est le plus coûteux à mal comprendre : c'est le moment où la
+     * matière quitte le stock. Un énoncé vague ici rendrait le décompte
+     * incompréhensible — exactement la question qui remonte du terrain.
+     */
     {
       id: 'service-2',
       emoji: '🔥',
@@ -203,6 +216,23 @@ export const KITCHEN_SERVICE_GUIDE: GuideTour = {
         '📦 Les ingrédients les plus anciens partent en premier',
         '⚠️ S\'il manque du stock, le plat passe quand même - le manque est enregistré, pas bloqué',
       ],
+      // ⭐ §20 — en cuisine simplifiée, le bouton « Prêt » n'existe pas.
+      hiddenInSimplifiedKitchen: true,
+    },
+    {
+      id: 'service-2-simplifie',
+      emoji: '🔥',
+      title: 'Quand le stock est décompté',
+      description:
+        'En appuyant sur **Plat servi**, vous enregistrez d\'un coup la préparation ET le service. C\'est à cet instant que les ingrédients sortent du stock.',
+      action: 'Vous n\'avez rien d\'autre à saisir.',
+      tips: [
+        '📦 Les ingrédients les plus anciens partent en premier',
+        '⚠️ S\'il manque du stock, le plat passe quand même - le manque est enregistré, pas bloqué',
+        '💡 Appuyer deux fois ne décompte JAMAIS le stock deux fois',
+      ],
+      // ⭐ §20 — décrit le geste unique : sans objet en mode complet.
+      onlyInSimplifiedKitchen: true,
     },
     {
       id: 'service-3',
