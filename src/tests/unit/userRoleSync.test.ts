@@ -44,8 +44,13 @@ const extractArrayMembers = (source: string, variableName: string): string[] => 
 const CANONICAL_ROLES = Object.keys(ROLE_PERMISSIONS).sort();
 
 describe('UserRole — synchronisation des déclarations dupliquées (§10)', () => {
-  it('la source de vérité expose bien les 5 rôles attendus', () => {
+  it('la source de vérité expose bien les 6 rôles attendus', () => {
+    // ⭐ A joué son rôle le 01/09/2026 à l'ajout de `co_promoteur` : les 3
+    //    unions dupliquées + la liste blanche runtime ont dû être modifiées à
+    //    la main, et ce test est ce qui l'a signalé — le compilateur, lui,
+    //    n'avait rien vu (exactement le scénario décrit en tête de fichier).
     expect(CANONICAL_ROLES).toEqual([
+      'co_promoteur',
       'cuisinier',
       'gerant',
       'promoteur',

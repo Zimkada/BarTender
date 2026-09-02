@@ -42,7 +42,7 @@ export enum OnboardingStep {
  * tomber dans son `default` (WELCOME → ROLE_DETECTED → COMPLETE), parcours minimal
  * et non bloquant. Un parcours cuisine est un chantier produit, hors phase 0.
  */
-export type UserRole = 'promoteur' | 'gerant' | 'serveur' | 'cuisinier' | 'owner' | 'manager' | 'bartender';
+export type UserRole = 'promoteur' | 'co_promoteur' | 'gerant' | 'serveur' | 'cuisinier' | 'owner' | 'manager' | 'bartender';
 
 /**
  * Step data stored in localStorage for persistence
@@ -135,7 +135,15 @@ function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = fal
   const isTrainingOnly = barIsAlreadySetup;
 
   switch (role) {
+    // ⭐ `co_promoteur` (01/09/2026) : même parcours que le promoteur.
+    //    ⛔ SANS ce case, il tombait dans `default` — « Rôle inconnu » et AUCUN
+    //    parcours de formation, ce qui contredisait l'entrée ajoutée dans
+    //    `useGuideSuggestions` (défaut trouvé par le skill code-review).
+    //    ⚠️ Le chemin `setup` (bar neuf) ne le concerne pas en pratique : la
+    //    création de bars est réservée au SuperAdmin, un co-promoteur est
+    //    toujours nommé sur un bar existant → `isTrainingOnly` = true.
     case 'promoteur':
+    case 'co_promoteur':
     case 'owner':
       if (isTrainingOnly) {
         // [NEW] Training path for Owner/Promoteuer in a running bar

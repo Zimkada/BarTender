@@ -85,6 +85,7 @@ export function TrainingTab() {
     const getRoleLabel = (role: string) => {
         switch (role) {
             case 'promoteur': return 'Promoteur';
+            case 'co_promoteur': return 'Co-promoteur';
             case 'gerant': return 'Gérant';
             case 'serveur': return 'Serveur';
             default: return role;

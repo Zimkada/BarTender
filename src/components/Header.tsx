@@ -84,6 +84,9 @@ export function Header({
     switch (currentSession?.role) {
       case 'super_admin': return <ShieldCheck size={16} className="text-purple-600" />;
       case 'promoteur': return <Crown size={16} className="text-purple-600" />;
+      // ⭐ Co-promoteur : même couronne que le promoteur (associé du bar),
+      //    teinte distincte pour ne pas les confondre d'un coup d'œil.
+      case 'co_promoteur': return <Crown size={16} className="text-indigo-500" />;
       case 'gerant': return <Settings size={16} className="text-brand-dark" />;
       case 'serveur': return <Users size={16} className="text-brand-dark" />;
       default: return null;
@@ -94,6 +97,7 @@ export function Header({
     switch (currentSession?.role) {
       case 'super_admin': return 'Super Admin';
       case 'promoteur': return 'Promoteur';
+      case 'co_promoteur': return 'Co-promoteur';
       case 'gerant': return 'Gérant';
       case 'serveur': return 'Serveur';
       default: return '';

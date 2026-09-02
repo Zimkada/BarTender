@@ -32,7 +32,8 @@ export function SubscriptionReminder() {
   // cuisinier n'est pas dans la liste, donc pas de fetch, ce qui est le comportement
   // voulu (il n'a pas à voir l'abonnement du bar).
   const role = currentSession?.role;
-  const canSeeReminder = role === 'promoteur' || role === 'gerant';
+  // ⭐ `co_promoteur` : suit la gestion du bar, donc l'échéance d'abonnement.
+  const canSeeReminder = role === 'promoteur' || role === 'co_promoteur' || role === 'gerant';
   const { subscription } = useMySubscription(canSeeReminder ? currentBar?.id : undefined);
 
   const [open, setOpen] = useState(false);

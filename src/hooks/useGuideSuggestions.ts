@@ -34,6 +34,25 @@ const GUIDES_BY_ROLE: Record<string, GuideTour[]> = {
    * bas, qui vit dans le hook et non ici.
    */
   promoteur: [...OWNER_GUIDES, ...KITCHEN_GUIDES.filter(g => g.targetRoles.includes('promoteur'))],
+  /**
+   * ⭐ CO-PROMOTEUR (01/09/2026) — HÉRITE des guides du promoteur.
+   *
+   * ⛔ Sans cette entrée, il retomberait sur le repli `|| []` plus bas et
+   * n'aurait AUCUNE visite guidée — le même défaut que celui décrit pour le
+   * cuisinier ci-dessous, en pire : lui n'aurait rien du tout.
+   *
+   * ⭐ POURQUOI RÉUTILISER `'promoteur'` DANS LE FILTRE plutôt que d'ajouter
+   * `'co_promoteur'` aux `targetRoles` des 140 entrées de `owner-guides.ts` :
+   * ces fichiers sont du CONTENU de formation, pas de la sécurité. Éditer 140
+   * lignes pour un rôle qui voit exactement les mêmes écrans serait du bruit,
+   * et chaque ligne oubliée créerait un trou silencieux. Une seule entrée ici
+   * ne peut pas diverger.
+   *
+   * ⚠️ SEUL ÉCART RÉEL avec le promoteur : `canCreateBars`. Aucune visite
+   * guidée ne porte sur la création d'un bar — elle est réservée au
+   * SuperAdmin et ne passe pas par l'application.
+   */
+  co_promoteur: [...OWNER_GUIDES, ...KITCHEN_GUIDES.filter(g => g.targetRoles.includes('promoteur'))],
   gerant: [
     ...OWNER_GUIDES.filter(g => g.targetRoles.includes('gerant')),
     ...KITCHEN_GUIDES.filter(g => g.targetRoles.includes('gerant')),

@@ -180,11 +180,11 @@ export function MobileSidebar({
     { id: 'auditLogs', label: 'Audit Logs', icon: <FileText size={20} />, roles: ['super_admin'], path: '/admin/audit-logs' },
 
     // Regular menus
-    { id: 'home', label: 'Accueil', icon: <Home size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/' },
-    { id: 'quickSale', label: 'Vente rapide', icon: <Zap size={20} />, roles: ['promoteur', 'gerant', 'serveur'], action: onShowQuickSale },
-    { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/dashboard' },
-    { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/sales' },
-    { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'gerant'], path: '/inventory' },
+    { id: 'home', label: 'Accueil', icon: <Home size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/' },
+    { id: 'quickSale', label: 'Vente rapide', icon: <Zap size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], action: onShowQuickSale },
+    { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/dashboard' },
+    { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/sales' },
+    { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/inventory' },
     // ⭐ DÉCOUPAGE DU 03/08/2026 — « Cuisine » n'est plus UNE entrée mais un
     // GROUPE (cf. §9 « Menu latéral », arbitrage). La page unique atteignait
     // 3 onglets et en aurait eu 5 en phase 3, dont un à masquer au cuisinier.
@@ -203,7 +203,7 @@ export function MobileSidebar({
     //    Sans cette garde, le serveur verrait « Service », appuierait sur
     //    « Servir » et l'appel échouerait — un écran qui ment sur ce qu'il
     //    autorise. Le panier applique déjà exactement ce filtre (Cart.tsx:301).
-    { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true, hidesFromServerInSimplified: true },
+    { id: 'kitchenService', label: 'Service', icon: <ChefHat size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'cuisinier', 'serveur'], path: '/kitchen/service', requiresRestaurant: true, hidesFromServerInSimplified: true },
     // ⭐ « PLATS » PORTE DEUX ONGLETS depuis le 08/08/2026 : `Menu` et
     //    `Production`. Production n'a plus d'entrée propre — les deux écrans
     //    chargeaient la même liste de plats, et un lot ne peut exister que si
@@ -211,17 +211,17 @@ export function MobileSidebar({
     // ⛔ Le SERVEUR en est absent, comme d'Ingrédients : produire un lot
     //    CONSOMME du stock et fige un coût — ce n'est pas son métier. Il garde
     //    « Service », le seul écran de ce groupe qui le concerne (§9).
-    { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
-    { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
-    // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
-    { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
-    { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
-    { id: 'teamManagement', label: 'Mon équipe', icon: <UserCog size={20} />, roles: ['promoteur', 'gerant'], path: '/team' },
-    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions', feature: 'promotions' },
-    { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'gerant'], path: '/settings' },
-    { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'gerant', 'serveur'], path: '/profil' },
-    { id: 'subscription', label: 'Abonnement', icon: <CreditCard size={20} />, roles: ['promoteur', 'gerant'], path: '/subscription' },
-    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting', feature: 'accounting' }
+    { id: 'kitchenDishes', label: 'Plats', icon: <UtensilsCrossed size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'cuisinier'], path: '/kitchen/dishes', requiresRestaurant: true },
+    { id: 'kitchenIngredients', label: 'Ingrédients', icon: <Carrot size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'cuisinier'], path: '/kitchen/ingredients', requiresRestaurant: true },
+    // { id: 'stockAlerts', label: 'Prévisions et IA', icon: <TrendingUp size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/forecasting' },
+    { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/returns' },
+    { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/consignments' },
+    { id: 'teamManagement', label: 'Mon équipe', icon: <UserCog size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/team' },
+    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/promotions', feature: 'promotions' },
+    { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/settings' },
+    { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/profil' },
+    { id: 'subscription', label: 'Abonnement', icon: <CreditCard size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/subscription' },
+    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur', 'co_promoteur'], path: '/accounting', feature: 'accounting' }
   ];
 
   /**
@@ -250,7 +250,11 @@ export function MobileSidebar({
    * Regroupement (promoteur/gérant uniquement). Le serveur garde une liste plate :
    * avec ~6 entrées, des tiroirs seraient de la complexité gratuite.
    */
-  const isGrouped = currentSession?.role === 'promoteur' || currentSession?.role === 'gerant';
+  // ⭐ `co_promoteur` (01/09/2026) : menu groupé comme promoteur/gérant — il a
+  //    autant d'entrées qu'un promoteur, une liste à plat serait illisible.
+  const isGrouped = currentSession?.role === 'promoteur'
+    || currentSession?.role === 'co_promoteur'
+    || currentSession?.role === 'gerant';
 
   /**
    * Construit un groupe à partir des items réellement visibles pour le rôle/plan.

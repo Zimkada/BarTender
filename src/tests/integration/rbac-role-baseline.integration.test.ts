@@ -33,8 +33,17 @@ import {
  */
 const CURRENT_ROLES: UserRole[] = ['super_admin', 'promoteur', 'gerant', 'serveur'];
 
-/** Tous les rôles, cuisinier inclus (phase 0, 02/08/2026). */
-const ALL_ROLES: UserRole[] = [...CURRENT_ROLES, 'cuisinier'];
+/**
+ * Tous les rôles : cuisinier (phase 0, 02/08/2026) et co_promoteur (01/09/2026).
+ *
+ * ⭐ `co_promoteur` n'est PAS dans CURRENT_ROLES, volontairement : les invariants
+ * de non-régression Pré-0 portent sur les 4 rôles historiques et doivent rester
+ * vrais indépendamment des rôles ajoutés depuis. Un co-promoteur a
+ * `canViewAccounting` et `canManageSalaries` — l'inclure fausserait par exemple
+ * « la comptabilité reste réservée à promoteur et super_admin », qui décrit
+ * l'état HISTORIQUE, pas une règle éternelle.
+ */
+const ALL_ROLES: UserRole[] = [...CURRENT_ROLES, 'cuisinier', 'co_promoteur'];
 
 /**
  * Les 35 permissions requises de RolePermissions.
@@ -126,6 +135,27 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
         canCreateConsignment: true, canClaimConsignment: true, canViewConsignments: true,
         canManagePromotions: true, canManageSettings: true, canManageBarInfo: true,
         canCreateBars: true, canSwitchBars: true,
+        canViewKitchenOrders: true, canUpdateKitchenOrderStatus: true,
+        canServeKitchenItem: true, canManageRecipes: true,
+        canManageIngredientStock: true, canCancelKitchenOrderItem: true,
+        canRefundPrepaidKitchenItem: true, canViewKitchenCosts: true,
+      },
+      /**
+       * ⭐ CO-PROMOTEUR (01/09/2026) — « gérant AUGMENTÉ ».
+       * Identique à `gerant`, SAUF les 7 permissions marquées ⭐.
+       * ⛔ `canCreateBars: false` — seule permission du promoteur refusée.
+       */
+      co_promoteur: {
+        canManageUsers: true, canCreateManagers: true, canCreateServers: true,   // ⭐⭐
+        canAddProducts: true, canEditProducts: true, canDeleteProducts: true,
+        canManageInventory: true, canViewInventory: true,
+        canSell: true, canValidateSales: true,
+        canCancelSales: true, canViewAllSales: true, canViewOwnSales: true,      // ⭐
+        canViewAnalytics: true, canExportData: true, canViewForecasting: true,
+        canViewAccounting: true, canManageExpenses: true, canManageSalaries: true, // ⭐⭐⭐
+        canCreateConsignment: true, canClaimConsignment: true, canViewConsignments: true,
+        canManagePromotions: true, canManageSettings: true, canManageBarInfo: true,
+        canCreateBars: false, canSwitchBars: true,                                // ⛔ / ⭐
         canViewKitchenOrders: true, canUpdateKitchenOrderStatus: true,
         canServeKitchenItem: true, canManageRecipes: true,
         canManageIngredientStock: true, canCancelKitchenOrderItem: true,
@@ -397,11 +427,15 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
   });
 
   describe('🚧 Garde-fou d\'extension — détecte l\'ajout d\'un rôle', () => {
-    it('ROLE_PERMISSIONS contient exactement 5 rôles', () => {
-      // ⭐ A joué son rôle le 02/08/2026 : il a échoué à l'ajout de `cuisinier`,
-      // forçant à revenir étendre la table de vérité ci-dessus plutôt qu'à hériter
-      // silencieusement des permissions du serveur. Maintenu pour le prochain rôle.
+    it('ROLE_PERMISSIONS contient exactement 6 rôles', () => {
+      // ⭐ A joué son rôle DEUX fois :
+      //   · 02/08/2026 — ajout de `cuisinier` ;
+      //   · 01/09/2026 — ajout de `co_promoteur`.
+      // Dans les deux cas il a échoué, forçant à revenir étendre la table de
+      // vérité ci-dessus plutôt qu'à hériter silencieusement des permissions
+      // d'un autre rôle. Maintenu pour le prochain.
       expect(Object.keys(ROLE_PERMISSIONS).sort()).toEqual([
+        'co_promoteur',
         'cuisinier',
         'gerant',
         'promoteur',
@@ -503,7 +537,14 @@ describe('RBAC — Baseline des rôles (filet de non-régression Pré-0 + phase 
       // vendeurs : si un rôle historique perdait canSell, le test le signalerait.
       const canSell = ALL_ROLES.filter((r) => ROLE_PERMISSIONS[r].canSell);
 
-      expect(canSell.sort()).toEqual(['gerant', 'promoteur', 'serveur', 'super_admin']);
+      // ⭐ `co_promoteur` ajouté le 01/09/2026 : il VEND (hérité du gérant), et
+      //    `create_sale_idempotent` l'accepte depuis l'étape 7/8 du chantier.
+      //    ⚠️ Les deux vont ensemble : une permission `canSell` sans le RPC
+      //    aurait reproduit exactement le défaut décrit ci-dessus pour le
+      //    cuisinier — un panier remplissable dont la vente échoue après coup.
+      expect(canSell.sort()).toEqual(
+        ['co_promoteur', 'gerant', 'promoteur', 'serveur', 'super_admin']
+      );
       expect(ROLE_PERMISSIONS.cuisinier.canSell).toBe(false);
     });
 

@@ -85,7 +85,9 @@ export const OfflineBanner: React.FC = () => {
     }, [currentBar?.id]);
 
     const canWorkOffline = useCanWorkOffline();
-    const isManagerRole = ['gerant', 'promoteur', 'super_admin'].includes(currentSession?.role || '');
+    // ⭐ `co_promoteur` (01/09/2026) : offline complet comme gérant/promoteur.
+    //    Il doit pouvoir agir en l'absence du promoteur — y compris hors réseau.
+    const isManagerRole = ['gerant', 'promoteur', 'co_promoteur', 'super_admin'].includes(currentSession?.role || '');
 
     /**
      * Réessayer les opérations en erreur

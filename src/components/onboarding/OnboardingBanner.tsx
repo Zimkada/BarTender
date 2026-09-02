@@ -29,7 +29,8 @@ export const OnboardingBanner: React.FC = () => {
   const isActiveOnboardingMode = new URLSearchParams(location.search).get('mode') === 'onboarding';
 
   const userRole = currentSession?.role;
-  const canConfigure = userRole === 'promoteur' || userRole === 'gerant';
+  // ⭐ `co_promoteur` : configure le bar comme le promoteur (canManageSettings).
+  const canConfigure = userRole === 'promoteur' || userRole === 'co_promoteur' || userRole === 'gerant';
 
   const shouldShow =
     canConfigure &&

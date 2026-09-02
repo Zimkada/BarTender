@@ -72,7 +72,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
         onShowQuickSale();
       },
       color: isOffline ? 'text-muted-foreground opacity-40' : 'text-brand-primary',
-      roles: ['promoteur', 'gerant', 'serveur']
+      roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
       icon: <LayoutDashboard size={24} />,
@@ -80,35 +80,35 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       label: 'Dashboard',
       path: '/dashboard',
       color: 'text-blue-600',
-      roles: ['promoteur', 'gerant', 'serveur']
+      roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
       icon: <BarChart3 size={24} />,
       label: 'Historique',
       path: '/sales',
       color: 'text-purple-600',
-      roles: ['promoteur', 'gerant', 'serveur']
+      roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
       icon: <Package size={24} />,
       label: 'Inventaire',
       path: '/inventory',
       color: 'text-green-600',
-      roles: ['promoteur', 'gerant']
+      roles: ['promoteur', 'co_promoteur', 'gerant']
     },
     /* {
       icon: <TrendingUp size={24} />,
       label: 'Prévisions et IA',
       path: '/forecasting',
       color: 'text-indigo-600',
-      roles: ['promoteur', 'gerant']
+      roles: ['promoteur', 'co_promoteur', 'gerant']
     }, */
     {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
       path: '/returns',
       color: 'text-red-600',
-      roles: ['promoteur', 'gerant', 'serveur']
+      roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
       // ⭐ CUISINIER UNIQUEMENT (§9) : « Autres rôles : ne rien ajouter,

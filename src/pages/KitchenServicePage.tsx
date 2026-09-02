@@ -173,7 +173,8 @@ export default function KitchenServicePage() {
    */
   const role = currentSession?.role;
   const canCancelAfterReady =
-    role === 'super_admin' || role === 'promoteur' || role === 'gerant';
+    role === 'super_admin' || role === 'promoteur' || role === 'co_promoteur' || role === 'gerant';
+  // ⭐ `co_promoteur` : aligne sur `recover_cancelled_dish` côté DB (étape 5/8).
 
   const isPending =
     acceptItem.isPending || markReady.isPending || serveItem.isPending || cancelItem.isPending;

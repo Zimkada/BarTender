@@ -317,6 +317,7 @@ export default function TeamManagementPage() {
     switch (role) {
       case 'super_admin': return 'Super Admin';
       case 'promoteur': return 'Promoteur';
+      case 'co_promoteur': return 'Co-promoteur';
       case 'gerant': return 'Gérant';
       case 'serveur': return 'Serveur';
       default: return role;
@@ -574,7 +575,13 @@ export default function TeamManagementPage() {
 
                       {/* Actions Menu (Top Right) */}
                       <div className="absolute top-4 right-4">
-                        {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' &&
+                        {/* ⛔ `co_promoteur` exclu comme le promoteur (01/09/2026) : sa gestion passe
+                            EXCLUSIVEMENT par les RPC `add_co_promoteur` / `remove_co_promoteur`
+                            (SuperAdmin). Un bouton actif ici serait TROMPEUR : l'action
+                            échouerait silencieusement — les policies RESTRICTIVES filtrent la
+                            ligne au lieu de refuser, donc 0 ligne modifiée SANS erreur.
+                            Cf. docs/migrations/SUIVI_CO_PROMOTEUR.md. */}
+                        {member.isActive && member.role !== 'promoteur' && member.role !== 'co_promoteur' && member.role !== 'super_admin' &&
                           ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
                             (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
                             <button
@@ -602,7 +609,7 @@ export default function TeamManagementPage() {
                         <p className="text-caption text-muted-foreground mb-2">@{user?.username || 'unknown'}</p>
 
                         {/* Role Badge + interactive role switch */}
-                        {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' && hasPermission('canCreateManagers') ? (
+                        {member.isActive && member.role !== 'promoteur' && member.role !== 'co_promoteur' && member.role !== 'super_admin' && hasPermission('canCreateManagers') ? (
                           <RoleSwitcher
                             value={member.role as UserRole}
                             onChange={(newRole) => handleChangeRole(member, newRole as 'gerant' | 'serveur')}
@@ -613,6 +620,7 @@ export default function TeamManagementPage() {
                           />
                         ) : (
                           <span className={`px-3 py-1 rounded-full text-micro font-semibold ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
+                            member.role === 'co_promoteur' ? 'bg-indigo-100 text-indigo-700' :
                             member.role === 'gerant' ? 'bg-muted text-foreground border border-border' :
                               'bg-muted text-foreground/70'
                             }`}>

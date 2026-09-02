@@ -21,7 +21,10 @@ export const useCanWorkOffline = () => {
     // ✅ Memoized to ensure reference stability for downstream dependencies
     return useMemo(() => {
         const role = currentSession?.role;
-        const isManagerRole = ['gerant', 'promoteur', 'super_admin'].includes(role || '');
+        // ⭐ `co_promoteur` (01/09/2026) : offline complet. C'est LE hook qui
+        //    decide — OfflineBanner n'affiche que la bannière correspondante.
+        //    Agir en l'absence du promoteur suppose de pouvoir le faire hors réseau.
+        const isManagerRole = ['gerant', 'promoteur', 'co_promoteur', 'super_admin'].includes(role || '');
 
         // Centralised business logic:
         // Manager/Admin can always work offline.

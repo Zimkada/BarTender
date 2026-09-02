@@ -8,7 +8,7 @@
  * indépendante : le compilateur ne signale PAS un oubli ici.
  * Doit rester synchronisée à la main (MATRICE_RBAC_CUISINIER.md §10).
  */
-export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur' | 'cuisinier';
+export type UserRole = 'super_admin' | 'promoteur' | 'co_promoteur' | 'gerant' | 'serveur' | 'cuisinier';
 
 export type GuideDifficulty = 'beginner' | 'intermediate' | 'advanced';
 

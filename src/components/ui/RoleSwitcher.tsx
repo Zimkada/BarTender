@@ -29,6 +29,7 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
       case 'gerant': return 'Gérant';
       case 'serveur': return 'Serveur';
       case 'promoteur': return 'Promoteur';
+      case 'co_promoteur': return 'Co-promoteur';
       case 'super_admin': return 'Super Admin';
       default: return role;
     }
@@ -48,6 +49,8 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({
         return cn(baseClasses, 'bg-blue-500 text-white shadow-md shadow-blue-100');
       case 'promoteur':
         return cn(baseClasses, 'bg-purple-500 text-white shadow-md shadow-purple-100');
+      case 'co_promoteur':
+        return cn(baseClasses, 'bg-indigo-500 text-white shadow-md shadow-indigo-100');
       default:
         return cn(baseClasses, 'bg-gray-400 text-white');
     }

@@ -30,7 +30,8 @@ export function TeamPerformanceTable({
         if (filter === 'servers') {
             result = result.filter(u => u.role === 'serveur');
         } else if (filter === 'management') {
-            result = result.filter(u => u.role === 'gerant' || u.role === 'promoteur');
+            // ⭐ `co_promoteur` inclus : il fait partie de l'encadrement du bar.
+            result = result.filter(u => u.role === 'gerant' || u.role === 'promoteur' || u.role === 'co_promoteur');
         }
         return result.sort((a, b) => b.revenue - a.revenue);
     }, [data, filter]);

@@ -13,8 +13,17 @@
  * ⭐ `cuisinier` (02/08/2026) : rôle TRANSVERSAL au même niveau que `serveur` (4),
  * permissions DISJOINTES — produit sans vendre, là où le serveur vend sans produire.
  * Ce n'est PAS un 5e niveau hiérarchique.
+ *
+ * ⭐ `co_promoteur` (01/09/2026) : associé agissant EN L'ABSENCE du promoteur
+ * (urgence) et suivant la gestion. C'est un **gérant AUGMENTÉ**, jamais un
+ * « promoteur diminué » : il part des droits du gérant et gagne 7 permissions
+ * (annulation de vente, dépenses, équipe, comptabilité, salaires, multi-bar).
+ * ⛔ SANS `canCreateBars` : créer un bar relève du patrimoine, pas de
+ * l'exploitation. Le promoteur principal reste `bars.owner_id` (facturation).
+ * ⛔ Sa nomination est réservée au SUPER_ADMIN (RPC `add_co_promoteur` +
+ * 3 policies RESTRICTIVES sur `bar_members`).
  */
-export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur' | 'cuisinier';
+export type UserRole = 'super_admin' | 'promoteur' | 'co_promoteur' | 'gerant' | 'serveur' | 'cuisinier';
 
 export interface User {
   id: string;
@@ -832,6 +841,62 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageBarInfo: true,
     canCreateBars: true,
     canSwitchBars: true,
+  },
+  /**
+   * ⭐ CO-PROMOTEUR (01/09/2026) — « gérant AUGMENTÉ ».
+   *
+   * Base = `gerant` à l'identique, PLUS 7 permissions marquées ⭐ ci-dessous.
+   * Chacune répond à l'un des deux motifs exprimés par le fondateur :
+   *   · URGENCE — agir pendant l'absence du promoteur (annuler une vente
+   *     erronée, saisir une dépense, remplacer un gérant défaillant) ;
+   *   · SUIVI — comptabilité, salaires, multi-bar.
+   *
+   * ⛔ `canCreateBars: false` — seule permission du promoteur volontairement
+   *    REFUSÉE. Créer un bar relève du patrimoine, pas de l'exploitation.
+   *
+   * ⚠️ Toute écriture sur une ligne `bar_members` de rôle `co_promoteur` DOIT
+   *    passer par les RPC `add_co_promoteur` / `remove_co_promoteur`. Un
+   *    `.update()` direct affecte **0 ligne SANS lever d'erreur** (les policies
+   *    RESTRICTIVES filtrent la ligne au lieu de refuser) — cf.
+   *    docs/migrations/SUIVI_CO_PROMOTEUR.md.
+   */
+  co_promoteur: {
+    canManageUsers: true,        // ⭐ urgence : gérer l'équipe
+    canCreateManagers: true,     // ⭐ urgence : remplacer un gérant défaillant
+    canCreateServers: true,
+    canAddProducts: true,
+    canEditProducts: true,
+    canDeleteProducts: true,
+    canManageInventory: true,
+    canViewInventory: true,
+    canSell: true,
+    canValidateSales: true,
+    canCancelSales: true,        // ⭐ urgence : annuler une vente erronée
+    canViewAllSales: true,
+    canViewOwnSales: true,
+    canViewAnalytics: true,
+    canExportData: true,
+    canViewForecasting: true,
+    canViewAccounting: true,     // ⭐ suivi de gestion (décision n°2)
+    canManageExpenses: true,     // ⭐ urgence : saisir une dépense
+    canManageSalaries: true,     // ⭐ décision n°3 (accès financier complet)
+    canCreateConsignment: true,
+    canClaimConsignment: true,
+    canViewConsignments: true,
+    canManagePromotions: true,
+    // Cuisine — identique au gérant (décision : « comme le promoteur »).
+    canViewKitchenOrders: true,
+    canUpdateKitchenOrderStatus: true,
+    canServeKitchenItem: true,
+    canManageRecipes: true,
+    canManageIngredientStock: true,
+    canCancelKitchenOrderItem: true,
+    canRefundPrepaidKitchenItem: true,
+    canViewKitchenCosts: true,
+    canManageSettings: true,
+    canManageBarInfo: true,
+    canCreateBars: false,        // ⛔ patrimoine du promoteur, jamais l'associé
+    canSwitchBars: true,         // ⭐ multi-bar (décision n°6) : rare mais réel
   },
   gerant: {
     canManageUsers: false,

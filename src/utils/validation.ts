@@ -92,7 +92,7 @@ export function validateUser(data: {
   if (data.role !== undefined) {
     // ⚠️ Liste blanche RUNTIME — le compilateur ne la relie pas à `UserRole`.
     // Un rôle absent ici est rejeté avec « Rôle invalide » (MATRICE_RBAC_CUISINIER.md §10).
-    const validRoles = ['super_admin', 'promoteur', 'gerant', 'serveur', 'cuisinier'];
+    const validRoles = ['super_admin', 'promoteur', 'co_promoteur', 'gerant', 'serveur', 'cuisinier'];
     if (!validRoles.includes(data.role)) {
       errors.role = 'Rôle invalide';
     }

@@ -37,8 +37,27 @@ export function filterGuideSteps(guide: GuideTour, ctx: GuideStepContext): Guide
   return {
     ...guide,
     steps: guide.steps.filter((step) => {
+      /**
+       * ⭐ CO-PROMOTEUR (01/09/2026) — lu comme un `promoteur` pour le filtrage.
+       *
+       * Les 140 `visibleFor` de `owner-guides.ts` (+ cuisine, comptabilité) ne
+       * nomment que les rôles historiques. Sans cette équivalence, un
+       * co-promoteur ouvrirait chaque visite AMPUTÉE de ses étapes — et une
+       * visite filtrée jusqu'à zéro ne s'ouvre même pas (cf. `useGuideTrigger`).
+       *
+       * ⭐ UNE LIGNE ICI plutôt que 140 éditions : `visibleFor` est du CONTENU
+       * de formation, pas de la sécurité (celle-ci vit dans `ROLE_PERMISSIONS`,
+       * les RLS et les RPC). Une équivalence centralisée ne peut pas diverger,
+       * là où 140 lignes éditées à la main laisseraient forcément un trou.
+       *
+       * ⚠️ Le co-promoteur voit exactement les mêmes écrans que le promoteur.
+       * Seul `canCreateBars` les distingue — et aucune visite ne le couvre,
+       * la création de bars étant réservée au SuperAdmin hors application.
+       */
+      const roleForGuides = ctx.role === 'co_promoteur' ? 'promoteur' : ctx.role;
+
       // ⭐ Absent = visible par tous les rôles (comportement historique).
-      if (step.visibleFor && !step.visibleFor.includes(ctx.role)) return false;
+      if (step.visibleFor && !step.visibleFor.includes(roleForGuides)) return false;
 
       // ⭐ §20 — le MODE, distinct du rôle.
       if (step.hiddenInSimplifiedKitchen && ctx.isSimplifiedKitchen) return false;

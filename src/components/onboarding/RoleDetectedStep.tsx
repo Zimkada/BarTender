@@ -16,6 +16,7 @@ export const RoleDetectedStep: React.FC = () => {
   const getRoleInfo = () => {
     switch (userRole) {
       case 'promoteur':
+      case 'co_promoteur':
       case 'owner':
         return {
           icon: '👑',
