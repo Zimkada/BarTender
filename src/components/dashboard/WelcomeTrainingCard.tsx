@@ -17,7 +17,6 @@ export const WelcomeTrainingCard: React.FC = () => {
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         if (searchParams.get('training_completed') === 'true') {
-            console.log("🎓 Training completion detected via URL, refreshing session...");
             refreshSession().then(() => {
                 // Nettoyer l'URL
                 navigate('/dashboard', { replace: true });

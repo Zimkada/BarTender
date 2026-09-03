@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { useGuide } from '@/context/GuideContext';
 import { useGuideSuggestions } from '@/hooks/useGuideSuggestions';
 import { GuideTour } from '@/types/guide';
@@ -87,21 +88,25 @@ export const GuideButton: React.FC<{ showOnlyOnHomePage?: boolean }> = ({ showOn
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { startTour } = useGuide();
   const suggestions = useGuideSuggestions();
-  const location = window.location.pathname;
-
-  // Debug: log suggestions
-  React.useEffect(() => {
-    console.log('[GuideButton] suggestions:', suggestions);
-  }, [suggestions]);
+  /**
+   * ⚠️ useLocation et NON window.location.pathname : lu hors du cycle React,
+   * le chemin ne provoquait aucun re-render a la navigation. Le bouton
+   * pouvait donc rester affiche apres avoir quitte l'accueil, ou rester
+   * masque en y revenant, selon ce qui declenchait le rendu suivant.
+   */
+  const { pathname } = useLocation();
 
   const handleSelectGuide = (guideId: string, guide?: GuideTour) => {
-    console.log('[GuideButton.handleSelectGuide] guideId:', guideId, 'guide:', guide);
     startTour(guideId, guide);
     setIsPopoverOpen(false);
   };
 
-  // Only show on HomePage (route: /) if showOnlyOnHomePage is true
-  if (showOnlyOnHomePage && location !== '/') {
+  /**
+   * Volontairement limite a l'accueil : ce bouton porte la LISTE COMPLETE des
+   * guides du role, la ou `PageHeader.Guide` lance le guide de SA page (12
+   * pages sur 15). L'afficher partout doublonnerait avec lui.
+   */
+  if (showOnlyOnHomePage && pathname !== '/') {
     return null;
   }
 
