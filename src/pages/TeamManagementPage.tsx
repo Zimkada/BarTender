@@ -18,6 +18,7 @@ import { ConfirmModal } from '../components/ui/Modal';
 import { RoleSwitcher } from '../components/ui/RoleSwitcher';
 import { ToastContainer } from '../components/ui/Toast';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { EmptyState } from '../components/common/EmptyState';
 import { useToast } from '../hooks/useToast';
 import { useRobustOperation } from '../hooks/useRobustOperation';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
@@ -293,6 +294,21 @@ export default function TeamManagementPage() {
   }
 
   // Filtrer les membres selon le toggle Inactif et la recherche
+  /**
+   * ⚠️ `barMembers` vaut [] dans TROIS situations indistinguables : equipe
+   * reellement vide, chargement en cours, ET echec de fetch - refreshMembers
+   * n'appelle setBarMembers que sur `fulfilled` (BarContext), donc hors ligne
+   * la liste reste [] indefiniment.
+   *
+   * Sans cette garde, l'etat vide inviterait a creer un membre qui existe
+   * deja : exactement le doublon que la branche `inactiveCount` evite.
+   * On ne propose donc la creation que si la requete a REELLEMENT abouti.
+   */
+  const membersQueryState = queryClient.getQueryState(
+    barMembersKeys.list(currentBar?.id || '')
+  );
+  const membersLoadConfirmed = membersQueryState?.status === 'success';
+
   const displayedMembers = barMembers.filter(member => {
     const matchesStatus = showInactive || member.isActive;
     const matchesSearch = searchTerm === '' ||
@@ -666,6 +682,71 @@ export default function TeamManagementPage() {
                 })}
               </AnimatePresence>
             </div>
+
+            {/* ⭐ État vide - la grille se contentait de ne rien rendre : sur un
+                bar neuf, le promoteur voyait la barre de recherche puis du vide,
+                sans savoir s'il devait attendre ou agir.
+                ⚠️ Deux causes distinctes, deux messages : une recherche sans
+                résultat n'est PAS une équipe vide, et proposer « Ajouter » à
+                quelqu'un qui a simplement mal tapé un nom l'enverrait créer un
+                doublon. */}
+            {displayedMembers.length === 0 && (
+              searchTerm !== '' ? (
+                <EmptyState
+                  icon={Search}
+                  message="Aucun membre trouvé"
+                  subMessage={`Aucun membre ne correspond à « ${searchTerm} ». Vérifiez l'orthographe ou effacez la recherche.`}
+                  action={
+                    <Button variant="outline" onClick={() => setSearchTerm('')}>
+                      Effacer la recherche
+                    </Button>
+                  }
+                />
+              ) : inactiveCount > 0 ? (
+                /* ⚠️ Membres existants mais TOUS désactivés, filtre inactifs
+                   masqué (défaut) : dire « votre équipe est vide » serait faux
+                   et pousserait à recréer des comptes qui existent déjà. */
+                <EmptyState
+                  icon={EyeOff}
+                  message="Aucun membre actif"
+                  subMessage={`Votre équipe compte ${inactiveCount} membre${inactiveCount > 1 ? 's' : ''} désactivé${inactiveCount > 1 ? 's' : ''}. Réactivez un compte existant plutôt que d'en créer un nouveau.`}
+                  action={
+                    <Button variant="outline" onClick={() => setShowInactive(true)} className="flex items-center gap-2">
+                      <Eye size={15} />
+                      <span>Afficher les inactifs</span>
+                    </Button>
+                  }
+                />
+              ) : membersLoadConfirmed ? (
+                <EmptyState
+                  icon={Users}
+                  message="Votre équipe est vide"
+                  subMessage="Ajoutez votre premier serveur ou gérant : il pourra se connecter et enregistrer ses ventes."
+                  action={
+                    <Button onClick={() => setPageTab('add')} className="flex items-center gap-2">
+                      <UserPlus size={15} />
+                      <span>Ajouter un membre</span>
+                    </Button>
+                  }
+                />
+              ) : (
+                /* Liste vide SANS confirmation de chargement : chargement en
+                   cours ou fetch echoue (hors ligne). Ne rien affirmer sur
+                   l'equipe, et surtout ne pas inviter a creer. */
+                <EmptyState
+                  icon={Users}
+                  message="Chargement de l'équipe"
+                  subMessage="Si rien n'apparaît, vérifiez votre connexion puis réessayez."
+                  action={
+                    currentBar ? (
+                      <Button variant="outline" onClick={() => refreshMembers(currentBar.id, true)}>
+                        Réessayer
+                      </Button>
+                    ) : undefined
+                  }
+                />
+              )
+            )}
           </>
         )}
 
