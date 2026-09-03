@@ -2,6 +2,7 @@ import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/query-persist-client-core';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { CACHE_STRATEGY } from './cache-strategy';
+import { getErrorMessage } from '../utils/errorHandler';
 
 /**
  * Configuration Expert pour React Query
@@ -37,7 +38,19 @@ const onError = (error: unknown) => {
 
   // On ne notifie pas les erreurs 401/403 car elles sont souvent gérées par l'auth interceptor
   if (err?.status !== 401 && err?.status !== 403) {
-    const message = err?.message || 'Une erreur est survenue lors de la récupération des données';
+    // ⭐ Traduire avant d'afficher : sans getErrorMessage, ce toast montrait le
+    //    message Postgres/Supabase brut (souvent en anglais et technique) au
+    //    promoteur. Les 49 autres fichiers passaient déjà par ce helper ; seul
+    //    ce filet global - celui qui couvre TOUTES les erreurs sans handler
+    //    propre - ne l'utilisait pas.
+    //    ⚠️ Pas de garde `err?.message ?` : getErrorMessage lit AUSSI la clé
+    //    `error` (shape `{ error: 'permission denied' }`, sans `message`) et
+    //    porte son propre fallback. Un garde sur `message` renverrait ces
+    //    erreurs-là au texte générique, sans traduction.
+    //    ⚠️ Le `||` reste nécessaire : getErrorMessage renvoie '' pour un
+    //    Error('') (message vide mais présent), ce qui afficherait un toast
+    //    vide. L'ancien `err?.message ||` couvrait ce cas par accident.
+    const message = getErrorMessage(error) || 'Une erreur est survenue lors de la récupération des données';
     import('react-hot-toast').then(({ default: toast }) => {
       toast.error(message, { id: 'query-error' }); // id unique pour éviter les doublons
     });
@@ -80,7 +93,9 @@ export const queryClient = new QueryClient({
       }
 
       // Notification automatique pour toutes les erreurs de mutation (écriture)
-      const message = err?.message || 'Une erreur est survenue lors de l\'opération';
+      // ⭐ Idem onError : traduire le message technique avant affichage,
+      //    avec le même garde contre le message vide.
+      const message = getErrorMessage(error) || 'Une erreur est survenue lors de l\'opération';
       import('react-hot-toast').then(({ default: toast }) => {
         toast.error(message);
       });
