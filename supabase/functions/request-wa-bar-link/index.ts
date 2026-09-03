@@ -98,8 +98,8 @@ function normalizePhoneToMetaFormat(raw: string): string | null {
     // CORRECTIF (bug reel constate en test terrain, 23/08/2026, capture
     // d'ecran a l'appui) : le plan de numerotation beninois 2021 a
     // prefixe TOUS les numeros existants (fixe et mobile) par "01" -
-    // l'ancien numero a 8 chiffres (ex: '97548310') est devenu un numero
-    // national a 10 chiffres ('0197548310'). Le wa_id reel envoye par
+    // l'ancien numero a 8 chiffres (ex: '12345678') est devenu un numero
+    // national a 10 chiffres ('0112345678'). Le wa_id reel envoye par
     // Meta pour ce meme abonne reste '229' + les 8 chiffres d'origine
     // (confirme en base sur wa_conversations.phone, 5 echantillons reels
     // deja en prod, tous a 11 chiffres, aucun ne contient '01' apres
@@ -107,7 +107,7 @@ function normalizePhoneToMetaFormat(raw: string): string | null {
     // format, seul le plan national l'a fait. Retirer '0' seul (ancien
     // comportement) laissait le '1' du prefixe present dans le resultat,
     // produisant un numero corrompu a 12 chiffres au lieu de 11 (constate:
-    // saisie '0197548310' -> '229197548310' au lieu de '22997548310').
+    // saisie '0112345678' -> '229112345678' au lieu de '22912345678').
     // Retirer '01' entier (2 caracteres) est donc la regle correcte pour
     // TOUT numero national beninois moderne, pas une exception.
     if (digits.startsWith('01')) {
@@ -123,7 +123,7 @@ function normalizePhoneToMetaFormat(raw: string): string | null {
   // LIMITE ASSUMEE (trouvee en code review, 22/08/2026, toujours valable
   // apres le correctif ci-dessus) : un numero deja prefixe '229' mais
   // contenant un '01' parasite juste apres (double saisie de l'indicatif
-  // ET du prefixe national, ex. '+229 01 97548310') n'est PAS nettoye ici
+  // ET du prefixe national, ex. '+229 01 12345678') n'est PAS nettoye ici
   // - ce '01' pourrait aussi etre un debut legitime de numero local dans
   // un plan de numerotation different (numero etranger, si l'app venait a
   // s'ouvrir hors Benin). Decision assumee de ne PAS ecrire cette

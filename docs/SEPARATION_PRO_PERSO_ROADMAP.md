@@ -85,7 +85,7 @@ amateur) + cohérence de marque.
 
 | Action | Détail | Effort | Coût |
 |---|---|---|---|
-| **Forwarding domaine → WhatsApp** | `bartenderpro-africa.com` → `https://wa.me/2290197548310` (déjà documenté dans MARKETING.md §10, URL corrigée). | Faible | 0 |
+| **Forwarding domaine → WhatsApp** | `bartenderpro-africa.com` → `https://wa.me/2290129882121` (déjà documenté dans MARKETING.md §10, URL corrigée). | Faible | 0 |
 | **Signature email pro** | Logo + coordonnées officielles sur `contact@`. | Faible | 0 |
 | **Numéro affiché = numéro pro** | Plaquette, cartes, FB : uniquement le numéro WhatsApp Business, jamais ton perso. | Faible | 0 |
 
