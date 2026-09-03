@@ -8,6 +8,7 @@ import { useBar } from '../../context/BarContext';
 import { WelcomeStep } from './WelcomeStep';
 import { RoleDetectedStep } from './RoleDetectedStep';
 import { ManagerTourStep } from './ManagerTourStep';
+import { KitchenIntroStep } from './KitchenIntroStep';
 import { BartenderIntroStep } from './BartenderIntroStep';
 import { BartenderDemoStep } from './BartenderDemoStep';
 import { BartenderTestSaleStep } from './BartenderTestSaleStep';
@@ -91,6 +92,14 @@ export const TrainingFlow: React.FC = () => {
             case OnboardingStep.MANAGER_TOUR:
             case OnboardingStep.OWNER_REVIEW: // Fallback if context redirects incorrectly
                 return <ManagerTourStep />;
+
+            /**
+             * ⭐ Cuisinier (03/09/2026) : SANS ce case, relancer la formation
+             *    depuis l'onglet Formation du profil tombait dans le `default`
+             *    - le meme oubli que celui corrige pour le co-promoteur.
+             */
+            case OnboardingStep.KITCHEN_INTRO:
+                return <KitchenIntroStep />;
 
             // Bartender Training Path
             case OnboardingStep.BARTENDER_INTRO:

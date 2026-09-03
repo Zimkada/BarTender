@@ -88,6 +88,7 @@ export function TrainingTab() {
             case 'co_promoteur': return 'Co-promoteur';
             case 'gerant': return 'Gérant';
             case 'serveur': return 'Serveur';
+            case 'cuisinier': return 'Cuisinier';
             default: return role;
         }
     };

@@ -24,6 +24,9 @@ export enum OnboardingStep {
   MANAGER_CHECK_STAFF = 'manager_check_staff',
   MANAGER_TOUR = 'manager_tour',
 
+  // Kitchen path (1 step)
+  KITCHEN_INTRO = 'kitchen_intro',
+
   // Bartender path (3 steps)
   BARTENDER_INTRO = 'bartender_intro',
   BARTENDER_DEMO = 'bartender_demo',
@@ -38,9 +41,9 @@ export enum OnboardingStep {
  * bartender). Union inline indépendante : le compilateur ne signale PAS un oubli.
  * À synchroniser à la main (MATRICE_RBAC_CUISINIER.md §10).
  *
- * ⭐ `cuisinier` n'a PAS de parcours d'onboarding dédié : `getStepSequence` le fait
- * tomber dans son `default` (WELCOME → ROLE_DETECTED → COMPLETE), parcours minimal
- * et non bloquant. Un parcours cuisine est un chantier produit, hors phase 0.
+ * ⭐ `cuisinier` a son parcours depuis le 03/09/2026 : WELCOME → ROLE_DETECTED →
+ * KITCHEN_INTRO. Une seule étape metier, qui oriente vers `KITCHEN_SERVICE_GUIDE`
+ * plutot que de dupliquer sa pedagogie. Non bloquant comme le reste.
  */
 export type UserRole = 'promoteur' | 'co_promoteur' | 'gerant' | 'serveur' | 'cuisinier' | 'owner' | 'manager' | 'bartender';
 
@@ -212,6 +215,30 @@ function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = fal
           OnboardingStep.BARTENDER_TEST_SALE,
         ];
       }
+      break;
+
+    /**
+     * ⭐ CUISINIER (03/09/2026) : il tombait jusqu'ici dans le `default`, soit
+     *    WELCOME → ROLE_DETECTED → COMPLETE - aucun accueil metier, alors que
+     *    ses ecrans (file, production, pertes, lots) sont parmi les moins
+     *    evidents de l'application.
+     *
+     * ⛔ UNE SEULE etape, sans simulation : le contenu pedagogique cuisine
+     *    existe deja dans `KITCHEN_SERVICE_GUIDE` et y est maintenu.
+     *    `KitchenIntroStep` oriente vers ce guide au lieu de le dupliquer.
+     *
+     * ⚠️ Pas de distinction setup/training : un cuisinier est TOUJOURS nomme
+     *    sur un bar existant (il ne configure rien), donc les deux chemins
+     *    seraient identiques.
+     */
+    case 'cuisinier':
+      sequence = isTrainingOnly
+        ? [OnboardingStep.KITCHEN_INTRO]
+        : [
+            OnboardingStep.WELCOME,
+            OnboardingStep.ROLE_DETECTED,
+            OnboardingStep.KITCHEN_INTRO,
+          ];
       break;
 
     default:

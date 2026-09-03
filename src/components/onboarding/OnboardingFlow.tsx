@@ -33,6 +33,9 @@ import { ManagerRoleConfirmStep } from './ManagerRoleConfirmStep';
 import { ManagerCheckStaffStep } from './ManagerCheckStaffStep';
 import { ManagerTourStep } from './ManagerTourStep';
 
+// Kitchen components
+import { KitchenIntroStep } from './KitchenIntroStep';
+
 // Bartender components
 import { BartenderIntroStep } from './BartenderIntroStep';
 import { BartenderDemoStep } from './BartenderDemoStep';
@@ -210,6 +213,10 @@ export const OnboardingFlow: React.FC = () => {
         return <ManagerCheckStaffStep />;
       case OnboardingStep.MANAGER_TOUR:
         return <ManagerTourStep />;
+
+      // Kitchen path
+      case OnboardingStep.KITCHEN_INTRO:
+        return <KitchenIntroStep />;
 
       // Bartender path
       case OnboardingStep.BARTENDER_INTRO:
