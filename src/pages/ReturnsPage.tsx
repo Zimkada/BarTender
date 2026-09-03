@@ -21,6 +21,8 @@ import { useCurrencyFormatter } from "../hooks/useBeninCurrency";
 import { useFeedback } from "../hooks/useFeedback";
 import { ReturnsService } from "../services/supabase/returns.service";
 import { getErrorMessage } from "../utils/errorHandler";
+import { EmptyState } from "../components/common/EmptyState";
+import { Button } from "../components/ui/Button";
 import {
   User,
   Sale,
@@ -503,6 +505,60 @@ export default function ReturnsPage() {
     setVisibleCount(RETURNS_PAGE_SIZE);
   }, [searchTerm, filterStatus, timeRange, startDate, endDate]);
 
+  /**
+   * Etat vide de la liste des retours - RENDU AUX DEUX ENDROITS (mobile et
+   * desktop), d'ou la constante : les deux blocs etaient auparavant dupliques
+   * a l'identique et auraient derive.
+   *
+   * Trois cas distincts, jamais un message unique :
+   * - une RECHERCHE sans resultat n'est pas une absence de retours ;
+   * - un FILTRE (statut/periode) sans resultat non plus - proposer "Nouveau
+   *   retour" a quelqu'un qui filtre sur "rejetes" l'enverrait en creer un
+   *   dont il n'a pas besoin ;
+   * - seule la liste reellement vide, sans filtre actif, invite a creer.
+   *
+   * canCreate conditionne l'action : un serveur en mode simplifie n'a PAS
+   * l'onglet "create" (tabsConfig), le bouton l'enverrait sur un onglet
+   * inexistant.
+   */
+  const hasActiveFilter = searchTerm !== "" || filterStatus !== "all" || timeRange !== "today";
+  const returnsEmptyState = searchTerm !== "" ? (
+    <EmptyState
+      icon={Search}
+      message="Aucun retour trouvé"
+      subMessage={`Aucun retour ne correspond à « ${searchTerm} ». Vérifiez l'orthographe ou effacez la recherche.`}
+      action={
+        <Button variant="outline" onClick={() => setSearchTerm("")}>
+          Effacer la recherche
+        </Button>
+      }
+    />
+  ) : hasActiveFilter ? (
+    <EmptyState
+      icon={Filter}
+      message="Aucun retour pour ces filtres"
+      subMessage="Aucun retour ne correspond au statut ou à la période sélectionnés. Élargissez la période ou choisissez « Tous les statuts »."
+    />
+  ) : (
+    <EmptyState
+      icon={RotateCcw}
+      message="Aucun retour enregistré"
+      subMessage={
+        canCreate
+          ? "Un retour se crée depuis une vente existante : produit rendu, échangé ou consigné."
+          : "Les retours enregistrés sur cette période apparaîtront ici."
+      }
+      action={
+        canCreate ? (
+          <Button onClick={() => setActiveTab("create")} className="flex items-center gap-2">
+            <RotateCcw size={15} />
+            <span>Nouveau retour</span>
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+
   const tabsConfig = [
     ...(canCreate
       ? [
@@ -615,18 +671,7 @@ export default function ReturnsPage() {
             {!showCreateReturn && !showStats ? (
               <div className="space-y-4">
                 {filteredReturns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="bg-muted p-6 rounded-full mb-4">
-                      <RotateCcw size={48} className="text-muted-foreground/60" aria-hidden="true" />
-                    </div>
-                    <h2 className="text-h3 text-foreground/80 mb-2">
-                      Aucun retour trouvé
-                    </h2>
-                    <p className="text-muted-foreground max-w-md">
-                      Il n'y a pas de retours correspondant à vos critères.
-                      Cliquez sur "Nouveau retour" pour en créer un.
-                    </p>
-                  </div>
+                  {returnsEmptyState}
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {filteredReturns.map((returnItem) => (
@@ -691,18 +736,7 @@ export default function ReturnsPage() {
                 className="space-y-4"
               >
                 {filteredReturns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 text-center">
-                    <div className="bg-muted p-6 rounded-full mb-4">
-                      <RotateCcw size={48} className="text-muted-foreground/60" aria-hidden="true" />
-                    </div>
-                    <h2 className="text-h3 text-foreground/80 mb-2">
-                      Aucun retour trouvé
-                    </h2>
-                    <p className="text-muted-foreground max-w-md">
-                      Il n'y a pas de retours correspondant à vos critères.
-                      Cliquez sur "Nouveau retour" pour en créer un.
-                    </p>
-                  </div>
+                  {returnsEmptyState}
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {filteredReturns.map((returnItem) => (
