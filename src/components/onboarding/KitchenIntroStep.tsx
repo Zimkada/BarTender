@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { ChefHat, Flame, PackageMinus, ClipboardList, ArrowRight, BookOpen } from 'lucide-react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
-import { useBar } from '../../context/BarContext';
+import { useBar, useBarContext } from '../../context/BarContext';
 import { useGuide } from '../../context/GuideContext';
+import { useAuth } from '../../context/AuthContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { Button } from '../ui/Button';
 import { KITCHEN_SERVICE_GUIDE } from '../../data/guides/kitchen-guides';
+import { filterGuideSteps } from '../../utils/guideStepFilter';
+import type { UserRole as GuideUserRole } from '../../types/guide';
 
 /**
  * Accueil du CUISINIER.
@@ -32,6 +35,9 @@ import { KITCHEN_SERVICE_GUIDE } from '../../data/guides/kitchen-guides';
 export const KitchenIntroStep: React.FC = () => {
   const { completeStep, nextStep } = useOnboarding();
   const { currentBar } = useBar();
+  /** ⭐ Meme source que `useGuideTrigger` : le mode est deja derive par BarContext. */
+  const { isSimplifiedKitchen } = useBarContext();
+  const { currentSession } = useAuth();
   const { startTour } = useGuide();
   const [loading, setLoading] = useState(false);
 
@@ -58,10 +64,32 @@ export const KitchenIntroStep: React.FC = () => {
    * Termine l'accueil PUIS ouvre la visite guidee : sans `finish()`, le
    * cuisinier qui lance le guide resterait bloque sur cette etape a son
    * retour, et la reverrait a chaque connexion.
+   *
+   * ⭐⭐ FILTRER AVANT D'OUVRIR - jamais le guide brut du registre.
+   *
+   * ⛔ `KITCHEN_SERVICE_GUIDE` porte DEUX etapes mutuellement exclusives :
+   *    `service-2` (`hiddenInSimplifiedKitchen`) et `service-2-simplifie`
+   *    (`onlyInSimplifiedKitchen`). Servi brut, un cuisinier en cuisine
+   *    simplifiee les verrait s'enchainer : la premiere nomme un bouton
+   *    « Pret » absent de son ecran, la seconde decrit le « Plat servi » qui
+   *    le remplace.
+   *
+   * ⚠️ C'est LE defaut que `guideStepFilter.ts` existe pour empecher - un
+   *    troisieme chemin d'ouverture qui contourne le filtre. Les deux autres
+   *    (`useGuideTrigger`, `useGuideSuggestions`) l'appellent deja.
    */
   const handleOpenGuide = () => {
+    const role = (currentSession?.role || 'cuisinier') as GuideUserRole;
+    const visible = filterGuideSteps(KITCHEN_SERVICE_GUIDE, { role, isSimplifiedKitchen });
+
+    // Une visite sans etape n'est pas une visite : on termine sans ouvrir.
+    if (visible.steps.length === 0) {
+      finish();
+      return;
+    }
+
     finish();
-    startTour(KITCHEN_SERVICE_GUIDE.id, KITCHEN_SERVICE_GUIDE);
+    startTour(visible.id, visible);
   };
 
   const missions = [

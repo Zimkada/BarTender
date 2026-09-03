@@ -126,13 +126,32 @@ export const OnboardingFlow: React.FC = () => {
     // - Bar owner (promoteur): Always allowed
     // - Manager (gerant): Only allowed if explicitly added to bar_members with role 'gerant'
     // - Bartender (serveur): Only allowed if explicitly added to bar_members with role 'serveur'
+    // - Cook (cuisinier) et Co-promoteur : idem, via bar_members (voir ci-dessous)
 
     // Determine effective role from bar membership directly (source of truth before onboarding init)
     const memberRole = userBarMember?.role;
     const isManager = memberRole === 'gerant';
     const isBartender = memberRole === 'serveur';
+    /**
+     * ⭐ CUISINIER (03/09/2026) - sans lui, le `case 'cuisinier'` de
+     *    `getStepSequence` etait DU CODE MORT dans sa branche setup :
+     *    `OnboardingPage` choisit `OnboardingFlow` precisement quand
+     *    `isSetupComplete === false`, et cette garde l'y renvoyait au
+     *    dashboard. Un cuisinier sur un bar restaurant pas encore configure
+     *    n'avait donc aucun accueil - le trou meme que le parcours comble.
+     *    Le setup se valide sur l'initialisation du stock
+     *    (`checkMinimumViableSetup`), un bar peut donc avoir des membres avant
+     *    d'etre « complet ».
+     *
+     * ⭐ CO-PROMOTEUR - meme trou, anterieur et independant : il n'etait admis
+     *    que par `isBarOwner`, or il n'est JAMAIS proprietaire (la creation de
+     *    bars est reservee au SuperAdmin). Il tombait donc systematiquement
+     *    dans le refus.
+     */
+    const isCook = memberRole === 'cuisinier';
+    const isCoPromoteur = memberRole === 'co_promoteur';
 
-    if (!isBarOwner && !isManager && !isBartender) {
+    if (!isBarOwner && !isManager && !isBartender && !isCook && !isCoPromoteur) {
       // User does not have permission to access onboarding
       // Redirect to dashboard
       console.warn(
