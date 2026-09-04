@@ -55,9 +55,15 @@
 --    SELECT pg_get_constraintdef(oid)
 --    FROM pg_constraint
 --    WHERE conrelid = 'public.training_versions'::regclass AND contype = 'c';
---    -- ATTENDU : CHECK (role = ANY (ARRAY['promoteur','gerant','serveur','cuisinier']))
---    -- ⛔ Si 'cuisinier' est ABSENT, appliquer d'abord 20260802090100 :
---    --    cet INSERT echouerait sur la contrainte.
+--    -- ATTENDU (releve en prod le 04/09/2026, pre-vol de cette migration) :
+--    --   CHECK (role = ANY (ARRAY['promoteur','co_promoteur','gerant',
+--    --                            'serveur','cuisinier']))
+--    -- ⚠️ 'co_promoteur' est PRESENT EN PROD alors qu'aucune migration de ce
+--    --    depot ne l'ajoute a ce CHECK (20260802090100 s'arrete a 'cuisinier').
+--    --    Quatrieme cas ou l'etat reel depasse les fichiers de migration : la
+--    --    contrainte est simplement plus permissive, l'INSERT n'en souffre pas.
+--    -- ⛔ Seul 'cuisinier' est REQUIS ici. S'il est ABSENT, appliquer d'abord
+--    --    20260802090100 : cet INSERT echouerait sur la contrainte.
 --
 -- 2) Etat actuel (comparaison post-vol) :
 --
@@ -91,3 +97,18 @@ NOTIFY pgrst, 'reload schema';
 --    ouvrir Profil → Formation. ATTENDU : la formation s'affiche avec le
 --    libelle « Cuisinier », et non l'avertissement console
 --    « No training version found for role: cuisinier ».
+
+-- ┌─────────────────────────────────────────────────────────────────┐
+-- │ APPLICATION                                                     │
+-- └─────────────────────────────────────────────────────────────────┘
+--
+-- APPLIQUEE EN PROD le 04/09/2026 (SQL Editor Supabase).
+--
+--   Pre-vol  : 4/4 OK - table presente, CHECK acceptant 'cuisinier',
+--              aucune ligne cuisinier, etat = gerant v1, promoteur v1,
+--              serveur v1.
+--   Post-vol : 2/2 OK - 'cuisinier v1' inseree avec son changelog,
+--              etat final = cuisinier v1, gerant v1, promoteur v1, serveur v1.
+--
+--   ⚠️ RESTE A FAIRE : le smoke-test UI (point 3 ci-dessus) n'est pas encore
+--      passe - il exige un compte cuisinier reel, qu'aucun bar n'a a ce jour.
