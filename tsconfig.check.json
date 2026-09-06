@@ -1,0 +1,25 @@
+{
+  // Typecheck du code applicatif livre en production.
+  //
+  // Vite transpile sans verifier les types : sans ce fichier, une erreur TS
+  // atteint la prod (crash React #31 sur ReturnsPage, 06/09/2026).
+  //
+  // Tests et stories sont exclus : ils ne partent pas en production et portent
+  // une dette connue (~102 erreurs, dont 45 stories a migrer vers l'API
+  // Storybook 10). Les inclure noierait un vrai bug dans le bruit.
+  //
+  // "node" est explicite : les types Node arrivaient transitivement par les
+  // fichiers de test. Sans lui, l'exclusion ci-dessous fait apparaitre
+  // 9 fausses erreurs NodeJS/process.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src"],
+  "exclude": [
+    "src/**/*.stories.tsx",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/tests/**"
+  ]
+}

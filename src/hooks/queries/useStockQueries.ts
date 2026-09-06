@@ -167,7 +167,7 @@ const mapProducts = (dbProducts: BarProductWithDetails[]): Product[] => {
         // lié renvoie globalProductId=undefined → toDbProduct écrit is_custom_product=true
         // sur une ligne ayant global_product_id → viole chk_custom_product_consistency.
         ...(p.global_product_id && { globalProductId: p.global_product_id }),
-        ...(p.is_custom_product !== undefined && { isCustomProduct: p.is_custom_product }),
+        ...(p.is_custom_product != null && { isCustomProduct: p.is_custom_product }),
     }));
 };
 

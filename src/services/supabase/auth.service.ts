@@ -8,7 +8,18 @@ import { User as AppUser, UserRole, BarMember } from '../../types';
 type DbUser = Database['public']['Tables']['users']['Row'];
 type DbUserUpdate = Database['public']['Tables']['users']['Update'];
 
-export interface AuthUser extends Omit<DbUser, 'password_hash'> {
+// Colonnes de users absentes des select qui construisent un AuthUser
+// (fetchUserProfileAndMembership, updateProfile) : ces deux requetes listent
+// explicitement leurs colonnes et n'incluent pas le consentement legal, lu
+// separement par getConsentVersion(). Les exclure ici garde le type honnete sur ce
+// qui est reellement charge, plutot que d'elargir les select (egress inutile).
+// NB : d'autres requetes de ce service font select('*') mais renvoient DbUser.
+type DbUserProfile = Omit<
+  DbUser,
+  'password_hash' | 'consent_version' | 'privacy_accepted_at' | 'terms_accepted_at'
+>;
+
+export interface AuthUser extends DbUserProfile {
   email: string;
   role: 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
   barId: string;
@@ -828,7 +839,7 @@ export class AuthService {
   static async updateProfile(
     userId: string,
     updates: Omit<DbUserUpdate, 'password_hash'>
-  ): Promise<Omit<DbUser, 'password_hash'>> {
+  ): Promise<DbUserProfile> {
     try {
       // 1. Mettre à jour public.users
       const { data, error } = await supabase

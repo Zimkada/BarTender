@@ -3,7 +3,7 @@ import { useDebounce } from 'use-debounce';
 import {
   CreditCard, Search, Filter, ChevronLeft, ChevronRight, History, ShieldCheck, Gift,
 } from 'lucide-react';
-import { Bar, SubscriptionPayment, SubscriptionStatus } from '../../types';
+import { Bar, SubscriptionBarSummary, SubscriptionPayment, SubscriptionStatus } from '../../types';
 import { Select } from '../../components/ui/Select';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -41,11 +41,7 @@ export default function SubscriptionsPage() {
   const { formatPrice } = useBeninCurrency();
   const { getOverview, getHistory } = useSubscriptions();
 
-  const [subscriptionRows, setSubscriptionRows] = useState<Array<{
-    bar: Bar;
-    status: SubscriptionStatus;
-    daysUntilDue: number | null;
-  }>>([]);
+  const [subscriptionRows, setSubscriptionRows] = useState<SubscriptionBarSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [mrr, setMrr] = useState(0);

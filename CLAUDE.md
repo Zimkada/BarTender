@@ -30,6 +30,7 @@ npm test              # Tests en watch mode
 npm run test:ui       # Tests avec interface visuelle
 npm run test:coverage # Couverture de code
 npm run lint          # ESLint (exclut dist, dev-dist, .history)
+npm run typecheck     # Types du code applicatif (doit rester a 0 erreur)
 npm run storybook     # Storybook sur port 6006
 npx supabase db push  # Push schema DB
 ```
@@ -666,10 +667,39 @@ echo "omit=optional" > .npmrc
 npm install --package-lock-only  # sur Windows
 ```
 
+### Typecheck - pourquoi `npm run build` ne suffit pas
+
+`npm run build` lance Vite, qui **transpile sans vérifier les types**. Une erreur
+TypeScript passe donc le build et atteint la production. C'est ce qui s'est produit
+le 06/09/2026 : des accolades en trop dans un ternaire JSX de `ReturnsPage`
+(`{{returnsEmptyState}}` = objet littéral, pas un élément) ont crashé la page Retours
+sur liste vide. TypeScript le signalait (`TS2322`) ; rien ne le lisait.
+
+ESLint ne peut pas rattraper ce cas : `eslint.config.js` n'active aucune règle
+type-aware (pas de `parserOptions.project`). Seul `tsc` voit ce type d'erreur.
+
+```bash
+npm run typecheck   # tsc --noEmit -p tsconfig.check.json (~1min40)
+```
+
+**Périmètre** : `tsconfig.check.json` couvre le code applicatif livré, en excluant
+tests et stories - ceux-ci ne partent pas en production et portent une dette connue
+(~102 erreurs, dont 45 stories à migrer vers l'API Storybook 10). Les inclure noierait
+un vrai bug dans le bruit.
+
+**Règles** :
+- `npm run typecheck` doit rester à **0 erreur**. Toute nouvelle erreur est une
+  régression à corriger, pas un seuil à relever.
+- Ne pas ajouter `"node"` aux `types` de `tsconfig.check.json` par erreur d'inattention :
+  il y est **volontairement**. Les types Node arrivaient transitivement par les fichiers
+  de test ; sans lui, l'exclusion fait apparaître 9 fausses erreurs `NodeJS`/`process`.
+- La dette tests/stories reste visible via `npx tsc --noEmit -p tsconfig.app.json`.
+
 ### Checklist avant chaque déploiement
 
 - [ ] Audit `package.json` : `grep -i "win32\|linux\|darwin" package.json`
 - [ ] `npm run build` local réussi
+- [ ] `npm run typecheck` **sans erreur** (voir section ci-dessus - Vite ne vérifie pas les types)
 - [ ] `npm run lint` sans erreurs
 - [ ] Lockfile supprimé si développé sur Windows
 - [ ] Variables d'environnement à jour sur Vercel

@@ -8,6 +8,7 @@
     "prebuild": "node scripts/generate-version.cjs",
     "build": "node scripts/inline-critical-css.mjs",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.check.json",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
