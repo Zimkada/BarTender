@@ -45,7 +45,39 @@ function removeSourceDisclosingFiles(dir) {
   return removed.length;
 }
 
+/**
+ * Verifie les types AVANT de construire.
+ *
+ * Vite transpile sans verifier les types : sans cette porte, une erreur
+ * TypeScript passe le build et part en production. C'est ainsi que le crash
+ * React #31 de ReturnsPage (fe87e25) a atteint les utilisateurs alors que tsc
+ * le signalait par un TS2322 explicite.
+ *
+ * Perimetre : tsconfig.check.json (code applicatif livre, hors tests/stories).
+ * Doit rester a 0 erreur - voir la section Typecheck du CLAUDE.md.
+ *
+ * execSync throw si tsc sort en erreur : le build s'arrete, et sur Vercel un
+ * build en echec annule le deploiement.
+ */
+function typecheck() {
+  console.log('🔍 Verification des types (tsconfig.check.json)...');
+  try {
+    execSync('tsc --noEmit -p tsconfig.check.json', { stdio: 'inherit' });
+  } catch {
+    console.error('');
+    console.error('❌ Erreurs TypeScript ci-dessus : build interrompu.');
+    console.error('   Ces erreurs partiraient en production - Vite ne les voit pas.');
+    console.error('   Corrigez-les, ou relancez `npm run typecheck` pour les relire.');
+    process.exit(1);
+  }
+  console.log('✅ Types verifies.');
+}
+
 async function inlineCriticalCss() {
+  // 0. Porte de types - avant tout le reste : inutile de construire si les
+  //    types sont casses.
+  typecheck();
+
   console.log('📦 Building Vite application...');
   // 1. Perform a standard Vite build
   execSync('vite build', { stdio: 'inherit' });

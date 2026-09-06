@@ -591,7 +591,7 @@ if (event === 'SIGNED_IN' && session && currentUser) {
 
 ```
 prebuild → generate-version.cjs   (génère public/version.json)
-build    → inline-critical-css.mjs (build Vite + optimisation CSS critique)
+build    → inline-critical-css.mjs (typecheck bloquant + build Vite + CSS critique)
 ```
 
 ### `scripts/inline-critical-css.mjs` — CSS critique inline
@@ -679,8 +679,13 @@ ESLint ne peut pas rattraper ce cas : `eslint.config.js` n'active aucune règle
 type-aware (pas de `parserOptions.project`). Seul `tsc` voit ce type d'erreur.
 
 ```bash
-npm run typecheck   # tsc --noEmit -p tsconfig.check.json (~1min40)
+npm run typecheck   # tsc --noEmit -p tsconfig.check.json (~20s)
 ```
+
+**La porte est dans le build** : `scripts/inline-critical-css.mjs` lance le
+typecheck **avant** `vite build`. Une erreur de type arrete le build, donc annule
+le deploiement Vercel - c'est ce qui empeche mecaniquement une erreur TypeScript
+d'atteindre la production, la checklist ci-dessous n'etant qu'un rappel.
 
 **Périmètre** : `tsconfig.check.json` couvre le code applicatif livré, en excluant
 tests et stories - ceux-ci ne partent pas en production et portent une dette connue
@@ -699,7 +704,7 @@ un vrai bug dans le bruit.
 
 - [ ] Audit `package.json` : `grep -i "win32\|linux\|darwin" package.json`
 - [ ] `npm run build` local réussi
-- [ ] `npm run typecheck` **sans erreur** (voir section ci-dessus - Vite ne vérifie pas les types)
+- [ ] `npm run typecheck` **sans erreur** (désormais bloquant dans le build - voir section ci-dessus)
 - [ ] `npm run lint` sans erreurs
 - [ ] Lockfile supprimé si développé sur Windows
 - [ ] Variables d'environnement à jour sur Vercel
