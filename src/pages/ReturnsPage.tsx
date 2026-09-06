@@ -671,7 +671,7 @@ export default function ReturnsPage() {
             {!showCreateReturn && !showStats ? (
               <div className="space-y-4">
                 {filteredReturns.length === 0 ? (
-                  {returnsEmptyState}
+                  returnsEmptyState
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {filteredReturns.map((returnItem) => (
@@ -736,7 +736,7 @@ export default function ReturnsPage() {
                 className="space-y-4"
               >
                 {filteredReturns.length === 0 ? (
-                  {returnsEmptyState}
+                  returnsEmptyState
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
                     {filteredReturns.map((returnItem) => (
