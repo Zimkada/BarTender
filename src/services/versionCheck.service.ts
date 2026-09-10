@@ -9,7 +9,7 @@ export class VersionCheckService {
   private static readonly CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
   private static readonly VERSION_FILE = '/version.json';
   private static currentVersion: string | null = null;
-  private static checkIntervalId: NodeJS.Timeout | null = null;
+  private static checkIntervalId: ReturnType<typeof setInterval> | null = null;
   private static updateCallbacks: ((version: string) => void)[] = [];
 
   /**

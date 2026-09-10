@@ -8,12 +8,21 @@
   // une dette connue (~102 erreurs, dont 45 stories a migrer vers l'API
   // Storybook 10). Les inclure noierait un vrai bug dans le bruit.
   //
-  // "node" est explicite : les types Node arrivaient transitivement par les
-  // fichiers de test. Sans lui, l'exclusion ci-dessous fait apparaitre
-  // 9 fausses erreurs NodeJS/process.
+  // ⚠️ AUCUN champ "types" ici, VOLONTAIREMENT.
+  //
+  // Une premiere version declarait "types": ["vitest/globals", "node"] pour
+  // faire taire 9 erreurs NodeJS/process. C'etait une erreur : ce champ est
+  // une EXIGENCE, pas une preference. Si @types/node ou vitest ne sont pas
+  // installes, tsc echoue. Sur Vercel, ou les devDependencies peuvent etre
+  // absentes, le build est mort en 38 s et a bloque les deploiements du
+  // 07/09 au 10/09.
+  //
+  // Les 9 erreurs venaient de VRAIS defauts de typage (NodeJS.Timeout dans du
+  // code navigateur, process.env au lieu d'import.meta.env), corriges a la
+  // source. Le typecheck ne depend plus d'aucun type d'environnement.
   "extends": "./tsconfig.app.json",
   "compilerOptions": {
-    "types": ["vitest/globals", "node"]
+    "types": []
   },
   "include": ["src"],
   "exclude": [

@@ -228,7 +228,7 @@ export function useTickets(barId: string | undefined) {
         refreshOfflineData();
 
         // 🛡️ AMORTISSEUR (Debounce)
-        let timeout: NodeJS.Timeout;
+        let timeout: ReturnType<typeof setTimeout>;
         const handleQueueUpdate = () => {
             clearTimeout(timeout);
             timeout = setTimeout(refreshOfflineData, 150);

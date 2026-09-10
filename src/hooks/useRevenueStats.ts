@@ -502,7 +502,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
     });
 
     useEffect(() => {
-        let timeout: NodeJS.Timeout;
+        let timeout: ReturnType<typeof setTimeout>;
 
         const handleQueueUpdate = () => {
             clearTimeout(timeout);

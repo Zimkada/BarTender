@@ -21,7 +21,7 @@ class AuditLoggerService {
   async log(params: LogParams): Promise<void> {
     try {
       // En dev, on logue aussi dans la console pour debug
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[AUDIT LOG] Sending to DB: ${params.event}`, params);
       }
 

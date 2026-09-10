@@ -66,7 +66,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
 
     useEffect(() => {
         let isMounted = true;
-        let timeout: NodeJS.Timeout;
+        let timeout: ReturnType<typeof setTimeout>;
 
         const fetchData = () => {
             if (!isMounted) return;

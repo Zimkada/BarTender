@@ -38,7 +38,7 @@ class SyncManagerService {
   private isSyncing = false;
   private networkUnsubscribe: (() => void) | null = null;
   private retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG;
-  private timers: Map<string, NodeJS.Timeout> = new Map();
+  private timers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private broadcastChannel = new BroadcastChannel('sync_manager_events'); // 🚀 Cross-tab Sync
   private idMapping: Map<string, string> = new Map();
 

@@ -65,7 +65,7 @@ function validateInputs(
                 ? String((sale as Record<string, unknown>).id)
                 : 'unknown';
             // Log validation failures for debugging (only in dev)
-            if (process.env.NODE_ENV === 'development') {
+            if (import.meta.env.DEV) {
                 console.warn(`[RevenueCalculator] Invalid sale ${saleId}:`,
                     result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
                 );

@@ -29,7 +29,7 @@ interface State {
  * </LazyLoadErrorBoundary>
  */
 export class LazyLoadErrorBoundary extends Component<Props, State> {
-  private retryTimeout?: NodeJS.Timeout;
+  private retryTimeout?: ReturnType<typeof setTimeout>;
 
   constructor(props: Props) {
     super(props);

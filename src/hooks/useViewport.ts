@@ -68,7 +68,7 @@ export function useViewport(): ViewportState {
   useEffect(() => {
     if (!isClient) return;
 
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     /**
      * Handler optimisé avec debounce
