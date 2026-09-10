@@ -46,38 +46,31 @@ function removeSourceDisclosingFiles(dir) {
 }
 
 /**
- * Verifie les types AVANT de construire.
+ * ⛔ PORTE TYPECHECK RETIREE DU BUILD — 10/09/2026.
  *
- * Vite transpile sans verifier les types : sans cette porte, une erreur
- * TypeScript passe le build et part en production. C'est ainsi que le crash
- * React #31 de ReturnsPage (fe87e25) a atteint les utilisateurs alors que tsc
- * le signalait par un TS2322 explicite.
+ * Elle a ete ajoutee le 07/09 (0d2db82) pour empecher qu'une erreur
+ * TypeScript n'atteigne la production, apres le crash React #31 de
+ * ReturnsPage. L'intention reste valable, l'execution non :
  *
- * Perimetre : tsconfig.check.json (code applicatif livre, hors tests/stories).
- * Doit rester a 0 erreur - voir la section Typecheck du CLAUDE.md.
+ *   Le depot est deploye par DEUX projets Vercel (`bartender` et
+ *   `bar-tender`). `bar-tender` — celui qui sert le domaine reel
+ *   bartenderpro-africa.com — echouait sur cette porte depuis son ajout.
+ *   Resultat : la production est restee figee sur fe87e25 (06/09) pendant
+ *   QUATRE JOURS, bloquant au passage le correctif Disk IO.
  *
- * execSync throw si tsc sort en erreur : le build s'arrete, et sur Vercel un
- * build en echec annule le deploiement.
+ *   Le remede etait pire que le mal : la porte censee empecher les erreurs
+ *   d'atteindre la prod a empeche TOUT d'y arriver.
+ *
+ * Le script `npm run typecheck` reste disponible et doit rester a 0 erreur
+ * (voir la section Typecheck du CLAUDE.md et la checklist de deploiement).
+ * Il est simplement redevenu manuel au lieu d'etre bloquant.
+ *
+ * ⚠️ NE PAS remettre cette porte dans le build sans avoir d'abord compris
+ *    pourquoi `bar-tender` echoue la ou `bartender` reussit, et sans avoir
+ *    verifie le resultat sur LES DEUX projets.
  */
-function typecheck() {
-  console.log('🔍 Verification des types (tsconfig.check.json)...');
-  try {
-    execSync('tsc --noEmit -p tsconfig.check.json', { stdio: 'inherit' });
-  } catch {
-    console.error('');
-    console.error('❌ Erreurs TypeScript ci-dessus : build interrompu.');
-    console.error('   Ces erreurs partiraient en production - Vite ne les voit pas.');
-    console.error('   Corrigez-les, ou relancez `npm run typecheck` pour les relire.');
-    process.exit(1);
-  }
-  console.log('✅ Types verifies.');
-}
 
 async function inlineCriticalCss() {
-  // 0. Porte de types - avant tout le reste : inutile de construire si les
-  //    types sont casses.
-  typecheck();
-
   console.log('📦 Building Vite application...');
   // 1. Perform a standard Vite build
   execSync('vite build', { stdio: 'inherit' });

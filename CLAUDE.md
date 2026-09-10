@@ -591,7 +591,7 @@ if (event === 'SIGNED_IN' && session && currentUser) {
 
 ```
 prebuild → generate-version.cjs   (génère public/version.json)
-build    → inline-critical-css.mjs (typecheck bloquant + build Vite + CSS critique)
+build    → inline-critical-css.mjs (build Vite + CSS critique)
 ```
 
 ### `scripts/inline-critical-css.mjs` — CSS critique inline
@@ -682,10 +682,18 @@ type-aware (pas de `parserOptions.project`). Seul `tsc` voit ce type d'erreur.
 npm run typecheck   # tsc --noEmit -p tsconfig.check.json (~20s)
 ```
 
-**La porte est dans le build** : `scripts/inline-critical-css.mjs` lance le
-typecheck **avant** `vite build`. Une erreur de type arrete le build, donc annule
-le deploiement Vercel - c'est ce qui empeche mecaniquement une erreur TypeScript
-d'atteindre la production, la checklist ci-dessous n'etant qu'un rappel.
+**⛔ La porte a ete RETIREE du build le 10/09/2026.** Elle y avait ete mise le
+07/09, mais le depot est deploye par **deux projets Vercel** (`bartender` et
+`bar-tender`) : `bar-tender` — celui qui sert le domaine reel
+`bartenderpro-africa.com` — echouait dessus. La production est restee figee sur
+`fe87e25` (06/09) pendant quatre jours, bloquant au passage un correctif Disk IO.
+
+`npm run typecheck` reste donc **manuel** : a lancer avant chaque deploiement
+(voir la checklist ci-dessous), et doit rester a 0 erreur.
+
+⚠️ Ne pas remettre la porte dans le build sans avoir compris pourquoi
+`bar-tender` echoue la ou `bartender` reussit, ET verifie le resultat sur **les
+deux** projets.
 
 **Périmètre** : `tsconfig.check.json` couvre le code applicatif livré, en excluant
 tests et stories - ceux-ci ne partent pas en production et portent une dette connue
@@ -704,7 +712,7 @@ un vrai bug dans le bruit.
 
 - [ ] Audit `package.json` : `grep -i "win32\|linux\|darwin" package.json`
 - [ ] `npm run build` local réussi
-- [ ] `npm run typecheck` **sans erreur** (désormais bloquant dans le build - voir section ci-dessus)
+- [ ] `npm run typecheck` **sans erreur** (manuel - non bloquant, voir section ci-dessus)
 - [ ] `npm run lint` sans erreurs
 - [ ] Lockfile supprimé si développé sur Windows
 - [ ] Variables d'environnement à jour sur Vercel
@@ -712,7 +720,32 @@ un vrai bug dans le bruit.
 
 ### URL de production
 
-`https://bar-tender-ten.vercel.app`
+`https://bartenderpro-africa.com`
+
+### ⚠️ DEUX projets Vercel deploient ce depot
+
+Constate le 10/09/2026 : chaque push declenche **deux** deploiements.
+
+| Projet Vercel | Sert le domaine reel ? |
+|---|---|
+| `bar-tender` | **OUI** — `bartenderpro-africa.com` |
+| `bartender` | non (`.vercel/project.json` local pointe pourtant ici) |
+
+**Consequence** : un deploiement vert sur `bartender` ne prouve RIEN. C'est
+`bar-tender` qu'il faut regarder. Quatre commits ont ete perdus ainsi entre le
+07 et le 10/09 — la prod est restee sur `fe87e25` alors que `bartender`
+affichait "Ready" a chaque push.
+
+**Verification rapide de ce qui tourne reellement en production** :
+
+```
+https://bartenderpro-africa.com/version.json
+```
+
+Comparer son `buildTime` a la date du dernier commit pousse.
+
+📋 A trancher : supprimer ou mettre en pause le projet inutile, et realigner
+`.vercel/project.json` sur celui qui sert le domaine.
 
 ---
 
