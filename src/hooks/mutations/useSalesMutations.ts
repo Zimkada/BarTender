@@ -109,6 +109,33 @@ export interface CreateSaleVariables extends Partial<Sale> {
     idempotencyKey?: string;
 }
 
+/**
+ * ⚡ Débounce du refresh de daily_sales_summary — Disk IO (10/09/2026).
+ *
+ * Portée MODULE, pas instance : useSalesMutations est monté par plusieurs
+ * composants simultanément (panier, validation, historique). Un useRef par
+ * instance laisserait chacune déclencher son propre refresh, et le débounce
+ * ne servirait à rien.
+ *
+ * Clé par bar : deux bars distincts ne doivent pas se bloquer mutuellement.
+ *
+ * ⚠️ État volontairement NON réinitialisé au démontage : la fenêtre doit
+ * survivre à la navigation entre écrans, sinon changer de page rouvrirait
+ * la vanne à chaque fois.
+ */
+const REFRESH_SUMMARY_MIN_INTERVAL_MS = 60_000;
+const lastSummaryRefreshByBar = new Map<string, number>();
+
+function shouldRefreshSummary(barId: string): boolean {
+    const now = Date.now();
+    const last = lastSummaryRefreshByBar.get(barId) ?? 0;
+    if (now - last < REFRESH_SUMMARY_MIN_INTERVAL_MS) return false;
+    // Marqué AVANT l'appel : deux ventes quasi simultanées ne doivent pas
+    // passer toutes les deux pendant que le refresh est en vol.
+    lastSummaryRefreshByBar.set(barId, now);
+    return true;
+}
+
 export const useSalesMutations = (barId: string, options?: {
     stockChecker?: (productId: string) => { availableStock: number } | null;
 }) => {
@@ -121,14 +148,28 @@ export const useSalesMutations = (barId: string, options?: {
     const canWorkOffline = useCanWorkOffline();
 
     // 🔄 Refresh ciblé de daily_sales_summary (vue matérialisée) après mutations CA.
-    // Sur free tier Supabase (pas de pg_cron), c'est le seul moyen de garder la mat view à jour.
     // Best-effort : ne bloque pas l'UX si le refresh échoue.
+    //
+    // ⚡ Disk IO (diagnostic 10/09/2026) : ce refresh réécrit la vue ENTIÈRE
+    // (~1,6 s de disque mesurées en prod). Déclenché à chaque vente, il était le
+    // premier poste de Disk IO de la base — 2 475 exécutions relevées, devant le
+    // cron */30 qui fait pourtant le même travail. D'où le débounce ci-dessous.
+    //
+    // ⚠️ NE PAS le supprimer purement et simplement : daily_sales_summary alimente
+    // getRevenueSummary (analytics.service.ts) en granularité JOUR, lu par l'écran
+    // Historique des ventes comme « source de vérité » du CA. Sans refresh, ce CA
+    // sous-estimerait la journée en cours de tout l'intervalle du cron (30 min).
     const refreshDailySalesSummary = async () => {
-        try {
-            await AnalyticsService.refreshView('daily_sales_summary', 'post_mutation');
-        } catch (err) {
-            console.warn('[useSalesMutations] daily_sales_summary refresh failed (non-blocking):', err);
+        if (barId && shouldRefreshSummary(barId)) {
+            try {
+                await AnalyticsService.refreshView('daily_sales_summary', 'post_mutation');
+            } catch (err) {
+                console.warn('[useSalesMutations] daily_sales_summary refresh failed (non-blocking):', err);
+            }
         }
+        // ⭐ L'invalidation reste INCONDITIONNELLE : elle ne coûte rien côté base
+        // (cache client uniquement) et garantit que l'UI relit les analytics après
+        // chaque mutation, même quand le refresh DB a été débouncé.
         if (barId) {
             await queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) });
         }
