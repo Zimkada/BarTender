@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { FileSpreadsheet, Loader } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import * as XLSX from 'xlsx';
 import { getErrorMessage } from '../../utils/errorHandler';
 
 interface BarReportExcelButtonProps {
@@ -53,6 +52,12 @@ export const BarReportExcelButton: React.FC<BarReportExcelButtonProps> = ({ bar 
   const handleGenerateExcel = async () => {
     setLoading(true);
     try {
+      // ⚡ Import dynamique : xlsx pèse ~412 KB et ne sert qu'à ce clic.
+      // Statique, il alourdissait le chunk de BarsManagementPage (chargé
+      // dès qu'un super_admin ouvre /admin/bars) pour un usage occasionnel.
+      // Même pattern déjà en place dans AccountingOverview.tsx.
+      const XLSX = await import('xlsx');
+
       const { data, error } = await supabase.rpc('admin_generate_bar_report', {
         p_bar_id: bar.id
       });
