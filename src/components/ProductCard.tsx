@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Package, Plus, AlertTriangle, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../types';
@@ -211,22 +212,27 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
         </div>
       </div>
 
-      {/* ⭐ Pavé de quantité.
-          ⚠️⚠️ LE WRAPPER `stopPropagation` EST LA SEULE PROTECTION, et il est
-          INDISPENSABLE. `Modal` n'utilise AUCUN portal : le pavé reste donc un
-          descendant REACT de cette carte, même s'il s'affiche en surcouche
-          (z-[1000]). Or React propage les événements le long de son propre
-          arbre, PAS de l'arbre visuel — un clic dans le pavé atteindrait le
-          `onClick` de la carte et ajouterait un +1 parasite à chaque geste.
-          ⛔ Ne PAS « simplifier » en retirant ce conteneur au motif que le pavé
-          flotte au-dessus : la position CSS n'a aucun effet sur la propagation
-          React. (Le commentaire précédent invoquait les deux raisons à la fois,
-          dont une fausse — corrigé le 13/09/2026.)
-          ⚠️ Contrairement à `DishCard`, aucun wrapper `<div relative>` n'est
-          nécessaire ici : la racine de cette carte est un `motion.div` et non un
-          `<button>`, donc imbriquer le pavé ne produit pas de balisage invalide. */}
-      {isPadOpen && (
-        <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+      {/* ⭐ Pavé de quantité — SORTI DE LA CARTE PAR UN PORTAL.
+          ⛔⛔ SIGNALÉ EN TEST TERRAIN LE 13/09/2026 : le pavé était impossible
+          à fermer — ni par un preset, ni par la croix, ni par l'overlay.
+          CAUSE : rendu à l'intérieur de la carte, il en héritait deux
+          contraintes fatales :
+            · `overflow-hidden` sur la racine ROGNE tout descendant ;
+            · `motion.div` applique un `transform` (whileTap/animate), ce qui
+              fait de la carte le conteneur de référence des descendants
+              `position: fixed` — l'overlay `inset-0` du Modal ne couvrait donc
+              plus l'écran mais la seule carte, réduite à quelques pixels.
+          Les clics n'atteignaient plus aucune cible de fermeture.
+          ⭐ `createPortal` rend le pavé directement sous `document.body` : il
+          échappe au rognage ET au transform. Il sort aussi de l'arbre DOM de la
+          carte, mais React continue d'y propager les événements — d'où le
+          `stopPropagation` conservé, sans quoi un clic dans le pavé
+          déclencherait encore le `onClick` (+1) de la carte.
+          ⚠️ `DishCard` n'avait pas ce défaut : son wrapper `<div relative>` n'a
+          ni `overflow-hidden` ni transform. La différence ne se voyait pas en
+          lisant un seul des deux fichiers — elle s'est vue au premier clic. */}
+      {isPadOpen && createPortal(
+        <div onClick={(e) => e.stopPropagation()}>
           <QuantityPad
             open={isPadOpen}
             onClose={() => setIsPadOpen(false)}
@@ -254,7 +260,8 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
               itemAddedToCart(product.name);
             }}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </motion.div>
   );

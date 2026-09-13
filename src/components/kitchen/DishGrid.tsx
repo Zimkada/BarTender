@@ -20,6 +20,7 @@
  */
 
 import { memo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UtensilsCrossed, Plus, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
@@ -189,15 +190,26 @@ const DishCard = memo<CardProps>(function DishCard({ dish, quantity, onAdd }) {
           REMPLACE UNE SEULE ligne. Annoncer « 3 » puis appliquer 6 à la ligne
           Grand aurait donné 8 au panier — un chiffre que l'utilisateur n'a ni
           demandé ni vu. À 0, le pavé pose simplement « combien en servez-vous »,
-          ce qui est exact quel que soit le format visé. */}
-      {isPadOpen && (
+          ce qui est exact quel que soit le format visé.
+          ⭐⭐ RENDU PAR UN PORTAL, comme `ProductCard` — signalé en test terrain
+          le 13/09/2026 sur les boissons : un pavé rendu DANS la carte hérite de
+          ses contraintes de mise en page (`overflow-hidden`, transform Framer
+          Motion), qui ROGNENT l'overlay `fixed inset-0` du Modal et rendent le
+          dialogue impossible à fermer. Cette carte-ci n'a aujourd'hui ni l'un ni
+          l'autre, mais rien ne garantit qu'un futur style de grille ne les
+          introduira pas — et le symptôme serait le même : un serveur bloqué en
+          plein service, sans aucun moyen de sortir de l'écran.
+          ⛔ Un dialogue se rend sous `document.body`, PAS dans la cellule qui
+          l'ouvre. Les deux grilles suivent désormais la même règle. */}
+      {isPadOpen && createPortal(
         <QuantityPad
           open={isPadOpen}
           onClose={() => setIsPadOpen(false)}
           itemName={dish.name}
           currentQuantity={0}
           onPick={(picked) => onAdd(picked)}
-        />
+        />,
+        document.body
       )}
     </div>
   );
