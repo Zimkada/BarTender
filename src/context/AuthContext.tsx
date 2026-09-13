@@ -75,10 +75,49 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setCurrentSession(session);
       } else {
-        // Si aucune session valide trouvée (ou token expiré), on nettoie
-        console.log('[AuthContext] No valid session found during init, clearing state');
-        sessionStorage.setItem('session_expired', 'true');
-        setCurrentSession(null);
+        // 🌐 MODE HORS LIGNE: même garde que le .catch() ci-dessous.
+        // ⛔ initializeSession() ne LÈVE PAS sur panne réseau : getSession()
+        //    RETOURNE { session: null, error } quand le refresh du token échoue
+        //    faute de réseau (AuthRetryableFetchError). On arrive donc ici, et
+        //    non dans le .catch() — qui portait seul le garde offline.
+        //    Sans ce test, une tablette rechargée hors ligne avec un token
+        //    expiré perdait sa session et repartait vers /auth/login, écran
+        //    infranchissable sans réseau : caisse morte en plein service.
+        // ⚠️ Le SDK, lui, CONSERVE la session en localStorage sur erreur
+        //    réseau (il ne purge que sur erreur non-retryable) : la session
+        //    redeviendra donc valide au retour du réseau.
+        // ⛔⛔ DEUX ERREURS SYMÉTRIQUES ÉVITÉES ICI (13/09/2026, deux revues).
+        //
+        //    1. `shouldBlock` seul est TOUJOURS FAUX au démarrage : il n'est
+        //       vrai qu'au statut 'offline', or NetworkManager part de
+        //       'checking' et met jusqu'à 12 s de grace period à y arriver.
+        //       Résultat : session vidée, caisse renvoyée vers /auth/login en
+        //       plein service.
+        //    2. `reason !== 'online'` est TOUJOURS VRAI au démarrage, pour la
+        //       même raison de timing (le ping est asynchrone, le statut vaut
+        //       encore 'checking'). Résultat inverse et tout aussi grave : une
+        //       session RÉVOQUÉE (compte désactivé, token invalidé) ne serait
+        //       plus JAMAIS nettoyée — l'app resterait « connectée » sur une
+        //       session morte.
+        //
+        // ⭐ `navigator.onLine` est le SEUL signal SYNCHRONE et fiable ici :
+        //    il répond immédiatement, sans dépendre de l'init de NetworkManager.
+        //    · false → l'appareil n'a aucun réseau : on garde la session.
+        //    · true  → le réseau existe, donc l'échec vient bien du serveur
+        //              (token expiré/révoqué) : on nettoie, comme avant.
+        //
+        // ⚠️ `navigator.onLine` à true ne PROUVE pas l'accès à Supabase (wifi
+        //    capté sans Internet). Ce cas-là reste traité par le `.catch()`
+        //    ci-dessous, qui s'exécute plus tard — assez tard pour que
+        //    NetworkManager ait tranché.
+        if (!navigator.onLine) {
+          console.log('[AuthContext] 📵 Appareil hors ligne - conservation de la session en cache (init)');
+        } else {
+          // Si aucune session valide trouvée (ou token expiré), on nettoie
+          console.log('[AuthContext] No valid session found during init, clearing state');
+          sessionStorage.setItem('session_expired', 'true');
+          setCurrentSession(null);
+        }
       }
     }).catch(err => {
       console.error('[AuthContext] Failed to initialize Supabase session:', err);
