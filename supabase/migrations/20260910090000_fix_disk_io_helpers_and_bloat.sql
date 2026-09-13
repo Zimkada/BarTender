@@ -1,5 +1,5 @@
 -- ===================================================================
--- MIGRATION : Réduction du Disk IO — volatilité des helpers RLS,
+-- MIGRATION : Réduction du Disk IO - volatilité des helpers RLS,
 --             index morts, bloat
 -- DATE   : 2026-09-10
 -- MOTIF  : alerte Supabase "Disk IO Budget depleting" à nombre de bars
@@ -20,11 +20,14 @@
 --   • Le cron est SAIN : un seul job de refresh, */30, 48 exécutions/24h,
 --     160 s CPU/jour. La migration 20260607160000 tient parfaitement.
 --
---   • La cause dominante est APPLICATIVE : 2 475 refresh 'post_mutation'
+--   • La cause dominante était APPLICATIVE : 2 475 refresh 'post_mutation'
 --     de daily_sales_summary (1,6 s de réécriture disque CHACUN),
---     déclenchés à chaque vente par useSalesMutations.ts:128.
---     ⚠️ CE POINT N'EST PAS TRAITÉ ICI — il se corrige côté code, pas en
---        SQL. Voir la section "CE QUI RESTE À FAIRE" en fin de fichier.
+--     déclenchés à chaque vente. ⚠️ CE POINT N'EST PAS TRAITÉ PAR CETTE
+--     MIGRATION SQL (il se corrige côté code) - mais il a DÉJÀ ÉTÉ TRAITÉ
+--     ailleurs : commit c78be5b (10/09), ANCÊTRE du présent commit, a
+--     débouncé ce refresh à 1/min/bar. Voir la section "CE QUI RESTE À
+--     FAIRE" en fin de fichier, mise à jour le 13/09/2026 pour refléter
+--     cet état - ne pas se fier à sa version d'origine sur ce point.
 --
 -- Cette migration traite les causes SECONDAIRES, réelles mais mineures
 -- au regard du refresh applicatif. Ne pas en attendre la disparition de
@@ -50,7 +53,7 @@
 -- • RLS_CHANGES     : AUCUN. Les policies sont inchangées.
 -- • IDEMPOTENT      : étape 1 OUI (ALTER FUNCTION est rejouable sans
 --                     effet de bord). Étape 3 : REJOUABLE, mais pas
---                     « idempotente » au sens strict — VACUUM prend des
+--                     « idempotente » au sens strict - VACUUM prend des
 --                     verrous et refait un travail réel à chaque passage.
 --                     D'où l'avertissement ci-dessous.
 --
@@ -60,7 +63,7 @@
 
 
 -- ═══════════════════════════════════════════════════════════════════
--- ÉTAPE 0 — PRÉ-VOL (lecture seule, à exécuter et à CONSERVER)
+-- ÉTAPE 0 - PRÉ-VOL (lecture seule, à exécuter et à CONSERVER)
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- Relève l'état AVANT modification : volatilité et privilèges des 3
@@ -82,7 +85,7 @@ ORDER BY p.proname;
 
 
 -- ═══════════════════════════════════════════════════════════════════
--- ÉTAPE 1 — VOLATILITÉ DES HELPERS RLS  (le vrai gain de fond)
+-- ÉTAPE 1 - VOLATILITÉ DES HELPERS RLS  (le vrai gain de fond)
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- POURQUOI : une fonction SQL sans marqueur de volatilité est VOLATILE
@@ -95,7 +98,7 @@ ORDER BY p.proname;
 -- que par la ré-évaluation par ligne depuis les policies.
 --
 -- Aujourd'hui ces relectures sont servies par la RAM (cache 100 %),
--- donc elles ne causent PAS l'alerte disque — mais elles consomment du
+-- donc elles ne causent PAS l'alerte disque - mais elles consomment du
 -- CPU en permanence et se dégraderaient nettement à mesure que les
 -- données grossissent (objectif 50 bars).
 --
@@ -112,11 +115,11 @@ ALTER FUNCTION public.check_bar_has_feature(uuid, text) STABLE;
 
 
 -- ═══════════════════════════════════════════════════════════════════
--- ÉTAPE 2 — INDEX JAMAIS UTILISÉS SUR `sales`   ⚠️ NE RIEN SUPPRIMER ICI
+-- ÉTAPE 2 - INDEX JAMAIS UTILISÉS SUR `sales`   ⚠️ NE RIEN SUPPRIMER ICI
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- CONTEXTE : `sales` porte 23 MB d'index pour 14 MB de données. Chaque
--- index doit être mis à jour à CHAQUE vente — un index jamais lu coûte
+-- index doit être mis à jour à CHAQUE vente - un index jamais lu coûte
 -- de l'écriture disque en permanence sans rien accélérer.
 --
 -- Relevé prod (pg_stat_user_indexes, idx_scan = 0) :
@@ -138,6 +141,11 @@ ALTER FUNCTION public.check_bar_has_feature(uuid, text) STABLE;
 --       (20251227000100_add_mode_switching_index.sql:57) :
 --         « Optimise clause OR (created_by = X) dans RPC
 --           top_products_by_server »
+--       ⚠️ CORRECTION (revue du 13/09/2026) : le commentaire en base
+--       lui-même porte un nom raccourci. La RPC réellement appelée est
+--       get_top_products_by_server (analytics.service.ts:154, rpcName
+--       choisi quand serverId est fourni) - une recherche littérale du
+--       nom exact du commentaire ne matchera donc PAS ce fichier.
 --       Cette RPC est VIVANTE : analytics.service.ts:154 l'appelle dès
 --       qu'un serveur consulte ses propres top produits. Son idx_scan
 --       est à 0 parce que les statistiques sont probablement récentes,
@@ -156,7 +164,7 @@ ALTER FUNCTION public.check_bar_has_feature(uuid, text) STABLE;
 --      attendre au minimum un cycle complet (clôtures mensuelles incluses).
 --
 --   2. Pour CHAQUE index candidat, chercher son consommateur avant de
---      conclure — commentaire en base, RPC, Edge Function, export :
+--      conclure - commentaire en base, RPC, Edge Function, export :
 --        SELECT indexrelid::regclass, obj_description(indexrelid, 'pg_class')
 --        FROM pg_index WHERE indrelid = 'sales'::regclass;
 --
@@ -191,7 +199,7 @@ ALTER FUNCTION public.check_bar_has_feature(uuid, text) STABLE;
 
 
 -- ═══════════════════════════════════════════════════════════════════
--- ÉTAPE 3 — BLOAT : tables jamais nettoyées
+-- ÉTAPE 3 - BLOAT : tables jamais nettoyées
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- Relevé prod : des tables très lues portent une proportion élevée de
@@ -209,8 +217,8 @@ ALTER FUNCTION public.check_bar_has_feature(uuid, text) STABLE;
 --
 -- VACUUM (sans FULL) est choisi délibérément : il récupère l'espace pour
 -- réutilisation SANS verrou exclusif ni réécriture complète de la table.
--- VACUUM FULL prendrait un ACCESS EXCLUSIVE LOCK — donc une coupure de
--- service — pour un gain marginal sur des tables de cette taille (< 1 MB).
+-- VACUUM FULL prendrait un ACCESS EXCLUSIVE LOCK - donc une coupure de
+-- service - pour un gain marginal sur des tables de cette taille (< 1 MB).
 --
 -- ANALYZE remet à jour les statistiques du planificateur : plusieurs de
 -- ces tables n'ont pas été analysées depuis des mois, ce qui peut à soi
@@ -235,12 +243,12 @@ VACUUM (ANALYZE) public.bar_activity;
 
 
 -- ═══════════════════════════════════════════════════════════════════
--- ÉTAPE 4 — POST-VOL (lecture seule, OBLIGATOIRE)
+-- ÉTAPE 4 - POST-VOL (lecture seule, OBLIGATOIRE)
 -- ═══════════════════════════════════════════════════════════════════
 --
 -- ⭐ Leçon projet : après toute modification de fonction, vérifier que
 --    les privilèges ont survécu. ALTER FUNCTION ne devrait pas les
---    toucher — ce contrôle prouve que c'est bien le cas.
+--    toucher - ce contrôle prouve que c'est bien le cas.
 --
 -- ATTENDU :
 --   volatilite_apres      = 's' pour les trois (au lieu de 'v')
@@ -254,9 +262,9 @@ SELECT
     p.proname                                   AS fonction,
     pg_get_function_identity_arguments(p.oid)   AS arguments,
     CASE p.provolatile
-        WHEN 'v' THEN '⚠️ ENCORE VOLATILE — échec'
-        WHEN 's' THEN '✅ STABLE — corrigé'
-        WHEN 'i' THEN '⚠️ IMMUTABLE — inattendu'
+        WHEN 'v' THEN '⚠️ ENCORE VOLATILE - échec'
+        WHEN 's' THEN '✅ STABLE - corrigé'
+        WHEN 'i' THEN '⚠️ IMMUTABLE - inattendu'
     END                                         AS volatilite_apres,
     p.proacl::text                              AS privileges_apres,
     has_function_privilege('authenticated', p.oid, 'EXECUTE') AS authenticated_execute,
@@ -313,20 +321,40 @@ ORDER BY relname;
 
 
 -- ═══════════════════════════════════════════════════════════════════
--- CE QUI RESTE À FAIRE — HORS SQL
+-- CE QUI RESTE À FAIRE - HORS SQL
 -- ═══════════════════════════════════════════════════════════════════
 --
--- ⚠️ LA CAUSE PRINCIPALE DE L'ALERTE N'EST PAS TRAITÉE PAR CETTE
---    MIGRATION. Elle est dans le code applicatif :
+-- ⭐⭐ MISE À JOUR (revue du 13/09/2026) - LA CAUSE PRINCIPALE EST
+--    DÉSORMAIS TRAITÉE, PISTE (b) CI-DESSOUS. Cette section a été écrite
+--    avant ce correctif et le présentait comme une décision produit
+--    encore ouverte - ce qui n'est PLUS le cas. Commit c78be5b (10/09,
+--    ANCÊTRE de la présente migration) a mis en place le débounce
+--    décrit en piste (b) : REFRESH_SUMMARY_MIN_INTERVAL_MS = 60_000,
+--    plafonné par bar via shouldRefreshSummary() dans
+--    src/hooks/mutations/useSalesMutations.ts (l'appel gaté est
+--    aujourd'hui ~ligne 165, PAS 128 - ce fichier a bougé depuis).
+--    Fraîcheur actuelle du CA du jour : 1 min max, au lieu
+--    d'instantané. Gain estimé x5 à x20 selon le rythme de ventes,
+--    à confirmer par un nouveau relevé pg_stat_statements.
+--    Les pistes (a) et (c) RESTENT des options futures valables si le
+--    débounce s'avérait insuffisant à l'échelle - le texte original
+--    ci-dessous est conservé tel quel pour cette raison, mais ne plus
+--    le lire comme "rien n'est fait".
 --
---    src/hooks/mutations/useSalesMutations.ts:128
+-- ⚠️ ANALYSE ORIGINALE (avant le correctif du 10/09), conservée pour
+--    le raisonnement qu'elle documente :
+--
+--    src/hooks/mutations/useSalesMutations.ts (ligne alors 128, gel du
+--    fichier à cette date)
 --      await AnalyticsService.refreshView('daily_sales_summary', 'post_mutation');
 --
 --    Ce refresh réécrit la vue matérialisée ENTIÈRE (1,6 s de disque) à
 --    chaque vente validée. 2 475 exécutions relevées, dont 76 sur les
---    dernières 24 h. C'est le premier poste de Disk IO de la base.
+--    dernières 24 h. C'était alors le premier poste de Disk IO de la
+--    base - piste (b) ci-dessous l'a depuis réduit d'un ordre de
+--    grandeur.
 --
---    Son commentaire dit : « Sur free tier Supabase (pas de pg_cron),
+--    Son commentaire disait : « Sur free tier Supabase (pas de pg_cron),
 --    c'est le seul moyen de garder la mat view à jour ». Le projet est
 --    sur Pro, avec un cron */30 actif et vérifié.
 --
@@ -338,7 +366,7 @@ ORDER BY relname;
 --    12 mois agrégé PAR MOIS, insensible à 30 min de retard). C'ÉTAIT
 --    FAUX. La vue a au moins TROIS consommateurs, dont un critique :
 --
---      1. AccountingOverview.tsx:185 — groupBy 'month', 12 mois.
+--      1. AccountingOverview.tsx:185 - groupBy 'month', 12 mois.
 --         Tolère parfaitement 30 min de retard.
 --
 --      2. AnalyticsService.getRevenueSummary (analytics.service.ts:225)
@@ -353,7 +381,7 @@ ORDER BY relname;
 --    => Retirer le refresh post_mutation ferait SOUS-ESTIMER le CA du
 --       jour de 0 à 30 minutes de ventes sur un écran présenté comme la
 --       source de vérité, consulté EN SERVICE par les promoteurs.
---       Pour un POS, c'est un défaut fonctionnel inacceptable — bien
+--       Pour un POS, c'est un défaut fonctionnel inacceptable - bien
 --       plus grave que l'alerte Disk IO qu'on cherche à corriger.
 --
 --    Le commentaire « V12 » d'AccountingOverview.tsx:189 (« Revenue via
@@ -361,17 +389,21 @@ ORDER BY relname;
 --    écran-là. La migration vers les tables brutes n'a jamais été
 --    étendue à getRevenueSummary.
 --
--- PISTES À ARBITRER (aucune n'est triviale — décision produit) :
+-- PISTES (a) ET (c) - ENCORE OUVERTES si le débounce (b) s'avère
+-- insuffisant à l'échelle. (b) est FAIT, détail ci-dessous :
 --
 --    a) Migrer getRevenueSummary vers les tables brutes, comme l'a déjà
 --       fait AccountingOverview avec useRevenueStats. Le refresh
---       post_mutation devient alors inutile et peut être supprimé.
---       C'est l'option la plus propre, et celle qui achève une migration
---       déjà commencée. Coût : vérifier la parité des 6 champs agrégés.
+--       post_mutation deviendrait alors inutile et pourrait être
+--       supprimé. L'option la plus propre, et celle qui achèverait une
+--       migration déjà commencée. Coût : vérifier la parité des 6
+--       champs agrégés. NON FAIT - reste une piste future.
 --
---    b) Garder le refresh mais le DÉBOUNCER (ex. au plus une fois par
---       minute et par bar) au lieu d'une exécution par vente. Réduit le
---       coût d'un ordre de grandeur en préservant la fraîcheur perçue.
+--    b) ✅ FAIT (commit c78be5b, 10/09/2026) : le refresh est débouncé
+--       à 1/min/bar via shouldRefreshSummary() dans
+--       useSalesMutations.ts. Gain estimé x5 à x20 selon le rythme de
+--       ventes. Fraîcheur du CA du jour : 1 min max au lieu
+--       d'instantané.
 --
 --    c) Remplacer REFRESH MATERIALIZED VIEW par une mise à jour
 --       incrémentale de la seule journée courante. Le plus efficace,
