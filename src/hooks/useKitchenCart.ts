@@ -66,7 +66,18 @@ function itemKey(item: KitchenCartItem): string {
 export function useKitchenCart() {
   const [items, setItems] = useState<KitchenCartItem[]>([]);
 
-  const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow) => {
+  /**
+   * @param quantity Quantité VOULUE au total pour cette ligne. Absente, le
+   * comportement historique s'applique : +1.
+   *
+   * ⭐ REMPLACE au lieu d'AJOUTER quand elle est fournie — même règle que
+   * `useCart.addToCart`, et pour la même raison : le pavé de quantité désigne
+   * un total, pas un incrément.
+   *
+   * ⚠️ La quantité s'applique à la LIGNE (plat + format), pas au plat : un
+   * Grand à 6 laisse le Petit intact. C'est `lineKey` qui porte cette règle.
+   */
+  const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow, quantity?: number) => {
     /**
      * ⛔ MIROIR EXACT de la passe 1 de `create_kitchen_order`, qui exige
      * `is_active` ET `is_available`.
@@ -86,16 +97,31 @@ export function useKitchenCart() {
      */
     if (!dish.is_active || !dish.is_available) return;
 
+    /**
+     * ⛔ QUANTITÉ EXPLICITE ≤ 0 = REFUS, pas un retrait (revue du 13/09/2026).
+     *
+     * `addDish` est une action PUBLIQUE du contexte : le pavé garde déjà `> 0`,
+     * mais tout autre appelant pouvait créer une ligne à 0 — affichée dans le
+     * panier, puis envoyée à `create_kitchen_order` comme une commande de zéro
+     * plat. Le retrait a sa fonction dédiée (`removeDish`), qui est visible et
+     * réversible ; l'ajout ne doit jamais y servir de porte dérobée.
+     *
+     * ⚠️ `undefined` reste le chemin historique (+1) et n'est PAS concerné.
+     */
+    if (quantity !== undefined && quantity <= 0) return;
+
     const key = lineKey(dish.id, priceOption?.id);
 
     setItems((current) => {
       const existing = current.find((i) => itemKey(i) === key);
       if (existing) {
         return current.map((i) =>
-          itemKey(i) === key ? { ...i, quantity: i.quantity + 1 } : i
+          itemKey(i) === key
+            ? { ...i, quantity: quantity !== undefined ? quantity : i.quantity + 1 }
+            : i
         );
       }
-      return [...current, { dish, quantity: 1, priceOption }];
+      return [...current, { dish, quantity: quantity ?? 1, priceOption }];
     });
   }, []);
 

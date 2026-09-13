@@ -35,12 +35,26 @@ export default function HomePage() {
    */
   const [dishAwaitingFormat, setDishAwaitingFormat] = useState<DishRow | null>(null);
 
-  const handleAddDish = useCallback((dish: DishRow) => {
+  /**
+   * ⭐ Quantité saisie au pavé AVANT le choix du format, mise en attente.
+   *
+   * ⛔ L'ORDRE DES DEUX QUESTIONS EST IMPOSÉ : la quantité porte sur une LIGNE
+   * du panier (plat + format), et cette ligne n'existe pas tant que le format
+   * n'est pas choisi. Appliquer « 6 » avant le format écrirait sur la mauvaise
+   * ligne — ou en créerait une sans format, que `create_kitchen_order` refuse.
+   *
+   * ⚠️ Remis à `undefined` à CHAQUE issue (choix ou annulation) : une quantité
+   * oubliée ici s'appliquerait silencieusement au plat suivant.
+   */
+  const [quantityAwaitingFormat, setQuantityAwaitingFormat] = useState<number | undefined>(undefined);
+
+  const handleAddDish = useCallback((dish: DishRow, quantity?: number) => {
     if (hasPriceOptions(dish.dish_price_options)) {
       setDishAwaitingFormat(dish);
+      setQuantityAwaitingFormat(quantity);
       return;
     }
-    addDish(dish);
+    addDish(dish, undefined, quantity);
   }, [addDish]);
   const { currentBar, hasRestaurant } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
@@ -244,8 +258,12 @@ export default function HomePage() {
     );
   }
 
-  const handleAddToCart = (product: Product) => {
-    addToCart(product);
+  const handleAddToCart = (product: Product, quantity?: number) => {
+    // ⭐ `quantity` vient du pavé de la carte produit et REMPLACE la quantité
+    //    de la ligne. Sans ce passage, le pavé serait un NO-OP silencieux ici
+    //    — sur l'écran d'accueil, celui que tous les bars ouvrent à chaque
+    //    service, et la cible même de l'objection « saisie trop lourde ».
+    addToCart(product, quantity);
   };
 
   // 3. Le reste du rendu du composant
@@ -421,10 +439,14 @@ export default function HomePage() {
         <PriceOptionPicker
           dish={dishAwaitingFormat}
           formatPrice={formatPrice}
-          onCancel={() => setDishAwaitingFormat(null)}
-          onPick={(option) => {
-            addDish(dishAwaitingFormat, option);
+          onCancel={() => {
             setDishAwaitingFormat(null);
+            setQuantityAwaitingFormat(undefined);
+          }}
+          onPick={(option) => {
+            addDish(dishAwaitingFormat, option, quantityAwaitingFormat);
+            setDishAwaitingFormat(null);
+            setQuantityAwaitingFormat(undefined);
           }}
         />
       )}

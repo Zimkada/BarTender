@@ -298,13 +298,20 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
 
   // --- HELPERS ---
-  const handleAddToCart = (product: Product) => {
-    // Stock check performed inside ProductCard via disabled state, 
+  const handleAddToCart = (product: Product, quantity?: number) => {
+    // Stock check performed inside ProductCard via disabled state,
     // but double check here doesn't hurt.
+    // ⚠️ Ce pré-contrôle ne teste QUE l'épuisement total, pas la quantité
+    //    demandée : c'est `useCart` qui borne la ligne au stock disponible et
+    //    prévient l'utilisateur. Le dédoubler ici ferait diverger deux règles.
     const stockInfo = getProductStockInfo(product.id);
     if ((stockInfo?.availableStock ?? 0) <= 0) return;
 
-    addToCart(product);
+    // ⭐ `quantity` vient du pavé de la carte produit et REMPLACE la quantité
+    //    de la ligne. Sans ce passage, le pavé serait muet sur cet écran —
+    //    c'est pourtant celui de la vente au comptoir, le plus exposé à
+    //    l'affluence que le pavé vise à soulager.
+    addToCart(product, quantity);
     setSearchTerm('');
     if (!isMobile) searchInputRef.current?.focus();
   };

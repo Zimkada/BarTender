@@ -21,7 +21,8 @@ export interface AppContextType {
 
   // PANIER (NEW)
   cart: CartItem[];
-  addToCart: (product: Product) => void;
+  /** ⭐ `quantity` REMPLACE la quantité de la ligne (pavé). Absente : +1. */
+  addToCart: (product: Product, quantity?: number) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
@@ -39,8 +40,11 @@ export interface AppContextType {
    * du §3 est structurelle, pas conditionnelle.
    */
   kitchenItems: KitchenCartItem[];
-  /** ⭐ §19.5 — `priceOption` absent pour un plat à prix ferme. */
-  addDish: (dish: DishRow, priceOption?: DishPriceOptionRow) => void;
+  /**
+   * ⭐ §19.5 — `priceOption` absent pour un plat à prix ferme.
+   * ⭐ `quantity` REMPLACE la quantité de la LIGNE (pavé). Absente : +1.
+   */
+  addDish: (dish: DishRow, priceOption?: DishPriceOptionRow, quantity?: number) => void;
   /**
    * ⚠️ §19.5 — ces trois fonctions prennent la CLÉ DE LIGNE, pas un `dishId` :
    * un même plat peut occuper plusieurs lignes (un Grand et un Petit), et agir

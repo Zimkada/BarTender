@@ -5,17 +5,29 @@ import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { ProductCardImage } from './ProductCardImage';
+import { QuantityPad } from './common/QuantityPad';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
+  /**
+   * ⭐ `quantity` REMPLACE la quantité de la ligne (saisie au pavé). Absente,
+   * le comportement historique s'applique : +1.
+   */
+  onAddToCart: (product: Product, quantity?: number) => void;
   availableStock?: number;
   quantityInCart?: number; // ✨ Ajout : Quantité déjà présente dans le panier
   priority?: boolean; // ✨ Pour l'optimisation LCP
+  /**
+   * Le badge ouvre-t-il le pavé de quantité ? (défaut : oui)
+   * ⛔ `false` sur un écran de simple SÉLECTION (cf. `SwapProductSelector`) :
+   * proposer une saisie que l'appelant jette est pire que ne rien proposer.
+   */
+  allowQuantityPad?: boolean;
 }
 
-export function ProductCard({ product, onAddToCart, availableStock, quantityInCart = 0, priority = false }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, availableStock, quantityInCart = 0, priority = false, allowQuantityPad = true }: ProductCardProps) {
   const { formatPrice } = useCurrencyFormatter();
+  const [isPadOpen, setIsPadOpen] = useState(false);
 
   // Priorité au stock "calculé" (disponible) s'il est fourni, sinon stock physique
   const displayStock = availableStock !== undefined ? availableStock : product.stock;
@@ -74,17 +86,58 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
         ${isMaxReached ? 'cursor-default' : ''}
       `}
     >
-      {/* Stock Badge */}
-      <div
-        className={`
-          absolute top-2 right-2 z-10
-          ${status.color} text-white
-          text-micro font-semibold px-2 py-0.5 rounded-full
-          tabular-nums
-        `}
-      >
-        {status.label}
-      </div>
+      {/* Stock Badge — DOUBLE RÔLE : afficher le stock, ouvrir le pavé.
+          ⭐⭐ C'EST LE DÉCLENCHEUR DU PAVÉ DE QUANTITÉ (objection terrain :
+          six bières = six taps). Le tap sur la CARTE reste +1, inchangé.
+          ⛔ Écarté : l'appui long sur la carte. À 500 ms, un serveur pressé
+          qui relâche trop tôt obtient un +1 SILENCIEUX au lieu du pavé — une
+          erreur invisible sur le geste le plus fréquent du service. Ici chaque
+          cible fait exactement une chose.
+          ⚠️ `stopPropagation` INDISPENSABLE : sans lui, le clic remonterait à
+          la carte et ajouterait +1 en plus d'ouvrir le pavé.
+          ⛔ INERTE sur stock épuisé seulement — PAS sur « MAX atteint »
+          (deux revues, deux erreurs opposées le 13/09/2026) :
+          · le neutraliser sur `isMaxReached` PARAÎT juste, mais sur
+            `QuickSaleFlow` le stock reçu est DÉJÀ NET du panier : avec 12 en
+            stock et 6 au panier, `isMaxReached` est vrai et le pavé devenait
+            inerte — impossible de demander le casier plein, sur l'écran même
+            qu'il vient soulager ;
+          · le laisser actif est donc le bon choix, et le plafond
+            (`displayStock + quantityInCart`, cf. plus bas) garantit qu'aucune
+            valeur proposée ne dépasse le stock réel. Le pavé reste utile en
+            état MAX : il sert justement à RÉDUIRE une ligne trop remplie. */}
+      {isStockEmpty || !allowQuantityPad ? (
+        <div
+          className={`
+            absolute top-2 right-2 z-10
+            ${status.color} text-white
+            text-micro font-semibold px-2 py-0.5 rounded-full
+            tabular-nums
+          `}
+        >
+          {status.label}
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsPadOpen(true);
+          }}
+          aria-label={`Saisir une quantité pour ${product.name}`}
+          className={`
+            absolute top-2 right-2 z-20
+            ${status.color} text-white
+            text-micro font-semibold px-2 py-0.5 rounded-full
+            tabular-nums
+            active:scale-90 transition-transform
+            ring-1 ring-white/40
+          `}
+        >
+          {status.label}
+        </button>
+      )}
 
       {/* Image */}
       <div className="aspect-square bg-white p-2 flex items-center justify-center relative group border-b border-border overflow-hidden">
@@ -157,6 +210,52 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
           </div>
         </div>
       </div>
+
+      {/* ⭐ Pavé de quantité.
+          ⚠️⚠️ LE WRAPPER `stopPropagation` EST LA SEULE PROTECTION, et il est
+          INDISPENSABLE. `Modal` n'utilise AUCUN portal : le pavé reste donc un
+          descendant REACT de cette carte, même s'il s'affiche en surcouche
+          (z-[1000]). Or React propage les événements le long de son propre
+          arbre, PAS de l'arbre visuel — un clic dans le pavé atteindrait le
+          `onClick` de la carte et ajouterait un +1 parasite à chaque geste.
+          ⛔ Ne PAS « simplifier » en retirant ce conteneur au motif que le pavé
+          flotte au-dessus : la position CSS n'a aucun effet sur la propagation
+          React. (Le commentaire précédent invoquait les deux raisons à la fois,
+          dont une fausse — corrigé le 13/09/2026.)
+          ⚠️ Contrairement à `DishCard`, aucun wrapper `<div relative>` n'est
+          nécessaire ici : la racine de cette carte est un `motion.div` et non un
+          `<button>`, donc imbriquer le pavé ne produit pas de balisage invalide. */}
+      {isPadOpen && (
+        <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+          <QuantityPad
+            open={isPadOpen}
+            onClose={() => setIsPadOpen(false)}
+            itemName={product.name}
+            currentQuantity={quantityInCart}
+            /**
+             * ⭐⭐ PLAFOND = stock affiché + ce qui est DÉJÀ au panier.
+             *
+             * ⛔ `displayStock` seul serait FAUX sur l'écran de vente rapide.
+             * `QuickSaleFlow` passe un stock dont le panier est déjà déduit
+             * (`availableStockByProductId`) : avec 12 en stock et 2 au panier,
+             * il vaut 10. Or le pavé REMPLACE la quantité — demander 12 est
+             * légitime, et le plafonner à 10 interdirait le casier plein
+             * précisément sur l'écran que ce pavé vient soulager.
+             *
+             * ⚠️ Sur `HomePage`, `getAvailableStock` ne déduit PAS le panier :
+             * `quantityInCart` y vaut ce que la ligne porte déjà, et la somme
+             * redonne le stock réel. La formule est donc juste des DEUX côtés
+             * — c'est ce qui permet de ne pas ajouter une prop de plus.
+             */
+            maxQuantity={displayStock + quantityInCart}
+            onPick={(quantity) => {
+              onAddToCart(product, quantity);
+              if (navigator.vibrate) navigator.vibrate(10);
+              itemAddedToCart(product.name);
+            }}
+          />
+        </div>
+      )}
     </motion.div>
   );
 }

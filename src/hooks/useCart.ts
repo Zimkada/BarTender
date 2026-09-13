@@ -27,11 +27,19 @@ export function useCart({ barId, initialCart = [], maxStockLookup }: UseCartOpti
 
     // --- ACTIONS ---
 
-    const addToCart = useCallback((product: Product) => {
+    /**
+     * @param quantity Quantité VOULUE au total pour cette ligne. Absente, le
+     * comportement historique s'applique : +1 sur la quantité courante.
+     *
+     * ⭐ REMPLACE au lieu d'AJOUTER quand elle est fournie — c'est la lecture
+     * naturelle du pavé de quantité (`QuantityPad`) : taper « 6 » donne 6, pas
+     * 6 de plus. Le geste devient idempotent, un double tap ne double rien.
+     */
+    const addToCart = useCallback((product: Product, quantity?: number) => {
         setCart(currentCart => {
             const existingItem = currentCart.find(item => item.product.id === product.id);
             const currentQty = existingItem ? existingItem.quantity : 0;
-            const newQty = currentQty + 1;
+            const newQty = quantity !== undefined ? quantity : currentQty + 1;
 
             // 🛡️ Validation de stock intrinsèque
             if (maxStockLookup) {
@@ -51,7 +59,9 @@ export function useCart({ barId, initialCart = [], maxStockLookup }: UseCartOpti
                         : item
                 );
             }
-            return [...currentCart, { product, quantity: 1 }];
+            // ⚠️ `newQty` et non `1` : une première ligne créée depuis le pavé
+            // doit naître avec la quantité demandée.
+            return [...currentCart, { product, quantity: newQty }];
         });
     }, [maxStockLookup]);
 

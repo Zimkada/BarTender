@@ -7,7 +7,17 @@ import { ProductGridSkeleton } from './skeletons';
 
 interface ProductGridProps {
   products: Product[];
-  onAddToCart: (product: Product) => void;
+  /** ⭐ `quantity` REMPLACE la quantité de la ligne (pavé). Absente : +1. */
+  onAddToCart: (product: Product, quantity?: number) => void;
+  /**
+   * Le pavé de quantité est-il proposé sur les cartes ? (défaut : oui)
+   *
+   * ⛔ `false` pour tout écran qui CHOISIT un produit sans en fixer la
+   * quantité — `SwapProductSelector`, dont la quantité vient du retour
+   * d'origine. Sans cette porte, le pavé s'y affichait et la quantité saisie
+   * était silencieusement jetée par un `onSelect` à un seul argument.
+   */
+  allowQuantityPad?: boolean;
   cart?: CartItem[];
   isLoading?: boolean;
   isStockLoading?: boolean;
@@ -37,7 +47,8 @@ function ProductGridContent({
   isStockLoading = false,
   getAvailableStock,
   onAddProduct,
-  categoryName
+  categoryName,
+  allowQuantityPad = true
 }: ProductGridProps) {
   if (isLoading || isStockLoading) {
     return <ProductGridSkeleton count={10} />;
@@ -65,7 +76,8 @@ function ProductGridContent({
             product={product}
             availableStock={getAvailableStock?.(product.id)}
             quantityInCart={quantityInCart}
-            onAddToCart={() => onAddToCart(product)}
+            onAddToCart={(_product, quantity) => onAddToCart(product, quantity)}
+            allowQuantityPad={allowQuantityPad}
             priority={index < 4}
           />
         );

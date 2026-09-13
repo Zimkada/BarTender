@@ -131,6 +131,14 @@ export function SwapProductSelector({
                     <ProductGrid
                         products={filteredProducts}
                         onAddToCart={onSelect}
+                        /* ⛔ PAVÉ DE QUANTITÉ NEUTRALISÉ ICI (revue du 13/09/2026).
+                           Cet écran CHOISIT un article d'échange, il n'en saisit pas
+                           la quantité : celle-ci est imposée par le retour d'origine
+                           (`provideExchange`). `onSelect` ne prend qu'un argument, donc
+                           une quantité saisie au pavé serait silencieusement JETÉE —
+                           le serveur croirait l'avoir fixée. Mieux vaut ne rien
+                           proposer que proposer une saisie sans effet. */
+                        allowQuantityPad={false}
                         isLoading={isLoading}
                         getAvailableStock={(productId) => getProductStockInfo(productId)?.availableStock}
                     />

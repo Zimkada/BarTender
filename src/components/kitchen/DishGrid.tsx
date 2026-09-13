@@ -19,16 +19,22 @@
  * donnée. Le seul signal fiable est `is_available` — le toggle « Coupé ».
  */
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { UtensilsCrossed, Plus, Clock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import type { DishRow } from '../../services/supabase/dishes.service';
 import { hasPriceOptions, formatPriceRange } from './priceOptionHelpers';
+import { QuantityPad } from '../common/QuantityPad';
 
 interface Props {
   dishes: DishRow[];
-  onAddDish: (dish: DishRow) => void;
+  /**
+   * ⭐ `quantity` REMPLACE la quantité de la ligne (pavé). Absente : +1.
+   * ⚠️ Pour un plat à FORMATS, la quantité traverse `PriceOptionPicker` :
+   * elle ne s'applique qu'une fois le format choisi (cf. `HomePage`).
+   */
+  onAddDish: (dish: DishRow, quantity?: number) => void;
   /** Quantité déjà sélectionnée, par `dish_id`. */
   quantities?: Record<string, number>;
   isLoading?: boolean;
@@ -39,35 +45,46 @@ interface Props {
 interface CardProps {
   dish: DishRow;
   quantity: number;
-  onAdd: () => void;
+  onAdd: (quantity?: number) => void;
 }
 
 const DishCard = memo<CardProps>(function DishCard({ dish, quantity, onAdd }) {
   const { formatPrice } = useCurrencyFormatter();
+  const [isPadOpen, setIsPadOpen] = useState(false);
 
   // ⭐ « Coupé » (§9) : le plat existe mais n'est plus servable ce soir. La
   // carte reste VISIBLE — la masquer ferait croire à une erreur de saisie.
   const isOut = !dish.is_available;
 
   return (
-    <button
-      type="button"
-      onClick={onAdd}
-      disabled={isOut}
-      className={cn(
-        'relative flex flex-col rounded-xl border p-3 text-left transition-colors',
-        isOut
-          ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60 dark:border-gray-700 dark:bg-gray-900'
-          : 'border-gray-200 bg-white hover:border-brand-primary dark:border-gray-700 dark:bg-gray-800'
-      )}
-    >
-      {/* Pastille de quantité — même repère visuel que les boissons. */}
-      {quantity > 0 && (
-        <span className="absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-primary px-1.5 text-xs font-bold text-white">
-          {quantity}
-        </span>
-      )}
-
+    /**
+     * ⛔⛔ WRAPPER INDISPENSABLE — défaut trouvé en revue le 13/09/2026.
+     *
+     * Le pavé et le badge déclencheur étaient rendus DANS le `<button>` de la
+     * carte. Or `Modal` n'utilise AUCUN portal (aucun `createPortal` dans
+     * `components/ui`) : le HTML résultant imbriquait donc des `<button>` et un
+     * `<input>` à l'intérieur d'un `<button>`. Les navigateurs REMONTENT ce
+     * balisage invalide hors du bouton parent, et un bouton imbriqué ne reçoit
+     * pas les clics de façon fiable : les taps du pavé ne faisaient rien, ou
+     * atteignaient la carte (+1 plat parasite).
+     *
+     * ⭐ Le bouton, le badge et le pavé sont désormais FRÈRES. `ProductCard`
+     * n'avait pas ce défaut parce que sa racine est un `motion.div`, pas un
+     * `<button>` — la différence ne se voyait pas à la lecture d'un seul des
+     * deux fichiers.
+     */
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => onAdd()}
+        disabled={isOut}
+        className={cn(
+          'flex w-full flex-col rounded-xl border p-3 text-left transition-colors',
+          isOut
+            ? 'cursor-not-allowed border-gray-200 bg-gray-50 opacity-60 dark:border-gray-700 dark:bg-gray-900'
+            : 'border-gray-200 bg-white hover:border-brand-primary dark:border-gray-700 dark:bg-gray-800'
+        )}
+      >
       <div className="mb-2 flex h-16 items-center justify-center rounded-lg bg-brand-subtle">
         {dish.photo_url ? (
           <img
@@ -106,17 +123,83 @@ const DishCard = memo<CardProps>(function DishCard({ dish, quantity, onAdd }) {
         ) : null}
       </div>
 
-      {isOut ? (
-        <span className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
-          Coupé
-        </span>
-      ) : (
-        <span className="mt-1 flex items-center gap-0.5 text-xs text-gray-400">
-          <Plus className="h-3 w-3" />
-          Ajouter
+        {isOut ? (
+          <span className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+            Coupé
+          </span>
+        ) : (
+          <span className="mt-1 flex items-center gap-0.5 text-xs text-gray-400">
+            <Plus className="h-3 w-3" />
+            Ajouter
+          </span>
+        )}
+      </button>
+
+      {/* ⭐⭐ DÉCLENCHEUR DU PAVÉ — FRÈRE du bouton, jamais dedans (cf. wrapper).
+          Même geste que les boissons : en portée « Tout », les deux grilles se
+          suivent à l'écran et deux gestes différents pour la même intention se
+          verraient immédiatement.
+          ⚠️ `stopPropagation` conservé : le badge est superposé à la carte, un
+          clic dessus ne doit pas déclencher le +1 du bouton en dessous.
+          ⭐ Affiché MÊME à quantité nulle (un « + » discret) : un plat n'a pas
+          de badge de stock permanent qui pourrait porter le geste. */}
+      {!isOut && (
+        <button
+          type="button"
+          aria-label={`Saisir une quantité pour ${dish.name}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsPadOpen(true);
+          }}
+          className={cn(
+            'absolute right-2 top-2 z-10 flex h-6 min-w-6 items-center',
+            'justify-center rounded-full px-1.5 text-xs font-bold transition-transform active:scale-90',
+            quantity > 0
+              ? 'bg-brand-primary text-white ring-1 ring-white/40'
+              : 'bg-brand-subtle text-brand-primary ring-1 ring-brand-primary/20'
+          )}
+        >
+          {quantity > 0 ? quantity : <Plus className="h-3 w-3" strokeWidth={3} />}
+        </button>
+      )}
+
+      {/* ⚠️ Pastille NON interactive quand le plat est coupé : le repère
+          visuel doit rester, mais rien ne doit s'ouvrir. */}
+      {isOut && quantity > 0 && (
+        <span className="absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-brand-primary px-1.5 text-xs font-bold text-white">
+          {quantity}
         </span>
       )}
-    </button>
+
+      {/* ⭐ Pavé de quantité — FRÈRE du bouton (cf. wrapper).
+          ⛔⛔ MONTÉ SOUS CONDITION, jamais en permanence (revue du 13/09/2026).
+          Sans le `isPadOpen &&`, CHAQUE plat de la grille montait son propre
+          `Modal`. Or `Modal` remet `document.body.style.overflow = ''` dans un
+          cleanup INCONDITIONNEL : démonter une carte (recherche, changement de
+          catégorie, refetch) libérait le verrou de défilement d'un pavé encore
+          ouvert. S'y ajoutaient N listeners ESC et N focus-traps pour un seul
+          dialogue visible.
+          ⚠️ PAS de `maxQuantity` : un plat n'a PAS de stock — sa disponibilité
+          dépend de ses ingrédients et n'est calculée qu'au `mark_ready`.
+          Afficher un plafond ici inventerait une donnée (cf. en-tête du
+          fichier : « le seul signal fiable est is_available »).
+          ⛔ `currentQuantity={0}` et NON `quantity` : `quantities` CUMULE les
+          formats d'un même plat (un Grand + deux Petits → 3), alors que le pavé
+          REMPLACE UNE SEULE ligne. Annoncer « 3 » puis appliquer 6 à la ligne
+          Grand aurait donné 8 au panier — un chiffre que l'utilisateur n'a ni
+          demandé ni vu. À 0, le pavé pose simplement « combien en servez-vous »,
+          ce qui est exact quel que soit le format visé. */}
+      {isPadOpen && (
+        <QuantityPad
+          open={isPadOpen}
+          onClose={() => setIsPadOpen(false)}
+          itemName={dish.name}
+          currentQuantity={0}
+          onPick={(picked) => onAdd(picked)}
+        />
+      )}
+    </div>
   );
 });
 
@@ -161,7 +244,7 @@ export function DishGrid({
           key={dish.id}
           dish={dish}
           quantity={quantities[dish.id] ?? 0}
-          onAdd={() => onAddDish(dish)}
+          onAdd={(quantity) => onAddDish(dish, quantity)}
         />
       ))}
     </div>

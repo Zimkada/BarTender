@@ -156,7 +156,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         clearKitchenCart();
     }, [currentBar?.id, setCart, clearKitchenCart]);
 
-    const addToCart = useCallback((product: Product) => {
+    const addToCart = useCallback((product: Product, quantity?: number) => {
         // ⛔ Qui n'a PAS le droit de vendre ne compose pas de panier — quel que
         //    soit le mode opérationnel. Constaté en test le 02/08/2026 : un
         //    cuisinier (canSell = false) pouvait remplir un panier et voir
@@ -189,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return;
         }
 
-        baseAddToCart(product);
+        baseAddToCart(product, quantity);
     }, [baseAddToCart, isSimplifiedMode, currentSession, hasPermission]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
@@ -211,7 +211,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
      * serveur, cuisine comprise. Cohérent avec `create_sale_idempotent`, qui
      * REFUSE déjà un serveur dans ce mode (whitelist_create_sale_roles:216).
      */
-    const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow) => {
+    const addDish = useCallback((dish: DishRow, priceOption?: DishPriceOptionRow, quantity?: number) => {
         if (!!currentSession && !hasPermission('canSell')) {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast('Votre rôle ne permet pas de prendre une commande.', {
@@ -233,7 +233,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return;
         }
 
-        baseAddDish(dish, priceOption);
+        baseAddDish(dish, priceOption, quantity);
     }, [baseAddDish, isSimplifiedMode, currentSession, hasPermission]);
     // --- END CART STATE & LOGIC ---
 
