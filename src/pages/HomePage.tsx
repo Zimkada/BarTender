@@ -307,15 +307,21 @@ export default function HomePage() {
         <SearchBar
           value={searchQuery}
           onChange={setSearchQuery}
-          /* ⚠️ Suit la portée : sur un bar pur, `hasRestaurant` est false et le
-             libellé reste identique a aujourd hui (§3). */
-          placeholder={
-            !hasRestaurant || effectiveScope === 'products'
-              ? 'Rechercher un produit...'
-              : effectiveScope === 'dishes'
-                ? 'Rechercher un plat...'
-                : 'Rechercher un produit ou un plat...'
-          }
+          /* ⚠️ Placeholder UNIQUE, plus conditionné par la portée (revue du
+             14/09/2026 — signalé en test terrain sur petit écran).
+             ⛔ La variante « Rechercher un produit ou un plat... » (30
+             caractères) débordait de l'input sur un écran ~360px : l'icône
+             de recherche à gauche et l'espace réservé au bouton clear à
+             droite (SearchBar: pl-10 pr-10) laissent trop peu de place, et
+             un placeholder tronqué/à faire défiler est une mauvaise
+             expérience — l'utilisateur ne le voit jamais en entier avant
+             de taper.
+             ⭐ Le sélecteur de portée, juste en dessous quand le bar a une
+             cuisine, dit déjà CE QU'ON REGARDE (Boissons/Plats/Tout) — le
+             placeholder n'a plus besoin de le répéter. Un bar pur (§3) n'a
+             ni sélecteur ni ambiguïté : « Rechercher... » y est aussi
+             correct qu'avant. */
+          placeholder="Rechercher..."
           className="w-full"
         />
       </div>

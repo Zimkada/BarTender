@@ -165,9 +165,14 @@ describe('HomePage — invariance des bars purs (§3)', () => {
     });
 
     it('⭐ la recherche garde son libellé d\'origine', () => {
+      // ⚠️ Placeholder rendu UNIQUE le 14/09/2026 (débordait sur petit écran
+      // en portée « Tout » : « Rechercher un produit ou un plat... » ne
+      // tenait pas dans l'input entre l'icône et le bouton clear). Reste
+      // vérifié ici pour la même raison qu'avant : s'assurer qu'aucune
+      // régression ne réintroduit une variante conditionnelle par mégarde.
       renderHome();
 
-      expect(screen.getByPlaceholderText('Rechercher un produit...')).toBeTruthy();
+      expect(screen.getByPlaceholderText('Rechercher...')).toBeTruthy();
     });
 
     it('affiche bien la grille produits', () => {
