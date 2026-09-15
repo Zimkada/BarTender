@@ -1,10 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
-import type { Sale, Bar } from '../../../../types';
-import type { UnifiedSale } from '../../../../hooks/pivots/useUnifiedSales';
+import type { Bar } from '../../../../types';
+import { useRevenueStats } from '../../../../hooks/useRevenueStats';
+import { dateToYYYYMMDD } from '../../../../utils/businessDateHelpers';
 
 interface UseSalesStatsProps {
-    filteredSales: Array<Sale | UnifiedSale>;
+    // ⚡ filteredSales RETIRE (15/09/2026) : il ne servait qu'a additionner les
+    // ventes optimistes au CA backend. useRevenueStats fusionne desormais
+    // l'offline lui-meme, avec deduplication par idempotency_key — ajouter
+    // filteredSales par-dessus produirait un double comptage.
+    // La liste reste passee separement a AnalyticsView (prop `sales`), qui en a
+    // besoin pour ses propres graphiques.
     timeRange: string;
     startDate: Date;
     endDate: Date;
@@ -13,7 +19,6 @@ interface UseSalesStatsProps {
 }
 
 export function useSalesStats({
-    filteredSales,
     timeRange,
     startDate,
     endDate,
@@ -24,8 +29,41 @@ export function useSalesStats({
     const [topProductsLimit, setTopProductsLimit] = useState<number>(5);
     const [topProductMetric, setTopProductMetric] = useState<'units' | 'revenue' | 'profit'>('units');
     const [sqlTopProducts, setSqlTopProducts] = useState<TopProduct[]>([]);
-    const [backendRevenue, setBackendRevenue] = useState<{ totalRevenue: number; totalItems: number } | null>(null);
-    const [isLoadingStats, setIsLoadingStats] = useState(false);
+    const [isLoadingTopProducts, setIsLoadingTopProducts] = useState(false);
+
+    /**
+     * ⚡ Disk IO (15/09/2026) : le CA vient desormais de useRevenueStats, qui
+     * lit les tables BRUTES, et non plus de AnalyticsService.getRevenueSummary,
+     * qui lisait la vue materialisee daily_sales_summary.
+     *
+     * POURQUOI : cette vue portait 79,6 % du cout de refresh de la base. Chaque
+     * vente validee declenchait une reecriture complete (~2,2 s mesurees) d'une
+     * vue de 626 lignes couvrant 7 bars. Deux correctifs de debounce ont echoue
+     * a reduire ce cout — mesure du 15/09, l'espacement reel des ventes depasse
+     * largement toute fenetre de debounce raisonnable. Le probleme n'etait pas
+     * la FREQUENCE des refresh mais leur COUT UNITAIRE : la seule issue est de
+     * ne plus dependre de la vue.
+     *
+     * PARITE VALIDEE EN BASE le 14-15/09 avant migration :
+     *   - 11 bars, tous closing_hour = 6 (la vue codait 6h en dur, le trigger
+     *     business_date lit closing_hour par bar : aucune divergence possible)
+     *   - CA brut et nombre de ventes : 0 ecart sur 70 couples bar/jour (30 j)
+     *   - Retours : 0 ecart sur 706 retours (90 j). ⚠️ Les deux definitions
+     *     different pourtant (la vue filtre status='approved' seul ;
+     *     isConfirmedReturn accepte aussi validated/restocked MAIS exige un
+     *     impact financier). Elles coincident sur les donnees actuelles, pas
+     *     par construction — sans consequence ici puisque la vue disparait de
+     *     ce chemin.
+     *
+     * ⭐ useRevenueStats derive son perimetre de la PERMISSION canViewAllSales,
+     * exactement comme serverIdForAnalytics ci-dessous (SalesHistoryPage:211).
+     * Les deux coincident donc toujours : aucun parametre serverId a propager.
+     */
+    const revenueStats = useRevenueStats({
+        startDate: dateToYYYYMMDD(startDate),
+        endDate: dateToYYYYMMDD(endDate),
+        enabled: !!currentBar,
+    });
 
     // --- EFFETS ---
     // Load statistics from SQL view and RPC when filters change
@@ -33,16 +71,12 @@ export function useSalesStats({
         if (!currentBar) return;
 
         const loadStats = async () => {
-            setIsLoadingStats(true);
+            setIsLoadingTopProducts(true);
             try {
-                // 1. Charger le CA exact via le backend (Source de vérité)
-                const revSummary = await AnalyticsService.getRevenueSummary(
-                    currentBar.id,
-                    startDate,
-                    endDate
-                );
-
-                // 2. Charger les top produits via RPC
+                // Le CA ne passe plus par ici : il vient de useRevenueStats
+                // (tables brutes). Seuls les top produits restent charges ici.
+                //
+                // Charger les top produits via RPC
                 /**
                  * ⭐ MARGE DE SECURITE sur la limite — 05/08/2026.
                  *
@@ -68,16 +102,12 @@ export function useSalesStats({
                     serverId
                 );
 
-                setBackendRevenue({
-                    totalRevenue: revSummary.totalRevenue,
-                    totalItems: revSummary.totalSales // On utilise le nombre de ventes validées comme proxy totalItems si nécessaire, ou on enrichit getRevenueSummary
-                });
                 setSqlTopProducts(products || []);
             } catch (error) {
-                console.error('Error loading stats:', error);
+                console.error('Error loading top products:', error);
                 setSqlTopProducts([]);
             } finally {
-                setIsLoadingStats(false);
+                setIsLoadingTopProducts(false);
             }
         };
 
@@ -93,26 +123,25 @@ export function useSalesStats({
 
     // --- CALCULS ---
     const stats = useMemo(() => {
-        // 🔴 CERTIFICATION SÉCURITÉ : FUSION BACKEND + OFFLINE
-        // Le backend contient les ventes validées. 
-        // L'offline contient les ventes pas encore synchronisées.
-
-        const isOptimistic = (s: Sale | UnifiedSale): boolean =>
-            'isOptimistic' in s && s.isOptimistic === true;
-
-        const offlineAmount = filteredSales
-            .filter(isOptimistic)
-            .reduce((sum, s) => sum + s.total, 0);
-
-        const offlineCount = filteredSales
-            .filter(isOptimistic).length;
-
-        // 1. Total des revenus (Backend + Offline en attente)
-        const totalRevenue = (backendRevenue?.totalRevenue || 0) + offlineAmount;
-
-        // 2. Nombre total d'articles (Simplifié : Nombre de transactions pour le moment ou calcul exact)
-        // Note: Pour une précision totale sur les items, le backend summary devrait inclure total_items_sold
-        const totalItems = (backendRevenue?.totalItems || 0) + offlineCount;
+        /**
+         * 🔴 CERTIFICATION SECURITE : PLUS DE FUSION MANUELLE ICI.
+         *
+         * L'ancienne version ajoutait au CA backend le montant des ventes
+         * optimistes de filteredSales. C'etait correct tant que le backend
+         * venait de la vue materialisee, qui ignore l'offline.
+         *
+         * ⚠️ Le refaire avec useRevenueStats produirait un DOUBLE COMPTAGE :
+         * ce hook fusionne DEJA serveur + offline (getOfflineSales) + ventes
+         * en transition, et deduplique par idempotency_key contre
+         * recentlySyncedMap — ce que l'addition naive ci-dessus ne faisait
+         * pas. Sa fusion est strictement meilleure : on lui laisse le CA.
+         *
+         * netRevenue (= brut - retours confirmes) correspond a l'ancien
+         * totalRevenue (= net_revenue ?? gross_revenue de la vue) ;
+         * saleCount correspond a totalSales (= validated_count).
+         */
+        const totalRevenue = revenueStats.netRevenue;
+        const totalItems = revenueStats.saleCount;
 
         // 3. KPI contextuel selon la période
         let kpiValue = 0;
@@ -156,7 +185,7 @@ export function useSalesStats({
             kpiLabel,
             topProducts: { byUnits, byRevenue, byProfit }
         };
-    }, [filteredSales, backendRevenue, timeRange, sqlTopProducts, topProductsLimit, startDate, endDate]);
+    }, [revenueStats.netRevenue, revenueStats.saleCount, timeRange, sqlTopProducts, topProductsLimit, startDate, endDate]);
 
     return {
         stats,
@@ -166,6 +195,9 @@ export function useSalesStats({
         setTopProductMetric,
         sqlTopProducts,
         setSqlTopProducts, // Exported in case it's needed elsewhere, though mainly internal
-        isLoadingStats
+        // Les deux sources doivent etre couvertes : le CA (useRevenueStats) et
+        // les top produits (RPC). Omettre l'une afficherait un total partiel
+        // comme s'il etait definitif.
+        isLoadingStats: isLoadingTopProducts || revenueStats.isLoading
     };
 }

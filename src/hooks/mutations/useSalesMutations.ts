@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { SalesService } from '../../services/supabase/sales.service';
-import { AnalyticsService } from '../../services/supabase/analytics.service';
 import { salesKeys, patchSalesListVariants } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
@@ -109,33 +108,6 @@ export interface CreateSaleVariables extends Partial<Sale> {
     idempotencyKey?: string;
 }
 
-/**
- * ⚡ Débounce du refresh de daily_sales_summary — Disk IO (10/09/2026).
- *
- * Portée MODULE, pas instance : useSalesMutations est monté par plusieurs
- * composants simultanément (panier, validation, historique). Un useRef par
- * instance laisserait chacune déclencher son propre refresh, et le débounce
- * ne servirait à rien.
- *
- * Clé par bar : deux bars distincts ne doivent pas se bloquer mutuellement.
- *
- * ⚠️ État volontairement NON réinitialisé au démontage : la fenêtre doit
- * survivre à la navigation entre écrans, sinon changer de page rouvrirait
- * la vanne à chaque fois.
- */
-const REFRESH_SUMMARY_MIN_INTERVAL_MS = 60_000;
-const lastSummaryRefreshByBar = new Map<string, number>();
-
-function shouldRefreshSummary(barId: string): boolean {
-    const now = Date.now();
-    const last = lastSummaryRefreshByBar.get(barId) ?? 0;
-    if (now - last < REFRESH_SUMMARY_MIN_INTERVAL_MS) return false;
-    // Marqué AVANT l'appel : deux ventes quasi simultanées ne doivent pas
-    // passer toutes les deux pendant que le refresh est en vol.
-    lastSummaryRefreshByBar.set(barId, now);
-    return true;
-}
-
 export const useSalesMutations = (barId: string, options?: {
     stockChecker?: (productId: string) => { availableStock: number } | null;
 }) => {
@@ -147,29 +119,37 @@ export const useSalesMutations = (barId: string, options?: {
     // DO NOT call it inside mutationFn - that violates React hooks contract
     const canWorkOffline = useCanWorkOffline();
 
-    // 🔄 Refresh ciblé de daily_sales_summary (vue matérialisée) après mutations CA.
-    // Best-effort : ne bloque pas l'UX si le refresh échoue.
-    //
-    // ⚡ Disk IO (diagnostic 10/09/2026) : ce refresh réécrit la vue ENTIÈRE
-    // (~1,6 s de disque mesurées en prod). Déclenché à chaque vente, il était le
-    // premier poste de Disk IO de la base — 2 475 exécutions relevées, devant le
-    // cron */30 qui fait pourtant le même travail. D'où le débounce ci-dessous.
-    //
-    // ⚠️ NE PAS le supprimer purement et simplement : daily_sales_summary alimente
-    // getRevenueSummary (analytics.service.ts) en granularité JOUR, lu par l'écran
-    // Historique des ventes comme « source de vérité » du CA. Sans refresh, ce CA
-    // sous-estimerait la journée en cours de tout l'intervalle du cron (30 min).
+    /**
+     * ⚡ Disk IO — le refresh de daily_sales_summary a ete RETIRE le 15/09/2026.
+     *
+     * Il reecrivait la vue ENTIERE (~2,2 s de disque mesurees) a CHAQUE vente
+     * validee, et portait a lui seul 79,6 % du cout de refresh de la base.
+     *
+     * Deux tentatives de debounce ont echoue :
+     *   - 11/09, cote navigateur (c78be5b) : la Map vivait dans un onglet, donc
+     *     rien n'etait mutualise entre appareils.
+     *   - 14/09, verrou serveur (33f54ce) : correct, mais sans effet ici. La
+     *     mesure du 15/09 montre que l'espacement reel entre ventes depasse
+     *     largement 60 s (75 s a plusieurs heures). Il n'y avait pas de rafale
+     *     a absorber : le probleme n'etait pas la FREQUENCE des refresh mais
+     *     leur COUT UNITAIRE.
+     *
+     * La raison de le conserver a disparu : l'Historique des ventes lisait ce
+     * CA via getRevenueSummary -> daily_sales_summary. Depuis le 15/09,
+     * useSalesStats passe par useRevenueStats, qui lit les tables BRUTES.
+     * Parite validee en base avant bascule : 0 ecart sur 70 couples bar/jour
+     * (CA et nombre de ventes, 30 j) et sur 706 retours (90 j).
+     *
+     * La vue reste alimentee par le cron (toutes les 30 min), pour son dernier
+     * lecteur reel :
+     * useDailyAnalytics -> AccountingOverview, un graphique 12 mois agrege PAR
+     * MOIS, insensible a 30 min de retard.
+     *
+     * ⭐ L'invalidation React Query est CONSERVEE : elle ne coute rien cote base
+     * (cache client uniquement) et reste necessaire pour que l'UI relise les
+     * analytics apres chaque mutation.
+     */
     const refreshDailySalesSummary = async () => {
-        if (barId && shouldRefreshSummary(barId)) {
-            try {
-                await AnalyticsService.refreshView('daily_sales_summary', 'post_mutation');
-            } catch (err) {
-                console.warn('[useSalesMutations] daily_sales_summary refresh failed (non-blocking):', err);
-            }
-        }
-        // ⭐ L'invalidation reste INCONDITIONNELLE : elle ne coûte rien côté base
-        // (cache client uniquement) et garantit que l'UI relit les analytics après
-        // chaque mutation, même quand le refresh DB a été débouncé.
         if (barId) {
             await queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) });
         }

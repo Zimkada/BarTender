@@ -220,7 +220,6 @@ export default function SalesHistoryPage() {
         setTopProductMetric,
         isLoadingStats
     } = useSalesStats({
-        filteredSales,
         timeRange,
         startDate,
         endDate,

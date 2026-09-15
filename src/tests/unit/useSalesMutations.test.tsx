@@ -32,8 +32,14 @@ vi.mock('../../services/supabase/sales.service', () => ({
     },
 }));
 
+// ⚡ Disk IO (15/09/2026) : useSalesMutations n'importe PLUS AnalyticsService.
+// Ce mock reste en place VOLONTAIREMENT, adosse a un spy nomme, pour que le
+// test de non-regression ci-dessous puisse prouver qu'aucun refresh de vue
+// materialisee n'est declenche par une vente. Sans lui, reintroduire l'appel
+// laisserait la suite verte — ce qui s'est produit deux fois (c78be5b, 33f54ce).
+const mockRefreshView = vi.fn<(...args: unknown[]) => Promise<void>>(() => Promise.resolve());
 vi.mock('../../services/supabase/analytics.service', () => ({
-    AnalyticsService: { refreshView: vi.fn(() => Promise.resolve()) },
+    AnalyticsService: { refreshView: (...args: unknown[]) => mockRefreshView(...args) },
 }));
 
 vi.mock('../../context/AuthContext', () => ({
@@ -316,5 +322,50 @@ describe('useSalesMutations — patch de cache au lieu d\'invalidation préfixe'
         await waitFor(() => expect(salesListInvalidations(invalidateSpy).length).toBeGreaterThan(0));
         // Aucun patch hasardeux : les statuts en cache ne sont pas touchés localement
         expect(queryClient.getQueryData<Sale[]>(allVariant)?.every(s => s.status === 'pending')).toBe(true);
+    });
+
+    /**
+     * ⚡ NON-REGRESSION Disk IO — 15/09/2026.
+     *
+     * Une vente ne doit JAMAIS declencher de REFRESH MATERIALIZED VIEW.
+     * Ce refresh reecrivait daily_sales_summary en entier (~2,2 s de disque
+     * mesurees) a chaque vente validee, et portait 79,6 % du cout de refresh
+     * de la base.
+     *
+     * ⚠️ Ce test existe parce que la suite est restee VERTE pendant les deux
+     * tentatives de debounce (c78be5b cote navigateur, 33f54ce verrou serveur)
+     * : rien n'assertait ce comportement. Sans lui, reintroduire l'appel
+     * passerait de nouveau inapercu.
+     *
+     * L'invalidation React Query, elle, reste attendue : elle ne coute rien
+     * cote base et rafraichit le cache client.
+     */
+    it('createSale : ne declenche AUCUN refresh de vue materialisee (cout Disk IO)', async () => {
+        mockCreateSale.mockResolvedValue(makeSaleRow());
+        const windowVariant = variantKey({ startDate: todayBusinessDate });
+        queryClient.setQueryData(windowVariant, []);
+
+        const { result } = renderHook(() => useSalesMutations(BAR_ID), { wrapper: createWrapper() });
+        await result.current.createSale.mutateAsync({
+            items: [{ product_id: PRODUCT_ID, product_name: 'Bière Flag', quantity: 2, unit_price: 500, total_price: 1000 }] as unknown as Sale['items'],
+        });
+
+        await waitFor(() => {
+            expect(queryClient.getQueryData<Sale[]>(windowVariant)?.length).toBe(1);
+        });
+        expect(mockRefreshView).not.toHaveBeenCalled();
+    });
+
+    it('validateSale : ne declenche AUCUN refresh de vue materialisee (cout Disk IO)', async () => {
+        const allVariant = variantKey({ startDate: todayBusinessDate });
+        queryClient.setQueryData(allVariant, [makeCachedSale({ id: 'sale-1', status: 'pending' })]);
+
+        const { result } = renderHook(() => useSalesMutations(BAR_ID), { wrapper: createWrapper() });
+        await result.current.validateSale.mutateAsync({ id: 'sale-1', validatorId: 'user-999' });
+
+        await waitFor(() => {
+            expect(queryClient.getQueryData<Sale[]>(allVariant)?.[0].status).toBe('validated');
+        });
+        expect(mockRefreshView).not.toHaveBeenCalled();
     });
 });
