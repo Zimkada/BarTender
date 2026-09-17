@@ -283,6 +283,75 @@ supabase
 
 Chaque table a RLS activé. Toujours filtrer par `bar_id` dans les queries pour respecter l'isolation multi-tenant.
 
+### Vues matérialisées & Disk IO — leçon du 10-17/09/2026
+
+**Contexte** : alerte Supabase "Disk IO Budget depleting" sur le projet en
+compute nano. Cause trouvée après deux tentatives ratées (débounce
+navigateur, verrou serveur en base) : `daily_sales_summary_mat` était
+rafraîchie en entier (`REFRESH MATERIALIZED VIEW`) à **chaque vente
+validée**, via un appel dans `useSalesMutations`. Coût mesuré : ce seul
+poste représentait 79,6 % du volume total de refresh de la base.
+
+**Le vrai problème n'était pas la fréquence, c'était le couplage** :
+brancher un refresh de vue matérialisée sur un événement utilisateur à
+haute fréquence (une vente). Ralentir la fréquence (débounce, verrou)
+traite le symptôme et se recasse dès que le volume augmente. Retirer
+l'appel du chemin chaud traite la cause.
+
+**Correctif final** : le refresh par vente a été supprimé. L'écran qui
+en dépendait (Historique des ventes, CA du jour) lit désormais les
+tables brutes directement (`useRevenueStats`) au lieu de la vue
+matérialisée. La vue reste alimentée par un cron périodique pour ses
+autres consommateurs (dashboards agrégés tolérant quelques minutes de
+retard).
+
+**Règles à appliquer pour toute nouvelle fonctionnalité** :
+
+- ⛔ **Ne jamais déclencher un `REFRESH MATERIALIZED VIEW` depuis un
+  événement utilisateur fréquent** (vente, connexion, action répétée).
+  Un cron périodique (`*/5`, `*/15`...) suffit presque toujours — la
+  fraîcheur immédiate se justifie rarement au prix d'un refresh complet.
+- Si la fraîcheur immédiate est vraiment nécessaire, préférer une mise à
+  jour incrémentale ciblée (`UPDATE`/`UPSERT` de la ligne concernée)
+  plutôt qu'un `REFRESH` complet de la vue.
+- Avant de brancher un nouveau déclencheur sur une vue matérialisée,
+  estimer son coût : taille de la vue, fréquence probable du
+  déclencheur, temps d'un refresh. Un ordre de grandeur grossier
+  suffit à repérer le problème à la conception plutôt qu'en production.
+- Surveiller `pg_stat_statements` et `materialized_view_refresh_log`
+  périodiquement (pas seulement en réaction à une alerte Supabase) pour
+  repérer un volume de refresh anormalement croissant.
+
+**Diagnostics du chantier** (`docs/diagnostics/`) : `DIAGNOSTIC_DISK_IO.sql`,
+`DIAGNOSTIC_CRON.sql`, `PARITE_REVENUE_SUMMARY.sql`, `POIDS_PAR_VUE.sql`,
+`PREVOL_DEBOUNCE_SERVEUR.sql`, `VERIFICATION_DISK_IO.sql` — méthode et
+requêtes de mesure réutilisables si un problème similaire réapparaît sur
+une autre vue.
+
+**Audit de scaling du 17/09/2026** : après le correctif ci-dessus, vérifié
+si le même pattern (refresh couplé à un événement fréquent) existait
+ailleurs. Il existe bien des triggers `pg_notify` sur `sales`, `expenses`,
+`supplies`, `salaries`, `returns` qui appellent `trigger_refresh_*` à
+chaque écriture — hérités d'une architecture antérieure prévoyant un
+worker `LISTEN` externe. **Ils sont actuellement sans effet mesurable** :
+`pg_notify` sans listener actif ne produit qu'une notification perdue,
+quasi gratuite (rien à voir avec le coût d'un `REFRESH MATERIALIZED
+VIEW`). Confirmé sur 7 jours de logs : `product_sales_stats` et
+`expenses_summary` ne sont rafraîchies que par le cron (336 exécutions
+chacune), le déclencheur `trigger` n'apparaissant qu'une seule fois sur
+la période. Donc **pas de second foyer actif** du problème Disk IO à ce
+jour — mais ces triggers restent du code mort à nettoyer un jour
+(fonctions `trigger_refresh_daily_summary`, `trigger_refresh_product_stats`,
+`trigger_refresh_expenses_summary`, `trigger_refresh_salaries_summary`,
+définies dans `046_materialized_view_monitoring.sql` et retouchées
+plusieurs fois jusqu'à `20260227000000_fix_refresh_infrastructure.sql`).
+Script réutilisable : `docs/diagnostics/AUDIT_TRIGGERS_REFRESH.sql`.
+
+⚠️ Si un jour un worker `LISTEN` est réintroduit (upgrade de plan, ou
+nouveau besoin de refresh temps réel), ces triggers redeviendraient actifs
+d'un coup et referaient courir le même risque de Disk IO — à garder en
+tête avant d'ajouter un tel worker sans revoir ces fonctions.
+
 ---
 
 ## Architecture des hooks — Refactorisation "Pillar 3"
