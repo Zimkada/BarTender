@@ -444,3 +444,68 @@ mais à ne pas rebrancher sans vérifier son propriétaire.
 - **`create_sale_idempotent` (étape 7) : hors heures de service uniquement.**
 - 🛡️ `bar_members_update_policy` ne doit PAS ouvrir l'écriture du rôle `co_promoteur`
   (sinon la gouvernance « invitation par SuperAdmin seul » se contourne).
+
+---
+
+## PHASE 2 - Chantier B1 : `get_bar_audit_logs` (21/09/2026, CERTIFIE EN PROD)
+
+Migration `20260921100000_add_get_bar_audit_logs.sql`. Premiere et seule migration
+SQL de la Phase 2. Donne au promoteur et au co-promoteur la lecture du journal
+d'audit de LEUR bar - les deux RPC existants (`get_paginated_audit_logs`,
+`admin_get_bar_audit_logs`) sont verrouilles `is_super_admin()`.
+
+**Post-vol certifie** : signature `(uuid, integer, integer, text)`, `SECURITY
+DEFINER` = true, privileges `postgres` + `authenticated` **uniquement** (pas
+`anon`, pas `PUBLIC`), index `idx_audit_logs_bar_timestamp` cree, et garde
+verifie empiriquement - `ERROR 42501 Access denied` leve **ligne 18** depuis le
+SQL Editor (`auth.uid()` NULL), donc par le `RAISE` du garde lui-meme.
+
+### 4 defauts corriges par le code review (a ne pas reintroduire)
+
+1. ⭐ **Pagination instable** - `ORDER BY "timestamp" DESC` seul. `timestamp`
+   n'est PAS unique (`NOW()` est transaction-scoped : plusieurs entrees ecrites
+   dans la meme transaction partagent la valeur exacte). Postgres pouvait donc
+   ordonner les ex-aequo differemment entre page 1 et page 2 : **une entree
+   dupliquee, une autre jamais affichee**. Corrige par `, id DESC` sur les deux
+   `ORDER BY`. C'est la completude du journal qui en depend.
+2. **`get_user_role()` volontairement ECARTEE du garde** - son `LIMIT 1` sans
+   `ORDER BY` choisit une ligne arbitraire si un couple (user, bar) a plusieurs
+   lignes actives. Un promoteur gardant une ligne `gerant` obsolete active se
+   verrait refuser son propre journal, par intermittence. Remplacee par un
+   `EXISTS` **local** a la fonction - aucune fonction partagee touchee au
+   passage (lecon du 01/09 respectee). `is_super_admin()` garde sa dette,
+   annotee mais NON corrigee ici.
+3. **`search_path`** - etait `public, auth`, aligne sur `'public', 'extensions'`
+   comme les 4 RPC freres. `auth.uid()` est qualifie par son schema, il n'a pas
+   besoin d'y figurer (`add_co_promoteur` le prouve depuis le 01/09).
+4. **Index composite manquant** - voir divergence ci-dessous.
+
+### ⚠️ 7e divergence fichiers/prod averee
+
+`001_initial_schema.sql:564-567` cree 4 index sur `audit_logs`
+(`idx_audit_logs_bar`, `_timestamp`, `_user`, `_event`). **AUCUN des quatre
+n'existe en base** (releve du 21/09/2026). Les seuls index reels avant cette
+migration : `audit_logs_pkey`, plus deux index PARTIELS de decembre
+(`idx_audit_logs_proxy_events`, `idx_audit_logs_super_admin`), dont aucun ne
+couvre un filtre `bar_id`.
+
+Un filtre `bar_id` faisait donc un **scan sequentiel complet**, deux fois par
+appel (la CTE est referencee par la page ET par le `COUNT(*)`). D'ou
+`idx_audit_logs_bar_timestamp`, cree par cette migration.
+
+Volume au moment du releve : 8 335 lignes / 3056 kB -> `CREATE INDEX` sans
+`CONCURRENTLY` sans risque (`CONCURRENTLY` est de toute facon impossible dans le
+bloc transactionnel du SQL Editor).
+
+### Contrat pour le front (chantiers B2/B3)
+
+- `json_agg` retourne **`NULL`, pas `[]`** quand la page est vide (bar sans
+  activite, ou `p_page` au-dela du dernier resultat). Traiter `logs IS NULL`
+  comme une liste vide.
+- `p_limit` est **plafonne a 200** ; `p_page` doit etre >= 1. Hors bornes =
+  `ERROR 22023`, pas un resultat vide.
+- `p_role_filter` est une **valeur de la colonne `user_role`** (ex.
+  `'co_promoteur'`), PAS un role d'acces. Bornee aux 6 roles de `UserRole` ;
+  une valeur inconnue leve `22023` au lieu de renvoyer 0 ligne en silence.
+- Acces : SuperAdmin, `promoteur` ou `co_promoteur` du bar. **Pas le gerant**
+  (decision Q3 du plan Phase 2).
