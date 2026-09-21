@@ -33,14 +33,21 @@ import {
 const PAGE_SIZE = 25;
 
 /**
- * Libelles des roles susceptibles d'apparaitre dans le journal.
+ * Libelles d'affichage des valeurs de `user_role`.
  *
- * ⚠️ Les 6 cles correspondent exactement a UserRole, et le RPC refuse toute
- * valeur hors de cette liste avec une erreur 22023 (il ne renvoie pas 0
- * ligne en silence). ROLE_FILTERS etant derive de cet objet, ajouter un
- * role a UserRole suffit a le rendre filtrable ici - il n'y a pas deux
- * listes a maintenir en parallele, ce qui laissait precedemment
- * super_admin et cuisinier visibles mais infiltrables.
+ * ⚠️ Cette colonne ne contient PAS que les roles de UserRole. Releve en prod
+ * le 21/09/2026 sur 8 343 lignes :
+ *   system 3623 · promoteur 2359 · serveur 1377 · gerant 845 ·
+ *   super_admin 60 · user 52 · admin 27
+ *
+ * `system` est la valeur la PLUS FREQUENTE : internal_log_audit_event
+ * retombe dessus des que le couple (user_id, bar_id) est absent de
+ * bar_members - typiquement une action du SuperAdmin, qui n'est membre
+ * d'aucun bar client. Les nominations de co-promoteur (chantier A) en font
+ * partie : 83 MEMBER_ADDED sur 119 sont en `system`.
+ *
+ * `user` et `admin` sont des valeurs historiques (dec. 2025 / janv. 2026),
+ * conservees ici pour que ces lignes restent lisibles.
  */
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super admin',
@@ -49,12 +56,47 @@ const ROLE_LABELS: Record<string, string> = {
   gerant: 'Gérant',
   serveur: 'Serveur',
   cuisinier: 'Cuisinier',
+  system: 'Système / SuperAdmin',
+  user: 'Utilisateur (historique)',
+  admin: 'Admin (historique)',
 };
 
-/** Filtres proposes : tous les roles, plus l'option "aucun filtre". */
+/**
+ * Libelles des evenements. Repli sur la valeur brute pour tout evenement non
+ * liste : la colonne `event` est un TEXT libre cote SQL (aucun enum, aucun
+ * CHECK), donc cette table ne peut pas etre exhaustive par construction.
+ */
+const EVENT_LABELS: Record<string, string> = {
+  EXPENSE_CREATED: 'Dépense',
+  EXPENSE_DELETED: 'Dépense supprimée',
+  STOCK_ADJUSTED: 'Stock ajusté',
+  RETURN_PROCESSED: 'Retour traité',
+  SALE_CANCELLED: 'Vente annulée',
+  MEMBER_ADDED: 'Membre ajouté',
+  MEMBER_REMOVED: 'Membre retiré',
+  SALARY_PAID: 'Salaire versé',
+};
+
+/**
+ * Filtres proposes.
+ *
+ * ⛔ Bornes aux valeurs que le RPC accepte : il refuse toute valeur hors des
+ * 6 roles de UserRole avec une erreur 22023. `system`, `user` et `admin`
+ * existent en base mais ne sont PAS envoyables comme p_role_filter.
+ *
+ * Un filtre client sur ces trois valeurs serait pire qu'absent : la
+ * pagination etant faite par le serveur, il ne filtrerait que les 25 lignes
+ * de la page courante et afficherait un total faux. D'ou le choix de ne pas
+ * les proposer, et de le DIRE dans l'aide sous le selecteur plutot que de
+ * laisser l'utilisateur croire que ces entrees n'existent pas.
+ */
 const ROLE_FILTERS = [
   { value: '', label: 'Tous les intervenants' },
-  ...Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label })),
+  { value: 'promoteur', label: 'Promoteur' },
+  { value: 'co_promoteur', label: 'Co-promoteur' },
+  { value: 'gerant', label: 'Gérant' },
+  { value: 'serveur', label: 'Serveur' },
+  { value: 'cuisinier', label: 'Cuisinier' },
 ];
 
 const severityIcon = (severity: string) => {
@@ -178,7 +220,10 @@ export const BarActivityJournal: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+      {/* items-start et non items-center : l'aide conditionnelle sous le
+          selecteur ferait sauter verticalement les autres elements a chaque
+          application de filtre si la ligne etait centree. */}
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-sm text-muted-foreground">
             Opérations sensibles enregistrées sur ce bar : dépenses, ajustements
@@ -200,6 +245,13 @@ export const BarActivityJournal: React.FC = () => {
             disabled={loading}
             options={ROLE_FILTERS.map((r) => ({ value: r.value, label: r.label }))}
           />
+          {roleFilter && (
+            <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
+              Les actions du SuperAdmin (nomination d'un co-promoteur, par
+              exemple) sont enregistrées sans rôle de bar et n'apparaissent
+              qu'en «&nbsp;Tous les intervenants&nbsp;».
+            </p>
+          )}
         </div>
         <button
           onClick={load}
@@ -249,13 +301,24 @@ export const BarActivityJournal: React.FC = () => {
                         {log.description}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {log.user_name}
-                      {log.user_role && (
-                        <> · {ROLE_LABELS[log.user_role] || log.user_role}</>
-                      )}
-                      {' · '}
-                      {formatDate(log.timestamp)}
+                    <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      {/* ⚠️ L'evenement est affiche parce que la description
+                          seule ne suffit pas a distinguer les operations :
+                          STOCK_ADJUSTED recouvre l'ajustement manuel,
+                          l'annulation d'approvisionnement et la remise en
+                          stock apres retour. Sans ce badge, elles ne se
+                          different que par du texte libre. */}
+                      <span className="px-1.5 py-0.5 rounded bg-card/70 border border-border/60 font-mono text-[10px] uppercase tracking-tight">
+                        {EVENT_LABELS[log.event] || log.event}
+                      </span>
+                      <span>
+                        {log.user_name}
+                        {log.user_role && (
+                          <> · {ROLE_LABELS[log.user_role] || log.user_role}</>
+                        )}
+                        {' · '}
+                        {formatDate(log.timestamp)}
+                      </span>
                     </div>
 
                     {expandedId === log.id && hasMetadata && (

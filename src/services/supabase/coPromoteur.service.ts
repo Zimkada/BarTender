@@ -87,6 +87,21 @@ export class CoPromoteurService {
    * is_active = FALSE pour préserver la traçabilité). Autorisé au SuperAdmin,
    * au propriétaire du bar, et au promoteur du bar. JAMAIS à un autre
    * co-promoteur (pas de révocation hostile entre associés).
+   *
+   * 📋 DETTE RELEVEE (code review du 21/09/2026, NON corrigee ici) :
+   * remove_co_promoteur ne verifie pas GET DIAGNOSTICS ... ROW_COUNT apres
+   * son UPDATE (20260901100000:54-58) - il retourne success=true sans
+   * s'assurer qu'une ligne a bien ete affectee. Il controle l'existence du
+   * membre actif juste avant, mais par une LECTURE : entre les deux, rien ne
+   * garantit l'ecriture.
+   *
+   * Risque attenue en pratique : le RPC est SECURITY DEFINER, donc les 3
+   * policies RESTRICTIVE de l'etape 4a - la cause classique d'un UPDATE a 0
+   * ligne sur ce projet - ne s'appliquent pas a lui. Un success=true sans
+   * desactivation reelle reste neanmoins possible, et ferait ecrire une
+   * entree MEMBER_REMOVED contredisant l'etat de la base. A corriger dans
+   * une passe SQL dediee, pas au detour d'un chantier front (lecon du
+   * 01/09 : ne jamais durcir une fonction au passage d'un autre chantier).
    */
   static async removeCoPromoteur(
     barId: string,

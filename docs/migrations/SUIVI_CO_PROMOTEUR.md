@@ -569,3 +569,52 @@ Contrats B1 respectes cote front :
 Le journal ne recoit PAS la periode comptable des 3 autres onglets : c'est
 un flux chronologique pagine cote serveur, et le filtrer sur la periode
 masquerait justement l'operation faite hors de la periode consultee.
+
+---
+
+## ⚠️ audit_logs.user_role : relevé prod du 21/09/2026
+
+Revue d'ensemble de la Phase 2. Le filtre de rôle du journal était dérivé de
+`UserRole` (6 valeurs). **La colonne en contient 7, dont 3 hors UserRole** :
+
+| user_role | lignes | dernière |
+|---|---|---|
+| **system** | **3623** | 21/09/2026 |
+| promoteur | 2359 | 21/09/2026 |
+| serveur | 1377 | 11/08/2026 |
+| gerant | 845 | 18/09/2026 |
+| super_admin | 60 | 24/02/2026 |
+| user | 52 | 20/12/2025 (historique) |
+| admin | 27 | 09/01/2026 (historique) |
+
+`system` est la valeur **la plus fréquente de toute la table**.
+`internal_log_audit_event` (définition prod vérifiée, conforme au fichier)
+résout `user_role` par `SELECT role FROM bar_members WHERE user_id = ... AND
+bar_id = ...` et retombe sur `'system'` si aucune ligne. Le SuperAdmin
+n'étant membre d'aucun bar client, **toutes ses actions sont en `system`**.
+
+Conséquence mesurée sur les événements du chantier A :
+
+| event | user_role | lignes |
+|---|---|---|
+| MEMBER_ADDED | **system** | **83** |
+| MEMBER_ADDED | promoteur | 35 |
+| MEMBER_REMOVED | promoteur | 43 |
+| MEMBER_REMOVED | system | 2 |
+
+⛔ **Incohérence A↔B qui en découlait** : les nominations de co-promoteur,
+écrites par le SuperAdmin donc en `system`, DISPARAISSAIENT dès qu'un filtre
+de rôle était appliqué - y compris le filtre « Co-promoteur » qu'un promoteur
+utiliserait précisément pour les chercher. Le chantier A écrivait une entrée
+que le chantier B ne savait pas montrer.
+
+**Correction retenue** : les filtres restent bornés aux 6 rôles de UserRole,
+car le RPC refuse toute autre valeur (erreur 22023) et un filtrage client sur
+une pagination serveur ne filtrerait que les 25 lignes de la page courante en
+affichant un total faux. À la place, une aide sous le sélecteur indique que
+les actions du SuperAdmin n'apparaissent qu'en « Tous les intervenants », et
+`ROLE_LABELS` couvre les 9 valeurs pour que ces lignes restent lisibles.
+
+📋 **À retenir pour tout futur écran lisant `audit_logs`** : ne jamais
+dériver un filtre de `user_role` depuis `UserRole`. La colonne est un TEXT
+libre alimenté par un repli applicatif, pas une énumération.

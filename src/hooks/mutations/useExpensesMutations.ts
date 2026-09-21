@@ -80,6 +80,14 @@ export const useExpensesMutations = (barId: string) => {
         //    signature toucherait tous ses appelants pour un besoin de
         //    journalisation. Le cache est deja charge par l'ecran qui declenche
         //    la suppression, donc ce releve ne coute aucune requete.
+        //
+        //    ⚠️ LIMITE ASSUMEE : le releve echoue si la depense n'est dans
+        //    aucune entree de cache (refetch en vol, ou suppression declenchee
+        //    depuis une plage de dates qui ne la contient pas). Le log part
+        //    alors sans montant plutot que de couter une requete
+        //    supplementaire a chaque suppression. Le cas est rendu explicite
+        //    dans la description ET dans metadata.amount_unavailable, pour
+        //    qu'une entree sans montant ne soit pas lue comme un montant nul.
         onMutate: (expenseId: string) => {
             // La cle de cache inclut `options` ([...list(barId), options]), donc
             // plusieurs entrees coexistent selon la plage de dates affichee :
@@ -117,10 +125,13 @@ export const useExpensesMutations = (barId: string) => {
                     barId,
                     description: context?.amount !== undefined
                         ? `Dépense de ${context.amount} FCFA supprimée`
-                        : 'Dépense supprimée',
+                        : 'Dépense supprimée (montant non disponible)',
                     metadata: {
                         amount: context?.amount,
                         category: context?.category,
+                        // Distingue "montant inconnu" de "montant nul" pour
+                        // qui relira cette entree.
+                        amount_unavailable: context?.amount === undefined,
                     },
                     relatedEntityId: expenseId,
                     relatedEntityType: 'expense',

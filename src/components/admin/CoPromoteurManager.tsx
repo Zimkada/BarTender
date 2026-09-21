@@ -147,7 +147,10 @@ export const CoPromoteurManager: React.FC<CoPromoteurManagerProps> = ({
     >
       <div className="space-y-6">
         {error && <Alert variant="destructive">{error}</Alert>}
-        {success && <Alert variant="default">{success}</Alert>}
+        {/* variant="success" et non "default" : un rendu neutre sur une
+            nomination reussie laisse douter qu'elle ait abouti, et invite a
+            rejouer une action a fort enjeu (acces salaires et comptabilite). */}
+        {success && <Alert variant="success">{success}</Alert>}
 
         {/* Co-promoteurs actuels */}
         <section>
@@ -192,9 +195,11 @@ export const CoPromoteurManager: React.FC<CoPromoteurManagerProps> = ({
           </h3>
           {eligibleManagers.length === 0 ? (
             <p className="text-sm text-muted-foreground italic">
-              Aucun gérant disponible. Seuls les gérants actifs peuvent être
-              nommés co-promoteurs - un serveur doit d'abord être promu gérant
-              depuis la gestion d'équipe du bar.
+              Aucun gérant actif sur ce bar. Cet écran ne propose que les
+              gérants : un serveur doit d'abord être promu gérant depuis la
+              gestion d'équipe du bar, sans quoi ses bons de commande ouverts
+              seraient anonymisés. Pour nommer une personne qui n'est pas
+              encore membre, ajoutez-la d'abord comme gérante.
             </p>
           ) : (
             <div className="flex flex-col sm:flex-row gap-2">
