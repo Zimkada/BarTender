@@ -509,3 +509,63 @@ bloc transactionnel du SQL Editor).
   une valeur inconnue leve `22023` au lieu de renvoyer 0 ligne en silence.
 - Acces : SuperAdmin, `promoteur` ou `co_promoteur` du bar. **Pas le gerant**
   (decision Q3 du plan Phase 2).
+
+---
+
+## PHASE 2 - Chantiers B2 et B3 (21/09/2026)
+
+### B2 : alimentation du journal
+
+5 points ajoutes (EXPENSE_CREATED/DELETED, STOCK_ADJUSTED sur annulation
+d'appro, RETURN_PROCESSED sur approbation et rejet, STOCK_ADJUSTED sur
+remise en stock manuelle) + 1 severite corrigee (ajustement manuel de
+stock passe de 'info' a 'warning' dans useStockAdjustment).
+
+⛔ **Cable dans les HOOKS de mutation, pas dans les services** : ceux-ci ne
+recoivent souvent que l'id (deleteExpense, reverseSupply), et sans barId un
+log est INVISIBLE pour get_bar_audit_logs (WHERE bar_id obligatoire).
+
+⚠️ **Piege releve par le code review** : un premier jet avait pose un log sur
+`adjustStock` de useStockMutations, qui n'a AUCUN appelant vivant (seuls
+useUnifiedStock, non consomme, et des mocks). Il n'aurait jamais produit de
+ligne tout en donnant l'illusion que le stock etait couvert. Le chemin reel
+est InventoryPage -> useInventoryActions -> useStockAdjustment.
+**Lecon** : avant de cabler un log, verifier que le chemin a un appelant
+vivant - `grep` de la mutation hors tests et hors pivots non consommes.
+
+⚠️ **CHECK ferme sur related_entity_type** ('bar','user','product','sale',
+'expense' - 001:561). Une valeur hors liste ('supply', 'return') perdrait le
+log EN SILENCE puisque auditLogger.log() avale ses erreurs. Les logs d'appro
+et de retour sont donc rattaches a 'product'/'sale', ids reels dans metadata.
+
+⚠️ **barId peut valoir ''** : AppProvider le derive en `currentBar?.id || ''`
+(AppProvider.tsx:70), et une chaine vide devient bar_id NULL donc invisible.
+Garde `if (barId)` sur deleteExpense.
+
+### B3 : ecran de lecture
+
+- `BarAuditLogsService` (src/services/supabase/barAuditLogs.service.ts) -
+  meme dette de typage que coPromoteur.service.ts (RPC absent de
+  database.types.ts, cast cible a retirer apres `npm run gen:types`).
+- `BarActivityJournal` (src/components/accounting/) - modele visuel repris
+  de BarAuditLogsViewer mais AUCUN code partage (ce dernier lit une autre
+  table via un RPC verrouille super_admin).
+- Place en **onglet de /accounting**, pas en route dediee.
+
+⭐ **Pourquoi cet emplacement** : /accounting est protegee par
+`canViewAccounting`, releve role par role le 21/09 - true pour super_admin,
+promoteur, co_promoteur ; false pour gerant, serveur, cuisinier. C'est
+EXACTEMENT l'ensemble admis par le garde SQL du RPC. Aucun bouton actif ne
+peut donc mener a un refus serveur (le defaut corrige 4 fois en Phase 1).
+
+Contrats B1 respectes cote front :
+- `logs` NULL traite comme liste vide (`Array.isArray(...) ? ... : []`) ;
+- PAGE_SIZE = 25, sous le plafond de 200 ;
+- filtre de role borne aux valeurs de UserRole (le RPC refuse le reste
+  avec 22023, il ne renvoie pas 0 ligne en silence) ;
+- retour en page 1 au changement de filtre, sinon une page au-dela du
+  dernier resultat afficherait un vide trompeur.
+
+Le journal ne recoit PAS la periode comptable des 3 autres onglets : c'est
+un flux chronologique pagine cote serveur, et le filtrer sur la periode
+masquerait justement l'operation faite hors de la periode consultee.
