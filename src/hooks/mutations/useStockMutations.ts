@@ -6,6 +6,7 @@ import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
+import { auditLogger } from '../../services/AuditLogger';
 import { getErrorMessage } from '../../utils/errorHandler';
 import type { RpcCreateSupplyResult } from '../../lib/supabase-rpc.types';
 import type { AdjustmentReason } from '../../types';
@@ -183,6 +184,15 @@ export const useStockMutations = (_barId?: string) => {
                 toast.success('Stock mis à jour');
             });
 
+            // ⚠️ PAS de journalisation ici : cette mutation n'a AUCUN appelant
+            // vivant (verifie 21/09/2026 - seuls useUnifiedStock, non consomme,
+            // et des mocks de tests la referencent). Le chemin d'ajustement
+            // reellement atteint par l'UI est
+            // InventoryPage -> useInventoryActions -> useStockAdjustment,
+            // qui porte deja son propre auditLogger.log(). Journaliser ici
+            // n'aurait produit aucune ligne, tout en donnant l'illusion que
+            // l'ajustement de stock etait couvert par le chantier B2.
+
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
                 broadcastService.broadcast({
@@ -283,11 +293,42 @@ export const useStockMutations = (_barId?: string) => {
             // mais est utilisé dans onSuccess pour le broadcast bar_products.
             return StockService.reverseSupply(supplyId);
         },
-        onSuccess: (_data, variables) => {
+        onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Approvisionnement annulé — stock et comptabilité corrigés.');
             });
+
+            // ⭐ Chantier B2 - annulation d'approvisionnement : irreversible,
+            // reservee au promoteur, impacte stock ET CUMP. severity 'critical'.
+            // Les montants viennent de `data` (retour du RPC), pas des variables
+            // d'entree : le serveur est seul a connaitre la quantite et le cout
+            // reellement annules.
+            if (barId) {
+                auditLogger.log({
+                    event: 'STOCK_ADJUSTED',
+                    severity: 'critical',
+                    barId,
+                    description: `Approvisionnement annulé : ${data.quantityReversed} unité(s), coût unitaire ${data.unitCost} FCFA`,
+                    metadata: {
+                        reversed_supply_id: data.originalId,
+                        reverse_supply_id: data.reverseSupplyId,
+                        quantity_reversed: data.quantityReversed,
+                        unit_cost: data.unitCost,
+                        product_id: variables.productId,
+                    },
+                    // ⚠️ 'product' et non 'supply' : la colonne SQL
+                    // related_entity_type porte un CHECK ferme
+                    // ('bar','user','product','sale','expense' - 001:561).
+                    // Y ajouter 'supply' demanderait une migration, hors
+                    // perimetre de ce chantier ; et comme auditLogger.log()
+                    // avale ses erreurs, un CHECK viole perdrait le log EN
+                    // SILENCE. L'id de l'approvisionnement reste expose dans
+                    // metadata.reversed_supply_id, donc rien n'est perdu.
+                    relatedEntityId: variables.productId,
+                    relatedEntityType: 'product',
+                });
+            }
 
             if (barId && broadcastService.isSupported()) {
                 broadcastService.broadcast({

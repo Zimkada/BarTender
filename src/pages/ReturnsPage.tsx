@@ -20,6 +20,7 @@ import { useAuth } from "../context/AuthContext";
 import { useCurrencyFormatter } from "../hooks/useBeninCurrency";
 import { useFeedback } from "../hooks/useFeedback";
 import { ReturnsService } from "../services/supabase/returns.service";
+import { auditLogger } from "../services/AuditLogger";
 import { getErrorMessage } from "../utils/errorHandler";
 import { EmptyState } from "../components/common/EmptyState";
 import { Button } from "../components/ui/Button";
@@ -421,6 +422,35 @@ export default function ReturnsPage() {
         );
       }
 
+      // ⭐ Chantier B2 - l'approbation est le moment ou le retour produit ses
+      // effets reels (remise en stock et/ou remboursement). C'est elle que le
+      // promoteur doit pouvoir relire, pas la simple demande de retour.
+      if (currentBar?.id) {
+        auditLogger.log({
+          event: 'RETURN_PROCESSED',
+          severity: returnItem.isRefunded ? 'warning' : 'info',
+          barId: currentBar.id,
+          description: `Retour approuvé : ${returnItem.quantityReturned}x ${returnItem.productName}`
+            + (returnItem.isRefunded ? ` (remboursement ${returnItem.refundAmount} FCFA)` : ''),
+          metadata: {
+            decision: 'approved',
+            product_name: returnItem.productName,
+            quantity: returnItem.quantityReturned,
+            is_refunded: returnItem.isRefunded,
+            refund_amount: returnItem.refundAmount,
+            auto_restock: returnItem.autoRestock,
+            return_id: returnId,
+          },
+          // ⚠️ Pas de 'return' dans le CHECK SQL de related_entity_type
+          // ('bar','user','product','sale','expense' - 001:561), et un CHECK
+          // viole perdrait le log EN SILENCE (auditLogger avale ses erreurs).
+          // On rattache donc le log a la VENTE d'origine, ce qui est exact ;
+          // l'id du retour reste dans metadata.return_id.
+          relatedEntityId: returnItem.saleId,
+          relatedEntityType: 'sale',
+        });
+      }
+
       // Update local state — cast DBReturn → Partial<Return> ; le service ReturnsService.updateReturn
       // accepte de toute façon Partial<DBReturn>, le mapping camel/snake est interne.
       // TODO : ce 2e UPDATE est redondant (le RPC approve_return a déjà écrit en DB).
@@ -450,6 +480,27 @@ export default function ReturnsPage() {
       // ✨ Call atomic RPC for manual restock
       const result = await ReturnsService.manualRestockReturn(returnId, currentSession?.userId || '');
 
+      // ⭐ Chantier B2 - la remise en stock manuelle CREE du stock reel. Sans
+      // ce log, un retour approuve sans auto-restock puis remis en stock ici
+      // ferait apparaitre des unites sans aucun evenement correspondant dans
+      // le journal : le promoteur verrait le stock bouger sans explication.
+      if (currentBar?.id) {
+        auditLogger.log({
+          event: 'STOCK_ADJUSTED',
+          severity: 'warning',
+          barId: currentBar.id,
+          description: `Remise en stock manuelle : ${returnItem.quantityReturned}x ${returnItem.productName}`,
+          metadata: {
+            source: 'return_manual_restock',
+            product_name: returnItem.productName,
+            quantity: returnItem.quantityReturned,
+            return_id: returnId,
+          },
+          relatedEntityId: returnItem.productId,
+          relatedEntityType: 'product',
+        });
+      }
+
       updateReturn(returnId, result as unknown as Partial<Return>);
 
       showSuccess(
@@ -478,6 +529,26 @@ export default function ReturnsPage() {
     try {
       // ✨ Call atomic RPC for rejection
       const result = await ReturnsService.rejectReturn(returnId, currentSession?.userId || '');
+
+      // ⭐ Chantier B2 - le rejet est journalise au meme titre que
+      // l'approbation : un retour refuse est une decision contestable par le
+      // client, le promoteur doit pouvoir la retrouver.
+      if (currentBar?.id) {
+        auditLogger.log({
+          event: 'RETURN_PROCESSED',
+          severity: 'info',
+          barId: currentBar.id,
+          description: `Retour rejeté : ${returnItem.quantityReturned}x ${returnItem.productName}`,
+          metadata: {
+            decision: 'rejected',
+            product_name: returnItem.productName,
+            quantity: returnItem.quantityReturned,
+            return_id: returnId,
+          },
+          relatedEntityId: returnItem.saleId,
+          relatedEntityType: 'sale',
+        });
+      }
 
       updateReturn(returnId, result as unknown as Partial<Return>);
 

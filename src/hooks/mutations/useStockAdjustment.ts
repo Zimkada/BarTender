@@ -29,9 +29,14 @@ export function useStockAdjustment() {
       });
 
       // Audit log (userId, userName, userRole,barName resolved server-side)
+      // ⭐ Chantier B2 - severity passee de 'info' a 'warning' : un ajustement
+      // manuel corrige le stock SANS trace de vente, c'est le motif que le
+      // promoteur filtrera pour reperer une correction suspecte. En 'info' il
+      // se noyait parmi les evenements ordinaires. C'est aussi le defaut que
+      // AuditLogger.getDefaultSeverity() attribue deja a STOCK_ADJUSTED.
       await auditLogger.log({
         event: 'STOCK_ADJUSTED',
-        severity: 'info',
+        severity: 'warning',
         barId: data.barId,
         description: `Ajustement stock: ${data.productName} (${data.delta > 0 ? '+' : ''}${data.delta}), Raison: ${data.reason}`,
         relatedEntityId: data.productId,

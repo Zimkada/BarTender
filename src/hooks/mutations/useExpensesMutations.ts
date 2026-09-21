@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
+import { auditLogger } from '../../services/AuditLogger';
 
 // Input shape for createExpense mutation (camelCase from domain)
 interface CreateExpenseInput {
@@ -35,10 +36,31 @@ export const useExpensesMutations = (barId: string) => {
             };
             return ExpensesService.createExpense(expenseData);
         },
-        onSuccess: () => {
+        onSuccess: (created, variables) => {
             // expenses_summary est une vue normale (migration 070) — pas de refresh DB nécessaire
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Dépense enregistrée');
+            });
+
+            // ⭐ Chantier B2 - journalise la sortie d'argent pour que le promoteur
+            // la voie dans get_bar_audit_logs. auditLogger.log() avale ses propres
+            // erreurs : un journal indisponible ne fera jamais echouer la depense.
+            auditLogger.log({
+                event: 'EXPENSE_CREATED',
+                severity: 'info',
+                barId: variables.barId,
+                description: `Dépense de ${variables.amount} FCFA (${variables.category})`,
+                metadata: {
+                    amount: variables.amount,
+                    category: variables.category,
+                    custom_category_id: variables.customCategoryId,
+                    description: variables.description,
+                },
+                // ⚠️ relatedEntityType conditionne a la presence de l'id : les
+                // deux colonnes vont de pair en base, un type sans id ne
+                // rattache rien et rend la ligne plus confuse qu'utile.
+                relatedEntityId: created?.id,
+                relatedEntityType: created?.id ? 'expense' : undefined,
             });
 
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
@@ -48,10 +70,62 @@ export const useExpensesMutations = (barId: string) => {
 
     const deleteExpense = useMutation({
         mutationFn: ExpensesService.deleteExpense,
-        onSuccess: () => {
+        // ⚠️ Le montant est resolu AVANT l'appel : onSuccess s'execute apres la
+        //    suppression, et l'invalidation qui suit vide le cache. Sans ce
+        //    releve prealable, le journal ne pourrait dire QUE "une depense a
+        //    ete supprimee" - sans montant, l'entree n'a aucune valeur pour le
+        //    promoteur, qui ne saura pas si on lui a efface 500 ou 500 000 FCFA.
+        //
+        //    ExpensesService.deleteExpense ne recoit que l'id : changer sa
+        //    signature toucherait tous ses appelants pour un besoin de
+        //    journalisation. Le cache est deja charge par l'ecran qui declenche
+        //    la suppression, donc ce releve ne coute aucune requete.
+        onMutate: (expenseId: string) => {
+            // La cle de cache inclut `options` ([...list(barId), options]), donc
+            // plusieurs entrees coexistent selon la plage de dates affichee :
+            // getQueryData(list(barId)) seul ne trouverait rien.
+            const entries = queryClient.getQueriesData<Array<{ id: string; amount: number; category?: string }>>(
+                { queryKey: expenseKeys.list(barId) }
+            );
+            for (const [, data] of entries) {
+                const found = data?.find((e) => e.id === expenseId);
+                if (found) {
+                    return { amount: found.amount, category: found.category };
+                }
+            }
+            return { amount: undefined, category: undefined };
+        },
+        onSuccess: (_result, expenseId, context) => {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Dépense supprimée');
             });
+
+            // ⭐ Chantier B2 - severity 'warning' : la suppression d'une depense
+            // est irreversible et modifie la comptabilite du bar.
+            //
+            // ⚠️ Garde sur barId : AppProvider le derive en `currentBar?.id || ''`
+            // (AppProvider.tsx:70). Une chaine vide devient `undefined` dans
+            // AuditLogger, donc `bar_id` NULL en base, donc une ligne INVISIBLE
+            // pour get_bar_audit_logs dont le WHERE bar_id est obligatoire.
+            // Mieux vaut ne pas journaliser que d'ecrire une ligne que personne
+            // ne pourra jamais relire. createExpense n'a pas ce probleme : il
+            // utilise variables.barId, fourni par l'appelant.
+            if (barId) {
+                auditLogger.log({
+                    event: 'EXPENSE_DELETED',
+                    severity: 'warning',
+                    barId,
+                    description: context?.amount !== undefined
+                        ? `Dépense de ${context.amount} FCFA supprimée`
+                        : 'Dépense supprimée',
+                    metadata: {
+                        amount: context?.amount,
+                        category: context?.category,
+                    },
+                    relatedEntityId: expenseId,
+                    relatedEntityType: 'expense',
+                });
+            }
 
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
             if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
