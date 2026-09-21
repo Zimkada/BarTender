@@ -10,7 +10,7 @@
 // verrouille super_admin. Ici on lit audit_logs (le journal metier) via
 // get_bar_audit_logs, ouvert au promoteur et au co-promoteur du bar.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -33,17 +33,15 @@ import {
 const PAGE_SIZE = 25;
 
 /**
- * Filtres de role proposes. Les valeurs doivent appartenir aux 6 roles de
- * UserRole : le RPC refuse toute autre valeur avec une erreur 22023.
+ * Libelles des roles susceptibles d'apparaitre dans le journal.
+ *
+ * ⚠️ Les 6 cles correspondent exactement a UserRole, et le RPC refuse toute
+ * valeur hors de cette liste avec une erreur 22023 (il ne renvoie pas 0
+ * ligne en silence). ROLE_FILTERS etant derive de cet objet, ajouter un
+ * role a UserRole suffit a le rendre filtrable ici - il n'y a pas deux
+ * listes a maintenir en parallele, ce qui laissait precedemment
+ * super_admin et cuisinier visibles mais infiltrables.
  */
-const ROLE_FILTERS = [
-  { value: '', label: 'Tous les intervenants' },
-  { value: 'promoteur', label: 'Promoteur' },
-  { value: 'co_promoteur', label: 'Co-promoteur' },
-  { value: 'gerant', label: 'Gérant' },
-  { value: 'serveur', label: 'Serveur' },
-] as const;
-
 const ROLE_LABELS: Record<string, string> = {
   super_admin: 'Super admin',
   promoteur: 'Promoteur',
@@ -52,6 +50,12 @@ const ROLE_LABELS: Record<string, string> = {
   serveur: 'Serveur',
   cuisinier: 'Cuisinier',
 };
+
+/** Filtres proposes : tous les roles, plus l'option "aucun filtre". */
+const ROLE_FILTERS = [
+  { value: '', label: 'Tous les intervenants' },
+  ...Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label })),
+];
 
 const severityIcon = (severity: string) => {
   switch (severity) {
@@ -92,8 +96,30 @@ export const BarActivityJournal: React.FC = () => {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
+  /**
+   * ⛔ Garde d'ordonnancement. Sans elle, deux chargements concurrents
+   * (clic rapide sur la pagination, ou changement de filtre pendant un
+   * chargement) peuvent revenir dans le DESORDRE : la reponse lente de la
+   * page 3 ecraserait celle de la page 1, affichant des lignes qui ne
+   * correspondent pas au paginateur. Elle sert aussi de garde de
+   * demontage : un `load()` en vol quand l'utilisateur change d'onglet
+   * n'ecrit plus dans un composant demonte.
+   */
+  const requestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const load = useCallback(async () => {
     if (!barId) return;
+
+    const requestId = ++requestIdRef.current;
+    const isStale = () => !mountedRef.current || requestId !== requestIdRef.current;
 
     setLoading(true);
     setError(null);
@@ -104,14 +130,18 @@ export const BarActivityJournal: React.FC = () => {
         limit: PAGE_SIZE,
         roleFilter: roleFilter || undefined,
       });
+      if (isStale()) return;
       setLogs(result.logs);
       setTotalCount(result.totalCount);
     } catch (err) {
+      if (isStale()) return;
       setError(err instanceof Error ? err.message : 'Impossible de charger le journal.');
       setLogs([]);
       setTotalCount(0);
     } finally {
-      setLoading(false);
+      // `loading` n'est relache que par la requete la plus recente, sinon
+      // une reponse obsolete eteindrait le spinner d'une requete en cours.
+      if (!isStale()) setLoading(false);
     }
   }, [barId, page, roleFilter]);
 
@@ -119,12 +149,24 @@ export const BarActivityJournal: React.FC = () => {
     load();
   }, [load]);
 
-  // Revenir en page 1 quand le filtre change : rester sur la page 4 d'un
-  // resultat qui n'en compte plus que 2 renverrait une page vide (le RPC
-  // repond alors logs = NULL, traduit en liste vide par le service).
+  // ⚠️ Le retour en page 1 se fait dans le onChange du Select et dans cet
+  //    effet pour le SEUL cas du changement de bar. Le faire dans un effet
+  //    reagissant a `roleFilter` declencherait DEUX requetes par changement
+  //    de filtre : l'ancienne page avec le nouveau filtre (souvent au-dela
+  //    du dernier resultat, donc vide), puis la bonne.
   useEffect(() => {
     setPage(1);
-  }, [roleFilter, barId]);
+  }, [barId]);
+
+  // Reclampe la page si le nombre total d'entrees a diminue depuis le
+  // dernier chargement (purge de retention, filtre plus restrictif applique
+  // ailleurs). Sans cela l'ecran afficherait "Aucune activite" alors que
+  // des entrees existent, simplement parce qu'on pointe au-dela de la fin.
+  useEffect(() => {
+    if (!loading && page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [loading, page, totalPages]);
 
   if (!barId) {
     return (
@@ -147,7 +189,14 @@ export const BarActivityJournal: React.FC = () => {
           <Select
             size="sm"
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            onChange={(e) => {
+              // Les deux setState d'un meme handler sont groupes par React,
+              // donc un SEUL rechargement part avec le nouveau filtre ET la
+              // page 1 - contrairement a un effet sur [roleFilter], qui en
+              // declencherait deux dont un jetable.
+              setRoleFilter(e.target.value);
+              setPage(1);
+            }}
             disabled={loading}
             options={ROLE_FILTERS.map((r) => ({ value: r.value, label: r.label }))}
           />
@@ -180,7 +229,11 @@ export const BarActivityJournal: React.FC = () => {
           }
         />
       ) : (
-        <div className="space-y-2">
+        // Pendant un rechargement (changement de page ou de filtre), la liste
+        // precedente reste affichee mais grisee et non cliquable : sans ce
+        // retour visuel, un clic sur "page suivante" semblerait sans effet
+        // jusqu'a l'arrivee des donnees.
+        <div className={`space-y-2 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
           {logs.map((log) => {
             const hasMetadata = !!log.metadata && Object.keys(log.metadata).length > 0;
             return (
