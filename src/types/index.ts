@@ -1104,6 +1104,7 @@ export type AuditLogEvent =
   | 'BAR_ACTIVATED'
   | 'BAR_DELETED'
   | 'MEMBER_ADDED'
+  | 'MEMBER_REMOVED'
   | 'BAR_SWITCHED'
   // User Management
   | 'USER_CREATED'

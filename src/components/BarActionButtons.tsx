@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Ban, CheckCircle } from 'lucide-react';
+import { Ban, CheckCircle, Crown } from 'lucide-react';
 import { Bar } from '../types';
 import { BarReportExcelButton } from './admin/BarReportExcelButton';
 
@@ -7,10 +7,12 @@ interface BarActionButtonsProps {
     bar: Bar;
     onToggleStatus: (barId: string, currentStatus: boolean) => Promise<void>;
     onClose?: () => void;
+    /** Ouvre le panneau de nomination/retrait du co-promoteur pour ce bar. */
+    onManageCoPromoteur?: (bar: Bar) => void;
 }
 
 export const BarActionButtons = React.memo<BarActionButtonsProps>(
-    ({ bar, onToggleStatus }) => {
+    ({ bar, onToggleStatus, onManageCoPromoteur }) => {
         const [loading, setLoading] = useState(false);
 
         const handleToggleStatus = async () => {
@@ -45,6 +47,15 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
                     )}
                 </button>
                 <BarReportExcelButton bar={bar} />
+                {onManageCoPromoteur && (
+                    <button
+                        onClick={() => onManageCoPromoteur(bar)}
+                        className="col-span-2 px-3 py-2 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
+                    >
+                        <Crown className="w-3.5 h-3.5" />
+                        Co-promoteurs
+                    </button>
+                )}
             </div>
         );
     }

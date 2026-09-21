@@ -15,6 +15,7 @@ import { BarCard } from '../../components/BarCard';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { BarAuditLogsModal } from '../../components/admin/BarAuditLogsViewer';
+import { CoPromoteurManager } from '../../components/admin/CoPromoteurManager';
 
 const VALID_STATUS_FILTERS = ['all', 'active', 'suspended'] as const;
 type StatusFilter = typeof VALID_STATUS_FILTERS[number];
@@ -42,6 +43,7 @@ export default function BarsManagementPage() {
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [error, setError] = useState<string | null>(null);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
+  const [coPromoteurBar, setCoPromoteurBar] = useState<Bar | null>(null);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -257,6 +259,7 @@ export default function BarsManagementPage() {
                     onToggleStatus={toggleBarStatus}
                     onPlanChange={handlePlanChange}
                     onClose={() => { }}
+                    onManageCoPromoteur={setCoPromoteurBar}
                   />
                 );
               })}
@@ -292,6 +295,16 @@ export default function BarsManagementPage() {
         {showAuditLogs && (
           <BarAuditLogsModal
             onClose={() => setShowAuditLogs(false)}
+          />
+        )}
+
+        {/* Co-promoteur Manager Modal */}
+        {coPromoteurBar && (
+          <CoPromoteurManager
+            bar={coPromoteurBar}
+            members={allBarMembers.filter((m) => m.barId === coPromoteurBar.id)}
+            onClose={() => setCoPromoteurBar(null)}
+            onMembersChanged={loadMembers}
           />
         )}
 
