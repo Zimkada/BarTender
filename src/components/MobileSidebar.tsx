@@ -29,6 +29,7 @@ import {
   ChefHat,
   UtensilsCrossed,
   Carrot,
+  History,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -221,7 +222,13 @@ export function MobileSidebar({
     { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/settings' },
     { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/profil' },
     { id: 'subscription', label: 'Abonnement', icon: <CreditCard size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/subscription' },
-    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur', 'co_promoteur'], path: '/accounting', feature: 'accounting' }
+    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur', 'co_promoteur'], path: '/accounting', feature: 'accounting' },
+    // ⭐ Sorti des onglets de /accounting (etait "Journal", 4e onglet) : trace
+    // les operations sensibles (depenses, stock, retours, equipe), pas des
+    // donnees financieres - le melange avec Revenus/Depenses induisait en
+    // erreur. Meme public que la comptabilite : super_admin, promoteur,
+    // co_promoteur (canViewAccounting), pas le gerant.
+    { id: 'journal', label: 'Journal', icon: <History size={20} />, roles: ['promoteur', 'co_promoteur'], path: '/journal', feature: 'accounting' }
   ];
 
   /**

@@ -27,6 +27,7 @@ const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
 // === Composants refactorisés en pages (export default) ===
 const InventoryPage = lazyWithRetry(() => import('../pages/InventoryPage'));
 const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
+const JournalPage = lazyWithRetry(() => import('../pages/JournalPage'));
 // ⭐ Module restauration — chargé UNIQUEMENT à la navigation, et jamais
 // préchargé (§3 : « aucun préchargement de la route cuisine si
 // has_restaurant = false »). Sur un bar pur, ce chunk n'est jamais téléchargé.
@@ -182,6 +183,18 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute permission="canViewAccounting" feature="accounting" />,
         children: [
           { index: true, element: <AccountingPage /> },
+        ],
+      },
+      {
+        // Meme permission que /accounting : le journal trace des operations
+        // (depenses, stock, retours, equipe) qui ne sont visibles qu'au
+        // meme public que la comptabilite - pas au gerant. Route separee et
+        // non un onglet, pour ne pas laisser croire qu'il s'agit d'une
+        // donnee financiere.
+        path: 'journal',
+        element: <ProtectedRoute permission="canViewAccounting" feature="accounting" />,
+        children: [
+          { index: true, element: <JournalPage /> },
         ],
       },
       {

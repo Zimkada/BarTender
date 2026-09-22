@@ -1,6 +1,6 @@
 import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Receipt, DollarSign, History } from 'lucide-react';
+import { BarChart3, Receipt, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -8,12 +8,10 @@ import { useQueryClient } from '@tanstack/react-query';
 const AccountingOverview = lazy(() => import('../components/AccountingOverview').then(m => ({ default: m.AccountingOverview })));
 const RevenueManager = lazy(() => import('../components/RevenueManager').then(m => ({ default: m.RevenueManager })));
 const ExpenseManager = lazy(() => import('../components/ExpenseManager').then(m => ({ default: m.ExpenseManager })));
-// ⭐ Chantier B3 - journal d'activite du bar (get_bar_audit_logs).
-// Place ici et non dans une route dediee : /accounting est deja protegee par
-// canViewAccounting, vrai pour super_admin / promoteur / co_promoteur et faux
-// pour gerant / serveur / cuisinier - exactement les roles admis par le garde
-// SQL du RPC. Aucun bouton actif ne peut donc mener a un refus serveur.
-const BarActivityJournal = lazy(() => import('../components/accounting/BarActivityJournal').then(m => ({ default: m.BarActivityJournal })));
+// ⚠️ Le journal d'activite (BarActivityJournal) a ete deplace en page dediee
+// /journal (JournalPage.tsx) : melange dans les memes onglets que Revenus et
+// Depenses, il laissait croire qu'il s'agissait de donnees financieres.
+// Voir docs/roadmaps/PLAN_CO_PROMOTEUR_PHASE2.md.
 
 import { useBarContext } from '../context/BarContext';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -23,7 +21,7 @@ import { AnalyticsService } from '../services/supabase/analytics.service';
 import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 
-type TabType = 'overview' | 'revenues' | 'expenses' | 'journal';
+type TabType = 'overview' | 'revenues' | 'expenses';
 
 /**
  * AccountingPage - Page de comptabilité
@@ -84,7 +82,6 @@ export default function AccountingPage() {
                     { id: 'overview', label: 'Vue globale', icon: BarChart3, dataGuide: 'accounting-tab-overview' },
                     { id: 'revenues', label: 'Revenus', icon: DollarSign, dataGuide: 'accounting-tab-revenues' },
                     { id: 'expenses', label: 'Dépenses', icon: Receipt, dataGuide: 'accounting-tab-expenses' },
-                    { id: 'journal', label: 'Journal', icon: History, dataGuide: 'accounting-tab-journal' },
                 ]}
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as TabType)}
@@ -114,12 +111,6 @@ export default function AccountingPage() {
                         {activeTab === 'overview' && <AccountingOverview period={periodProps} />}
                         {activeTab === 'revenues' && <RevenueManager period={periodProps} />}
                         {activeTab === 'expenses' && <ExpenseManager period={periodProps} />}
-                        {/* ⚠️ Pas de `period` : le journal n'est pas un etat
-                            comptable a une date, c'est un flux chronologique
-                            avec sa propre pagination serveur. Le filtrer sur
-                            la periode masquerait justement ce qu'on cherche -
-                            une operation faite hors de la periode consultee. */}
-                        {activeTab === 'journal' && <BarActivityJournal />}
                     </Suspense>
                 </motion.div>
             </AnimatePresence>
