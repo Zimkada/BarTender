@@ -303,6 +303,11 @@ export function MobileSidebar({
         buildGroup('kitchen', 'Cuisine', <ChefHat size={18} />, ['kitchenService', 'kitchenDishes', 'kitchenIngredients']),
         buildGroup('management', 'Finances', <Wallet size={18} />, ['accounting', 'subscription']),
         buildGroup('people', 'Personnel', <Users size={18} />, ['profile', 'teamManagement']),
+        // ⭐ Groupe dedie plutot que rattache a Finances : le journal trace
+        // des operations (qui a fait quoi), pas des montants - le melanger
+        // aux donnees financieres recreerait la confusion deja corrigee en
+        // le sortant des onglets de /accounting.
+        buildGroup('audit', 'Suivi', <History size={18} />, ['journal']),
         buildGroup('config', 'Configuration', <Settings size={18} />, ['promotions', 'settings']),
       ].filter((g): g is MenuGroup => g !== null))
     : [];
