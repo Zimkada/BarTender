@@ -66,10 +66,24 @@ export function Header({
 }: HeaderProps) {
   // const { formatPrice } = useCurrencyFormatter(); // Unused
   const { currentSession, logout, hasPermission } = useAuth();
+  const { currentBar, userBars } = useBarContext();
   // 🛡️ Le sélecteur multi-bar suit la permission, jamais le rôle brut
   // (MATRICE_RBAC_CUISINIER §5.1bis) : canSwitchBars a exactement ce profil.
-  const canSwitchBars = hasPermission('canSwitchBars');
-  const { currentBar } = useBarContext();
+  //
+  // ⛔ ...MAIS le rôle est RECALCULÉ À CHAQUE SWITCH depuis bar_members
+  //    (BarContext.switchBar), et `canSwitchBars` est false pour un gérant.
+  //    Une personne co-promotrice sur un bar et gérante sur un autre perdait
+  //    donc le sélecteur en arrivant sur le bar où elle est gérante, sans
+  //    aucun moyen de revenir : la permission qui la ramène est justement
+  //    celle qu'elle vient de perdre. Constaté en production le 23/09/2026.
+  //
+  //    `userBars.length > 1` rouvre uniquement ce cas : un gérant mono-bar
+  //    (le cas normal) n'a qu'un bar, la condition reste fausse et son
+  //    comportement est inchangé. Le sélecteur ne propose de toute façon que
+  //    les bars déjà retournés par get_my_bars() pour cet utilisateur —
+  //    il n'ouvre l'accès à rien de nouveau, il rend joignable ce qui l'est
+  //    déjà côté serveur.
+  const canSwitchBars = hasPermission('canSwitchBars') || userBars.length > 1;
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
 
