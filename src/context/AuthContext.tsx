@@ -71,7 +71,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false // Map pending training status
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false, // Map pending training status
+          // 🛡️ FIX : allbarIds n'etait jamais peuple (bug de casse avec
+          // authUser.allBarIds), ce qui desactivait le filet de securite de
+          // BarSelector.tsx:40 pour le multi-bar. Decouvert le 23/09/2026 :
+          // un co-promoteur/gerant sur 2 bars perdait le switcher en basculant
+          // vers l'un d'eux, sans pouvoir revenir.
+          allbarIds: authUser.allBarIds,
         };
         setCurrentSession(session);
       } else {
@@ -186,7 +192,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 loginTime: new Date(),
                 permissions: getPermissionsByRole(authUser.role),
                 firstLogin: authUser.first_login ?? false,
-                hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
+                hasCompletedOnboarding: authUser.has_completed_onboarding ?? false,
+                allbarIds: authUser.allBarIds,
               };
               setCurrentSession(newSession);
             }
@@ -262,7 +269,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false,
+          allbarIds: authUser.allBarIds,
         };
         setCurrentSession(session);
         // Set user context for error tracking (Sentry)
@@ -330,7 +338,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false,
+          allbarIds: authUser.allBarIds,
         };
         setCurrentSession(session);
         // Set user context for error tracking (Sentry)
@@ -683,7 +692,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(user.role),
           firstLogin: user.first_login ?? false,
-          hasCompletedOnboarding: user.has_completed_onboarding ?? false
+          hasCompletedOnboarding: user.has_completed_onboarding ?? false,
+          allbarIds: user.allBarIds,
         };
         setCurrentSession(session);
       }
