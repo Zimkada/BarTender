@@ -618,3 +618,63 @@ les actions du SuperAdmin n'apparaissent qu'en « Tous les intervenants », et
 📋 **À retenir pour tout futur écran lisant `audit_logs`** : ne jamais
 dériver un filtre de `user_role` depuis `UserRole`. La colonne est un TEXT
 libre alimenté par un repli applicatif, pas une énumération.
+
+---
+
+## ⛔ BUG DECOUVERT EN TEST TERRAIN - get_all_bar_members cassee depuis 7 mois
+
+**22/09/2026.** Premier test reel du panneau co-promoteur : "aucun gerant
+actif" sur TOUS les bars, alors que la base contient 11 gerants actifs.
+
+**Le bug n'etait PAS dans le chantier co-promoteur.** `get_all_bar_members`
+echouait en 400 depuis le **27/02/2026** :
+
+```
+column reference "user_id" is ambiguous
+```
+
+Cause : le garde super_admin ajoute par `20260227100000` (FIX 6) ecrivait
+`WHERE user_id = auth.uid() AND role = ... AND is_active = ...` sans
+qualifier les colonnes. Or la fonction est un `RETURNS TABLE` qui declare
+justement `user_id`, `role` et `is_active` en sortie : PL/pgSQL injecte ces
+noms comme variables, et PostgreSQL ne peut pas trancher.
+
+⚠️ **L'erreur ne se produit qu'a l'EXECUTION**, jamais au `CREATE` - c'est
+pourquoi la migration de fevrier est passee sans rien signaler, et pourquoi
+le defaut a survecu 7 mois. Le compteur "Membres" des cartes de bars
+affichait 0 partout depuis cette date, sans que personne ne le releve.
+
+**Correctif** : `20260922090000_fix_get_all_bar_members_ambiguous.sql`.
+Alias `guard` sur les 3 colonnes du garde. Verifie par diff : seules ces 4
+lignes changent, les 17 colonnes du RETURN QUERY sont identiques a la prod
+caractere pour caractere.
+
+📋 **A retenir - deux pieges de ce correctif** :
+1. `role` et `is_active` etaient AUSSI ambigus, pas seulement `user_id` :
+   PostgreSQL s'arrete au premier. Les corriger tous evite de rejouer une
+   migration dix minutes plus tard.
+2. `NOTIFY pgrst, 'reload schema'` est INDISPENSABLE : PostgREST met le
+   schema en cache et aurait continue a servir l'ancienne definition. La
+   migration de fevrier le faisait ; l'omettre aurait donne un correctif
+   sans effet visible.
+
+### Methode - lecon repetee
+
+Six echanges de requetes SQL n'ont pas trouve la cause. **Une capture de la
+console l'a donnee en une seconde.** C'est la deuxieme fois apres l'incident
+retours du 06/09 : demander le message d'erreur AVANT de raisonner.
+
+Correctif associe : `BarsManagementPage.loadMembers` avalait l'erreur dans
+un `console.error`. L'ecran restait affiche avec `allBarMembers` vide, donc
+un etat "0 membre" INDISCERNABLE d'un bar reellement sans membres. Il
+affiche desormais un bandeau d'erreur.
+
+### Faux positif ecarte : get_bar_members (singulier)
+
+Echoue aussi en 400, mais avec `Unauthorized: User is not a member or owner
+of this bar` - **comportement CORRECT**, pas un bug. Le garde exige d'etre
+membre ou proprietaire du bar, et le SuperAdmin n'est membre que du bar
+systeme `00000000-...`. Cette fonction ne prevoit aucune exception
+super_admin, contrairement a `get_all_bar_members`. Sans impact :
+BarsManagementPage n'utilise pas cette fonction. Bruit console uniquement,
+appele par BarContext -> useBarMembers.

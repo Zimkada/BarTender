@@ -74,7 +74,15 @@ export default function BarsManagementPage() {
       const members = await AuthService.getAllBarMembers();
       setAllBarMembers(members);
     } catch (error) {
+      // ⚠️ Cette erreur etait avalee dans la console : l'ecran continuait de
+      // s'afficher avec allBarMembers vide, donc "0 membre" sur les cartes et
+      // "aucun gerant actif" dans le panneau co-promoteur - un etat vide
+      // indiscernable d'un bar reellement sans membres. Un echec de
+      // chargement doit se voir.
       console.error('Erreur chargement membres:', error);
+      setError(
+        `Impossible de charger les membres des bars : ${error instanceof Error ? error.message : 'erreur inconnue'}`
+      );
     }
   }, []);
 
