@@ -76,6 +76,7 @@ function RootLayoutContent() {
     if (path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/profil')) return 'profile';
     if (path.startsWith('/accounting')) return 'accounting';
+    if (path.startsWith('/journal')) return 'journal';
     return '';
   })();
   const invalidationTimeoutRef = useRef<number | null>(null);
