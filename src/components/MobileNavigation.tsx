@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
+  Calculator,
   Package,
   Zap,
   RotateCcw,
@@ -109,6 +110,21 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       path: '/returns',
       color: 'text-red-600',
       roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
+    },
+    {
+      // ⭐ SERVEUR UNIQUEMENT, et c'est un ARBITRAGE DE PLACE, pas de droit :
+      //    la barre n'affiche que 5 entrées (cf. garde-fou plus bas). Le
+      //    serveur en a 4, il reste une place ; promoteur/gérant en ont déjà 5
+      //    et l'entrée surnuméraire disparaîtrait SANS AUCUN SIGNAL — c'est ce
+      //    qui était arrivé à « Import/Export ».
+      // ⚠️ Ils y accèdent par le menu latéral, dans le groupe « Vente ».
+      //    C'est aussi le serveur qui annonce les prix en salle : la cible
+      //    première de cet écran.
+      icon: <Calculator size={24} />,
+      label: 'Calculette',
+      path: '/calculette',
+      color: 'text-teal-600',
+      roles: ['serveur']
     },
     {
       // ⭐ CUISINIER UNIQUEMENT (§9) : « Autres rôles : ne rien ajouter,

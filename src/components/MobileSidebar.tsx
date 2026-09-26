@@ -4,6 +4,7 @@ import {
   Home,
   Zap,
   BarChart3,
+  Calculator,
   Calendar,
   Package,
   Users,
@@ -185,6 +186,14 @@ export function MobileSidebar({
     { id: 'quickSale', label: 'Vente rapide', icon: <Zap size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], action: onShowQuickSale },
     { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/dashboard' },
     { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/sales' },
+    // ⭐ Chiffrer un lot SANS vendre — voir `CalculettePage`. Ouvert à tous les
+    //    rôles qui composent un panier : annoncer un prix n'expose rien que la
+    //    grille de vente ne montre déjà.
+    // ⚠️ DOUBLE CÂBLAGE OBLIGATOIRE : cette entrée exige AUSSI une branche dans
+    //    `RootLayout.currentMenuId` (`/calculette` → 'calculette') ET sa place
+    //    dans `buildGroup('vente', ...)` plus bas. Omettre l'une des deux rend
+    //    l'entrée non surlignée ou son groupe replié — sans aucune erreur.
+    { id: 'calculette', label: 'Calculette', icon: <Calculator size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur'], path: '/calculette' },
     { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'co_promoteur', 'gerant'], path: '/inventory' },
     // ⭐ DÉCOUPAGE DU 03/08/2026 — « Cuisine » n'est plus UNE entrée mais un
     // GROUPE (cf. §9 « Menu latéral », arbitrage). La page unique atteignait
@@ -289,7 +298,7 @@ export function MobileSidebar({
   const menuEntries: MenuGroup[] = isGrouped
     ? ([
         // ShoppingCart et non Zap : Zap identifie déjà « Vente rapide » dans ce groupe.
-        buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'dailyDashboard', 'history']),
+        buildGroup(DEFAULT_OPEN_GROUP_ID, 'Vente', <ShoppingCart size={18} />, ['home', 'quickSale', 'calculette', 'dailyDashboard', 'history']),
         // Icones d entete distinctes de celles des items qu ils contiennent :
         // Boxes vs Package (Inventaire), Wallet vs DollarSign (Comptabilite).
         buildGroup('stock', 'Produits et stock', <Boxes size={18} />, ['returns', 'consignments', 'inventory']),

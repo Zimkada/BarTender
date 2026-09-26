@@ -20,6 +20,7 @@ const SaleDetailsPage = lazyWithRetry(() => import('../pages/SaleDetailsPage'));
 const ForecastingAIPage = lazyWithRetry(() => import('../pages/ForecastingAIPage'));
 const ReturnsPage = lazyWithRetry(() => import('../pages/ReturnsPage'));
 const ConsignmentPage = lazyWithRetry(() => import('../pages/ConsignmentPage'));
+const CalculettePage = lazyWithRetry(() => import('../pages/CalculettePage'));
 const AnalyticsPage = lazyWithRetry(() => import('../pages/AnalyticsPage'));
 const TeamPage = lazyWithRetry(() => import('../pages/TeamManagementPage'));
 const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
@@ -223,6 +224,9 @@ export const router = createBrowserRouter([
       },
       { path: 'returns', element: <ReturnsPage /> },
       { path: 'consignments', element: <ConsignmentPage /> },
+      /* ⭐ Aucun `ProtectedRoute` : chiffrer n'expose rien que la grille de
+         vente ne montre déjà à tous les rôles qui y ont accès. */
+      { path: 'calculette', element: <CalculettePage /> },
       {
         path: 'team',
         element: <ProtectedRoute permission="canCreateServers" />,

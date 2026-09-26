@@ -70,6 +70,7 @@ function RootLayoutContent() {
     if (path.startsWith('/inventory')) return 'inventory';
     if (path.startsWith('/returns')) return 'returns';
     if (path.startsWith('/consignments')) return 'consignments';
+    if (path.startsWith('/calculette')) return 'calculette';
     if (path.startsWith('/team')) return 'teamManagement';
     if (path.startsWith('/promotions')) return 'promotions';
     if (path.startsWith('/subscription')) return 'subscription';
@@ -91,6 +92,9 @@ function RootLayoutContent() {
     () => import('../pages/DashboardPage'),
     () => import('../pages/InventoryPage'),
     () => import('../pages/SalesHistoryPage'),
+    // ⭐ La calculette s'ouvre EN PLEIN SERVICE, client à la table : c'est le
+    //    cas où attendre un chunk (backoff 1s → 3s → 10s) coûte le plus cher.
+    () => import('../pages/CalculettePage'),
     () => import('../pages/AccountingPage'),
     () => import('../pages/AnalyticsPage'),
   ], isAuthenticated && !!currentBar);
@@ -263,9 +267,15 @@ function RootLayoutContent() {
       <MobileNavigation
         onShowQuickSale={() => openModal('QUICK_SALE')}
       />
+      {/* ⛔⛔ BOUTON PANIER MASQUÉ SUR LA CALCULETTE — le seul écran de l'app
+          dont le contrat est qu'AUCUN bouton ne peut vendre. Le FAB est en
+          `z-50` contre `z-30` pour la barre de total : il recouvrait
+          littéralement « Effacer », et un tap destiné à effacer ouvrait le
+          panier de vente. Voir l'en-tête de `CalculettePage`. */}
       <Cart
         isOpen={isCartOpen}
         onToggle={() => setIsCartOpen(!isCartOpen)}
+        hideFloatingButton={location.pathname.startsWith('/calculette')}
       />
 
       <Suspense fallback={null}>
