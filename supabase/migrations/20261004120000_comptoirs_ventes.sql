@@ -1,3 +1,38 @@
+-- ╔═══════════════════════════════════════════════════════════════════╗
+-- ║  ⛔⛔⛔  NE PAS EXECUTER CE FICHIER  ⛔⛔⛔                        ║
+-- ║                                                                   ║
+-- ║  OBSOLETE depuis le 06/10/2026.                                   ║
+-- ║  REMPLACE PAR : 20261006170000_comptoirs_rls_ecriture.sql          ║
+-- ╚═══════════════════════════════════════════════════════════════════╝
+--
+-- Ecrit le 04/10, AVANT que le chantier ne prenne un autre chemin. Devenu
+-- FAUX sur trois points :
+--
+-- 1. ⛔ IL ECHOUE. Le bloc `DO` plus bas cherche une signature de
+--    `create_sale_idempotent` SANS `p_counter_id`. Depuis 20261005090000 (en
+--    prod), la seule signature existante EN PORTE un. Le bloc ne trouve rien
+--    et leve :
+--        RAISE EXCEPTION 'create_sale_idempotent introuvable - etape 1
+--                         appliquee ?'
+--    => la migration echoue ENTIEREMENT, avec un message TROMPEUR qui accuse
+--       l'etape 1 alors qu'elle est bien appliquee.
+--
+-- 2. `get_my_counters()` serait du CODE MORT des sa creation : le perimetre de
+--    travail est calcule cote client (CountersService.getMyCounters).
+--
+-- 3. `counter_belongs_to_bar()` est REDONDANT : ce controle est deja DANS
+--    create_sale_idempotent depuis 20261005090000.
+--
+-- ⚠️ Ce fichier est CONSERVE plutot que supprime : un fichier absent ne
+--    previent personne. Sa partie encore valable (trigger de concordance,
+--    can_write_on_counter, 3 policies RESTRICTIVES) a ete reprise dans
+--    20261006170000, corrigee et documentee.
+--
+-- ═══════════════════════════════════════════════════════════════════════
+-- Contenu historique ci-dessous, conserve pour reference uniquement.
+-- ═══════════════════════════════════════════════════════════════════════
+
+
 -- ===================================================================
 -- MIGRATION: comptoirs - etape 2/4, LES VENTES PORTENT LE COMPTOIR
 -- DATE: 2026-10-04
@@ -95,7 +130,7 @@
 -- -- Attendu : authenticated + service_role. PAS anon, PAS PUBLIC.
 
 
-BEGIN;
+-- BEGIN;  -- ⛔ NEUTRALISE : fichier obsolete, voir l'en-tete
 
 -- ===================================================================
 -- 1. CONCORDANCE VENTE <-> BON
