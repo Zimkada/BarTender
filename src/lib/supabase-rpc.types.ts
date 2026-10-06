@@ -41,6 +41,8 @@ export interface CreateSaleIdempotentParams {
   p_business_date?: string;
   p_ticket_id?: string;
   p_source_return_id?: string; // ✨ NOUVEAU: Pour la traçabilité échange
+  /** ⭐ Comptoir de la vente (comptoirs multiples, 05/10/2026). */
+  p_counter_id?: string;
 }
 
 /**
@@ -147,6 +149,7 @@ export function buildCreateSaleParams(
     business_date?: string | null;
     ticket_id?: string | null;
     source_return_id?: string | null;
+    counter_id?: string | null;
   },
   idempotencyKey: string
 ): CreateSaleIdempotentParams {
@@ -164,5 +167,9 @@ export function buildCreateSaleParams(
     p_business_date: data.business_date || undefined,
     p_ticket_id: data.ticket_id || undefined,
     p_source_return_id: data.source_return_id || (data as typeof data & { sourceReturnId?: string }).sourceReturnId || undefined,
+    // ⭐ 05/10/2026 — ce builder sert AUSSI le rejeu offline (SyncManager,
+    // create_sales_batch). Sans cette ligne, toute vente enregistree hors
+    // reseau repartirait SANS comptoir : corruption silencieuse de caisse.
+    p_counter_id: data.counter_id || undefined,
   };
 }

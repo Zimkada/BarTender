@@ -64,4 +64,17 @@ export const QUERY_KEYS = {
         list: () => ['bars', 'list'] as const,
         detail: (barId: string) => ['bars', 'detail', barId] as const,
     },
+    /**
+     * ⭐ Comptoirs (chantier comptoirs multiples, 04/10/2026).
+     *
+     * ⚠️ `myList` dépend de l'UTILISATEUR autant que du bar : un gérant et un
+     * serveur du même bar n'ont pas le même périmètre de travail. Omettre
+     * userId ferait servir à l'un le périmètre de l'autre depuis le cache.
+     */
+    counters: {
+        all: ['counters'] as const,
+        list: (barId: string) => ['counters', 'list', barId] as const,
+        myList: (barId: string, userId: string) =>
+            ['counters', 'mine', barId, userId] as const,
+    },
 };

@@ -44,6 +44,12 @@ export interface CreateSaleData {
   ticket_id?: string;
   source_return_id?: string;
   idempotency_key?: string;
+  /**
+   * ⭐ Comptoir de la vente (comptoirs multiples, 05/10/2026).
+   * Optionnel pendant la transition : le serveur l'accepte NULL jusqu'a
+   * l'etape 2bis.
+   */
+  counter_id?: string;
 }
 
 export interface OfflineSale {
@@ -189,7 +195,11 @@ export class SalesService {
         p_notes: data.notes ?? undefined,
         p_business_date: data.business_date ?? undefined,
         p_ticket_id: data.ticket_id ?? undefined,
-        p_source_return_id: data.source_return_id ?? undefined
+        p_source_return_id: data.source_return_id ?? undefined,
+        // ⭐ 05/10/2026 — le serveur resout : si la vente porte un BON, c'est
+        // le comptoir du bon qui fait autorite (le trigger
+        // trg_sale_counter_matches_ticket refuserait une discordance).
+        p_counter_id: data.counter_id ?? undefined
       }
     ).single();
 
@@ -341,6 +351,15 @@ export class SalesService {
         ticket_id: data.ticket_id || null,
         idempotency_key: idempotencyKey,
         source_return_id: data.source_return_id || null, // ✨ Fix : Traçabilité Échange
+        // ⭐⭐ COMPTOIR FIGÉ ICI, au moment de la MISE EN FILE (05/10/2026).
+        //
+        // ⛔ C'est LE point qui évite une corruption silencieuse : le comptoir
+        // vient de `data`, capturé à la saisie, et ne sera JAMAIS relu au
+        // moment de la synchronisation. Une serveuse qui bascule de comptoir
+        // alors qu'elle a des ventes en attente verrait sinon ces ventes
+        // rejouées sur le comptoir COURANT au retour du réseau — stock et
+        // caisse faussés, sans aucune erreur visible.
+        counter_id: data.counter_id || null,
       },
       data.bar_id,
       options?.userId || data.sold_by

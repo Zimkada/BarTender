@@ -7,6 +7,7 @@ import { dishKeys } from '../queries/useDishesQueries';
 import { analyticsKeys } from '../queries/useAnalyticsQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
+import { useCounterContext } from '../../context/CounterContext';
 import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../config/constants';
 import type { Sale } from '../../types';
@@ -114,6 +115,9 @@ export const useSalesMutations = (barId: string, options?: {
     const queryClient = useQueryClient();
     const { currentSession, hasPermission } = useAuth();
     const { currentBar, isSimplifiedMode } = useBarContext();
+    // ⭐ Comptoir actif (05/10/2026). A comptoir unique, c'est le comptoir
+    // primaire du bar : aucun changement de comportement.
+    const { currentCounterId } = useCounterContext();
 
     // ✅ CRITICAL FIX: Call useCanWorkOffline() at top-level (React Hooks Rules)
     // DO NOT call it inside mutationFn - that violates React hooks contract
@@ -283,7 +287,13 @@ export const useSalesMutations = (barId: string, options?: {
                 notes: saleData.notes,
                 business_date: formattedBusinessDate,
                 source_return_id: saleData.sourceReturnId,
-                idempotency_key: saleData.idempotencyKey // 🛡️ Fix Bug #11 : Clé maintenant typée et transmise
+                idempotency_key: saleData.idempotencyKey, // 🛡️ Fix Bug #11 : Clé maintenant typée et transmise
+                // ⭐ Comptoir actif au moment de la SAISIE (05/10/2026).
+                // ⚠️ Capturé ici et transmis tel quel jusqu'à la file offline,
+                // qui le FIGE. Jamais relu à la synchronisation.
+                // En mode simplifié, c'est le comptoir du gérant qui saisit —
+                // décision du 04/10, le serveur virtuel n'ayant pas de compte.
+                counter_id: currentCounterId || undefined
             };
 
             console.log('[useSalesMutations] payload prepared for SalesService:', {

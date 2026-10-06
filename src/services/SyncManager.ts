@@ -669,6 +669,10 @@ class SyncManagerService {
           business_date: payload.business_date,
           ticket_id: targetTicketId,
           source_return_id: payload.source_return_id,
+          // ⭐ Comptoir FIGE a la saisie (05/10/2026). Ne JAMAIS le relire
+          // ici depuis le contexte : la serveuse a peut-etre bascule de
+          // comptoir depuis, et la vente atterrirait au mauvais endroit.
+          counter_id: payload.counter_id,
         },
         payload.idempotency_key
       );
@@ -879,6 +883,10 @@ class SyncManagerService {
           business_date: payload.business_date,
           ticket_id: targetTicketId,
           source_return_id: payload.source_return_id,
+          // ⭐ Comptoir FIGE a la saisie (05/10/2026). Ne JAMAIS le relire
+          // ici depuis le contexte : la serveuse a peut-etre bascule de
+          // comptoir depuis, et la vente atterrirait au mauvais endroit.
+          counter_id: payload.counter_id,
         }, payload.idempotency_key);
       });
 

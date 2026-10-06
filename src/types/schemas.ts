@@ -48,6 +48,16 @@ export const CreateSaleSchema = z.object({
     business_date: z.string().nullable().optional(),
     ticket_id: z.string().nullable().optional(),
     idempotency_key: z.string(),
+    /**
+     * ⭐ Comptoir de la vente (05/10/2026), FIGÉ à la saisie.
+     *
+     * ⚠️ `optional()` est indispensable : les opérations DÉJÀ en file
+     * (IndexedDB) ne portent pas ce champ. Le rendre obligatoire rejetterait
+     * leur revalidation — donc PERDRAIT des ventes hors ligne, au moment
+     * précis où la file est censée les protéger. Même raisonnement que
+     * `product_id` pour les plats, documenté en tête de ce fichier.
+     */
+    counter_id: z.string().uuid().nullable().optional(),
 });
 
 export const CreateTicketSchema = z.object({

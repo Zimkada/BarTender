@@ -62,6 +62,20 @@ export interface CreateSalePayload {
   ticket_id?: string | null;
   idempotency_key: string;
   source_return_id?: string | null; // ✨ NOUVEAU: Traçabilité Échange
+  /**
+   * ⭐ Comptoir de la vente (chantier comptoirs multiples, 05/10/2026).
+   *
+   * ⛔ DOIT être FIGÉ AU MOMENT DE LA SAISIE, jamais relu à la
+   * synchronisation. Une serveuse qui bascule de comptoir alors qu'elle a des
+   * ventes en attente verrait sinon ces ventes rejouées sur le MAUVAIS
+   * comptoir au retour du réseau — corruption silencieuse de stock et de
+   * caisse, sans aucune erreur visible.
+   *
+   * Optionnel pendant la transition : les opérations déjà en file
+   * (IndexedDB) ne le portent pas. Elles partiront sans comptoir, ce qui
+   * reste accepté côté serveur jusqu'à l'étape 2bis.
+   */
+  counter_id?: string | null;
 }
 
 /**

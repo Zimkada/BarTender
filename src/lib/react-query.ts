@@ -138,7 +138,16 @@ persistQueryClient({
     shouldDehydrateQuery: (query) => {
       // Ne persister que les queries critiques (ventes, stock)
       const queryKey = query.queryKey[0] as string;
-      return queryKey?.includes('sales') || queryKey?.includes('stock') || queryKey?.includes('products');
+      return queryKey?.includes('sales')
+        || queryKey?.includes('stock')
+        || queryKey?.includes('products')
+        // ⭐ Comptoirs (04/10/2026) — INDISPENSABLE, pas un confort.
+        // Dès que la vente portera son comptoir, une app ouverte HORS RÉSEAU
+        // sans comptoir en cache ne pourrait PLUS VENDRE : la query ne part
+        // pas, la liste est vide, `currentCounterId` reste null.
+        // Donnée quasi-statique (gcTime 7 jours) : exactement le profil de ce
+        // qui doit survivre à un démarrage offline.
+        || queryKey?.includes('counters');
     },
   },
 });

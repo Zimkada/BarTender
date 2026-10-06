@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1160,6 +1160,7 @@ export type Database = {
         Row: {
           alert_threshold: number | null
           bar_id: string
+          counter_id: string | null
           created_at: string | null
           current_average_cost: number | null
           display_name: string
@@ -1181,6 +1182,7 @@ export type Database = {
         Insert: {
           alert_threshold?: number | null
           bar_id: string
+          counter_id?: string | null
           created_at?: string | null
           current_average_cost?: number | null
           display_name: string
@@ -1202,6 +1204,7 @@ export type Database = {
         Update: {
           alert_threshold?: number | null
           bar_id?: string
+          counter_id?: string | null
           created_at?: string | null
           current_average_cost?: number | null
           display_name?: string
@@ -1264,6 +1267,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bar_products_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bar_products_global_product_id_fkey"
             columns: ["global_product_id"]
             isOneToOne: false
@@ -1302,6 +1312,8 @@ export type Database = {
           phone: string | null
           settings: Json | null
           setup_completed_at: string | null
+          shared_stock_counter_id: string | null
+          stock_mode: string
           subscription_due_date: string | null
           subscription_start_date: string | null
           theme_config: Json | null
@@ -1322,6 +1334,8 @@ export type Database = {
           phone?: string | null
           settings?: Json | null
           setup_completed_at?: string | null
+          shared_stock_counter_id?: string | null
+          stock_mode?: string
           subscription_due_date?: string | null
           subscription_start_date?: string | null
           theme_config?: Json | null
@@ -1342,12 +1356,22 @@ export type Database = {
           phone?: string | null
           settings?: Json | null
           setup_completed_at?: string | null
+          shared_stock_counter_id?: string | null
+          stock_mode?: string
           subscription_due_date?: string | null
           subscription_start_date?: string | null
           theme_config?: Json | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bars_shared_stock_counter_id_fkey"
+            columns: ["shared_stock_counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       capital_contributions: {
         Row: {
@@ -1441,6 +1465,7 @@ export type Database = {
           business_date: string
           claimed_at: string | null
           claimed_by: string | null
+          counter_id: string | null
           created_at: string
           created_by: string
           customer_name: string | null
@@ -1466,6 +1491,7 @@ export type Database = {
           business_date: string
           claimed_at?: string | null
           claimed_by?: string | null
+          counter_id?: string | null
           created_at?: string
           created_by: string
           customer_name?: string | null
@@ -1491,6 +1517,7 @@ export type Database = {
           business_date?: string
           claimed_at?: string | null
           claimed_by?: string | null
+          counter_id?: string | null
           created_at?: string
           created_by?: string
           customer_name?: string | null
@@ -1562,6 +1589,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "consignments_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "consignments_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1601,6 +1635,180 @@ export type Database = {
             columns: ["sale_id"]
             isOneToOne: false
             referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      counter_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          bar_id: string
+          counter_id: string
+          id: string
+          is_active: boolean
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          bar_id: string
+          counter_id: string
+          id?: string
+          is_active?: boolean
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          bar_id?: string
+          counter_id?: string
+          id?: string
+          is_active?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counter_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counter_assignments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      counters: {
+        Row: {
+          bar_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          name: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          name: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counters_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counters_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "counters_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "counters_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counters_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counters_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -3488,6 +3696,21 @@ export type Database = {
           },
         ]
       }
+      mat_view_refresh_lock: {
+        Row: {
+          last_refresh_at: string
+          view_name: string
+        }
+        Insert: {
+          last_refresh_at?: string
+          view_name: string
+        }
+        Update: {
+          last_refresh_at?: string
+          view_name?: string
+        }
+        Relationships: []
+      }
       materialized_view_refresh_log: {
         Row: {
           created_at: string
@@ -4280,6 +4503,7 @@ export type Database = {
           auto_restock: boolean
           bar_id: string
           business_date: string
+          counter_id: string | null
           custom_refund: boolean | null
           custom_restock: boolean | null
           id: string
@@ -4309,6 +4533,7 @@ export type Database = {
           auto_restock?: boolean
           bar_id: string
           business_date: string
+          counter_id?: string | null
           custom_refund?: boolean | null
           custom_restock?: boolean | null
           id?: string
@@ -4338,6 +4563,7 @@ export type Database = {
           auto_restock?: boolean
           bar_id?: string
           business_date?: string
+          counter_id?: string | null
           custom_refund?: boolean | null
           custom_restock?: boolean | null
           id?: string
@@ -4404,6 +4630,13 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
             referencedColumns: ["id"]
           },
           {
@@ -4643,6 +4876,7 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          counter_id: string | null
           created_at: string | null
           created_by: string | null
           customer_name: string | null
@@ -4675,6 +4909,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          counter_id?: string | null
           created_at?: string | null
           created_by?: string | null
           customer_name?: string | null
@@ -4707,6 +4942,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          counter_id?: string | null
           created_at?: string | null
           created_by?: string | null
           customer_name?: string | null
@@ -4780,6 +5016,13 @@ export type Database = {
             columns: ["cancelled_by"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
             referencedColumns: ["id"]
           },
           {
@@ -4911,6 +5154,7 @@ export type Database = {
           adjusted_at: string
           adjusted_by: string
           bar_id: string
+          counter_id: string | null
           created_at: string
           delta: number
           id: string
@@ -4924,6 +5168,7 @@ export type Database = {
           adjusted_at?: string
           adjusted_by: string
           bar_id: string
+          counter_id?: string | null
           created_at?: string
           delta: number
           id?: string
@@ -4937,6 +5182,7 @@ export type Database = {
           adjusted_at?: string
           adjusted_by?: string
           bar_id?: string
+          counter_id?: string | null
           created_at?: string
           delta?: number
           id?: string
@@ -4994,6 +5240,13 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
             referencedColumns: ["id"]
           },
           {
@@ -5203,6 +5456,7 @@ export type Database = {
       supplies: {
         Row: {
           bar_id: string
+          counter_id: string | null
           created_at: string | null
           id: string
           notes: string | null
@@ -5221,6 +5475,7 @@ export type Database = {
         }
         Insert: {
           bar_id: string
+          counter_id?: string | null
           created_at?: string | null
           id?: string
           notes?: string | null
@@ -5239,6 +5494,7 @@ export type Database = {
         }
         Update: {
           bar_id?: string
+          counter_id?: string | null
           created_at?: string | null
           id?: string
           notes?: string | null
@@ -5299,6 +5555,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "supplies_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "supplies_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -5345,6 +5608,7 @@ export type Database = {
       tickets: {
         Row: {
           bar_id: string
+          counter_id: string | null
           created_at: string
           created_by: string
           customer_name: string | null
@@ -5362,6 +5626,7 @@ export type Database = {
         }
         Insert: {
           bar_id: string
+          counter_id?: string | null
           created_at?: string
           created_by: string
           customer_name?: string | null
@@ -5379,6 +5644,7 @@ export type Database = {
         }
         Update: {
           bar_id?: string
+          counter_id?: string | null
           created_at?: string
           created_by?: string
           customer_name?: string | null
@@ -5435,6 +5701,13 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_counter_id_fkey"
+            columns: ["counter_id"]
+            isOneToOne: false
+            referencedRelation: "counters"
             referencedColumns: ["id"]
           },
           {
@@ -5585,6 +5858,51 @@ export type Database = {
           training_version_completed?: number | null
           updated_at?: string | null
           username?: string | null
+        }
+        Relationships: []
+      }
+      wa_analyst_tool_audit: {
+        Row: {
+          bar_id: string
+          created_at: string
+          duration_ms: number
+          error_message: string | null
+          id: string
+          phone_wa_id: string
+          role: string
+          success: boolean
+          tool_input: Json | null
+          tool_name: string
+          user_id: string
+          work_ms: number | null
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          duration_ms: number
+          error_message?: string | null
+          id?: string
+          phone_wa_id: string
+          role: string
+          success: boolean
+          tool_input?: Json | null
+          tool_name: string
+          user_id: string
+          work_ms?: number | null
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          duration_ms?: number
+          error_message?: string | null
+          id?: string
+          phone_wa_id?: string
+          role?: string
+          success?: boolean
+          tool_input?: Json | null
+          tool_name?: string
+          user_id?: string
+          work_ms?: number | null
         }
         Relationships: []
       }
@@ -7055,6 +7373,10 @@ export type Database = {
         }
         Returns: Json
       }
+      add_co_promoteur: {
+        Args: { p_bar_id: string; p_user_id: string }
+        Returns: Json
+      }
       admin_as_create_sale: {
         Args: {
           p_acting_as_user_id: string
@@ -7173,6 +7495,7 @@ export type Database = {
         Returns: {
           alert_threshold: number | null
           bar_id: string
+          counter_id: string | null
           created_at: string | null
           current_average_cost: number | null
           display_name: string
@@ -7429,6 +7752,7 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          counter_id: string | null
           created_at: string | null
           created_by: string | null
           customer_name: string | null
@@ -7511,6 +7835,7 @@ export type Database = {
         }
         Returns: {
           bar_id: string
+          counter_id: string | null
           created_at: string
           created_by: string
           customer_name: string | null
@@ -7631,6 +7956,18 @@ export type Database = {
           total_sales: number
         }[]
       }
+      get_bar_audit_logs: {
+        Args: {
+          p_bar_id: string
+          p_limit: number
+          p_page: number
+          p_role_filter?: string
+        }
+        Returns: {
+          logs: Json
+          total_count: number
+        }[]
+      }
       get_bar_daily_stats: {
         Args: { p_bar_id: string; p_business_date: string }
         Returns: {
@@ -7697,6 +8034,15 @@ export type Database = {
           user_name: string
           user_phone: string
           username: string
+        }[]
+      }
+      get_bar_period_stats: {
+        Args: { p_bar_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          pending_sales: number
+          total_products: number
+          total_revenue: number
+          total_sales: number
         }[]
       }
       get_bar_products: {
@@ -7779,6 +8125,17 @@ export type Database = {
           validator_name: string
         }[]
       }
+      get_bar_server_performance: {
+        Args: { p_bar_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          role: string
+          server_name: string
+          total_items: number
+          total_revenue: number
+          total_sales: number
+          user_id: string
+        }[]
+      }
       get_batch_losses: {
         Args: { p_bar_id: string; p_end: string; p_start: string }
         Returns: {
@@ -7849,6 +8206,8 @@ export type Database = {
           phone: string | null
           settings: Json | null
           setup_completed_at: string | null
+          shared_stock_counter_id: string | null
+          stock_mode: string
           subscription_due_date: string | null
           subscription_start_date: string | null
           theme_config: Json | null
@@ -8119,6 +8478,10 @@ export type Database = {
         Returns: undefined
       }
       is_bar_member: { Args: { bar_id_param: string }; Returns: boolean }
+      is_counter_member: {
+        Args: { counter_id_param: string }
+        Returns: boolean
+      }
       is_impersonating: { Args: never; Returns: boolean }
       is_promoteur_or_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
@@ -8177,6 +8540,7 @@ export type Database = {
         }
         Returns: {
           bar_id: string
+          counter_id: string | null
           created_at: string
           created_by: string
           customer_name: string | null
@@ -8402,6 +8766,10 @@ export type Database = {
         }
         Returns: Json
       }
+      remove_co_promoteur: {
+        Args: { p_bar_id: string; p_user_id: string }
+        Returns: Json
+      }
       replace_dish_components: {
         Args: { p_bar_id: string; p_dish_id: string; p_lines: Json }
         Returns: Json
@@ -8423,6 +8791,10 @@ export type Database = {
         Returns: {
           status: string
         }[]
+      }
+      resolve_stock_counter: {
+        Args: { counter_id_param: string }
+        Returns: string
       }
       resolve_wa_bar_link: {
         Args: { p_phone_wa_id: string }
@@ -8472,6 +8844,8 @@ export type Database = {
           phone: string | null
           settings: Json | null
           setup_completed_at: string | null
+          shared_stock_counter_id: string | null
+          stock_mode: string
           subscription_due_date: string | null
           subscription_start_date: string | null
           theme_config: Json | null
@@ -8596,12 +8970,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8625,11 +8999,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8650,11 +9024,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8675,11 +9049,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -8692,11 +9066,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

@@ -20,6 +20,8 @@ import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 // import { useCurrencyFormatter } from '../hooks/useBeninCurrency'; // Unused
 import { BarSelector } from './BarSelector';
+// Comptoirs multiples (04/10/2026) : ne rend rien si le bar n'a qu'un comptoir.
+import { CounterSelector } from './CounterSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
@@ -222,6 +224,8 @@ export function Header({
                       </span>
                     </div>
                   )}
+                  {/* Comptoir actif. Invisible a comptoir unique. */}
+                  <CounterSelector variant="transparent" />
                 </div>
 
                 {/* Partie Droite: Ventes du jour */}
@@ -293,6 +297,10 @@ export function Header({
                 </h1>
               </div>
             )}
+
+            {/* Comptoir actif, a cote du nom du bar. Invisible a comptoir
+                unique : l'interface des bars mono-comptoir ne change pas. */}
+            <CounterSelector />
 
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />

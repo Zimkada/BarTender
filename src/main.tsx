@@ -14,6 +14,8 @@ import { ColorModeProvider } from './context/ColorModeContext';
 import { AuthProvider } from './context/AuthContext';
 import { BarProvider } from './context/BarContext';
 import { ThemeProvider } from './context/ThemeContext';
+// Comptoirs multiples (04/10/2026) : depend de BarProvider, donc place juste apres.
+import { CounterProvider } from './context/CounterProvider';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { GuideProvider } from './context/GuideContext';
 import { StockProvider } from './context/StockContext';
@@ -89,6 +91,10 @@ createRoot(document.getElementById('root')!).render(
         <NotificationsProvider>
           <AuthProvider>
             <BarProvider>
+              {/* Comptoir actif du bar courant. Depend de BarProvider (bar
+                  courant) et d'AuthProvider (role + userId). A comptoir
+                  unique, n'a aucun effet visible. */}
+              <CounterProvider>
               {/* ThemeProvider always loaded - provides theme context to all components */}
               <ThemeProvider>
                 <OnboardingProvider>
@@ -108,6 +114,7 @@ createRoot(document.getElementById('root')!).render(
                   </GuideProvider>
                 </OnboardingProvider>
               </ThemeProvider>
+              </CounterProvider>
             </BarProvider>
           </AuthProvider>
         </NotificationsProvider>
