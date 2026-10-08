@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, DollarSign, Clock, Building2, MapPin, Mail, Phone, ShieldCheck, CheckCircle, AlertCircle, GitBranch, UtensilsCrossed } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, MapPin, Mail, Phone, ShieldCheck, Store, CheckCircle, AlertCircle, GitBranch, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js';
@@ -20,6 +20,9 @@ import { WaBarLinkSection } from '../components/WaBarLinkSection';
 import { FEATURES } from '../config/features';
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+// Comptoirs multiples (07/10/2026) : reserve promoteur / co-promoteur,
+// comme la RLS de `counters`.
+import { CountersSection } from '../components/settings/CountersSection';
 import { ThemeSelector } from '../components/ThemeSelector';
 import { motion } from 'framer-motion';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -56,9 +59,24 @@ export default function SettingsPage() {
     // a exactement ce profil (super_admin + promoteur), contrairement à
     // canManageBarInfo que le gérant possède aussi.
     const isPromoteur = hasPermission('canCreateBars');
+    /**
+     * ⭐ Comptoirs (07/10/2026) — droit ALIGNE SUR LA RLS de `counters`, qui
+     * autorise `promoteur` ET `co_promoteur`.
+     *
+     * ⛔ Ne PAS utiliser `isPromoteur` ici : il vaut `canCreateBars`, FAUX pour
+     * le co-promoteur (« patrimoine du promoteur, jamais l'associe »). La
+     * section aurait ete invisible pour lui alors que la base l'autorise a
+     * creer un comptoir — et son role existe precisement pour agir pendant
+     * l'absence du promoteur. Defaut trouve en revue de code.
+     *
+     * `canCreateManagers` est le bon marqueur : vrai pour promoteur et
+     * co-promoteur, faux pour le gerant. Creer un comptoir, comme creer un
+     * gerant, engage la structure du bar.
+     */
+    const canManageCounters = hasPermission('canCreateManagers');
 
     // Redirection automatique pour les non-promoteurs (qui n'ont pas accès à l'onglet par défaut 'bar')
-    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>(() =>
+    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'counters' | 'security'>(() =>
         // Si l'onglet 'bar' est masqué (non-propriétaire), forcer 'operational'.
         // ⚠️ Dérivé de la MÊME permission que isPromoteur : les deux ne peuvent plus diverger.
         hasPermission('canCreateBars') ? 'bar' : 'operational'
@@ -230,7 +248,19 @@ export default function SettingsPage() {
             icon: Clock
         },
 
-        // 3. Sécurité: Réservé au Promoteur (car 2FA risque de lockout sur emails fictifs des employés)
+        // 3. Comptoirs: Promoteur ET co-promoteur (aligne sur la RLS de
+        //    `counters`). ⛔ ONGLET DEDIE et non une section de 'Infos Bar' :
+        //    cet onglet-la est conditionne par `isPromoteur`
+        //    (= canCreateBars), FAUX pour le co-promoteur. Y placer les
+        //    comptoirs les lui aurait rendus inaccessibles alors que la base
+        //    l'autorise a en creer. Defaut trouve en revue de code le 07/10.
+        ...(canManageCounters ? [{
+            id: 'counters' as const,
+            label: 'Comptoirs',
+            icon: Store
+        }] : []),
+
+        // 4. Sécurité: Réservé au Promoteur (car 2FA risque de lockout sur emails fictifs des employés)
         ...(isPromoteur ? [{
             id: 'security' as const,
             label: 'Sécurité',
@@ -636,7 +666,13 @@ export default function SettingsPage() {
                                     <ThemeSelector />
                                 </motion.div>
                             )}
+
                         </div>
+                    )}
+
+                    {/* Onglet Comptoirs — promoteur ET co-promoteur */}
+                    {activeTab === 'counters' && canManageCounters && (
+                        <CountersSection />
                     )}
 
                     {/* Onglet Opérationnel */}
