@@ -9,6 +9,8 @@ import { useCounterContext } from '../../context/CounterContext';
 import { useCounterMutations } from '../../hooks/mutations/useCounterMutations';
 import { CountersService } from '../../services/supabase/counters.service';
 import { CACHE_STRATEGY, QUERY_KEYS } from '../../lib/cache-strategy';
+import { useMySubscription } from '../../hooks/useMySubscription';
+import { getPlan } from '../../config/plans';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -34,6 +36,30 @@ export const CountersSection: React.FC = () => {
     useCounterMutations();
 
   const barId = currentBar?.id;
+
+  /**
+   * ⚠️ Plafond de membres (decision du 04/10 : INCHANGE quel que soit le
+   * nombre de comptoirs).
+   *
+   * Effet de bord assume : un 2e comptoir impose un 2e gerant, qui consomme
+   * une place. Un bar proche de son palier en sortira du seul fait du
+   * decoupage, sans avoir embauche. Sans cet avertissement, le promoteur le
+   * decouvrirait en echouant a creer le membre — au pire moment.
+   */
+  const { subscription } = useMySubscription(barId);
+  const maxMembers = getPlan(subscription?.plan).maxMembers;
+  const activeMembers = users.length;
+  const remainingSeats = maxMembers - activeMembers;
+  /**
+   * ⛔ `subscription` DOIT etre charge avant d'afficher quoi que ce soit.
+   *
+   * `getPlan(undefined)` retombe sur `starter` (4 membres). Sur un bar Pro
+   * (8) ou Max (20) deja peuple, le temps que la requete d'abonnement
+   * resolve, on afficherait « votre plan autorise 4 membres et vous en avez
+   * 8 » — faux ET alarmant. Mieux vaut ne rien montrer qu'un chiffre faux
+   * sur un sujet de facturation.
+   */
+  const showSeatWarning = !!subscription && remainingSeats <= 2;
 
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -141,6 +167,29 @@ export const CountersSection: React.FC = () => {
           comptoir, et les serveuses peuvent travailler sur plusieurs.
         </p>
       </div>
+
+      {/* ⚠️ Avertissement de plafond — affiche UNIQUEMENT quand il reste peu
+          de places. Au-dela, il serait du bruit sur un ecran de config. */}
+      {showSeatWarning && (
+        <div className="rounded-xl border border-border bg-brand-subtle p-3">
+          <p className="text-body-sm text-foreground">
+            {remainingSeats <= 0 ? (
+              <>
+                Votre plan autorise {maxMembers} membres et vous en avez{' '}
+                {activeMembers}. Pour ouvrir un nouveau comptoir, il vous
+                faudra d'abord libérer une place ou changer de formule : un
+                comptoir supplémentaire demande un gérant supplémentaire.
+              </>
+            ) : (
+              <>
+                Il vous reste {remainingSeats} place
+                {remainingSeats > 1 ? 's' : ''} sur les {maxMembers} de votre
+                plan. Un nouveau comptoir demande un gérant, donc une place.
+              </>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Création */}
       <div className="flex gap-2 items-end">
