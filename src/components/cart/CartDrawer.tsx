@@ -117,6 +117,37 @@ export function CartDrawer({
         }
     }, [effectiveServerId, ticketsWithSummary, selectedBon]);
 
+    /**
+     * ⛔ Le serveur choisi DOIT disparaitre s'il sort du perimetre (09/10/2026).
+     *
+     * Les serveurs proposes sont desormais filtres par COMPTOIR. Mais
+     * `selectedServer` est un etat LOCAL : sans ce reset, le gerant qui choisit
+     * un serveur au comptoir principal puis bascule vers un autre comptoir
+     * garderait ce choix, alors qu'il a disparu de la liste.
+     *
+     * Deux consequences, les deux graves :
+     *   - la vente partirait attribuee a un serveur HORS comptoir, soit
+     *     exactement l'erreur d'attribution que le filtrage doit empecher ;
+     *   - pire, `effectiveServerId` cherche dans les mappings FILTRES : il ne
+     *     trouverait plus rien et renverrait null. L'attribution serait perdue
+     *     SILENCIEUSEMENT.
+     *
+     * ⚠️ « Moi (...) » n'est jamais reinitialise : l'utilisateur courant est
+     * toujours legitime sur le comptoir ou il encaisse.
+     */
+    useEffect(() => {
+        if (!selectedServer || selectedServer.startsWith('Moi (')) return;
+        // ⚠️ Ne rien faire tant que la liste est vide : au montage ou pendant
+        // un chargement, elle l'est transitoirement, et on effacerait un choix
+        // parfaitement valide.
+        if (serverMappings.length === 0) return;
+
+        const stillVisible = serverMappings.some(
+            (m) => m.serverName === selectedServer
+        );
+        if (!stillVisible) setSelectedServer('');
+    }, [selectedServer, serverMappings]);
+
     // Maintien de l'état à la fermeture pour permettre les allers-retours
     // On ne reset QUE si la vente est validée (géré dans handleCheckout)
 

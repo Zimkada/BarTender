@@ -39,6 +39,7 @@ import { PaymentMethod } from './cart/PaymentMethodSelector';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useBarContext } from '../context/BarContext';
+import { useCounterContext } from '../context/CounterContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { Product } from '../types';
@@ -70,6 +71,8 @@ interface QuickSaleFlowProps {
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // --- HOOKS & CONTEXTS ---
   const { currentBar, isSimplifiedMode } = useBarContext();
+  // Comptoir actif : sert a filtrer les serveurs proposes a la caisse.
+  const { currentCounterId } = useCounterContext();
   const { currentSession, hasPermission } = useAuth();
   const { isMobile } = useViewport();
   const { formatPrice } = useCurrencyFormatter();
@@ -316,7 +319,35 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     if (!isMobile) searchInputRef.current?.focus();
   };
 
-  const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+  // ⭐ Filtre par COMPTOIR actif (09/10/2026) : ne proposer que les serveurs
+  // affectes la ou l'on encaisse, pour eviter une attribution par erreur.
+  // ⚠️ A comptoir unique, tout le monde est affecte au comptoir principal
+  // (trigger trg_assign_primary_counter) : la liste est donc inchangee.
+  const { serverNames, mappings } = useServerMappings(
+    isSimplifiedMode ? currentBar?.id : undefined,
+    false,
+    currentCounterId ?? undefined
+  );
+
+  /**
+   * ⛔ Meme reset que dans CartDrawer (09/10/2026) : un serveur choisi doit
+   * disparaitre s'il sort du perimetre apres une bascule de comptoir.
+   *
+   * ⚠️ Nuance par rapport a CartDrawer : ici la resolution de l'identifiant
+   * passe par `ServerMappingsService`, qui interroge TOUS les mappings du bar.
+   * L'attribution ne serait donc pas perdue silencieusement — mais elle
+   * partirait sur un serveur HORS comptoir, ce que le filtrage doit empecher.
+   *
+   * ⚠️ « Moi (...) » n'est jamais reinitialise, et on ne touche a rien tant
+   * que la liste est vide (chargement transitoire).
+   */
+  useEffect(() => {
+    if (!selectedServerDesktop || selectedServerDesktop.startsWith('Moi (')) return;
+    if (mappings.length === 0) return;
+    if (!mappings.some((m) => m.serverName === selectedServerDesktop)) {
+      setSelectedServerDesktop('');
+    }
+  }, [selectedServerDesktop, mappings]);
 
   // Desktop Server Options
   const serverOptions: SelectOption[] = [

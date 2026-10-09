@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
+import { useCounterContext } from '../context/CounterContext';
 import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
@@ -30,9 +31,19 @@ export function Cart({
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const { isMobile } = useViewport();
   const { currentBar, isSimplifiedMode } = useBarContext();
+  // Comptoir actif : sert a filtrer les serveurs proposes a la caisse.
+  const { currentCounterId } = useCounterContext();
   const { currentSession, hasPermission } = useAuth();
   const { getProductStockInfo } = useStock();
-  const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+  // ⭐ Filtre par COMPTOIR actif (09/10/2026) : ne proposer que les serveurs
+  // affectes la ou l'on encaisse, pour eviter une attribution par erreur.
+  // ⚠️ A comptoir unique, tout le monde est affecte au comptoir principal
+  // (trigger trg_assign_primary_counter) : la liste est donc inchangee.
+  const { serverNames, mappings } = useServerMappings(
+    isSimplifiedMode ? currentBar?.id : undefined,
+    false,
+    currentCounterId ?? undefined
+  );
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
   // ⭐ Envoi en cuisine — jamais appele sur un bar pur (kitchenItems vide).
   const { createOrder: createKitchenOrder } = useKitchenMutations();
