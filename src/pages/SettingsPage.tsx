@@ -76,7 +76,7 @@ export default function SettingsPage() {
     const canManageCounters = hasPermission('canCreateManagers');
 
     // Redirection automatique pour les non-promoteurs (qui n'ont pas accès à l'onglet par défaut 'bar')
-    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'counters' | 'security'>(() =>
+    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'counters'>(() =>
         // Si l'onglet 'bar' est masqué (non-propriétaire), forcer 'operational'.
         // ⚠️ Dérivé de la MÊME permission que isPromoteur : les deux ne peuvent plus diverger.
         hasPermission('canCreateBars') ? 'bar' : 'operational'
@@ -260,12 +260,11 @@ export default function SettingsPage() {
             icon: Store
         }] : []),
 
-        // 4. Sécurité: Réservé au Promoteur (car 2FA risque de lockout sur emails fictifs des employés)
-        ...(isPromoteur ? [{
-            id: 'security' as const,
-            label: 'Sécurité',
-            icon: ShieldCheck
-        }] : [])
+        // ⛔ PAS d'onglet "Sécurité" (retire le 09/10/2026) : la 2FA est
+        //    desormais une SECTION de "Infos Bar". Quatre onglets ne tenaient
+        //    pas sur petit ecran, et l'onglet Securite ne portait qu'un seul
+        //    bloc. Meme restriction (`isPromoteur`) de part et d'autre, donc
+        //    aucun changement de droits.
     ];
 
     // Fonctions MFA
@@ -438,7 +437,7 @@ export default function SettingsPage() {
                 icon={<SettingsIcon size={24} />}
                 tabs={tabs}
                 activeTab={activeTab}
-                onTabChange={(id) => setActiveTab(id as 'bar' | 'operational' | 'security')}
+                onTabChange={(id) => setActiveTab(id as 'bar' | 'operational' | 'counters')}
                 guideId={settingsGuideId}
                 hideSubtitleOnMobile={true}
             />
@@ -447,116 +446,6 @@ export default function SettingsPage() {
                 {/* Contenu - Utilisation de Card pour l'encapsulation */}
                 <Card className="p-6 space-y-8" data-guide="settings-content">
 
-                    {/* Onglet Sécurité (Protégé : Promoteur uniquement) */}
-                    {activeTab === 'security' && isPromoteur && (
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3 pb-4 border-b border-border">
-                                <div className="w-10 h-10 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
-                                    <ShieldCheck size={20} />
-                                </div>
-                                <div>
-                                    <h3 className="text-h3 text-foreground">Authentification à deux facteurs (2FA)</h3>
-                                    <p className="text-body-sm text-muted-foreground">Sécurisez l'accès à votre compte.</p>
-                                </div>
-                            </div>
-
-                            {isMfaEnabled ? (
-                                <Alert variant="success" className="border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/30">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-2 text-green-800 dark:text-green-400 font-semibold">
-                                            <CheckCircle size={20} />
-                                            <span>La protection 2FA est active</span>
-                                        </div>
-                                        <p className="text-body-sm text-green-700 dark:text-green-300">Votre compte est sécurisé par application d'authentification.</p>
-                                        <Button
-                                            onClick={handleUnenrollMfa}
-                                            disabled={mfaLoading}
-                                            variant="destructive"
-                                            size="sm"
-                                        >
-                                            {mfaLoading ? 'Désactivation...' : 'Désactiver la protection'}
-                                        </Button>
-                                    </div>
-                                </Alert>
-                            ) : (
-                                <div className="space-y-6">
-                                    {mfaStep === 'idle' && (
-                                        <div className="bg-muted rounded-2xl p-6 border border-border text-center space-y-4">
-                                            <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center mx-auto shadow-sm">
-                                                <AlertCircle size={32} className="text-muted-foreground" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <h4 className="text-h3 text-foreground">La 2FA n'est pas activée</h4>
-                                                <p className="text-body-sm text-muted-foreground max-w-sm mx-auto">
-                                                    Protégez votre compte contre les accès non autorisés en activant la double authentification.
-                                                </p>
-                                            </div>
-                                            <Button
-                                                onClick={handleEnrollMfa}
-                                                disabled={mfaLoading}
-                                                className="w-full sm:w-auto"
-                                            >
-                                                {mfaLoading ? 'Préparation...' : 'Activer maintenant'}
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    {mfaStep === 'verify' && (
-                                        <div className="bg-card border border-border rounded-2xl p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                                            <div className="text-center space-y-4">
-                                                <h4 className="text-h3 text-foreground">1. Scannez le QR Code</h4>
-                                                {qrCodeSvg && (
-                                                    <div className="bg-card p-4 rounded-lg border inline-block mx-auto">
-                                                        <div dangerouslySetInnerHTML={{ __html: qrCodeSvg }} className="w-48 h-48" />
-                                                    </div>
-                                                )}
-                                                {mfaSecret && (
-                                                    <div className="text-caption text-center space-y-1">
-                                                        <p className="text-muted-foreground">Impossible de scanner ? Entrez ce code :</p>
-                                                        <code className="bg-muted px-2 py-1 rounded font-mono select-all tabular-nums">{mfaSecret}</code>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            <div className="border-t border-border pt-6 space-y-4">
-                                                <h4 className="text-h3 text-foreground text-center">2. Entrez le code de validation</h4>
-                                                <Input
-                                                    type="text"
-                                                    value={verifyCode}
-                                                    onChange={(e) => setVerifyCode(e.target.value)}
-                                                    placeholder="000 000"
-                                                    maxLength={6}
-                                                    className="text-center text-2xl tracking-[0.5em] font-mono tabular-nums h-14"
-                                                />
-                                                <div className="flex gap-3 pt-2">
-                                                    <Button
-                                                        onClick={() => setMfaStep('idle')}
-                                                        variant="ghost"
-                                                        className="flex-1"
-                                                    >
-                                                        Annuler
-                                                    </Button>
-                                                    <Button
-                                                        onClick={handleVerifyMfa}
-                                                        disabled={mfaLoading || verifyCode.length !== 6}
-                                                        className="flex-1"
-                                                    >
-                                                        {mfaLoading ? 'Vérification...' : 'Confirmer'}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {mfaError && (
-                                <Alert variant="destructive" title="Erreur d'authentification">
-                                    {mfaError}
-                                </Alert>
-                            )}
-                        </div>
-                    )}
 
                     {/* Onglet Bar (Protégé : Promoteur uniquement) */}
                     {activeTab === 'bar' && isPromoteur && (
@@ -667,6 +556,121 @@ export default function SettingsPage() {
                                 </motion.div>
                             )}
 
+                            {/* ⭐ SECURITE (2FA) — fusionnee ici le 09/10/2026.
+                                Elle avait son propre onglet, mais 4 onglets ne
+                                tiennent pas sur petit ecran. Rattachee a 'Infos
+                                Bar', qui porte DEJA la meme restriction
+                                (`isPromoteur`) : aucun changement de droits. */}
+                            <div className="pt-2">
+                                <hr className="border-border mb-6" />
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3 pb-4 border-b border-border">
+                            <div className="w-10 h-10 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
+                                <ShieldCheck size={20} />
+                            </div>
+                            <div>
+                                <h3 className="text-h3 text-foreground">Authentification à deux facteurs (2FA)</h3>
+                                <p className="text-body-sm text-muted-foreground">Sécurisez l'accès à votre compte.</p>
+                            </div>
+                        </div>
+
+                        {isMfaEnabled ? (
+                            <Alert variant="success" className="border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/30">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-green-800 dark:text-green-400 font-semibold">
+                                        <CheckCircle size={20} />
+                                        <span>La protection 2FA est active</span>
+                                    </div>
+                                    <p className="text-body-sm text-green-700 dark:text-green-300">Votre compte est sécurisé par application d'authentification.</p>
+                                    <Button
+                                        onClick={handleUnenrollMfa}
+                                        disabled={mfaLoading}
+                                        variant="destructive"
+                                        size="sm"
+                                    >
+                                        {mfaLoading ? 'Désactivation...' : 'Désactiver la protection'}
+                                    </Button>
+                                </div>
+                            </Alert>
+                        ) : (
+                            <div className="space-y-6">
+                                {mfaStep === 'idle' && (
+                                    <div className="bg-muted rounded-2xl p-6 border border-border text-center space-y-4">
+                                        <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center mx-auto shadow-sm">
+                                            <AlertCircle size={32} className="text-muted-foreground" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h4 className="text-h3 text-foreground">La 2FA n'est pas activée</h4>
+                                            <p className="text-body-sm text-muted-foreground max-w-sm mx-auto">
+                                                Protégez votre compte contre les accès non autorisés en activant la double authentification.
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={handleEnrollMfa}
+                                            disabled={mfaLoading}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            {mfaLoading ? 'Préparation...' : 'Activer maintenant'}
+                                        </Button>
+                                    </div>
+                                )}
+
+                                {mfaStep === 'verify' && (
+                                    <div className="bg-card border border-border rounded-2xl p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="text-center space-y-4">
+                                            <h4 className="text-h3 text-foreground">1. Scannez le QR Code</h4>
+                                            {qrCodeSvg && (
+                                                <div className="bg-card p-4 rounded-lg border inline-block mx-auto">
+                                                    <div dangerouslySetInnerHTML={{ __html: qrCodeSvg }} className="w-48 h-48" />
+                                                </div>
+                                            )}
+                                            {mfaSecret && (
+                                                <div className="text-caption text-center space-y-1">
+                                                    <p className="text-muted-foreground">Impossible de scanner ? Entrez ce code :</p>
+                                                    <code className="bg-muted px-2 py-1 rounded font-mono select-all tabular-nums">{mfaSecret}</code>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="border-t border-border pt-6 space-y-4">
+                                            <h4 className="text-h3 text-foreground text-center">2. Entrez le code de validation</h4>
+                                            <Input
+                                                type="text"
+                                                value={verifyCode}
+                                                onChange={(e) => setVerifyCode(e.target.value)}
+                                                placeholder="000 000"
+                                                maxLength={6}
+                                                className="text-center text-2xl tracking-[0.5em] font-mono tabular-nums h-14"
+                                            />
+                                            <div className="flex gap-3 pt-2">
+                                                <Button
+                                                    onClick={() => setMfaStep('idle')}
+                                                    variant="ghost"
+                                                    className="flex-1"
+                                                >
+                                                    Annuler
+                                                </Button>
+                                                <Button
+                                                    onClick={handleVerifyMfa}
+                                                    disabled={mfaLoading || verifyCode.length !== 6}
+                                                    className="flex-1"
+                                                >
+                                                    {mfaLoading ? 'Vérification...' : 'Confirmer'}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {mfaError && (
+                            <Alert variant="destructive" title="Erreur d'authentification">
+                                {mfaError}
+                            </Alert>
+                        )}
+                    </div>
+                            </div>
                         </div>
                     )}
 
