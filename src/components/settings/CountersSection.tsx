@@ -136,21 +136,32 @@ export const CountersSection: React.FC = () => {
     }
   };
 
-  const handleToggleAssign = async (
+  /**
+   * ⚠️ VOLONTAIREMENT NON BLOQUANT (09/10/2026).
+   *
+   * La coche doit bouger a l'instant du clic. Les mutations portent un
+   * optimistic update (`useCounterMutations`) qui patche le cache
+   * immediatement, donc il ne faut RIEN attendre ici : un `await` annulerait
+   * tout le benefice, la coche ne bougeant qu'au retour du serveur.
+   *
+   * Defaut remonte en usage reel : sur une liaison lente, le promoteur
+   * cliquait deux fois, croyant avoir manque sa cible.
+   *
+   * L'erreur est traitee par `.catch` et le rollback est fait par la mutation.
+   */
+  const handleToggleAssign = (
     counterId: string,
     userId: string,
     isAssigned: boolean
   ) => {
-    try {
-      if (isAssigned) {
-        await unassignUser.mutateAsync({ counterId, userId });
-      } else {
-        await assignUser.mutateAsync({ counterId, userId });
-      }
-      await refreshCounters();
-    } catch (e) {
-      toast.error(getErrorMessage(e));
-    }
+    const mutation = isAssigned ? unassignUser : assignUser;
+    mutation
+      .mutateAsync({ counterId, userId })
+      // ⚠️ `refreshCounters` rafraichit le SELECTEUR du header, pas cet
+      // ecran : une serveuse qu'on vient d'affecter doit voir le comptoir
+      // apparaitre. Apres coup, donc sans bloquer le clic.
+      .then(() => refreshCounters())
+      .catch((e) => toast.error(getErrorMessage(e)));
   };
 
   if (!barId) return null;
