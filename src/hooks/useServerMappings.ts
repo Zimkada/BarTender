@@ -89,11 +89,19 @@ export function useServerMappings(
     // liste dont personne ne se sert.
     enabled: !!counterId && !!barId,
     ...CACHE_STRATEGY.categories,
+    // ⭐ Un cache corrompu (`{}`, persiste par l'ancien code) garde sa date
+    // d'origine : avec un staleTime de 24h, React Query le croirait FRAIS et
+    // ne le rechargerait pas : le filtre resterait coupe jusqu'a 24h.
+    // ⚠️ `staleTime` et NON `refetchOnMount` : au demarrage, `counterId` arrive
+    // APRES le montage, et un changement de cle ne consulte que la fraicheur
+    // (`isStale`), jamais `refetchOnMount`. Constate en navigateur le 10/10.
+    staleTime: (query) =>
+      Array.isArray(query.state.data) ? CACHE_STRATEGY.categories.staleTime : 0,
   });
 
   // ⚠️ `Array.isArray` absorbe les caches deja corrompus (`{}`) sur les
   // telephones : traites comme « pas encore charge », donc sans filtrage,
-  // jusqu'au prochain refetch qui les remplace.
+  // le temps que le rechargement force ci-dessus les remplace.
   const assignedUserIds = useMemo(
     () => (Array.isArray(assignedUserIdList) ? new Set(assignedUserIdList) : undefined),
     [assignedUserIdList]
