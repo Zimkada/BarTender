@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { supabase } from '../lib/supabase';
@@ -63,16 +64,24 @@ export function useServerMappings(
   });
 
   // Affectations du comptoir actif. Requete distincte et legere (2 colonnes).
-  const { data: assignedUserIds } = useQuery({
+  /**
+   * ⛔ La queryFn retourne un TABLEAU, jamais un `Set` (crash du 10/10/2026).
+   *
+   * La cle commence par `counters` : elle est PERSISTEE dans localStorage
+   * (`shouldDehydrateQuery`, lib/react-query.ts). JSON transforme un `Set` en
+   * `{}` : au rechargement suivant, `assignedUserIds.has` n'existait plus et
+   * tout RootLayout plantait, a CHAQUE rechargement.
+   */
+  const { data: assignedUserIdList } = useQuery({
     queryKey: counterAssignmentKeys.forCounter(counterId || ''),
-    queryFn: async () => {
+    queryFn: async (): Promise<string[]> => {
       const { data, error: err } = await supabase
         .from('counter_assignments')
         .select('user_id')
         .eq('counter_id', counterId!)
         .eq('is_active', true);
       if (err) throw err;
-      return new Set((data ?? []).map((a) => a.user_id));
+      return (data ?? []).map((a) => a.user_id);
     },
     // ⚠️ `!!barId` AUSSI : en mode COMPLET, Cart.tsx passe `barId = undefined`
     // (les mappings ne concernent que le mode simplifie). Sans cette garde,
@@ -81,6 +90,14 @@ export function useServerMappings(
     enabled: !!counterId && !!barId,
     ...CACHE_STRATEGY.categories,
   });
+
+  // ⚠️ `Array.isArray` absorbe les caches deja corrompus (`{}`) sur les
+  // telephones : traites comme « pas encore charge », donc sans filtrage,
+  // jusqu'au prochain refetch qui les remplace.
+  const assignedUserIds = useMemo(
+    () => (Array.isArray(assignedUserIdList) ? new Set(assignedUserIdList) : undefined),
+    [assignedUserIdList]
+  );
 
   /**
    * ⛔ Filtrage UNIQUEMENT quand les affectations sont CHARGEES.
