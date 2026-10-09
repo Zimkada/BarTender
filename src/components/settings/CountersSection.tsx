@@ -80,7 +80,7 @@ export const CountersSection: React.FC = () => {
   // Affectations de tous les comptoirs, en UNE requête.
   // ⚠️ Pas une requête par comptoir : avec 3 comptoirs et 20 membres, la
   // version naïve ferait N appels pour afficher un écran de configuration.
-  const { data: assignments = [] } = useQuery({
+  const { data: assignments = [], isSuccess: assignmentsLoaded } = useQuery({
     queryKey: barId ? ['counters', 'assignments', barId] : ['counters', 'idle'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -97,6 +97,34 @@ export const CountersSection: React.FC = () => {
 
   const assignedUserIds = (counterId: string) =>
     new Set(assignments.filter((a) => a.counter_id === counterId).map((a) => a.user_id));
+
+  /**
+   * ⚠️ Membres affectes a AUCUN comptoir (09/10/2026).
+   *
+   * Un membre decoche partout DISPARAIT du selecteur de serveur a la caisse,
+   * sur tous les comptoirs — et rien ne le signalait. Le gerant cherchait un
+   * nom qui n'apparait plus, sans savoir pourquoi.
+   *
+   * ⚠️ Calcule sur TOUTES les affectations du bar, pas sur le comptoir
+   * affiche : c'est l'absence TOTALE qui pose probleme, pas l'absence d'un
+   * comptoir donne (une serveuse peut legitimement ne travailler que d'un
+   * cote).
+   *
+   * ⛔ N'apparait qu'a partir de 2 comptoirs : en dessous, le trigger
+   * `trg_assign_primary_counter` affecte tout membre actif au comptoir
+   * principal, donc ce cas ne peut venir que d'un decochage volontaire — et
+   * l'avertissement serait du bruit.
+   */
+  const unassignedMembers = React.useMemo(() => {
+    // ⛔ Attendre que les affectations soient CHARGEES. `assignments` vaut []
+    // pendant la requete : sans cette garde, on annoncerait que TOUS les
+    // membres sont sans comptoir — faux et alarmant. Meme defaut que celui
+    // corrige sur l'avertissement de plafond d'abonnement.
+    if (!assignmentsLoaded) return [];
+    if (counters.length < 2) return [];
+    const assignedAnywhere = new Set(assignments.map((a) => a.user_id));
+    return users.filter((u) => !assignedAnywhere.has(u.id));
+  }, [assignmentsLoaded, counters.length, assignments, users]);
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -196,6 +224,26 @@ export const CountersSection: React.FC = () => {
                 Il vous reste {remainingSeats} place
                 {remainingSeats > 1 ? 's' : ''} sur les {maxMembers} de votre
                 plan. Un nouveau comptoir demande un gérant, donc une place.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* ⚠️ Membres sans aucun comptoir : invisibles a la caisse. */}
+      {unassignedMembers.length > 0 && (
+        <div className="rounded-xl border border-border bg-brand-subtle p-3">
+          <p className="text-body-sm text-foreground">
+            {unassignedMembers.length === 1 ? (
+              <>
+                <strong>{unassignedMembers[0].name}</strong> n'est affecté à
+                aucun comptoir : personne ne pourra lui attribuer une vente.
+              </>
+            ) : (
+              <>
+                <strong>{unassignedMembers.length} membres</strong> ne sont
+                affectés à aucun comptoir, donc aucune vente ne peut leur être
+                attribuée : {unassignedMembers.map((u) => u.name).join(', ')}.
               </>
             )}
           </p>
