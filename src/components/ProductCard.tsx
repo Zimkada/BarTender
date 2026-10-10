@@ -177,10 +177,12 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
             initial={{ scale: 1.35 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-            aria-label={`${quantityInCart} au panier`}
             className="absolute bottom-2 left-2 z-10 rounded-full bg-brand-primary px-2 py-0.5 text-caption font-bold text-white shadow-sm tabular-nums"
           >
-            ×{quantityInCart}
+            {/* ⚠️ Texte masqué plutôt qu'un `aria-label` : posé sur un simple
+                <span>, il est ignoré par la plupart des lecteurs d'écran. */}
+            <span aria-hidden="true">×{quantityInCart}</span>
+            <span className="sr-only">{quantityInCart} au panier</span>
           </motion.span>
         )}
 
