@@ -258,12 +258,15 @@ describe('BarContext - Integration via BarProvider', () => {
 
       const { result } = renderHook(() => useBarContext(), { wrapper });
 
+      // ⚠️ La sélection du bar peut arriver un rendu APRÈS `loading = false` :
+      // l'attendre dans le même waitFor, sinon le test échoue sous charge
+      // (instabilité constatée en suite complète le 10/10/2026, 3/3 OK seul).
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
+        // currentBar is the loaded bar (auto-selected as first available)
+        expect(result.current.currentBar?.id).toBe('bar-integration-1');
       });
 
-      // currentBar is the loaded bar (auto-selected as first available)
-      expect(result.current.currentBar?.id).toBe('bar-integration-1');
       // operatingMode must be 'full' — BUG #1 fix
       expect(result.current.operatingMode).toBe('full');
       expect(result.current.isSimplifiedMode).toBe(false);
@@ -284,8 +287,11 @@ describe('BarContext - Integration via BarProvider', () => {
 
       const { result } = renderHook(() => useBarContext(), { wrapper });
 
+      // ⚠️ Attendre la SÉLECTION du bar, pas seulement la fin du chargement
+      // (même course que le test précédent).
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.currentBar?.id).toBe(barSimplified.id);
       });
 
       expect(result.current.operatingMode).toBe('simplified');
@@ -310,8 +316,12 @@ describe('BarContext - Integration via BarProvider', () => {
     const renderWithBar = async (bar: Bar) => {
       (BarsService.getMyBars as Mock).mockResolvedValue([bar]);
       const { result } = renderHook(() => useBarContext(), { wrapper });
+      // ⛔ Attendre que CE bar soit sélectionné. Sans cela, un cas qui attend
+      // `hasRestaurant = false` passait à tort tant qu'aucun bar n'était encore
+      // sélectionné : la valeur par défaut est déjà `false`.
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
+        expect(result.current.currentBar?.id).toBe(bar.id);
       });
       return result;
     };
