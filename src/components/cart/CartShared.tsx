@@ -136,51 +136,56 @@ export function CartShared({
                         >
                             <div className="flex items-stretch gap-2">
                                 {/* MAIN CONTENT: Product + Qty (Bordured) */}
-                                <div className={`flex-1 p-1.5 flex items-center gap-2 bg-card rounded-2xl border-2 ${isMaxReached ? 'border-orange-200' : 'border-brand-primary'} shadow-sm overflow-hidden transition-colors duration-300`}>
-                                    {/* 1. Thumbnail (Small) */}
-                                    <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
-                                        {item.product.image ? (
-                                            <img
-                                                src={item.product.image}
-                                                className="w-7 h-7 object-contain mix-blend-multiply"
-                                                alt=""
-                                            />
-                                        ) : (
-                                            <Package size={14} className="text-brand-primary/30" />
+                                {/* ⭐ DEUX RANGÉES (revue du 10/10/2026, audit UI/UX).
+                                    Sur une seule rangée, les boutons de 40px ne
+                                    laissaient au nom que 77px sur un écran de 360px
+                                    (« World Col… ») et le prix passait sur deux
+                                    lignes (« 600 / FCFA »). Le nom prend désormais
+                                    toute la largeur ; prix et quantité ont leur
+                                    propre rangée. Minimum de texte : `text-micro`
+                                    (11px), contre 6 à 8px avant. */}
+                                <div className={`flex-1 min-w-0 p-2 flex flex-col gap-1.5 bg-card rounded-2xl border-2 ${isMaxReached ? 'border-orange-200' : 'border-brand-primary'} shadow-sm overflow-hidden transition-colors duration-300`}>
+                                    {/* Rangée 1 : identité du produit */}
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
+                                            {item.product.image ? (
+                                                <img
+                                                    src={item.product.image}
+                                                    className="w-7 h-7 object-contain mix-blend-multiply"
+                                                    alt=""
+                                                />
+                                            ) : (
+                                                <Package size={14} className="text-brand-primary/30" />
+                                            )}
+                                        </div>
+                                        <h3 className="flex-1 min-w-0 font-bold text-caption text-foreground truncate leading-tight">
+                                            {item.product.name}
+                                        </h3>
+                                        {/* ⚠️ Le volume ne rétrécit jamais : c'est lui
+                                            qui distingue un 33cl d'un 65cl. */}
+                                        <span className="flex-shrink-0 text-micro text-muted-foreground uppercase">
+                                            {item.product.volume}
+                                        </span>
+                                        {isMaxReached && (
+                                            <span className="flex-shrink-0 bg-orange-100 text-orange-600 text-micro font-bold px-1 rounded uppercase">
+                                                Max
+                                            </span>
                                         )}
                                     </div>
 
-                                    {/* 2. Info (Middle) */}
-                                    <div className="flex-1 min-w-0 pr-1">
-                                        {/* ⭐ Tailles relevées (audit UI/UX du 10/10/2026) :
-                                            le prix était en 8px, le volume en 7px, « Max » en 6px.
-                                            Minimum désormais `text-micro` (11px), celui de l'échelle. */}
-                                        <h3 className="font-bold text-caption text-foreground truncate leading-tight">
-                                            {item.product.name}
-                                        </h3>
-                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                            <span className="text-caption font-semibold text-foreground tabular-nums leading-none">
-                                                {formatPrice(item.total_price)}
-                                            </span>
-                                            <span className="text-micro text-muted-foreground uppercase leading-none">
-                                                {item.product.volume}
-                                            </span>
-                                            {isMaxReached && (
-                                                <span className="bg-orange-100 text-orange-600 text-micro font-bold px-1 rounded uppercase">
-                                                    Max
-                                                </span>
-                                            )}
-                                        </div>
+                                    {/* Rangée 2 : prix de la ligne + quantité */}
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="text-body-sm font-bold text-foreground tabular-nums whitespace-nowrap">
+                                            {formatPrice(item.total_price)}
+                                        </span>
+                                        <QuantityControl
+                                            quantity={item.quantity}
+                                            maxQty={maxQty}
+                                            isMaxReached={isMaxReached}
+                                            onUpdateQuantity={(q) => onUpdateQuantity(item.product.id, q)}
+                                            onRemove={() => onRemoveItem(item.product.id)}
+                                        />
                                     </div>
-
-                                    {/* 3. Controls (Compact Right) */}
-                                    <QuantityControl
-                                        quantity={item.quantity}
-                                        maxQty={maxQty}
-                                        isMaxReached={isMaxReached}
-                                        onUpdateQuantity={(q) => onUpdateQuantity(item.product.id, q)}
-                                        onRemove={() => onRemoveItem(item.product.id)}
-                                    />
                                 </div>
 
                                 {/* 4. Delete Button - ISOLATED (Outside Main Border) */}
