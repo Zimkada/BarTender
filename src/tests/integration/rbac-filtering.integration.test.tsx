@@ -81,6 +81,22 @@ vi.mock('../../services/SyncManager', () => ({
 
 vi.mock('../../utils/businessDateHelpers', () => mockBusinessDateHelpers);
 
+// ⭐ Comptoirs (04/10/2026) : useSalesMutations lit le comptoir actif et lève
+// une erreur hors d'un CounterProvider. `currentCounterId: null` = aucun comptoir résolu : la
+// vente part avec counter_id undefined, comme avant les comptoirs, donc les
+// attentes de ces tests restent inchangées.
+vi.mock('../../context/CounterContext', () => ({
+  useCounterContext: () => ({
+    counters: [],
+    currentCounter: null,
+    currentCounterId: null,
+    loading: false,
+    hasMultipleCounters: false,
+    switchCounter: vi.fn(),
+    refreshCounters: vi.fn(),
+  }),
+}));
+
 vi.mock('../../context/BarContext', () => ({
   useBarContext: vi.fn(() => ({
     currentBar: { id: 'bar-123', name: 'Test Bar', closingHour: 6 },

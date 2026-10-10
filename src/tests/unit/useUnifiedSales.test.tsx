@@ -15,6 +15,22 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 
+// ⭐ Comptoirs (04/10/2026) : useSalesMutations lit le comptoir actif et lève
+// une erreur hors d'un CounterProvider. `currentCounterId: null` = aucun comptoir résolu : la
+// vente part avec counter_id undefined, comme avant les comptoirs, donc les
+// attentes de ces tests restent inchangées.
+vi.mock('../../context/CounterContext', () => ({
+  useCounterContext: () => ({
+    counters: [],
+    currentCounter: null,
+    currentCounterId: null,
+    loading: false,
+    hasMultipleCounters: false,
+    switchCounter: vi.fn(),
+    refreshCounters: vi.fn(),
+  }),
+}));
+
 vi.mock('../../context/BarContext', () => ({
   useBarContext: vi.fn(() => ({
     currentBar: { id: 'bar-123', closingHour: 6, settings: { dataTier: 'lite' } },

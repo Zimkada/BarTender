@@ -51,6 +51,25 @@ vi.mock('../../context/AuthContext', () => ({
     })),
 }));
 
+// ⭐ Comptoirs (04/10/2026) : useSalesMutations lit le comptoir actif et lève
+// une erreur hors d'un CounterProvider. `currentCounterId: null` = aucun comptoir résolu : la
+// vente part avec counter_id undefined, comme avant les comptoirs, donc les
+// attentes de ces tests restent inchangées.
+// ⚠️ Lu à chaque rendu (et non figé à l'import) : un test peut simuler un
+// comptoir actif pour vérifier qu'il part bien avec la vente.
+const counterState = vi.hoisted(() => ({ currentCounterId: null as string | null }));
+vi.mock('../../context/CounterContext', () => ({
+  useCounterContext: () => ({
+    counters: [],
+    currentCounter: null,
+    currentCounterId: counterState.currentCounterId,
+    loading: false,
+    hasMultipleCounters: false,
+    switchCounter: vi.fn(),
+    refreshCounters: vi.fn(),
+  }),
+}));
+
 vi.mock('../../context/BarContext', () => ({
     useBarContext: vi.fn(() => ({
         currentBar: { id: 'bar-123', closingHour: 6 },
@@ -158,6 +177,7 @@ describe('useSalesMutations — patch de cache au lieu d\'invalidation préfixe'
 
     beforeEach(() => {
         vi.clearAllMocks();
+        counterState.currentCounterId = null;
         queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
         });
@@ -181,6 +201,32 @@ describe('useSalesMutations — patch de cache au lieu d\'invalidation préfixe'
         // La vente patchée porte l'idempotencyKey (dédup avec l'événement Realtime suivant)
         expect(queryClient.getQueryData<Sale[]>(windowVariant)?.[0].idempotencyKey).toBe('idem-1');
         expect(salesListInvalidations(invalidateSpy)).toHaveLength(0);
+    });
+
+    it('createSale : la vente part avec le comptoir actif au moment de la saisie', async () => {
+        // ⭐ Cœur des comptoirs multiples (05/10/2026) : sans ce test, le comptoir
+        // pouvait disparaître du payload sans qu'aucun test ne le voie.
+        counterState.currentCounterId = 'counter-1';
+        mockCreateSale.mockResolvedValue(makeSaleRow());
+
+        const { result } = renderHook(() => useSalesMutations(BAR_ID), { wrapper: createWrapper() });
+        await result.current.createSale.mutateAsync({
+            items: [{ product_id: PRODUCT_ID, product_name: 'Bière Flag', quantity: 2, unit_price: 500, total_price: 1000 }] as unknown as Sale['items'],
+        });
+
+        expect(mockCreateSale).toHaveBeenCalledTimes(1);
+        expect(mockCreateSale.mock.calls[0][0]).toMatchObject({ counter_id: 'counter-1' });
+    });
+
+    it('createSale : sans comptoir résolu, counter_id reste absent (comportement d\'avant les comptoirs)', async () => {
+        mockCreateSale.mockResolvedValue(makeSaleRow());
+
+        const { result } = renderHook(() => useSalesMutations(BAR_ID), { wrapper: createWrapper() });
+        await result.current.createSale.mutateAsync({
+            items: [{ product_id: PRODUCT_ID, product_name: 'Bière Flag', quantity: 2, unit_price: 500, total_price: 1000 }] as unknown as Sale['items'],
+        });
+
+        expect((mockCreateSale.mock.calls[0][0] as { counter_id?: string }).counter_id).toBeUndefined();
     });
 
     it('createSale (offline/optimistic) : conserve le repli invalidation préfixe (la vente vit dans l\'overlay offline)', async () => {
