@@ -1,5 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import {
   BarChart3,
   Calculator,
@@ -21,7 +22,15 @@ interface NavItem {
   label: string;
   path?: string;
   onClick?: () => void;
-  color: string;
+  /**
+   * Couleur de l'icône hors état actif. Absente = neutre.
+   * ⭐ Seule « Vente » en porte une : c'est l'ACTION principale (elle ouvre
+   * la vente rapide, ce n'est pas une page), d'où l'accent marque permanent.
+   * ⛔ Plus d'arc-en-ciel par entrée (bleu, violet, vert...) : la couleur
+   * marque signale désormais la page COURANTE, sans quoi rien n'indiquait
+   * où l'on se trouve (audit UI/UX du 10/10/2026).
+   */
+  color?: string;
   /**
    * ⚠️ Aligné sur `UserRole` : l'union figée précédente ignorait `cuisinier`,
    * et le filtre passant par un cast `as readonly string[]`, le compilateur ne
@@ -46,6 +55,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   const { hasRestaurant } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { showNotification } = useNotifications();
 
   // 🛡️ Monitor network status
@@ -80,21 +90,18 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       // ... rest of the items ...
       label: 'Dashboard',
       path: '/dashboard',
-      color: 'text-blue-600',
       roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
       icon: <BarChart3 size={24} />,
       label: 'Historique',
       path: '/sales',
-      color: 'text-purple-600',
       roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
       icon: <Package size={24} />,
       label: 'Inventaire',
       path: '/inventory',
-      color: 'text-green-600',
       roles: ['promoteur', 'co_promoteur', 'gerant']
     },
     /* {
@@ -108,7 +115,6 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
       path: '/returns',
-      color: 'text-red-600',
       roles: ['promoteur', 'co_promoteur', 'gerant', 'serveur']
     },
     {
@@ -123,7 +129,6 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       icon: <Calculator size={24} />,
       label: 'Calculette',
       path: '/calculette',
-      color: 'text-teal-600',
       roles: ['serveur']
     },
     {
@@ -136,7 +141,6 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       icon: <ChefHat size={24} />,
       label: 'Ingrédients',
       path: '/kitchen/ingredients',
-      color: 'text-amber-600',
       roles: ['cuisinier'],
       requiresRestaurant: true
     }
@@ -169,22 +173,41 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-40 pb-safe">
       <div className="flex justify-around items-center h-16">
-        {displayedItems.map((item, index) => (
-          <button
-            key={index}
-            onClick={item.path ? () => navigate(item.path!) : item.onClick}
-            className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-brand-primary/5 transition-colors"
-            aria-label={item.label}
-            {...(index === 0 ? { 'data-guide': 'quick-sale-btn' } : {})}
-          >
-            <span className={item.color}>
-              {item.icon}
-            </span>
-            <span className="text-xs font-medium text-foreground/80">
-              {item.label}
-            </span>
-          </button>
-        ))}
+        {displayedItems.map((item, index) => {
+          // ⭐ Une page de détail (/sales/:saleId) garde son onglet actif.
+          // « Vente » n'a pas de `path` : c'est une action, jamais active.
+          const isActive = !!item.path &&
+            (pathname === item.path || pathname.startsWith(`${item.path}/`));
+
+          return (
+            <button
+              key={index}
+              onClick={item.path ? () => navigate(item.path!) : item.onClick}
+              className="relative flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-brand-primary/5 transition-colors"
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
+              {...(index === 0 ? { 'data-guide': 'quick-sale-btn' } : {})}
+            >
+              {/* ⭐ Indicateur qui GLISSE d'un onglet à l'autre (`layoutId`) :
+                  l'animation porte une information (d'où l'on vient, où l'on
+                  va), comme dans la sidebar. Transform seul ; coupé par
+                  MotionConfig si l'appareil demande moins d'animations. */}
+              {isActive && (
+                <motion.span
+                  layoutId="mobile-nav-active"
+                  className="absolute top-0 h-1 w-10 rounded-b-full bg-brand-primary"
+                  transition={{ type: 'spring', stiffness: 500, damping: 40 }}
+                />
+              )}
+              <span className={isActive ? 'text-brand-primary' : (item.color ?? 'text-muted-foreground')}>
+                {item.icon}
+              </span>
+              <span className={`text-xs ${isActive ? 'font-semibold text-brand-primary' : 'font-medium text-foreground/80'}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );
