@@ -23,6 +23,9 @@ import { useStock } from '../context/hooks/useStock';
 import { networkManager } from '../services/NetworkManager';
 import { useKitchenMutations } from '../hooks/mutations/useKitchenMutations';
 
+/** `addSale` a renvoyé `null` : rien n'a été enregistré (cf. handleCheckout). */
+const SALE_NOT_RECORDED = 'SALE_NOT_RECORDED';
+
 interface CartProps {
   isOpen: boolean;
   onToggle: () => void;
@@ -309,7 +312,7 @@ export function Cart({
         promotion_id: item.promotion_id
       }));
 
-      await addSale({
+      const sale = await addSale({
         items: saleItems,
         paymentMethod,
         assignedTo,
@@ -319,6 +322,10 @@ export function Cart({
         // additions la ou le §16.7 en exige UNE.
         ticketId: effectiveTicketId
       });
+      // ⛔ `null` = addSale n'a RIEN enregistré (session ou bar absents, panier
+      // intact). Afficher « Vente encaissée » serait mentir : on passe par le
+      // catch, qui gère aussi le cas des plats déjà partis en cuisine.
+      if (!sale) throw new Error(SALE_NOT_RECORDED);
       setSaleSuccess(buildSaleSuccess(successContext));
       onToggle();
       return true;
@@ -340,6 +347,10 @@ export function Cart({
           'Les plats sont bien partis en cuisine, mais la vente des boissons a echoue. Ne recommencez pas la commande — vendez les boissons seules.',
           { duration: 8000 }
         );
+      } else if (e instanceof Error && e.message === SALE_NOT_RECORDED) {
+        // ⚠️ Aucune mutation n'a tourné : sans ce toast, l'échec serait muet
+        // (le toast global des mutations ne se déclenche pas ici).
+        toast.error("La vente n'a pas été enregistrée. Réessayez.");
       }
       return false;
     } finally {

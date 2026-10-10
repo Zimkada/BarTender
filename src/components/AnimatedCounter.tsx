@@ -24,7 +24,11 @@ import { animate, useReducedMotion } from 'framer-motion';
  * bar : on aurait affiché de fausses « ventes ». Le défilement suffit.
  */
 
-const defaultFormat = (n: number) => new Intl.NumberFormat('fr-FR').format(n);
+// ⚠️ Un seul formateur : `defaultFormat` est appelé à chaque image pendant le
+// défilement (≈ 60 fois par seconde), recréer un Intl.NumberFormat à chaque
+// appel serait du travail jeté sur les téléphones d'entrée de gamme.
+const FR_NUMBER = new Intl.NumberFormat('fr-FR');
+const defaultFormat = (n: number) => FR_NUMBER.format(n);
 
 interface AnimatedCounterProps {
   value: number;
