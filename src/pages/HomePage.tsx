@@ -275,7 +275,8 @@ export default function HomePage() {
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0">
-            <p className="text-micro text-muted-foreground uppercase mb-1">{currentBar.name}</p>
+            {/* ⛔ Nom du bar retiré ici (audit UI/UX, lot 2, 10/10/2026) :
+                l'en-tête l'affiche déjà juste au-dessus. */}
             <h1 className="text-h1 text-foreground">
               Vente <span className="text-brand-primary">rapide</span>
             </h1>

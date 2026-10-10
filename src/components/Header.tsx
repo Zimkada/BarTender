@@ -243,21 +243,10 @@ export function Header({
                 </div>
               </div>
 
-              {/* Ligne 3: Rôle + Nom utilisateur */}
-              <div className="flex items-center justify-center gap-2 mb-1 w-full">
-                <div className="flex items-center gap-1.5">
-                  {getRoleIcon()}
-                  <span className="text-white/90 text-caption font-medium">{getRoleLabel()}</span>
-                </div>
-                {currentSession?.userName && (
-                  <>
-                    <span className="text-white/40 text-caption">•</span>
-                    <span className="text-white/95 text-caption font-medium">
-                      {currentSession.userName}
-                    </span>
-                  </>
-                )}
-              </div>
+              {/* ⛔ Ligne 3 « Rôle • Nom » RETIRÉE (audit UI/UX, lot 2,
+                  10/10/2026) : elle prenait de la hauteur sur TOUS les écrans,
+                  l'écran de vente compris. Elle vit désormais en tête du menu
+                  latéral (MobileSidebar), à un tap. */}
             </>
           )}
         </div>

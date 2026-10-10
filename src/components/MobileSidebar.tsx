@@ -97,6 +97,19 @@ const OPEN_GROUPS_STORAGE_KEY = 'bartender_sidebar_open_groups';
  */
 const DEFAULT_OPEN_GROUP_ID = 'sale';
 
+/**
+ * Libellé du rôle affiché sous le nom, en tête du menu.
+ * 📋 Même correspondance que Header, TrainingTab, RoleSwitcher et
+ * BarActivityJournal : à factoriser (lot 3 de l'audit UI/UX, cohérence).
+ */
+const SIDEBAR_ROLE_LABELS: Partial<Record<UserRole, string>> = {
+  promoteur: 'Promoteur',
+  co_promoteur: 'Co-promoteur',
+  gerant: 'Gérant',
+  serveur: 'Serveur',
+  cuisinier: 'Cuisinier',
+};
+
 export function MobileSidebar({
   isOpen,
   onClose,
@@ -417,9 +430,22 @@ export function MobileSidebar({
                 {currentSession?.role === 'super_admin' && (
                   <img src="/icons/icon-48x48.png" alt="BarTender" className="w-6 h-6 flex-shrink-0 rounded" />
                 )}
-                <h2 className="text-white font-bold text-lg">
-                  {currentSession?.role === 'super_admin' ? 'BarTender Pro Administration' : 'Menu'}
-                </h2>
+                {currentSession?.role === 'super_admin' ? (
+                  <h2 className="text-white font-bold text-lg">BarTender Pro Administration</h2>
+                ) : (
+                  /* ⭐ Qui est connecté, et avec quel rôle (audit UI/UX, lot 2,
+                     10/10/2026). Cette ligne occupait l'en-tête de TOUS les
+                     écrans ; elle vit désormais ici, à un tap, pour rendre de la
+                     hauteur à l'écran de vente. */
+                  <div className="min-w-0">
+                    <h2 className="text-white font-bold text-lg truncate">
+                      {currentSession?.userName || 'Menu'}
+                    </h2>
+                    {currentSession?.role && SIDEBAR_ROLE_LABELS[currentSession.role] && (
+                      <p className="text-white/85 text-caption">{SIDEBAR_ROLE_LABELS[currentSession.role]}</p>
+                    )}
+                  </div>
+                )}
               </div>
               <IconButton onClick={onClose} className="text-white hover:bg-card/20 p-2 rounded-lg transition-colors" aria-label="Fermer le menu">
                 <X size={24} />
