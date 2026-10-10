@@ -157,12 +157,12 @@ export function Cart({
           serverId = resolvedId || undefined;
 
           if (!serverId) {
-            alert(`Serveur inconnu: "${assignedTo}". Veuillez vérifier le mapping.`);
+            toast.error(`Serveur inconnu : « ${assignedTo} ». Vérifiez les noms sur vente dans Équipe.`, { duration: 5000 });
             return false;
           }
         } catch (error) {
           console.error(error);
-          alert('Erreur lors de la résolution du serveur.');
+          toast.error('Impossible de retrouver le serveur choisi. Réessayez.');
           return false;
         }
       }

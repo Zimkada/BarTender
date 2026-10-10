@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Package,
   Search,
@@ -17,6 +18,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
 import { Input } from '../components/ui/Input';
+import { ConfirmModal } from '../components/ui/Modal';
 import { CreateConsignmentForm } from '../components/consignments/CreateConsignmentForm';
 import { ConsignmentCard as PremiumConsignmentCard } from '../components/consignments/ConsignmentCard';
 import { Consignment, User as UserType } from '../types';
@@ -192,11 +194,27 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
     );
   }, [activeConsignments, searchTerm, urgencyFilter]);
 
-  const handleClaim = async (consignment: Consignment) => {
-    if (!window.confirm(
-      `Valider la récupération de ${consignment.quantity} ${consignment.productName} par ${consignment.customerName} ?\n\nLe produit sera déduit du stock des consignes actives.`
-    )) return;
+  // ⭐ Confirmation dans l'app, plus de `window.confirm` (audit UI/UX du
+  // 10/10/2026). L'action en attente vit ici le temps que l'utilisateur tranche.
+  // ⚠️ `open` SÉPARÉ de l'action : à la fermeture, l'action reste en place le
+  // temps du fondu de sortie, sinon titre et texte basculaient pendant l'animation.
+  const [pendingAction, setPendingAction] = useState<
+    { open: boolean; type: 'claim' | 'forfeit'; consignment: Consignment } | null
+  >(null);
 
+  const handleClaim = (consignment: Consignment) => setPendingAction({ open: true, type: 'claim', consignment });
+  const handleForfeit = (consignment: Consignment) => setPendingAction({ open: true, type: 'forfeit', consignment });
+  const closePendingAction = () => setPendingAction(p => (p ? { ...p, open: false } : p));
+
+  const confirmPendingAction = () => {
+    if (!pendingAction?.open) return;
+    const { type, consignment } = pendingAction;
+    closePendingAction();
+    if (type === 'claim') void executeClaim(consignment);
+    else void executeForfeit(consignment);
+  };
+
+  const executeClaim = async (consignment: Consignment) => {
     const pending = stockManager.claimConsignment(consignment.id);
     if (!pending) {
       showError("Erreur lors de la récupération");
@@ -210,11 +228,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
     }
   };
 
-  const handleForfeit = async (consignment: Consignment) => {
-    if (!window.confirm(
-      `Confisquer la consignation de ${consignment.customerName} ?\n\nLe produit sera retiré du stock des consignes et redeviendra immédiatement vendable.`
-    )) return;
-
+  const executeForfeit = async (consignment: Consignment) => {
     const pending = stockManager.forfeitConsignment(consignment.id);
     if (!pending) {
       showError("Erreur lors de la confiscation");
@@ -320,6 +334,29 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             />
           ))}
         </div>
+      )}
+
+      {/* ⚠️ PORTAL : cet onglet est rendu dans un `motion.div` animé en
+          translation, et `Modal` n'a pas de portal. Un ancêtre transformé
+          ferait de l'overlay `fixed` un simple bloc local (même cause que le
+          pavé de quantité de ProductCard, 13/09/2026). */}
+      {createPortal(
+        <ConfirmModal
+          open={!!pendingAction?.open}
+          onClose={closePendingAction}
+          onConfirm={confirmPendingAction}
+          title={pendingAction?.type === 'forfeit' ? 'Confisquer la consignation' : 'Valider la récupération'}
+          description={
+            pendingAction?.type === 'forfeit'
+              ? `Confisquer la consignation de ${pendingAction.consignment.customerName} ? Le produit redeviendra immédiatement vendable.`
+              : pendingAction
+                ? `${pendingAction.consignment.customerName} récupère ${pendingAction.consignment.quantity} ${pendingAction.consignment.productName} ? Le produit sera déduit des consignes actives.`
+                : undefined
+          }
+          confirmText={pendingAction?.type === 'forfeit' ? 'Confisquer' : 'Valider'}
+          variant={pendingAction?.type === 'forfeit' ? 'danger' : 'default'}
+        />,
+        document.body
       )}
     </div>
   );

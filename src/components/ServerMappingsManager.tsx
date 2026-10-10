@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Trash2, Plus, AlertCircle, CheckCircle, Loader, User, MousePointerClick, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
@@ -8,6 +9,7 @@ import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
+import { ConfirmModal } from './ui/Modal';
 import toast from 'react-hot-toast';
 
 /**
@@ -154,10 +156,17 @@ export function ServerMappingsManager({
     }
   };
 
-  const handleRemoveMapping = async (serverName: string) => {
-    if (!confirm(`Supprimer le mapping pour "${serverName}" ?`)) {
-      return;
-    }
+  // ⭐ Confirmation dans l'app, plus de `confirm()` natif (audit UI/UX du 10/10/2026).
+  // ⚠️ `open` SÉPARÉ du nom : le nom reste affiché pendant le fondu de sortie.
+  const [removeDialog, setRemoveDialog] = useState<{ open: boolean; serverName: string }>({ open: false, serverName: '' });
+
+  const handleRemoveMapping = (serverName: string) => setRemoveDialog({ open: true, serverName });
+  const closeRemoveDialog = () => setRemoveDialog(d => ({ ...d, open: false }));
+
+  const confirmRemoveMapping = async () => {
+    if (!removeDialog.open) return;
+    const { serverName } = removeDialog;
+    closeRemoveDialog();
 
     try {
       setSaving(true);
@@ -369,6 +378,22 @@ export function ServerMappingsManager({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ⚠️ PORTAL : ce composant est monté dans des onglets (Équipe,
+          Paramètres) et `Modal` n'a pas de portal. Un ancêtre animé en
+          transform ferait de l'overlay `fixed` un bloc local. */}
+      {createPortal(
+        <ConfirmModal
+          open={removeDialog.open}
+          onClose={closeRemoveDialog}
+          onConfirm={confirmRemoveMapping}
+          title="Supprimer le nom sur vente"
+          description={`Le nom « ${removeDialog.serverName} » ne sera plus proposé à la caisse.`}
+          confirmText="Supprimer"
+          variant="danger"
+        />,
+        document.body
       )}
     </div>
   );

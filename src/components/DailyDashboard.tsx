@@ -21,6 +21,7 @@ import { DashboardSummary } from './dashboard/tabs/DashboardSummary';
 import { DashboardOrders } from './dashboard/tabs/DashboardOrders';
 import { DashboardPerformance } from './dashboard/tabs/DashboardPerformance';
 import { DashboardViewMode } from '../pages/DashboardPage';
+import { ConfirmModal } from './ui/Modal';
 
 interface DailyDashboardProps {
   activeView?: DashboardViewMode;
@@ -160,10 +161,20 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
   // Actions
   const handleValidateSale = (id: string) => currentSession && validateMutation.mutate({ id, validatorId: currentSession.userId });
   const handleRejectSale = (id: string) => currentSession && rejectMutation.mutate({ id, rejectorId: currentSession.userId });
+  // ⭐ Confirmation dans l'app, plus de `confirm()` natif (audit UI/UX du
+  // 10/10/2026) : la boîte du navigateur est hors charte et affiche l'URL.
+  // ⚠️ `open` SÉPARÉ de la liste : à la fermeture, la liste reste en place le
+  // temps du fondu de sortie, sinon le texte affichait « 0 ventes ».
+  const [validateDialog, setValidateDialog] = useState<{ open: boolean; sales: Sale[] }>({ open: false, sales: [] });
   const handleValidateAll = (list: Sale[]) => {
-    if (currentSession && list.length && confirm(`Valider ${list.length} ventes ?`)) {
-      list.forEach(s => validateMutation.mutate({ id: s.id, validatorId: currentSession.userId }));
+    if (currentSession && list.length) setValidateDialog({ open: true, sales: list });
+  };
+  const closeValidateDialog = () => setValidateDialog(d => ({ ...d, open: false }));
+  const confirmValidateAll = () => {
+    if (currentSession && validateDialog.open) {
+      validateDialog.sales.forEach(s => validateMutation.mutate({ id: s.id, validatorId: currentSession.userId }));
     }
+    closeValidateDialog();
   };
 
   const handleRefresh = async () => {
@@ -311,6 +322,15 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
         </motion.div>
       )}
     </AnimatePresence>
+
+      <ConfirmModal
+        open={validateDialog.open}
+        onClose={closeValidateDialog}
+        onConfirm={confirmValidateAll}
+        title="Valider les ventes"
+        description={`Valider les ${validateDialog.sales.length} ventes en attente ?`}
+        confirmText="Valider"
+      />
     </>
   );
 }

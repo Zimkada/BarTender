@@ -18,10 +18,13 @@ export function OtherReasonDialog({
   const [customRefund, setCustomRefund] = useState(false);
   const [customRestock, setCustomRestock] = useState(false);
   const [customNotes, setCustomNotes] = useState("");
+  // ⭐ Erreur affichée SOUS le champ, plus d'`alert()` natif (audit UI/UX du
+  // 10/10/2026) : le message reste visible pendant que l'on corrige.
+  const [notesError, setNotesError] = useState(false);
 
   const handleSubmit = () => {
     if (!customNotes.trim()) {
-      alert('Les notes sont obligatoires pour "Autre raison"');
+      setNotesError(true);
       return;
     }
     onConfirm(customRefund, customRestock, customNotes);
@@ -94,16 +97,31 @@ export function OtherReasonDialog({
                 <Textarea
                   id="customNotes"
                   value={customNotes}
-                  onChange={(e) => setCustomNotes(e.target.value)}
+                  onChange={(e) => {
+                    setCustomNotes(e.target.value);
+                    if (notesError) setNotesError(false);
+                  }}
                   rows={4}
                   placeholder="Expliquez la raison du retour (obligatoire)..."
                   required
+                  aria-invalid={notesError}
+                  aria-describedby={notesError ? "customNotes-error" : undefined}
                 />
+                {notesError && (
+                  <p id="customNotes-error" role="alert" className="mt-1 text-caption text-red-600 dark:text-red-400">
+                    Les notes sont obligatoires pour « Autre raison ».
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">
                 <button
-                  onClick={onCancel}
+                  onClick={() => {
+                    // Le composant reste monté : sans ce reset, l'erreur
+                    // réapparaîtrait à la prochaine ouverture.
+                    setNotesError(false);
+                    onCancel();
+                  }}
                   className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
                 >
                   Annuler

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useOrderDraft } from '../../../hooks/useOrderDraft';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
 import { useViewport } from '../../../hooks/useViewport';
@@ -7,6 +8,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { usePurchaseOrdersMutations } from '../../../hooks/mutations/usePurchaseOrdersMutations';
 import { useFeedback } from '../../../hooks/useFeedback';
 import { Button } from '../../ui/Button';
+import { ConfirmModal } from '../../ui/Modal';
 import {
     Trash2,
     Download,
@@ -39,6 +41,8 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedItems, setExpandedItems] = useState<string[]>([]); // Mobile only
     const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
+    // ⭐ Confirmation « Vider » dans l'app, plus de `window.confirm` (audit UI/UX du 10/10/2026).
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
 
     // Filtrage
     const filteredItems = useMemo(() => {
@@ -193,9 +197,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                 <div className="hidden sm:flex gap-2 w-full sm:w-auto flex-wrap">
                     <Button
                         onClick={() => {
-                            if (window.confirm("Êtes-vous sûr de vouloir vider la commande ?")) {
-                                clearDraft();
-                            }
+                            setShowClearConfirm(true);
                         }}
                         className="flex-1 sm:flex-none gap-2 text-white border-none hover:opacity-90 transition-opacity"
                         style={{ backgroundColor: '#EF4444', backgroundImage: 'none' }}
@@ -485,9 +487,7 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                                     className="w-full text-white border-none hover:opacity-90 transition-opacity"
                                     style={{ backgroundColor: '#EF4444', backgroundImage: 'none' }}
                                     onClick={() => {
-                                        if (window.confirm("Vider la commande ?")) {
-                                            clearDraft();
-                                        }
+                                        setShowClearConfirm(true);
                                     }}
                                 >
                                     <Trash2 className="w-5 h-5" />
@@ -510,6 +510,25 @@ export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
                         </>
                     )}
                 </div>
+            )}
+
+            {/* ⚠️ PORTAL : l'onglet Commandes d'Inventaire est rendu dans un
+                `motion.div` animé, et `Modal` n'a pas de portal (cf. le pavé
+                de quantité de ProductCard, 13/09/2026). */}
+            {createPortal(
+                <ConfirmModal
+                    open={showClearConfirm}
+                    onClose={() => setShowClearConfirm(false)}
+                    onConfirm={() => {
+                        clearDraft();
+                        setShowClearConfirm(false);
+                    }}
+                    title="Vider la commande"
+                    description="Tous les produits de cette commande seront retirés."
+                    confirmText="Vider"
+                    variant="danger"
+                />,
+                document.body
             )}
         </div>
     );

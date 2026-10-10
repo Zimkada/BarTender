@@ -23,6 +23,7 @@ import { fr } from 'date-fns/locale';
 import { PromotionForm } from '../components/promotions/PromotionForm';
 import { PromotionsAnalytics } from '../components/promotions/PromotionsAnalytics';
 import { Button } from '../components/ui/Button';
+import { ConfirmModal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -77,8 +78,17 @@ export default function PromotionsPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cette promotion ?')) return;
+    // ⭐ Confirmation dans l'app, plus de `confirm()` natif (audit UI/UX du 10/10/2026).
+    const [promotionToDelete, setPromotionToDelete] = useState<string | null>(null);
+
+    const handleDelete = (id: string) => setPromotionToDelete(id);
+
+    // Texte de la modale fixe : remettre l'id à null à la fermeture ne fait
+    // rien basculer pendant le fondu (contrairement aux modales à texte variable).
+    const confirmDelete = async () => {
+        const id = promotionToDelete;
+        setPromotionToDelete(null);
+        if (!id) return;
         try {
             await PromotionsService.deletePromotion(id);
             showNotification('success', 'Promotion supprimée');
@@ -361,6 +371,16 @@ export default function PromotionsPage() {
                     />
                 </div>
             )}
+
+            <ConfirmModal
+                open={promotionToDelete !== null}
+                onClose={() => setPromotionToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Supprimer la promotion"
+                description="La promotion sera supprimée définitivement."
+                confirmText="Supprimer"
+                variant="danger"
+            />
         </div>
     );
 }
