@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { ShoppingCart, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +15,8 @@ import { useServerMappings } from '../hooks/useServerMappings';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
 import { useCartLogic } from '../hooks/useCartLogic';
 import { CartDrawer } from './cart/CartDrawer';
+import { SaleSuccessOverlay } from './cart/SaleSuccessOverlay';
+import { buildSaleSuccess, type SaleSuccess, type SaleSuccessContext } from './cart/saleSuccess';
 import { useTickets } from '../hooks/queries/useTickets';
 import { TicketsService } from '../services/supabase/tickets.service';
 import { useStock } from '../context/hooks/useStock';
@@ -31,7 +34,10 @@ export function Cart({
   onToggle,
   hideFloatingButton = false
 }: CartProps) {
-  const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
+  const { setLoading, isLoading, cartCleared } = useFeedback();
+  // ⭐ Moment « vente validée » (lot 2) : remplace les toasts de fin de vente.
+  const [saleSuccess, setSaleSuccess] = useState<SaleSuccess | null>(null);
+  const clearSaleSuccess = useCallback(() => setSaleSuccess(null), []);
   const { isMobile } = useViewport();
   const { pathname } = useLocation();
   const { formatPrice } = useCurrencyFormatter();
@@ -184,6 +190,22 @@ export function Cart({
      */
     let kitchenSent = false;
 
+    /**
+     * ⭐ Instantané pour le moment « vente validée », pris AVANT toute
+     * écriture : `addSale` vide le panier de façon optimiste, et le total
+     * vaudrait 0 une fois la vente partie.
+     */
+    const successContext: SaleSuccessContext = {
+      canValidate: hasPermission('canValidateSales'),
+      hasDrinks: items.length > 0,
+      hasKitchen: kitchenItems.length > 0,
+      // Le bon CHOISI par l'utilisateur, pas le bon implicite de la cuisine.
+      hasTicket: !!ticketId,
+      ticketNumber: ticketsWithSummary.find(t => t.id === ticketId)?.ticketNumber,
+      isOffline,
+      amount: total + kitchenTotal,
+    };
+
     setLoading('checkout', true);
     try {
       /**
@@ -270,7 +292,7 @@ export function Cart({
 
       // ÉTAPE 3 — LES BOISSONS. Rien à vendre si le panier n'en contient pas.
       if (items.length === 0) {
-        showSuccess('🍽️ Commande envoyée en cuisine', 1500);
+        setSaleSuccess(buildSaleSuccess(successContext));
         onToggle();
         return true;
       }
@@ -297,7 +319,7 @@ export function Cart({
         // additions la ou le §16.7 en exige UNE.
         ticketId: effectiveTicketId
       });
-      showSuccess('🎉 Vente validée !', 1000);
+      setSaleSuccess(buildSaleSuccess(successContext));
       onToggle();
       return true;
     } catch (e) {
@@ -454,6 +476,8 @@ export function Cart({
         kitchenTotal={kitchenTotal}
         maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity}
       />
+
+      <SaleSuccessOverlay success={saleSuccess} onDone={clearSaleSuccess} />
     </>
   );
 }

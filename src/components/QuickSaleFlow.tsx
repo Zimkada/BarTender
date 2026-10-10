@@ -36,6 +36,9 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Search, Zap, X, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
+import { SaleSuccessOverlay } from './cart/SaleSuccessOverlay';
+import { buildSaleSuccess, type SaleSuccess, type SaleSuccessContext } from './cart/saleSuccess';
+import { networkManager } from '../services/NetworkManager';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useBarContext } from '../context/BarContext';
@@ -118,6 +121,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const [paymentMethodDesktop, setPaymentMethodDesktop] = useState<PaymentMethod>('cash');
   const [selectedBonDesktop, setSelectedBonDesktop] = useState('');
   const [showSuccessDesktop, setShowSuccessDesktop] = useState(false);
+  // ⭐ Moment « vente validée » (lot 2). Sur mobile, il n'y avait AUCUNE
+  // confirmation : le tiroir se fermait simplement au bout d'une seconde.
+  const [saleSuccess, setSaleSuccess] = useState<SaleSuccess | null>(null);
+  const clearSaleSuccess = useCallback(() => setSaleSuccess(null), []);
 
   // --- TICKETS (BONS) ---
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
@@ -246,6 +253,18 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       }
     }
 
+    // ⭐ Instantané AVANT la vente : le panier sera vidé ensuite.
+    // Pas de cuisine ici : la vente rapide ne vend que des boissons.
+    const successContext: SaleSuccessContext = {
+      canValidate: hasPermission('canValidateSales'),
+      hasDrinks: true,
+      hasKitchen: false,
+      hasTicket: !!ticketId,
+      ticketNumber: ticketsWithSummary.find(t => t.id === ticketId)?.ticketNumber,
+      isOffline: networkManager.getDecision().shouldBlock,
+      amount: total,
+    };
+
     try {
       // 2. Map items to SaleItem format (using calculated values from hook)
       const saleItems = items.map(item => ({
@@ -277,6 +296,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       });
 
       // 4. Success & Reset
+      setSaleSuccess(buildSaleSuccess(successContext));
       setShowSuccessDesktop(true);
       setTimeout(() => {
         setShowSuccessDesktop(false);
@@ -297,7 +317,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       toast.error(error instanceof Error ? error.message : 'Erreur vente');
       return false; // ⭐ Échec — CartDrawer conserve server/bon pour permettre le retry
     }
-  }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile, hasPermission]);
+  }, [cart, items, total, ticketsWithSummary, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile, hasPermission]);
 
 
   // --- HELPERS ---
@@ -397,6 +417,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   }
 
   return (
+    <>
+    <SaleSuccessOverlay success={saleSuccess} onDone={clearSaleSuccess} />
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -625,5 +647,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         </motion.div>
       )}
     </AnimatePresence>
+    </>
   );
 }
