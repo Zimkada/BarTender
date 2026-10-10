@@ -4,7 +4,6 @@ import { Package, Plus, AlertTriangle, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { useFeedback } from '../hooks/useFeedback';
 import { ProductCardImage } from './ProductCardImage';
 import { QuantityPad } from './common/QuantityPad';
 
@@ -39,8 +38,13 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
   const isMaxReached = quantityInCart >= displayStock && !isStockEmpty;
 
   const [showFeedback, setShowFeedback] = useState(false);
-  const { itemAddedToCart } = useFeedback();
 
+  /**
+   * ⭐ Plus de toast « X ajouté au panier » (audit UI/UX du 10/10/2026).
+   * Un toast par tap s'empilait en haut de l'écran mobile pendant le service
+   * et masquait l'en-tête. La confirmation vit désormais DANS la carte :
+   * coche + vibration au tap, et pastille « ×N » qui garde la quantité.
+   */
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -53,7 +57,6 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
     setTimeout(() => setShowFeedback(false), 800);
 
     onAddToCart(product);
-    itemAddedToCart(product.name);
   };
 
   const getStockStatus = () => {
@@ -162,6 +165,25 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
           )}
         </div>
 
+        {/* ⭐ Quantité déjà au panier : le serveur voit où en est la commande
+            sans ouvrir le panier. « × » pour ne pas la confondre avec le stock
+            (pastille verte en haut à droite).
+            ⚠️ `key` = quantité : chaque ajout remonte la pastille, d'où un
+            léger rebond (transform seul, coût GPU négligeable ; neutralisé par
+            MotionConfig si l'appareil demande moins d'animations). */}
+        {quantityInCart > 0 && (
+          <motion.span
+            key={quantityInCart}
+            initial={{ scale: 1.35 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+            aria-label={`${quantityInCart} au panier`}
+            className="absolute bottom-2 left-2 z-10 rounded-full bg-brand-primary px-2 py-0.5 text-caption font-bold text-white shadow-sm tabular-nums"
+          >
+            ×{quantityInCart}
+          </motion.span>
+        )}
+
         {/* Success overlay */}
         <AnimatePresence>
           {showFeedback && (
@@ -257,7 +279,6 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
             onPick={(quantity) => {
               onAddToCart(product, quantity);
               if (navigator.vibrate) navigator.vibrate(10);
-              itemAddedToCart(product.name);
             }}
           />
         </div>,

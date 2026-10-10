@@ -47,7 +47,6 @@ export const useFeedback = () => {
 
     // Actions spécifiques au bar
     cartCleared: () => showInfo('🧹 Panier vidé'),
-    itemAddedToCart: (product: string) => showSuccess(`➕ ${product} ajouté au panier`, 1000),
   };
 
   return {
