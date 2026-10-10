@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'react-hot-toast';
+import { MotionConfig } from 'framer-motion';
 
 // Monitoring & Error Tracking
 import { initMonitoring, captureError } from './lib/monitoring';
@@ -82,6 +83,11 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    {/* ⭐ « Réduire les animations » du système respecté par TOUTE l'app.
+        La règle CSS d'index.css ne couvre que les animations CSS : Framer
+        Motion anime en JS et l'ignorait. `user` coupe transforms et layout,
+        garde les fondus (utiles pour comprendre ce qui apparaît). */}
+    <MotionConfig reducedMotion="user">
     <QueryClientProvider client={queryClient}>
       {/* ColorModeProvider : axe light/dark/system, indépendant du theme brand per-bar.
           Placé au plus haut pour que toute l'UI (Toaster, ErrorFallback inclus) puisse y accéder.
@@ -121,5 +127,6 @@ createRoot(document.getElementById('root')!).render(
       </ColorModeProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}
     </QueryClientProvider>
+    </MotionConfig>
   </StrictMode>
 );
