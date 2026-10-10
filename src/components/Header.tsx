@@ -18,7 +18,7 @@ import {
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
-// import { useCurrencyFormatter } from '../hooks/useBeninCurrency'; // Unused
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { BarSelector } from './BarSelector';
 // Comptoirs multiples (04/10/2026) : ne rend rien si le bar n'a qu'un comptoir.
 import { CounterSelector } from './CounterSelector';
@@ -66,7 +66,9 @@ export function Header({
   // onSwitchToServer, // REMOVED
   unreadNotificationsCount = 0,
 }: HeaderProps) {
-  // const { formatPrice } = useCurrencyFormatter(); // Unused
+  // ⭐ Même mise en forme que le reste de l'app pour « Ventes jour » (lot 2) :
+  // le compteur affichait « 2380 FCFA » au lieu de « 2 380 FCFA ».
+  const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout, hasPermission } = useAuth();
   const { currentBar, userBars } = useBarContext();
   // 🛡️ Le sélecteur multi-bar suit la permission, jamais le rôle brut
@@ -236,7 +238,7 @@ export function Header({
                   <AnimatedCounter
                     value={todayTotal}
                     className="text-white text-body-sm font-semibold tabular-nums"
-                    suffix=" FCFA"
+                    format={formatPrice}
                   />
                 </div>
               </div>
@@ -351,7 +353,7 @@ export function Header({
                 <AnimatedCounter
                   value={todayTotal}
                   className="text-white text-base xl:text-2xl font-black tracking-tighter drop-shadow-md"
-                  suffix=" FCFA"
+                  format={formatPrice}
                 />
               </div>
             )}

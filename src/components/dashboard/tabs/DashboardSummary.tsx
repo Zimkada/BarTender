@@ -106,8 +106,10 @@ export function DashboardSummary({
                         </div>
                         <span className="text-micro text-muted-foreground">Revenus</span>
                     </div>
-                    <AnimatedCounter value={todayTotal} className="text-h2 font-semibold text-foreground tabular-nums" />
-                    <p className="text-caption text-muted-foreground truncate mt-1 tabular-nums">{formatPrice(todayTotal)} net</p>
+                    {/* ⭐ Le montant UNE fois, formaté (audit UI/UX du 10/10/2026) :
+                        la carte affichait « 2380 » puis « 2 380 FCFA net ». */}
+                    <AnimatedCounter value={todayTotal} format={formatPrice} className="text-h2 font-semibold text-foreground tabular-nums" />
+                    <p className="text-caption text-muted-foreground truncate mt-1">Chiffre d'affaires net</p>
                 </div>
 
                 <div className="bg-card rounded-2xl p-4 shadow-sm border border-border hover:shadow-md transition-shadow">
