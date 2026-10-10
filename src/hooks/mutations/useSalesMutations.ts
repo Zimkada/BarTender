@@ -374,9 +374,13 @@ export const useSalesMutations = (barId: string, options?: {
             console.log('[useSalesMutations] onSuccess called', sale.id);
             const isOptimistic = sale.id?.startsWith('sync_') || Boolean(sale.isOptimistic);
 
-            if (!isOptimistic) {
-                toast.success('Vente enregistrée');
-            }
+            // ⛔ Plus de toast « Vente enregistrée » ici (audit UI/UX, lot 2,
+            // 10/10/2026, constaté lors d'une vente de test sur BAR-TEST) : il
+            // DOUBLAIT la confirmation de chaque appelant, qui a la sienne
+            // (moment « vente validée » du panier et de la vente rapide,
+            // « Échange produit effectué » des retours).
+            // ⚠️ Les toasts hors ligne de mutationFn restent : ils portent une
+            // information que les appelants n'ont pas.
 
             if (broadcastService.isSupported() && !isOptimistic) {
                 broadcastService.broadcast({ event: 'INSERT', table: 'sales', barId, data: sale });
