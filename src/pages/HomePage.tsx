@@ -268,7 +268,9 @@ export default function HomePage() {
 
   // 3. Le reste du rendu du composant
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-4">
+    // ⚠️ pb-24 sur mobile : réserve la place de la barre panier collante
+    // (Cart.tsx), sinon elle masquerait la dernière rangée de produits.
+    <div className="max-w-7xl mx-auto p-4 pb-24 md:pb-4 space-y-4">
       {/* Header — typographie 2026, hiérarchie claire */}
       <div className="space-y-4">
         <div className="flex items-end justify-between gap-4">

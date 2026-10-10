@@ -1,5 +1,8 @@
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
@@ -30,6 +33,8 @@ export function Cart({
 }: CartProps) {
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const { isMobile } = useViewport();
+  const { pathname } = useLocation();
+  const { formatPrice } = useCurrencyFormatter();
   const { currentBar, isSimplifiedMode } = useBarContext();
   // Comptoir actif : sert a filtrer les serveurs proposes a la caisse.
   const { currentCounterId } = useCounterContext();
@@ -328,11 +333,66 @@ export function Cart({
   const cannotSell = !!currentSession && !hasPermission('canSell');
   const shouldHide = hideFloatingButton || cannotSell || (isSimplifiedMode && isServerRole);
 
+  /**
+   * ⭐ BARRE PANIER COLLANTE (audit UI/UX, lot 2, 10/10/2026).
+   *
+   * Sur l'écran de vente mobile, le total reste sous le pouce pendant toute la
+   * prise de commande, au lieu d'un bouton rond sans montant.
+   * ⚠️ Écran de vente (`/`) UNIQUEMENT : c'est le seul où l'on remplit le
+   * panier, et ailleurs d'autres barres sont déjà fixées en bas (commande
+   * fournisseur, paramètres...). Une barre pleine largeur y ferait collision ;
+   * le bouton rond historique y reste.
+   * ⚠️ Masquée quand le panier est vide : elle n'aurait rien à dire.
+   */
+  const totalUnits = totalItems + kitchenItemCount;
+  // ⚠️ Même total que le pied du panier : boissons ET plats (cf. CartDrawer).
+  const displayTotal = total + kitchenTotal;
+  const showStickyBar = isMobile && pathname === '/' && totalUnits > 0;
+
   // --- RENDER ---
   return (
     <>
-      {/* FLOATING BUTTON */}
-      {!shouldHide && (
+      <AnimatePresence>
+        {!shouldHide && showStickyBar && (
+          <motion.button
+            key="cart-sticky-bar"
+            type="button"
+            onClick={onToggle}
+            initial={{ y: 96, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 96, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+            className="fixed left-3 right-3 bottom-[4.5rem] z-40 flex items-center gap-3 rounded-2xl px-4 py-3 text-white shadow-lg active:scale-[0.98] transition-transform"
+            style={{ background: 'var(--brand-gradient)' }}
+            aria-label={`Voir le panier : ${totalUnits} ${totalUnits > 1 ? 'articles' : 'article'}, ${formatPrice(displayTotal)}`}
+          >
+            <ShoppingCart size={22} strokeWidth={2.5} className="flex-shrink-0" />
+            <span className="flex-1 min-w-0 text-left leading-tight">
+              <span className="block text-micro text-white/85">
+                {totalUnits} {totalUnits > 1 ? 'articles' : 'article'}
+              </span>
+              {/* ⭐ Rebond du total à chaque ajout : il confirme que l'ajout a
+                  compté, sans toast. `key` = montant, transform seul. */}
+              <motion.span
+                key={displayTotal}
+                initial={{ scale: 1.08 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.2 }}
+                className="block origin-left text-body font-bold tabular-nums whitespace-nowrap"
+              >
+                {formatPrice(displayTotal)}
+              </motion.span>
+            </span>
+            <span className="flex flex-shrink-0 items-center gap-0.5 text-body-sm font-semibold">
+              Voir
+              <ChevronRight size={18} strokeWidth={2.5} />
+            </span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING BUTTON : hors de l'écran de vente mobile (cf. barre collante) */}
+      {!shouldHide && !(isMobile && pathname === '/') && (
         <button
           onClick={onToggle}
           className={`
