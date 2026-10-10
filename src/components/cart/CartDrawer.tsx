@@ -288,7 +288,10 @@ export function CartDrawer({
                         </div>
 
                         {/* --- CONTENT (Scrollable) --- */}
-                        <div className="flex-1 overflow-y-auto px-6 py-2 scroll-smooth">
+                        {/* ⚠️ px-4 (et non px-6) : les boutons de quantité font
+                            désormais 40px, le nom du produit a besoin de cette
+                            largeur pour rester lisible sur un écran de 360px. */}
+                        <div className="flex-1 overflow-y-auto px-4 py-2 scroll-smooth">
                             <CartShared
                                 items={items}
                                 onUpdateQuantity={onUpdateQuantity}

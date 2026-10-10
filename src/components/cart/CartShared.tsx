@@ -43,12 +43,15 @@ function QuantityControl({ quantity, maxQty, isMaxReached, onUpdateQuantity, onR
     const cancel = () => setIsEditing(false);
 
     return (
-        <div className="flex items-center bg-muted rounded-lg p-0.5 gap-1.5 border border-border ml-auto">
+        // ⭐ Cibles de 40px (contre 24px avant, audit UI/UX du 10/10/2026) :
+        // on ajuste une quantité d'un doigt, debout, dans un bar sombre.
+        <div className="flex items-center bg-muted rounded-xl p-0.5 gap-1 border border-border ml-auto flex-shrink-0">
             <button
                 onClick={() => onUpdateQuantity(quantity - 1)}
-                className="w-6 h-6 rounded-md bg-card border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
+                className="w-10 h-10 rounded-lg bg-card border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
+                aria-label="Diminuer la quantité"
             >
-                <Minus size={12} strokeWidth={3} />
+                <Minus size={16} strokeWidth={3} />
             </button>
 
             {isEditing ? (
@@ -64,14 +67,14 @@ function QuantityControl({ quantity, maxQty, isMaxReached, onUpdateQuantity, onR
                         if (e.key === 'Enter') { e.preventDefault(); commit(); }
                         else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
                     }}
-                    className={`text-[11px] font-black font-mono w-10 text-center bg-card border border-brand-primary rounded outline-none ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}
+                    className={`text-body-sm font-bold tabular-nums w-9 h-10 text-center bg-card border border-brand-primary rounded-lg outline-none ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}
                     aria-label="Quantité"
                 />
             ) : (
                 <button
                     type="button"
                     onClick={startEdit}
-                    className={`text-[11px] font-black font-mono w-10 text-center ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}
+                    className={`text-body-sm font-bold tabular-nums w-9 h-10 text-center ${isMaxReached ? 'text-orange-600' : 'text-foreground'}`}
                     aria-label={`Modifier la quantité (actuellement ${quantity})`}
                 >
                     {quantity}
@@ -81,13 +84,14 @@ function QuantityControl({ quantity, maxQty, isMaxReached, onUpdateQuantity, onR
             <button
                 onClick={() => !isMaxReached && onUpdateQuantity(quantity + 1)}
                 disabled={isMaxReached}
-                className={`w-6 h-6 rounded-md flex items-center justify-center text-white transition-all shadow-sm ${isMaxReached
+                className={`w-10 h-10 rounded-lg flex items-center justify-center text-white transition-all shadow-sm ${isMaxReached
                     ? 'bg-gray-300 cursor-not-allowed opacity-50'
                     : 'bg-brand-primary active:scale-90'
                     }`}
                 style={{ background: isMaxReached ? undefined : 'var(--brand-gradient)' }}
+                aria-label="Augmenter la quantité"
             >
-                <Plus size={12} strokeWidth={3} />
+                <Plus size={16} strokeWidth={3} />
             </button>
         </div>
     );
@@ -148,18 +152,21 @@ export function CartShared({
 
                                     {/* 2. Info (Middle) */}
                                     <div className="flex-1 min-w-0 pr-1">
-                                        <h3 className="font-black text-[10px] text-foreground uppercase tracking-tight truncate leading-tight">
+                                        {/* ⭐ Tailles relevées (audit UI/UX du 10/10/2026) :
+                                            le prix était en 8px, le volume en 7px, « Max » en 6px.
+                                            Minimum désormais `text-micro` (11px), celui de l'échelle. */}
+                                        <h3 className="font-bold text-caption text-foreground truncate leading-tight">
                                             {item.product.name}
                                         </h3>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-[8px] font-black text-foreground font-mono leading-none">
+                                        <div className="flex items-center gap-1.5 mt-0.5">
+                                            <span className="text-caption font-semibold text-foreground tabular-nums leading-none">
                                                 {formatPrice(item.total_price)}
                                             </span>
-                                            <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest leading-none">
+                                            <span className="text-micro text-muted-foreground uppercase leading-none">
                                                 {item.product.volume}
                                             </span>
                                             {isMaxReached && (
-                                                <span className="bg-orange-100 text-orange-600 text-[6px] font-bold px-1 rounded uppercase">
+                                                <span className="bg-orange-100 text-orange-600 text-micro font-bold px-1 rounded uppercase">
                                                     Max
                                                 </span>
                                             )}
@@ -198,7 +205,7 @@ export function CartShared({
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-emerald-50 rounded-lg p-1.5 border border-emerald-100 flex items-center justify-between"
                     >
-                        <span className="font-black text-[8px] text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+                        <span className="font-black text-micro text-emerald-700 uppercase tracking-wider flex items-center gap-1">
                             <Tag size={10} />
                             ÉCO
                         </span>

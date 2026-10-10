@@ -138,7 +138,7 @@ export function CartFooter({
                                     {selectedServerLabel || 'Sélectionner un serveur...'}
                                 </span>
                                 {selectedServer && (
-                                    <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">
+                                    <span className="text-micro text-muted-foreground font-medium uppercase tracking-wider">
                                         Serveur actif
                                     </span>
                                 )}
@@ -179,7 +179,7 @@ export function CartFooter({
                                 <span className="text-xs font-black text-brand-primary uppercase truncate leading-tight">
                                     {selectedBonLabel || 'Bon sélectionné'}
                                 </span>
-                                <span className="text-[9px] text-brand-primary font-bold uppercase tracking-wider">
+                                <span className="text-micro text-brand-primary font-bold uppercase tracking-wider">
                                     Paiement différé actif
                                 </span>
                             </div>
@@ -205,12 +205,12 @@ export function CartFooter({
                                 <span className="text-[11px] font-black uppercase text-brand-primary group-hover:text-brand-dark transition-colors">
                                     Mettre sur un bon
                                 </span>
-                                <span className="text-[9px] text-brand-primary/80 dark:text-white/70 font-medium">
+                                <span className="text-micro text-brand-primary/80 dark:text-white/70 font-medium">
                                     Différer le paiement
                                 </span>
                             </div>
                         </div>
-                        <div className="bg-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-white rounded-lg px-2 py-1 text-[9px] font-black transition-all">
+                        <div className="bg-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-white rounded-lg px-2 py-1 text-micro font-black transition-all">
                             {bonOptions.length - 1} en cours
                         </div>
                     </button>
@@ -321,7 +321,7 @@ export function CartFooter({
 
                                         <div className="space-y-2">
                                             <div>
-                                                <label className="block text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
+                                                <label className="block text-micro font-black text-muted-foreground uppercase tracking-widest mb-1">
                                                     N° Table (Optionnel)
                                                 </label>
                                                 <input
@@ -335,7 +335,7 @@ export function CartFooter({
                                             </div>
 
                                             <div>
-                                                <label className="block text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">
+                                                <label className="block text-micro font-black text-muted-foreground uppercase tracking-widest mb-1">
                                                     Client (Optionnel)
                                                 </label>
                                                 <input
@@ -465,7 +465,7 @@ export function CartFooter({
 
                 {/* Total Display (Right) */}
                 <div className="text-right leading-none flex-shrink-0 pt-1">
-                    <span className="text-[7px] font-black text-muted-foreground uppercase tracking-widest block mb-0.5">
+                    <span className="text-micro font-black text-muted-foreground uppercase tracking-widest block mb-0.5">
                         {isBonMode ? 'Montant à ajouter' : 'NET À PAYER'}
                     </span>
                     <span className="text-2xl font-black text-brand-primary font-mono">
